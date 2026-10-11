@@ -44,6 +44,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openminis.app.R
@@ -65,6 +66,7 @@ fun IdeasTab(
     onSendToChat: (String) -> Unit,
     onCreateRoutine: (Idea) -> Unit,
     onStartGoal: (GoalCategory, String) -> Unit,
+    bottomInset: Dp = 0.dp,
 ) {
     val context = LocalContext.current
     val sections = remember { Ideas.load(context) }
@@ -72,7 +74,8 @@ fun IdeasTab(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(ChatColors.background),
-        contentPadding = PaddingValues(bottom = 24.dp),
+        // The last row ends above the floating pill, which overlays the page.
+        contentPadding = PaddingValues(bottom = 24.dp + bottomInset),
     ) {
         item(key = "header") { header() }
         item(key = "title") { io.github.nanomuse.ui.home.MusePageTitle(stringResource(R.string.nm_ideas_title)) }

@@ -24,7 +24,7 @@ nanomuse serve --port 9000 --no-qr
   <img src="screenshots/web/library.png" width="24%" alt="Library: pages with live previews">
 </p>
 
-The look follows Meta Muse: near-white and near-black surfaces, one blue accent, grey bubbles for the agent and light blue for you, a small dragon at the top of the chat that changes pose with what the agent is doing, and a floating frosted-glass pill with five icons. The font is [Figtree](https://github.com/erikdkennedy/figtree) (OFL), bundled. The study behind these choices is in [design.md](design.md).
+The look follows Meta Muse: near-white and near-black surfaces, one blue accent, grey bubbles for the agent and light blue for you (on the phone, white on the black canvas and black on the white one, see [android.md](android.md)), a small dragon at the top of the chat that changes pose with what the agent is doing, and a floating frosted-glass pill with five icons. The font is [Figtree](https://github.com/erikdkennedy/figtree) (OFL), bundled. The study behind these choices is in [design.md](design.md).
 
 ## Getting it onto your phone
 
@@ -50,7 +50,7 @@ On a fresh data directory the app opens with setup instead of the chat. First th
 
 ## What is on the screen
 
-Five tabs (Chat, Feed, Ideas, Goals, Library) and a menu behind the avatar. At phone width the five sit in a rounded pill that floats 12 px above the bottom edge, icons only and no labels, the same bar the Android app draws: the pill is translucent over a blur of what is behind it and has a hairline edge; the current tab shows its filled glyph on a soft blue indicator, the others stay outlined in grey. The screens and the chat's composer keep clear of it. On a wide window, and in the desktop app at any width, a sidebar takes the bar's place.
+Five tabs (Chat, Feed, Ideas, Goals, Library) and a menu behind the avatar. At phone width the five sit in a rounded pill that floats 12 px above the bottom edge and is as wide as the chat's composer (420 px at most, centred on a wider screen), icons only and no labels, the same bar the Android app draws: the pill is translucent over a blur of what is behind it and has a hairline edge; the current tab shows its filled glyph on a soft blue indicator, the others stay outlined in grey. The screens and the chat's composer keep clear of it. On a wide window, and in the desktop app at any width, a sidebar takes the bar's place.
 
 **Chat.** One main conversation plus side chats (the *Chats* button top right). Messages stream in as they are generated. Tool calls appear as chips: tap one for the arguments and output. Files the agent writes show up as artifact cards that open in the app. When Sentinel needs a decision an approval card appears; when the agent needs information a question card appears. The composer stays open while the agent works; anything you send is folded into the running turn before the next model call.
 
