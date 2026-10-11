@@ -33,8 +33,8 @@
 - id: ui-brand-official
   disabled: true
 
-# The left column is ours: an icon rail (face, Chats, Search, Schedules,
-# Devices, a corner menu) beside the harness's own chats browser. The stock
+# The left column is ours: an icon rail (Chats, Search, Feed, Ideas, Goals,
+# Library, Devices, the hamburger) beside the harness's own chats browser. The stock
 # sidebar steps aside; our occupant declares the same seven child seats, so the
 # brand mark, panel glyphs, workspace browser, settings shell and footer
 # actions all mount exactly as before.

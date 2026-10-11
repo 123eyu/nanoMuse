@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import { useT } from "../i18n";
 import { useFocusTrap } from "./useFocusTrap";
 
@@ -20,6 +20,8 @@ export function Sheet({
 }) {
   const t = useT();
   const panel = useRef<HTMLDivElement>(null);
+  // the title names the dialog for a screen reader when there is one
+  const titleId = useId();
   useFocusTrap(panel, open);
   useEffect(() => {
     if (!open) return;
@@ -36,11 +38,12 @@ export function Sheet({
         ref={panel}
         role="dialog"
         aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
         className="sheet-in relative w-full sm:max-w-lg max-h-[92dvh] flex flex-col bg-surface rounded-t-3xl sm:rounded-3xl shadow-2xl border border-border"
       >
         <div className="flex items-center gap-3 px-5 pt-4 pb-2">
           <div className="sm:hidden absolute left-1/2 -translate-x-1/2 top-2 h-1 w-10 rounded-full bg-border" />
-          <div className="flex-1 font-semibold text-[17px] mt-1">{title}</div>
+          <div id={titleId} className="flex-1 font-semibold text-[17px] mt-1">{title}</div>
           <button
             type="button"
             onClick={onClose}

@@ -243,8 +243,9 @@ milliseconds. Unit tests: `ProviderReachTest`, `OwnProviderProxyTest`.
 The relay keeps an account id, a masked identifier, usage counts and the agent's name and
 look (so your devices match), and message content only as conversation sync, on by default
 when signed in and switched off under *Data controls* ([privacy.md](privacy.md),
-[sync.md](sync.md)); the first conversation says so in its fourth line. On the phone, API keys, the account key and Reach
-pairing tokens are in `EncryptedSharedPreferences`; since 0.1.40 the app takes no part in
+[sync.md](sync.md)); the first conversation says so in its fourth line. On the phone, API keys and the account key
+are in `EncryptedSharedPreferences` (the proxy password of *Settings → Network* is in plain
+preferences, on this phone only); since 0.1.40 the app takes no part in
 the device backup at all (`allowBackup="false"`: chats, memory and keys never go to Google,
 a reinstall starts empty and the account's chats come back through sync; the two rule files
 under `res/xml/` are kept for the day the switch is turned on again). Hands needs the accessibility service
@@ -319,7 +320,7 @@ like the Python package's version does.
 | `sync/` | Conversation sync (contracts C7–C10): `SyncEngine` (what goes up and comes down; `owner` per mapping, the account's only), `ConversationSync` (when; `hidden`: the chats of another account, left out of `ChatRepository.observeSessions()`), `LocalChats`, the Room store `nanomuse_sync.db` (with the `session_owners` table of C12) |
 | `account/` | Contract C12 (0.1.40, [sync.md](sync.md)): `AccountScope` (the rules: whose chat a session is, the account's key, what the lists leave out, what a refused key keeps (`keepOnRefusedKey`: everything, unless the relay says `account_deleted`); unit-tested), `AccountData` (applies them: every chat an owner row, `leave` puts the account's chats, memory, feed, goals, routines, face and preferences aside or deletes them, `enter` brings an account's back). The Library tab follows the same rule: it lists the workspaces of the sessions the chat list shows, so another account's files stay off a shared phone (`library/LibraryIndex.shows`, unit-tested) |
 | `hub/` | `Hub` (state, device identity, settings), `HubClient` (the socket with backoff; a refused key is retried once a minute and shown as such, a replaced connection waits 30 s, a hub the operator paused waits two minutes and is shown as such), `HubService` (the foreground service), `HubActions` (what other devices may ask this phone; `stop {call | conversation}` ends a task the asking device started here, bookkept in `HubTasks`, unit-tested), `HubErrors` (failures in words) |
-| `reach/` | `Computers` (paired computers, tokens in the encrypted store), the offload handler that sends work to a computer |
+| `reach/` | `Computers` (the account's devices as the hub lists them, and the calls to them; no pairing and no tokens of its own since 0.1.24), the offload handler that sends work to a computer |
 | `models/` | Settings → Models behind the screens: `ModelSlots` (the four slots, what each is set to and where that is kept, the groups a picker shows, `followPick` for the chat default, `applyProvider` for the *Use it for* card), `SlotOrder` (the resolution order and the catalogue default, pure Kotlin, unit-tested), `PickerList` (the picker's eight-row groups, their order and the search filter, pure Kotlin, unit-tested) |
 | `ui/models/` | The Models page, the picker behind each row, the *Use it for* card (`minis://settings/models`) |
 | `chat/CloudRetry.kt` | *Use nanoMuse Cloud this time*: whether the card offers it and the one-turn provider `ChatViewModel.retryLast` uses |

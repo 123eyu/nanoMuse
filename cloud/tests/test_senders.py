@@ -115,6 +115,24 @@ def test_make_sender_both_routes_phones_to_sms_and_addresses_to_mail(monkeypatch
     assert mailed == [("dev-a@example.com", "654321")] and len(fake.urls) == 1
 
 
+def test_the_code_mail_states_the_lifetime_in_whole_minutes_like_the_sms(monkeypatch):
+    """Both templates say how long the code is good for in minutes, rounded the same way:
+    CODE_TTL_S=600 reads as ten, and a lifetime under a minute still reads as one, never
+    as zero. The mail is composed with the settings' figure, in both languages."""
+    sent = []
+    monkeypatch.setattr(senders, "smtp_send", lambda s, msg: sent.append(msg))
+    mail = SmtpSender(aliyun_settings(sender="smtp", smtp_host="smtp.test", smtp_from="nanoMuse <no-reply@test>"))
+    mail.send(parse("dev-a@example.com"), "482913")
+    body = sent[-1].get_body(("plain",)).get_content()
+    assert "482913" in body and "10 分钟内有效" in body and "expires in 10 minutes" in body
+    short = SmtpSender(aliyun_settings(sender="smtp", smtp_host="smtp.test", smtp_from="nanoMuse <no-reply@test>", code_ttl_s=30))
+    short.send(parse("dev-a@example.com"), "482913")
+    body = sent[-1].get_body(("plain",)).get_content()
+    assert "1 分钟内有效" in body and "expires in 1 minutes" in body and "0 分钟" not in body
+    sms = AliyunSmsSender(aliyun_settings(code_ttl_s=30))
+    assert json.loads(sms.params(parse("13800138000"), "482913")["TemplateParam"]) == {"code": "482913", "min": "1"}
+
+
 def test_unknown_api_and_missing_settings_are_refused_at_startup():
     with pytest.raises(ValueError):
         AliyunSmsSender(aliyun_settings(aliyun_sms_api="carrier-pigeon"))

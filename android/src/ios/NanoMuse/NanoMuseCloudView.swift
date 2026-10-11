@@ -479,9 +479,10 @@ struct NanoMuseCloudRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(NanoMuseCloud.label)
                 if let account {
-                    let hint = account.hint
-                    let left = account.fraction.formatted(.percent.precision(.fractionLength(0)))
-                    Text(String(format: AppLocalized("%@ · %@ of the allowance left"), hint, left))
+                    // Who is signed in, and what is left by the same rule as the Settings card: the
+                    // yuan on a relay that prices in money, tokens on an older one, nothing to count
+                    // on a relay without a ceiling (where a token fraction would read 0 percent).
+                    Text(account.leftLine.map { "\(account.hint) · \($0)" } ?? account.hint)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else if NanoMuseCloud.isSignedIn {

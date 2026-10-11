@@ -208,7 +208,7 @@ class Files(BaseTool):
                         )
                         break
                 return ToolResult(output=("\n".join(matches) or "(no matches)") + note)
-            return ToolResult.fail(f"unknown action '{action}' – use read/write/append/list/search")
+            return ToolResult.fail(f"unknown action '{action}'; use read/write/append/list/search")
         except (PermissionError, FileNotFoundError, IsADirectoryError, OSError) as exc:
             return ToolResult.fail(str(exc))
 

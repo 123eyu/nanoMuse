@@ -1,0 +1,14 @@
+# What the image build never needs. The Dockerfile copies pyproject.toml, README.md and
+# nanomuse_cloud/ only, but without this file the whole directory, the database under
+# data/ and .env included, is sent to the Docker daemon as the build context.
+.env
+*.env
+data/
+tests/
+deploy/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/

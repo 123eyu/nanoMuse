@@ -270,7 +270,7 @@ DeepSeek Harness 是 MIT 许可；它是依赖，不是内嵌的拷贝，它的�
    准备一个私有 Host、一个主运行时和硬件令牌签名，本身就是一个项目），而是一个小小的 Electron App，
    做那个 App 核心上做的事：用自己的二进制以 Node 模式把 harness 的 Host 作为子进程启动
    （`ELECTRON_RUN_AS_NODE`、`--expose-internals`；harness 的 `require-builtin` 原生扩展带着它构建时
-   所针对的 Electron 的指纹，所以外壳钉在 `44.0.0`），dsh 是构建时 npm 装到 `resources/dsh` 下的，
+   所针对的 Electron 的指纹，所以外壳钉死一个确切的 Electron 版本），dsh 是构建时 npm 装到 `resources/dsh` 下的，
    bundle 也一起；用的是 `~/.nanomuse/desktop` 下它自己的 profile，里面写明 bundle，并链接到 App 内的
    那份拷贝。负责手的运行时以 PyInstaller 构建随行，`NANOMUSE_PY` 把预设指向它。`desktop-app.yml`
    在每个发布标签上构建 Windows 安装包、两种架构的 macOS dmg/zip 和 Linux AppImage/deb，把每个打包好

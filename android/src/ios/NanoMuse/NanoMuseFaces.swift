@@ -259,6 +259,9 @@ struct NanoMuseFaceView: View {
     @ObservedObject private var motion = NanoMuseAvatarMotion.shared
     @ObservedObject private var own = NanoMuseOwnClip.shared
     @Environment(\.scenePhase) private var scenePhase
+    /// Reduce Motion on: the still keeps still (no breath, bob, tilt, pop or shake); the mood
+    /// still changes with its crossfade, and a clip the person chose still plays.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var breath = false
     @State private var popped = false
     @State private var shake: CGFloat = 0
@@ -318,13 +321,14 @@ struct NanoMuseFaceView: View {
         .offset(x: shake, y: bob)
         .animation(.easeInOut(duration: 0.35), value: mood)
         .onAppear {
-            startBreathing()
+            if !reduceMotion { startBreathing() }
             NanoMuseClipPlayers.shared.setSuspended(scenePhase != .active)
         }
         .nmOnChange(of: scenePhase) { phase in
             NanoMuseClipPlayers.shared.setSuspended(phase != .active)
         }
         .nmOnChange(of: mood) { newMood in
+            guard !reduceMotion else { return }
             if newMood == .happy {
                 popped = true
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.45)) { popped = false }
@@ -338,8 +342,9 @@ struct NanoMuseFaceView: View {
         .accessibilityLabel(Text(AppLocalized("Agent face")))
     }
 
-    /// The still's own motion; a clip brings its own and stays at rest.
-    private var animatesStill: Bool { clip == nil }
+    /// The still's own motion; a clip brings its own and stays at rest, and so does the still
+    /// under Reduce Motion.
+    private var animatesStill: Bool { clip == nil && !reduceMotion }
 
     private var scale: CGFloat {
         if popped { return 1.12 }
@@ -489,9 +494,6 @@ enum NanoMuseTones {
     /// The agent's message pill, a shade off the canvas (Android's `ChatColors.assistantBubble`:
     /// #F2F2F7 in light, #1C1C1E in dark). The composer pill keeps `bubble`.
     static let agentPill = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? UIColor(red: 0.11, green: 0.11, blue: 0.118, alpha: 1) : UIColor(red: 0.949, green: 0.949, blue: 0.969, alpha: 1) })
-    /// The bottom bar's indicator capsule under the current tab, and the glyph on it: Android's
-    /// primaryContainer and onPrimaryContainer (#E5F0FF with #012F80 in light, #1A2B4A with
-    /// #E5F0FF in dark).
     /// The pill bar's indicator disc and the glyph on it: the same ink as the chat, black with
     /// a white glyph in light and white with a black glyph in dark, as Android's MuseBottomBar.
     static let tabIndicator = ink

@@ -442,12 +442,12 @@ token            = ""            # empty → generated once, stored in <data_dir
 approval_timeout = 3600          # seconds an approval card waits before counting as "deny"
 cors_origins     = []            # only for the Vite dev server, e.g. ["http://localhost:5173"]
 max_upload_mb    = 25            # largest file the app may attach to a message
-update_check     = true          # Settings → About says when a newer release is out (nanomuse.cn/dl, then GitHub Releases; once a day)
+update_check     = true          # Settings → About says when a newer release is out (the download index, then GitHub Releases; once a day)
 start_grace      = 4             # seconds the services may take before the app answers anyway
 ```
 
-`update_check` 最多每天问一次最新版本：先问下载镜像的索引（`nanomuse.cn/dl/index.json`），
-它不答再问 `api.github.com`，并在「设置 → 关于」下显示版本号和指向发布页的链接；什么都不下载，
+`update_check` 每天一次（点「现在检查」时提前）先问下载镜像的索引（`nanomuse.cn/dl/index.json`），
+它不答再问 `api.github.com` 最新版本，并在「设置 → 关于」下显示版本号和指向发布页的链接；什么都不下载，
 除了请求 `User-Agent` 里的运行时版本号，也不发送任何关于这次安装的信息。
 `NANOMUSE_NO_UPDATE_CHECK=1` 同样能关掉它；托管的网页会话（用 `NANOMUSE_CLOUD_KEY`
 启动的运行时）从不检查；由它的运营者来更新。

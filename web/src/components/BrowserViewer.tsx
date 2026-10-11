@@ -154,6 +154,7 @@ export function BrowserViewer({ thread, eventId, onClose }: { thread: string; ev
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder={t("Type into the focused field…")}
+                aria-label={t("Type into the focused field…")}
                 className="flex-1 rounded-2xl bg-surface-2 px-3.5 py-2.5 text-[14px] outline-none"
                 autoComplete="off"
                 autoCapitalize="off"
@@ -192,6 +193,7 @@ export function BrowserViewer({ thread, eventId, onClose }: { thread: string; ev
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder={t("Open a URL…")}
+                aria-label={t("Open a URL…")}
                 inputMode="url"
                 autoCapitalize="off"
                 className="flex-1 min-w-0 rounded-2xl bg-surface-2 px-3.5 py-2 text-[13px] outline-none"

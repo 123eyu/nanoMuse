@@ -167,19 +167,33 @@ class CalendarFeeds:
             texts: dict[str, str] = {}
             for feed in self.settings.feeds:
                 state = self.states.setdefault(feed.name, FeedState(feed.name))
+                url = ""
                 try:
-                    text = await self._read(self._url(feed.url))
+                    url = self._url(feed.url)
+                    text = await self._read(url)
                     if "BEGIN:VCALENDAR" not in text[:2000]:
                         raise ValueError("not an iCalendar file (no BEGIN:VCALENDAR)")
                     state.events = parse_ics(text, self.tz, calendar=feed.name)
                     state.error = ""
                     texts[feed.name] = text
                 except (httpx.HTTPError, OSError, ValueError) as exc:
-                    state.error = f"{type(exc).__name__}: {exc}"[:200]
+                    state.error = self._error_text(exc, url or feed.url)
                     logger.warning("calendar feed '{}' failed: {}", feed.name, state.error)
                 state.fetched_at = time.time()
             self._save_cache(texts)
             return self.status()
+
+    @staticmethod
+    def _error_text(exc: Exception, url: str) -> str:
+        """What the status and the log say about a failed feed. A private calendar link is
+        a secret (whoever has it reads the calendar), and httpx puts the full URL into its
+        status errors, so the status code stands alone and the address never appears."""
+        if isinstance(exc, httpx.HTTPStatusError):
+            return f"HTTP {exc.response.status_code}"
+        text = f"{type(exc).__name__}: {exc}"
+        if url and url in text:
+            text = text.replace(url, "<the feed's address>")
+        return text[:200]
 
     def status(self) -> dict[str, Any]:
         return {
