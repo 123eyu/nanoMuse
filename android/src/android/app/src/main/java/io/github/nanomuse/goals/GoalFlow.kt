@@ -235,7 +235,7 @@ object GoalFlow {
         val cadence = if (goal.checkEveryHours > 0) {
             context.resources.getQuantityString(R.plurals.nm_goal_every_hours, goal.checkEveryHours, goal.checkEveryHours)
         } else {
-            context.getString(R.string.nm_goal_daily_at, "%02d:%02d".format(goal.checkHour, goal.checkMinute))
+            context.getString(R.string.nm_goal_daily_at, "%02d:%02d".format(java.util.Locale.ROOT, goal.checkHour, goal.checkMinute))
         }
         val next = goal.taskId?.let { ScheduledTaskManager(context).get(it) }?.nextTriggerMs()
         return if (next != null) {

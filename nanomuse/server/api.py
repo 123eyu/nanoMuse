@@ -1090,13 +1090,6 @@ def create_app(settings: Settings, service: MuseService | None = None) -> FastAP
         session under way if any."""
         return svc.avatar.view()
 
-    @app.post("/api/avatar/estimate", dependencies=dep)
-    async def avatar_estimate() -> dict[str, Any]:
-        try:
-            return await svc.avatar.estimate()
-        except StudioError as exc:
-            raise _studio_http(exc) from exc
-
     @app.post("/api/avatar/begin", dependencies=dep)
     async def avatar_begin(body: AvatarBeginBody) -> dict[str, Any]:
         """A new session from a description: the card with the cost appears in the chat."""
