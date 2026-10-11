@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.io.File
 import java.io.FileOutputStream
+import java.io.InputStream
 
 /**
  * A clip of the person's own as the face (#324). One short video, picked from the phone's
@@ -175,6 +176,28 @@ object OwnClip {
     }
 
     /**
+     * Copies [input] into [dst], but never more than [limit] bytes: the copy stops as soon as
+     * the limit is passed, the partial file is deleted and null comes back, so a provider that
+     * gave no size up front cannot fill the disk with a long clip. Otherwise the byte count.
+     */
+    internal fun copyBounded(input: InputStream, dst: File, limit: Long = MAX_BYTES): Long? {
+        var copied = 0L
+        var over = false
+        val buffer = ByteArray(64 * 1024)
+        FileOutputStream(dst).use { out ->
+            while (true) {
+                val n = input.read(buffer)
+                if (n < 0) break
+                if (copied + n > limit) { over = true; break }
+                out.write(buffer, 0, n)
+                copied += n
+            }
+        }
+        if (over) { dst.delete(); return null }
+        return copied
+    }
+
+    /**
      * The whole import: a look first, and a clip the rule refuses never touches the disk; one it
      * takes is copied into the avatar directory as a pending file, its first frame decoded, and
      * handed back for the preview.
@@ -185,14 +208,11 @@ object OwnClip {
         val dst = pendingFile()
         try {
             dst.delete()
-            val copied = context.contentResolver.openInputStream(uri)?.use { input ->
-                FileOutputStream(dst).use { out -> input.copyTo(out) }
-            } ?: return Outcome.Failed("cannot open")
-            if (copied > MAX_BYTES) {
-                // the provider gave no size up front and the file turned out larger
-                dst.delete()
-                return Outcome.Refused(Refusal.TOO_LARGE, probe.copy(bytes = copied))
-            }
+            val input = context.contentResolver.openInputStream(uri) ?: return Outcome.Failed("cannot open")
+            // The provider gave no size up front (or a wrong one) and the file turned out larger:
+            // the copy stopped at the limit, so the real size is unknown and stays null.
+            val copied = input.use { copyBounded(it, dst) }
+                ?: return Outcome.Refused(Refusal.TOO_LARGE, probe.copy(bytes = null))
             val poster = runCatching {
                 val r = MediaMetadataRetriever()
                 try {

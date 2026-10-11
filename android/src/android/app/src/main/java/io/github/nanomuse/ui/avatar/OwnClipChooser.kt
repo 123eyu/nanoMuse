@@ -75,7 +75,9 @@ internal fun refusalText(context: Context, why: OwnClip.Refusal, probe: OwnClip.
     OwnClip.Refusal.TOO_LONG -> context.getString(R.string.nm_own_clip_refused_long, ((probe.durationMs ?: 0L) / 1000L).toInt())
     OwnClip.Refusal.TOO_LARGE -> context.getString(
         R.string.nm_own_clip_refused_large,
-        android.text.format.Formatter.formatShortFileSize(context, probe.bytes ?: 0L),
+        // a null size: the copy stopped at the limit, so all that is known is "more than that"
+        probe.bytes?.let { android.text.format.Formatter.formatShortFileSize(context, it) }
+            ?: ("> " + android.text.format.Formatter.formatShortFileSize(context, OwnClip.MAX_BYTES)),
     )
 }
 
@@ -95,7 +97,9 @@ fun OwnClipChooserHost(state: OwnClipChooserState) {
             val outcome = withContext(Dispatchers.IO) { OwnClip.import(context, uri) }
             busy = false
             when (outcome) {
-                is OwnClip.Outcome.Ready -> { pending?.let { OwnClip.discard(it) }; pending = outcome.pending }
+                // Every pending copy lives at the same path, and the import just replaced it:
+                // discarding the old one here would delete the new file.
+                is OwnClip.Outcome.Ready -> pending = outcome.pending
                 is OwnClip.Outcome.Refused -> message = refusalText(context, outcome.why, outcome.probe)
                 is OwnClip.Outcome.Failed -> message = context.getString(R.string.nm_own_clip_unreadable)
             }
