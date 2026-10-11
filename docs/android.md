@@ -168,6 +168,9 @@ models' word, as before. When no configured provider has a capability, the page 
 sentence (*Pictures need a provider with image models: Bailian, OpenAI, Gemini or
 OpenRouter.*) instead of failing.
 
+In the avatar studio, asking for a new set of candidates replaces the previous set. A picture
+or failure that finishes from the previous request cannot change the new set's tiles.
+
 **When the provider cannot be reached** (`net/ProviderReach.kt`, `ui/chat/ProviderReachCard.kt`).
 A failed turn whose error is the transport's (OkHttp's *failed to connect to chatgpt.com/… (port
 443)*, *Unable to resolve host*, a TLS or timeout line) or OpenAI's *region not supported* is
