@@ -48,7 +48,7 @@ cd harness/desktop && npm ci && npm run typecheck && npm test
 
 # Android (android/src/android); JDK 21, NDK r27c; natives first: bash scripts/android/build-natives.sh
 cd android/src/android && ./gradlew :app:assembleDebug --console=plain --no-daemon
-./gradlew :app:testDebugUnitTest --tests 'io.github.nanomuse.*' --console=plain --no-daemon # our unit tests; CI runs them too
+./gradlew :app:testDebugUnitTest --tests 'io.github.nanomuse.*' --tests 'com.openminis.app.provider.*' --tests 'com.openminis.app.sandbox.*' --console=plain --no-daemon # our unit tests and the two upstream packages we edit; CI runs them too
 
 # iOS (android/src/ios); macOS only; the device build must finish with zero warnings in NanoMuse/
 xcodebuild build -project Minis.xcodeproj -scheme Minis -configuration Debug -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO
