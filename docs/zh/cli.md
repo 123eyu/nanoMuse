@@ -26,6 +26,8 @@ nanomuse chat [--resume] [--show-thinking] [--auto]
 | `/tainted` | 这段对话有没有读过私密数据 |
 | `/permissions` | 你授予的长期权限（键和有效期） |
 | `/revoke <key>` | 收回一项，例如 `/revoke shell:git` |
+| `/forget-approvals` | 清掉所有已授予的权限 |
+| `/exit` | 退出（`/quit`、`/q` 也可以） |
 
 `--resume` 接着最近一次会话继续（`<data_dir>/sessions/`）。
 

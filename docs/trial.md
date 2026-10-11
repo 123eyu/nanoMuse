@@ -69,8 +69,9 @@ device (section 1 and 2 above). Nobody there, and the caller hears that it was n
 
 ## 6. What follows you
 
-Signed in, the main conversation and the side chats follow you to your other devices; *Data
-controls* on each device switches that off ([sync.md](sync.md)). The agent's name and face
+Signed in, the main conversation follows you to your other devices, and the side chats too
+once *Also sync side chats* is on; *Data controls* on each device holds both switches
+([sync.md](sync.md)). The agent's name and face
 are the account's. A connector signed in on one device shows on the others as *Connected
 on 〈device〉*, one tap to sign in there too ([hub.md](hub.md)). Models are chosen per device:
 each one's *Settings → Models* is its own.

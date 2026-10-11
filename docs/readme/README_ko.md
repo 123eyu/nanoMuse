@@ -177,6 +177,6 @@ nanoMuse는 독립적인 커뮤니티 프로젝트로, Meta Platforms, Inc.와 �
 [GPL-3.0-or-later](../../LICENSE). 휴대폰 앱은 OpenMinis 1.13(GPL-3.0)을 바탕으로 2026-09-24부터 수정했습니다. [NOTICE](../../NOTICE) 참고. 그 이전 Python 계열 버전은 MIT였습니다(태그 `pre-openminis`).
 
 <p align="center">
-  <em>방문해 주셔서 감사합니다 ✨ nanoMuse!</em><br><br>
+  <em>방문해 주셔서 감사합니다 ✨ nanoMuse.</em><br><br>
   <img src="https://hits.sh/github.com/nano-muse/nanoMuse.svg?label=visitors&color=0a66e4&extraCount=16719" alt="Visitors">
 </p>

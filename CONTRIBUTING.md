@@ -84,6 +84,7 @@ Rules for a Chinese page:
 - Paths: pages link to pages by bare name (`android.md`); images and other files under `docs/` are one level up (`../screenshots/feed.png`); the repository is two levels up (`../../nanomuse/config.py`).
 - Voice as everywhere else: plain, specific, human; Chinese idiom, never a word-for-word rendering of the English sentence; no exclamation marks, no marketing words. Second person 你, the agent is 它; menu paths as 设置 → 账号 → 设备, button and switch names in 「」.
 - Things are called what the apps' Chinese screens call them. The glossary below is derived from `res/values-zh/nm_strings.xml`, the `zh` block of `locales.ts`, `Localizable.xcstrings` (zh-Hans), `web/src/i18n/zh-CN.ts` and the relay console; when a screen and the glossary disagree, the screen wins and the glossary is corrected.
+- Punctuation stays outside a bold or italic run: `**轨迹**：` and `*提议*：`, not `**轨迹：**` or `*提议：*`. Under CommonMark a run that closes right after a colon or a bracket and is followed by a character is not closed, and the asterisks show on the site; `tests/test_docs_markup.py` renders every page and fails on one.
 
 | English | 简体中文 | English | 简体中文 |
 |---|---|---|---|

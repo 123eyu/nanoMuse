@@ -177,6 +177,6 @@ nanoMuse là dự án cộng đồng độc lập, không liên kết với Meta
 [GPL-3.0-or-later](../../LICENSE). Ứng dụng điện thoại dựa trên OpenMinis 1.13 (GPL-3.0), được sửa đổi từ ngày 2026-09-24; xem [NOTICE](../../NOTICE). Các phiên bản trước đó của nhánh Python theo giấy phép MIT (tag `pre-openminis`).
 
 <p align="center">
-  <em>Cảm ơn bạn đã ghé thăm ✨ nanoMuse!</em><br><br>
+  <em>Cảm ơn bạn đã ghé thăm ✨ nanoMuse.</em><br><br>
   <img src="https://hits.sh/github.com/nano-muse/nanoMuse.svg?label=visitors&color=0a66e4&extraCount=16719" alt="Visitors">
 </p>

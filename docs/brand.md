@@ -68,8 +68,8 @@ Rules: one accent hue only. Code blocks, thinking text and links that OpenMinis 
 iOS blue, orange and green become `primary` plus neutrals. The conversation itself is
 monochrome: your pill, the send button and the selected tab are the ink colour on the
 canvas, and the blue is left to links and the status line (`ChatColors.kt`, written by
-`scripts/rebrand.py`). Rust orange from the red panda stays
-inside the avatar; it is not a UI colour.
+`scripts/rebrand.py`). The dragon's own colours stay inside the avatar; they are not UI
+colours.
 
 ## Android mapping (done in S1)
 
