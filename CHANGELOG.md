@@ -6,6 +6,24 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Cloud
 
+### Runtime
+
+### Web
+
+### Desktop
+
+### Android
+
+### iOS
+
+### Project
+
+## [1.0.3] - 2026-10-12 · Helm
+
+Helm: the day after 1.0.2, with the pull requests and reports that came in that day. @Ichiro786's redesign of the Android app landed in three pull requests ([#329](https://github.com/nano-muse/nanoMuse/pull/329), [#330](https://github.com/nano-muse/nanoMuse/pull/330), [#331](https://github.com/nano-muse/nanoMuse/pull/331)): a floating frosted-glass bottom bar, the drawer and the chat on the theme's own canvas with black and white pills, a scrim for a header; the iPhone, the web console and the desktop follow it, so the chat reads the same on every device. A clip of your own can be the face on Android, the iPhone and the desktop ([#324](https://github.com/nano-muse/nanoMuse/issues/324)), and the desktop and the web console keep several custom OpenAI-compatible endpoints at once instead of one ([#294](https://github.com/nano-muse/nanoMuse/issues/294)). @Mola-maker's ten reports on the Android app ([#332](https://github.com/nano-muse/nanoMuse/issues/332) to [#340](https://github.com/nano-muse/nanoMuse/issues/340), [#347](https://github.com/nano-muse/nanoMuse/issues/347)) are all fixed, from an own Anthropic key that could not send to a debug log that kept raw keys; the iPhone gets a voice prompt from the Action Button ([#298](https://github.com/nano-muse/nanoMuse/pull/298) by @cypggs) and OpenCode Go works on every client ([#325](https://github.com/nano-muse/nanoMuse/pull/325) by @PovedaAqui). The relay is 0.24.2: its image runs as an unprivileged user and its guidance lists Go apart; nothing changes on the wire.
+
+### Cloud
+
 - **The "ways on" guidance lists OpenCode Go apart.** An entry whose vendor wants a session id per conversation (`session_header`) goes under a new `session_providers` key instead of `providers`, so the phone apps of 1.0.1 and before, which do not send the id, never offer it; the apps that do send it append the list (thanks @PovedaAqui).
 - **The relay's Docker image runs as an unprivileged user.** The container runs the relay as `relay`, uid 10001, instead of root, so a bind-mounted data directory must belong to that uid on the host (`sudo chown -R 10001:10001 data`, once; `scripts/self-host.sh` and the production `deploy.sh` do it themselves), and a relay that cannot write its data directory now stops at start with a sentence that says so and names the chown, not with sqlite's traceback. `cloud/README.md` and the self-hosting guide say what a bind-mounted directory must be owned by.
 
@@ -34,7 +52,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Android
 
-- **The bottom bar is a floating frosted-glass pill.** The five tabs sit in a rounded pill a little above the bottom edge, as wide as the composer above it (420 dp at most, centred on a wider screen), icons only and no labels; the pill blurs what is behind it and has a hairline edge. The current tab shows a filled glyph on a soft indicator that springs across, the others stay outlined. The menus take the chat's own canvas, black in dark and white in light, with a hairline edge instead of a tinted surface (thanks @Ichiro786, #329).
+- **The bottom bar is a floating frosted-glass pill.** The five tabs sit in a rounded pill a little above the bottom edge, as wide as the composer above it (420 dp at most, centred on a wider screen), icons only and no labels; the pill blurs what is behind it and has a hairline edge. The current tab shows a filled glyph on an ink indicator, black in light and white in dark, that springs across, the others stay outlined. The menus take the chat's own canvas, black in dark and white in light, with a hairline edge instead of a tinted surface (thanks @Ichiro786, #329).
 - **The chats drawer sits on the same canvas.** Black in dark and white in light instead of the grey sheet, the agent's name larger at the top, the side chats label in small capitals, the selected row and the main-chat row on a quiet translucent pill, and the settings, system files and new chat buttons as 44 dp discs beside the search field, all in the text colours of the theme rather than a tint (thanks @Ichiro786, #330).
 - **The chat sits on the same canvas too.** Your messages are white pills with black text in the dark theme and black pills with white text in the light theme, the assistant's replies sit in a pill a shade off the canvas, and the send button and the scroll-to-latest disc are white with a black arrow (inverted in light) instead of blue. The header is a soft scrim over the conversation, so messages dissolve under it instead of stopping at a bar; the conversation scrolls on behind the floating pill, which blurs it, while the composer, the steps bar, the approval card and the scroll buttons stay above the pill at its measured height, with the keyboard open as well; a fade above the composer appears while reading older messages. The Feed, Ideas, Goals and Library lists end above the pill (thanks @Ichiro786, #331).
 - **OpenCode Go works on the phone.** Chat and Responses requests to OpenCode's host carry `x-opencode-session`, the chat's prompt cache key (a hash of its first message, the same on every turn), beside the app's own `nanoMuse/<version>` user agent; the ways-on card lists Go from the relay's new `session_providers`, and a provider set up on Go's address is told apart from Zen by the whole address (thanks @PovedaAqui).
