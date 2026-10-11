@@ -172,6 +172,8 @@ for the full list. The ones that matter:
 | `MAX_IN_FLIGHT` | 4 | requests of one account under way at the same time (0 = off); each holds a reservation against the allowance while it runs — see *Money* |
 | `PASSWORD_MAX_ATTEMPTS`, `LOCKOUT_S` | 5, 900 | wrong passwords before an account is locked for that long (a code still works) |
 | `LOGIN_FAIL_PER_IP_HOUR` | 30 | wrong passwords from one network address per hour across all accounts — a list of numbers tried once each never trips the per-account lock, this does (0.12); 0 = off |
+| `CODE_TTL_S`, `CODE_MAX_ATTEMPTS` | 600, 5 | how long a sign-in code is good for, and how many wrong guesses it survives |
+| `CODE_PER_IDENTIFIER_10M`, `CODE_PER_IP_HOUR` | 3, 10 | codes one number or address may request per ten minutes, and one network address per hour; past either the request is answered `429 code_too_often` |
 | `CODE_SENDER` | `log` | `log`, `smtp`, `aliyun` or `both` (SMS for phones, mail for addresses) |
 | `ALIYUN_SMS_API` | `dypns` | `dypns` (号码认证服务 `SendSmsVerifyCode`) or `dysms` (短信服务 `SendSms`) |
 | `CLOUD_MODELS` | DeepSeek + Qwen chat, Qwen image, Wan video | JSON list to replace the menu, prices and lanes (`for`, `recommended_for`) included — see below |
@@ -450,9 +452,14 @@ and key page). `plans` are the subscriptions an app can sign in with instead
 of pasting a key — `{id: chatgpt | claude | kimi | openrouter, provider, name,
 auth, clients[], covers[]}`; the ChatGPT one covers chat and hands only, and
 `caveats.chatgpt` (`_zh`) is the honest line about it. `local` lists Ollama,
-LM Studio and vLLM. The facts come from `nanomuse_cloud/providers.json`, a
-copy of the runtime's `nanomuse/llm/providers.json` written by
-`node scripts/providers-json.mjs` (CI checks it); the relay only orders it,
+LM Studio and vLLM. A provider whose vendor wants one stable id per
+conversation (the catalogue's `session_header`, OpenCode Go) is not in
+`providers` but under `session_providers`, the same row plus that header's
+name: the apps of 1.0.1 and before send no such id and never see it; the ones
+that do append the list to `providers`. The facts come from
+`nanomuse_cloud/providers.json`, a copy of the runtime's
+`nanomuse/llm/providers.json` written by `node scripts/providers-json.mjs`
+(CI checks it); the relay only orders it,
 and the apps keep the words. Nothing is renamed: a client from before reads
 `ways` as it always did.
 
