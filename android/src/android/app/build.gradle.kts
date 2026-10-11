@@ -57,8 +57,8 @@ android {
         applicationId = "io.github.nanomuse.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 45
-        versionName = "1.0.2"
+        versionCode = 46
+        versionName = "1.0.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

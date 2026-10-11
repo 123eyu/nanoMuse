@@ -4,6 +4,7 @@
 // `update(false)` does not answer from a cache another version made.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -47,11 +48,17 @@ async function cloudWith(update) {
   return { svc, done: () => rm(home, { recursive: true, force: true }) }
 }
 
-const PREVIOUS = '1.0.1'
+/** The version `package.json` carries: the bundle under test must report it, whatever the release. */
+const PKG_VERSION = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version
+/** A version below any release the tests run under. */
+const PREVIOUS = '0.1.0'
+/** One patch release beyond the version under test. */
+const BEYOND = PKG_VERSION.replace(/(\d+)$/, (n) => String(Number(n) + 1))
 const checkedByPrevious = (latest) => ({ current: PREVIOUS, latest, newer: true, page: 'https://github.com/nano-muse/nanoMuse/releases', assets: [], notes: '', source: 'nanomuse.cn', checkedAt: Date.now() })
 
-test('the bundle version the tests run under is a release, not the fallback', () => {
-  assert.equal(BUNDLE_VERSION, '1.0.2')
+test('the bundle version the tests run under is the package version, a release, not the fallback', () => {
+  assert.equal(BUNDLE_VERSION, PKG_VERSION)
+  assert.match(BUNDLE_VERSION, /^\d+\.\d+\.\d+$/)
   assert.notEqual(BUNDLE_VERSION, PREVIOUS)
 })
 
@@ -62,14 +69,14 @@ test('a cached check made by the previous version is read against this one', () 
   assert.equal(same.latest, BUNDLE_VERSION)
   assert.equal(same.newer, false)
   // a release beyond the one installed is still newer
-  const beyond = updateForThisVersion(checkedByPrevious('1.0.3'))
+  const beyond = updateForThisVersion(checkedByPrevious(BEYOND))
   assert.equal(beyond.current, BUNDLE_VERSION)
   assert.equal(beyond.newer, true)
   // the time of the check is kept: no extra request on this start
   const cached = checkedByPrevious(BUNDLE_VERSION)
   assert.equal(updateForThisVersion(cached).checkedAt, cached.checkedAt)
   // a cache this version made is returned as it is
-  const own = { ...checkedByPrevious('1.0.3'), current: BUNDLE_VERSION }
+  const own = { ...checkedByPrevious(BEYOND), current: BUNDLE_VERSION }
   assert.equal(updateForThisVersion(own), own)
   // a cache without a `latest` (an older state file) says nothing is newer rather than throwing
   const bare = updateForThisVersion({ checkedAt: 1 })
@@ -77,7 +84,7 @@ test('a cached check made by the previous version is read against this one', () 
   assert.equal(bare.latest, '')
 })
 
-test('right after installing 1.0.2 over 1.0.1, the sidebar is not told to update to 1.0.2', async () => {
+test('right after installing this version over the previous one, the sidebar is not told to update to it', async () => {
   const out = await cloudWith(checkedByPrevious(BUNDLE_VERSION))
   try {
     const live = out.svc.live()
