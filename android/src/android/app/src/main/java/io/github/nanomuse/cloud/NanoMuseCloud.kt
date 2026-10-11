@@ -1092,12 +1092,13 @@ object NanoMuseCloud {
      * at once (#336). Every suspending caller is on IO already.
      */
     private suspend fun call(context: Context, method: String, path: String, body: JSONObject?, token: String?): JSONObject {
-        val response = try {
-            http.newCall(request(context, method, path, body, token)).await()
+        return try {
+            http.newCall(request(context, method, path, body, token)).await { read(it) }
+        } catch (e: CloudException) {
+            throw e // A relay error is not a transport failure.
         } catch (e: IOException) {
             throw CloudException("unreachable", e.message ?: "unreachable")
         }
-        return read(response)
     }
 
     /** The same request, blocking: for [ProfileSync]'s worker thread, which runs no coroutine. */

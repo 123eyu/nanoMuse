@@ -9,19 +9,30 @@ import okhttp3.Callback
 import okhttp3.Response
 
 /**
- * Runs the call and suspends until it answers, the way a coroutine expects: cancelling the
- * coroutine cancels the call, which closes the socket at once. `execute()` inside
+ * Runs the call and suspends until [read] has consumed its response: cancelling the
+ * coroutine cancels the call, including a body read after the headers arrived. `execute()` inside
  * `withContext(Dispatchers.IO)` does not notice cancellation; it keeps the IO thread parked in
  * the read until OkHttp's own timeout, so leaving the sign-in page or the network page used to
  * leave the request running for up to half a minute (#336).
  *
- * Throws [IOException] as `execute()` would, and `CancellationException` when the coroutine
- * was cancelled; a response that arrives after the cancellation is closed, not leaked.
+ * [read] runs on OkHttp's callback thread. The response is closed before the caller resumes,
+ * or immediately if it arrives after cancellation. Returning a raw response would detach
+ * later blocking body reads from this continuation's cancellation handler (#336).
+ * Throws [IOException] as `execute()` would, and `CancellationException` when cancelled.
  */
-suspend fun Call.await(): Response = suspendCancellableCoroutine { cont ->
+suspend fun <T> Call.await(read: (Response) -> T): T = suspendCancellableCoroutine { cont ->
     enqueue(object : Callback {
         override fun onResponse(call: Call, response: Response) {
-            cont.resume(response) { response.close() }
+            if (!cont.isActive) {
+                response.close()
+                return
+            }
+            try {
+                val result = response.use(read)
+                cont.resume(result)
+            } catch (error: Exception) {
+                if (!cont.isCancelled) cont.resumeWithException(error)
+            }
         }
 
         override fun onFailure(call: Call, e: IOException) {

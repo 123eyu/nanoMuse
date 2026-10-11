@@ -176,6 +176,8 @@ base URL（从不包括中继的，从不包括局域网地址）它回答代理
 「测试」按填写的代理抓取 `https://chatgpt.com/`，报告状态码和毫秒数。单元测试：`ProviderReachTest`、
 `OwnProviderProxyTest`。
 
+离开登录页或「网络」页，会取消该页尚未完成的请求，服务器已开始回复但还未传完时也一样。
+
 ## 隐私与权限 {#privacy-and-permissions}
 
 中继保存账号 id、一个打码的标识、用量计数，以及智能体的名字和外观（让你的设备保持一致）；
