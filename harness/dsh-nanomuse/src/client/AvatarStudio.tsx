@@ -7,13 +7,15 @@
  * library. The prompts are the runtime's (`nanomuse/avatar/studio.py`), kept in
  * step by hand, so a face drawn on any device comes out alike. Opened from the
  * profile panel's look editor, or by the agent (`draw_new_look`) when the person
- * asks for a new look in a chat.
+ * asks for a new look in a chat. The describe step also offers a clip of the person's
+ * own as the face (OwnClipChooser.tsx, #324): choose, replace, or back to the default.
  */
 import { createElement as h, Fragment, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { StarNudgeOnce } from './AccountPage.tsx'
 import { call, errorCode, type Translate, failureText } from './api.ts'
 import { useLive } from './live.ts'
 import type { Words } from './locales.ts'
+import { useOwnClipChooser } from './OwnClipChooser.tsx'
 import { UnavailableLine, useProviders } from './OwnKey.tsx'
 import { useRooms } from './rooms.ts'
 import { Sheet } from './ui.tsx'
@@ -136,6 +138,7 @@ export function AvatarStudioSheet({ t, initial, style: initialStyle, onClose }: 
   const round = useRef(0)
   // what is configured and what it covers (C11): decides whether a failed estimate is "nobody draws pictures here"
   const providers = useProviders(t)
+  const clipChooser = useOwnClipChooser(t)
   useEffect(() => () => { alive.current = false }, [])
   useEffect(() => {
     call<Estimate>('studio/estimate').then((e) => { if (alive.current) setEstimate(e) }).catch((err: unknown) => { if (alive.current) setEstimateError(errorCode(err) === 'signed_out' ? t('stSignedOut') : failureText(t, err)) })
@@ -230,7 +233,15 @@ export function AvatarStudioSheet({ t, initial, style: initialStyle, onClose }: 
           : cannot ? t('stCannotAfford', { cost: estimate.cny.toFixed(2), left: estimate.leftCny.toFixed(2) })
           : estimate.clips ? t('stCostClips', { cost: estimate.cny.toFixed(2), left: estimate.leftCny.toFixed(2) })
           : t('stCost', { cost: estimate.cny.toFixed(2), left: estimate.leftCny.toFixed(2) })),
-      error ? h('div', { className: 'nm-room-error' }, error) : null)
+      error ? h('div', { className: 'nm-room-error' }, error) : null,
+      // a clip of the person's own instead (#324): this computer's alone
+      h('div', { className: 'nm-oc-section' },
+        h('div', { className: 'nm-st-label' }, t('ocTitle')),
+        h('p', { className: 'nm-fine nm-oc-body' }, live.ownClip ? t('ocOn') : t('ocBody')),
+        h('div', { className: 'nm-oc-row' },
+          h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', disabled: clipChooser.busy, onClick: clipChooser.choose }, live.ownClip ? t('ocReplace') : t('ocChoose')),
+          live.ownClip ? h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', onClick: () => void call('own-clip/clear').catch(() => undefined) }, t('ocDefault')) : null),
+        h('p', { className: 'nm-fine nm-oc-body' }, t('ocLocal'))))
     footer = h('div', { className: 'nm-sheet-actions' },
       h('span', { style: { flex: 1 } }),
       h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', onClick: onClose }, t('cancel')),
@@ -270,7 +281,9 @@ export function AvatarStudioSheet({ t, initial, style: initialStyle, onClose }: 
       h(StarNudgeOnce, { t, moment: 'new_look' }))
     footer = h('div', { className: 'nm-sheet-actions' }, h('span', { style: { flex: 1 } }), h('button', { type: 'button', className: 'nm-pill nm-pill-sm', onClick: onClose }, t('stFinish')))
   }
-  return h(Sheet, { title: t('stTitle'), closeLabel: t('close'), onClose: stage === 'posing' ? () => undefined : onClose, footer, wide: stage !== 'describe' }, body)
+  return h(Fragment, null,
+    h(Sheet, { title: t('stTitle'), closeLabel: t('close'), onClose: stage === 'posing' ? () => undefined : onClose, footer, wide: stage !== 'describe' }, body),
+    clipChooser.element)
 }
 
 /** The overlay entry: opens on the bus (the look editor) and on the agent's request (the rooms' `studio` field). */

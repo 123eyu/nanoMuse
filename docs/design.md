@@ -22,12 +22,12 @@ A study of Muse's screens (the announcement, the walkthrough and sizzle videos, 
 
 | Muse | nanoMuse | Where |
 |---|---|---|
-| Near-white / near-black, one blue | The same palette: `bg`, `surface-2`, `fg`, `muted`, accent `#0064d4`; dark mode by `prefers-color-scheme`. The Android app goes further: the chat, the pill bar, the menus and the drawer sit on pure black in dark and pure white in light, and the blue stays with links and the status line | `web/src/index.css`, `android/…/values/colors.xml`, `android/…/ui/theme/ChatColors.kt` |
+| Near-white / near-black, one blue | The same palette: `bg`, `surface-2`, `fg`, `muted`, accent `#0064d4`; dark mode by `prefers-color-scheme`. The conversation goes further on the phone and the web alike: the chat sits on pure white in light (on the phone the pill bar, the menus and the drawer too) and on black in dark on the phone, near-black on the web, and the blue stays with links and the status line | `web/src/index.css`, `android/…/values/colors.xml`, `android/…/ui/theme/ChatColors.kt` |
 | Optimistic | [Figtree](https://github.com/erikdkennedy/figtree) (OFL), bundled; close in proportions and warmth | `web/public/fonts/` |
-| Grey / light-blue bubbles, chips for tool use, cards for approvals | The same on the web. On the phone your messages are white pills with black text on the black canvas (black on white in light), the agent's a shade off the canvas, the send button monochrome too, and the header a scrim the conversation dissolves under; chips open to the tool call, cards carry the summary the Sentinel wrote and the scope buttons (once, this conversation, always; on the phone once, this chat, always) | `web/src/screens/ChatScreen.tsx`, `web/src/components/`, `android/…/ui/chat/ChatScreen.kt` |
+| Grey / light-blue bubbles, chips for tool use, cards for approvals | Monochrome pills on the phone and the web alike: your messages are white pills with black text on the dark canvas (black on white in light), the agent's a shade off the canvas, the send button and the scroll-to-latest control the same ink, and the header a scrim the conversation scrolls under and dissolves into; chips open to the tool call, cards carry the summary the Sentinel wrote and the scope buttons (once, this conversation, always; on the phone once, this chat, always) | `web/src/screens/ChatScreen.tsx`, `web/src/components/`, `android/…/ui/chat/ChatScreen.kt` |
 | The plush doll that changes pose | The **red panda**, an SVG drawn live with a pose per state; six plush dolls (Sunny, Moss, Sky, Fox, Bolt, Plum) and an emoji as alternatives | `web/src/components/RedPanda.tsx`, `web/public/avatars/` |
 | Name and status under the avatar; tap for the sheet | The same header; the sheet has the avatar large, the status, *Stop*, four buttons (approvals, activity, permissions, upcoming) and rows for memory, skills, connections, settings | `web/src/components/MuseSheet.tsx` |
-| Five-icon floating bar | The same five: Chat, Feed, Ideas, Goals, Library, in a frosted-glass pill 12 px above the bottom edge, translucent over a blur with a hairline edge; the current tab's filled glyph sits on a soft blue indicator (`accent-soft`), the others are outlined in `muted`. The sidebar replaces it on a wide window | `web/src/App.tsx` |
+| Five-icon floating bar | The same five: Chat, Feed, Ideas, Goals, Library, in a frosted-glass pill 12 px above the bottom edge, translucent over a blur with a hairline edge; the current tab's filled glyph sits on an ink indicator (`ink`, with the glyph in `ink-fg`), the others are outlined in `muted`. The sidebar replaces it on a wide window | `web/src/App.tsx` |
 | Little motion | Breathing / sway / hop for the dolls and the emoji; the panda's own poses; everything off under `prefers-reduced-motion` | `web/src/index.css`, `RedPanda.css` |
 
 ## The red panda
@@ -58,16 +58,22 @@ The same drawing, reduced to the head, is the logo: `web/public/icon.svg` and `m
 
 ## Colour and type, in numbers
 
+The web console's tokens (`web/src/index.css`):
+
 | Token | Light | Dark |
 |---|---|---|
-| `bg` | `#fcfcfc` | `#181819` |
+| `bg` | `#ffffff` | `#181819` |
 | `surface` | `#ffffff` | `#202022` |
 | `surface-2` | `#f2f2f4` | `#2a2a2d` |
 | `border` | `#e7e7ea` | `#333337` |
 | `fg` | `#111112` | `#ffffff` |
 | `muted` | `#6b6b71` | `#9d9da4` |
 | `accent` | `#0064d4` | `#1793ff` |
-| user bubble | `#d8e9ff` | `#1c3d66` |
+| `ink` (the send button, the *Latest* button; `ink-fg` the glyph on it) | `#000000`, glyph `#ffffff` | `#ffffff`, glyph `#000000` |
+| `bubble-user` and its text (`bubble-user-fg`) | `#000000`, text `#ffffff` | `#ffffff`, text `#000000` |
+| `bubble-agent` | `#f2f2f7` | `#2a2a2d` |
+
+The chat's header is a scrim rather than a bar: `bg` at 80 percent at its top edge, 35 percent past the middle, clear at the bottom, with the conversation scrolling under it; while older messages are being read the top 80 px fade fully into `bg`. A link inside your pill keeps the pill's text colour, underlined. In the dark theme the agent's pill is the same step off `#181819` that the phone's `#1c1c1e` is off black.
 
 The Android app's chat palette is `ChatColors.kt`, written by `scripts/rebrand.py`:
 
@@ -78,6 +84,11 @@ The Android app's chat palette is `ChatColors.kt`, written by `scripts/rebrand.p
 | the agent's pill (`assistantBubble`) | `#F2F2F7` | `#1C1C1E` |
 | send button (`sendButton`), arrow in the canvas colour | `#000000` | `#FFFFFF` |
 | links, status line (`link`, `thinking`) | `#015CFB` | `#58A6FF` |
+
+The iOS app's chat uses the same values: `NanoMuseTones.ink` and `onInk` for your pill, the
+send disc and the scroll-to-latest disc, `agentPill` for the agent's, in `NanoMuseFaces.swift`;
+the canvas is the system background, white and black. The pill bar's indicator disc is the same
+ink with the glyph in `onInk` (`tabIndicator`, `tabIndicatorGlyph`), see [ios.md](ios.md).
 
 The panda: fur `#d8632e` lit to `#ee8a4c` and shaded to `#9e3f18`, deep fur `#bf4f23` (ears, tail rings, paws), cream `#fff4e6` from `#fffaf2` to `#f3dfc6` at the cheeks, markings `#2a1a14` with an eye highlight `#4a302a`, blush `#f4a0a0`; the plate behind it in the app `#dcebdc`, the logo plate `#2f7a5a`. The `mark` level uses only the base colours.
 

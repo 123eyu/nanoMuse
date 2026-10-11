@@ -163,31 +163,36 @@ export default function App() {
         </main>
         {/* Muse's bottom bar, as the Android app draws it: a floating frosted-glass pill, five glyphs,
             icons only. The pill sits 12px above the bottom edge, blurs what is behind it and carries
-            a hairline edge; the current tab shows its filled glyph on a soft blue indicator, the
-            others stay outlined in the muted grey. No labels: the fill and the indicator are the
-            state. In lite (the phone in the showcase) it shows whatever the width; otherwise a wide
-            window has the sidebar instead. The nav itself lets taps through to the screen; only the
-            pill takes them. */}
-        <nav className={cx("tabbar-float pointer-events-none absolute inset-x-0 z-20 flex justify-center px-4", !state.lite && "wide:hidden")}>
-          <ul className="pointer-events-auto flex items-center gap-0.5 rounded-full bg-surface-2/55 px-3.5 py-2 ring-1 ring-border/50 backdrop-blur-2xl">
+            a hairline edge; the current tab shows its filled glyph on an ink indicator (black in the
+            light theme, white in the dark one, the glyph in the opposite colour), the others stay
+            outlined in the muted grey. No labels: the fill and the indicator are the
+            state. The pill is as wide as the chat's composer above it (the same 12px from the sides,
+            `px-3` on the Composer's form), 420px at most and centred on a wider screen; the five
+            slots share it equally and the indicator disc keeps its 60 by 46 inside the slot. In lite
+            (the phone in the showcase) it shows whatever the width; otherwise a wide window has the
+            sidebar instead. The nav itself lets taps through to the screen; only the pill takes them. */}
+        <nav className={cx("tabbar-float pointer-events-none absolute inset-x-0 z-20 flex justify-center px-3", !state.lite && "wide:hidden")}>
+          <ul className="pointer-events-auto flex w-full max-w-[420px] items-center gap-0.5 rounded-full bg-surface-2/55 px-3.5 py-1.5 ring-1 ring-border/50 backdrop-blur-2xl">
             {TABS.map((tab) => {
               const active = state.tab === tab.id;
               const badge = tab.id === "chat" ? pendingApprovals : tab.id === "feed" ? feedUnseen : tab.id === "goals" ? proposals : 0;
               return (
-                <li key={tab.id}>
+                <li key={tab.id} className="min-w-0 flex-1">
                   <button
                     type="button"
                     onClick={() => setTab(tab.id)}
                     aria-label={t(tab.label)}
                     aria-current={active ? "page" : undefined}
-                    className={cx("relative flex h-[46px] w-[60px] items-center justify-center rounded-full transition-colors duration-300", active ? "bg-accent-soft text-accent-soft-fg" : "text-muted hover:text-fg")}
+                    className={cx("flex h-[46px] w-full items-center justify-center", active ? "text-ink-fg" : "text-muted hover:text-fg")}
                   >
-                    {tab.icon(active)}
-                    {badge > 0 && (
-                      <span className="absolute right-2.5 top-1 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
-                        {badge}
-                      </span>
-                    )}
+                    <span className={cx("relative flex h-[46px] w-full max-w-[60px] items-center justify-center rounded-full transition-colors duration-300", active && "bg-ink")}>
+                      {tab.icon(active)}
+                      {badge > 0 && (
+                        <span className="absolute right-2.5 top-1 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+                          {badge}
+                        </span>
+                      )}
+                    </span>
                   </button>
                 </li>
               );

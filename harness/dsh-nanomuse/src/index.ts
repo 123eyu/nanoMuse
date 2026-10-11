@@ -46,8 +46,9 @@ export function apply(ctx: Context): void {
   if (getDefaultAutoSelectFamilyAttemptTimeout() < CONNECT_ATTEMPT_MS) setDefaultAutoSelectFamilyAttemptTimeout(CONNECT_ATTEMPT_MS)
   const handler = (req: IncomingMessage, res: ServerResponse) => serveAsset(req, res, (id, mood, ext) => ctx.get('nanomuseCloud')?.profile.stillPath(id, mood, ext))
   mountGuarded(ctx, ASSETS_PREFIX, handler, 'nanomuse: assets')
-  // The clips of a drawn face, made on this computer (`motion.ts`): `/nanomuse/avatar/motion/<mood>.mp4?v=<mtime>`.
-  mountGuarded(ctx, MOTION_PREFIX, (req, res) => serveClip(req, res, (mood) => ctx.get('nanomuseCloud')?.motion.clipPath(mood)), 'nanomuse: avatar clips')
+  // The clips of a drawn face, made on this computer (`motion.ts`): `/nanomuse/avatar/motion/<mood>.mp4?v=<mtime>`;
+  // and the person's own clip (`own-clip.ts`): `/nanomuse/avatar/own-clip.mp4?v=<mtime>`, its first frame, the preview copy.
+  mountGuarded(ctx, MOTION_PREFIX, (req, res) => serveClip(req, res, (mood) => ctx.get('nanomuseCloud')?.motion.clipPath(mood), (name) => ctx.get('nanomuseCloud')?.ownClip.path(name)), 'nanomuse: avatar clips')
 }
 
 /** One file from `assets/` by its base name, or a still of the account's face; anything else is 404. */

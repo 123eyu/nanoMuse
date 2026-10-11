@@ -354,6 +354,23 @@
     <string name="nm_avatar_use_this">Folosește-o pe aceasta</string>
     <string name="nm_avatar_use_this_hint">Stările (lucrează, așteaptă, gata, ups) se desenează din ea în continuare, în fundal.</string>
     <string name="nm_avatar_footer">Imaginile sunt stocate pe acest telefon sub minis-global/nanomuse/avatar. Fiecare față costă cinci imagini de la furnizorul tău: una aleasă de tine plus patru stări.</string>
+    <string name="nm_own_clip_title">Clipul tău</string>
+    <string name="nm_own_clip_body">Un videoclip scurt al tău rulează ca față în repaus, iar celelalte stări îl folosesc și ele. MP4 sau MOV cu video H.264, cel mult 15 secunde și 30 MB; rulează fără sunet, în buclă.</string>
+    <string name="nm_own_clip_on">Clipul tău este activ și rulează pentru fiecare stare; acolo unde se arată o imagine statică rămân imaginile desenate. „Fața implicită” îl elimină.</string>
+    <string name="nm_own_clip_local">Clipul rămâne pe acest telefon. Nu este încărcat în nanoMuse Cloud și nu este sincronizat cu celelalte dispozitive ale tale.</string>
+    <string name="nm_own_clip_choose">Alege un clip</string>
+    <string name="nm_own_clip_replace">Înlocuiește clipul</string>
+    <string name="nm_own_clip_default">Fața implicită</string>
+    <string name="nm_own_clip_menu">Clipul tău…</string>
+    <string name="nm_own_clip_preview_title">Previzualizare</string>
+    <string name="nm_own_clip_preview_body">Așa rulează ca față: fără sunet, în buclă, decupat în cerc.</string>
+    <string name="nm_own_clip_details">%1$d s · %2$s</string>
+    <string name="nm_own_clip_use">Folosește</string>
+    <string name="nm_own_clip_refused_format">Fișierul acela nu poate fi folosit aici. Alege un MP4 sau MOV cu video H.264, cel mult 15 secunde și 30 MB.</string>
+    <string name="nm_own_clip_refused_long">Clipul acela durează %1$d secunde. Limita este de 15 secunde, și 30 MB.</string>
+    <string name="nm_own_clip_refused_large">Clipul acela are %1$s. Limita este de 30 MB, și 15 secunde.</string>
+    <string name="nm_own_clip_unreadable">Clipul nu a putut fi citit. Încearcă altul.</string>
+    <string name="nm_a11y_own_clip_preview">Previzualizarea clipului tău</string>
 
     <!-- First run (Muse-style welcome; the steps are OpenMinis' provider and model screens) -->
     <string name="nm_setup_title">Bine ai venit la nanoMuse</string>
