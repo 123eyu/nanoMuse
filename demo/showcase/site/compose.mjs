@@ -89,13 +89,17 @@ cpSync(pageDir, join(dist, "page"), { recursive: true });
 writeFileSync(join(dist, "index.html"), page);
 writeFileSync(join(dist, "page", "index.html"), page);
 
-// their stylesheet and scripts, as they are — but the phone is at /phone.html here
+// their stylesheet and scripts, as they are, except that the phone is at /phone.html here, and
+// only there: upstream's page takes the frame's address from ?sim= (for a local preview against a
+// separate dev server), which on a public origin would let a crafted link put any page, or a
+// javascript: URL running as this origin, inside the phone. The showcase has no such preview,
+// so the address is fixed.
 cpSync(join(web, "styles.css"), join(dist, "page", "mobilegym.css"));
 cpSync(join(web, "scripts", "boot-hero.js"), join(dist, "page", "boot-hero.js"));
 let builder = readFileSync(join(web, "scripts", "state-builder.js"), "utf8");
 const simDefault = "new URLSearchParams(location.search).get('sim') || '/'";
 if (!builder.includes(simDefault)) throw new Error("state-builder.js: the simulator's default address moved; update compose.mjs");
-builder = builder.replace(simDefault, "new URLSearchParams(location.search).get('sim') || '/phone.html'");
+builder = builder.replace(simDefault, "'/phone.html'");
 writeFileSync(join(dist, "page", "state-builder.js"), builder);
 if (existsSync(join(web, "figures", "icons"))) cpSync(join(web, "figures", "icons"), join(dist, "page", "icons"), { recursive: true });
 console.log(`page composed: ${join(dist, "index.html")} (MobileGym's chrome from ${web})`);

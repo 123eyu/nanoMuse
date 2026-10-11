@@ -80,16 +80,19 @@ def text_only(model: str) -> bool:
     """Whether a model takes no images.
 
     Only the DeepSeek family is text-only, and not all of it: ``deepseek-v4.1-flash`` and
-    later read pictures, as does anything whose id says ``vision`` or ``ocr``; ``deepseek-v4``,
-    ``v4-pro``, ``v4-flash``, ``deepseek-chat`` and ``deepseek-reasoner`` do not. On Model
-    Studio's compatible mode a message with a picture in it does not fail for those — it
-    comes back as an empty reply — so the rule is by name rather than found out at the first
-    screenshot.
+    later read pictures, as does anything whose id says ``vision`` or ``ocr``, and so do
+    ``deepseek-flash`` and ``deepseek-v4-flash*``, which DeepSeek serves with V4.1 Flash (the
+    runtime's rule, ``nanomuse/llm/vision.py``); ``deepseek-v4``, ``v4-pro``, ``deepseek-chat``
+    and ``deepseek-reasoner`` do not. On Model Studio's compatible mode a message with a
+    picture in it does not fail for those, it comes back as an empty reply, so the rule is
+    by name rather than found out at the first screenshot.
     """
-    family = model.strip().lower()
+    family = model.strip().lower().rsplit("/", 1)[-1]
     if not family.startswith("deepseek"):
         return False
     if "vision" in family or "ocr" in family:
+        return False
+    if family == "deepseek-flash" or family.startswith("deepseek-v4-flash"):
         return False
     m = _DEEPSEEK_VERSION.search(family)
     if m is None:
