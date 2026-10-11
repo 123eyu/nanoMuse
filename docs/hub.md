@@ -175,8 +175,9 @@ the key in `hello` instead).
 Close codes: `4000` hello expected (no hello within 15 s, or a frame that is
 not a hello first; a binary frame counts), `4001` bad key (reason `bad_key`
 or `account_deleted`; `account_gone` when the account was deleted or disabled
-under a live socket; after relay 0.24.2 also `bad_key` under a live socket
-whose key was just revoked, by *Sign out everywhere* from another device, a
+under a live socket; from the relay release after 0.24.2 also `bad_key`
+under a live socket whose key was just revoked, by *Sign out everywhere*
+from another device, a
 session revoked on the account page or the device's own sign-out, so a lost
 phone loses its line at once and the other devices see it offline), `4002`
 bad device, `4003` replaced
