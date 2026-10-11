@@ -193,6 +193,10 @@ class Endpoints:
                     llm["api_key"] = row["api_key"]
                     self.conn.data["llm"] = llm
                     self.conn.settings.llm.api_key = row["api_key"]
+                else:
+                    # the slot names a vault entry nothing answers: the endpoint keeps the
+                    # same reference, so both say "missing" and setting that entry mends both
+                    row["api_key"] = ref
             rows.append(row)
             logger.info("the chat model's endpoint {} is now endpoint number one", base_url)
         self._write(rows)

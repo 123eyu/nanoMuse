@@ -1321,6 +1321,24 @@ def test_app_settings_are_layered_on_config(server, settings: Settings):
     assert fresh.connectors.email.imap_host == "imap.x" and fresh.browser.enabled is True
 
 
+def test_a_broken_app_settings_file_is_reported_not_silently_a_first_start(tmp_path: Path):
+    from loguru import logger
+
+    from nanomuse.config import load_app_settings
+
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "app-settings.json").write_text('{"version": 1, "llm": {"model": "m2"', "utf-8")
+    lines: list[str] = []
+    sink = logger.add(lambda m: lines.append(str(m)), level="WARNING")
+    try:
+        assert load_app_settings(data_dir) == {}
+        assert load_app_settings(tmp_path / "nowhere") == {}, "no file is a quiet first start"
+    finally:
+        logger.remove(sink)
+    assert len(lines) == 1 and "app-settings.json" in lines[0], lines
+
+
 def test_files_are_scoped_to_workspace(server, settings: Settings):
     client, _, _ = server
     (settings.agent.workspace / "notes").mkdir()

@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from nanomuse.schema import RiskLevel
 from nanomuse.tools import Triggers
 from nanomuse.triggers import TriggerStore, matches
 
@@ -113,10 +114,14 @@ def test_triggers_tool(tmp_path: Path):
     assert store.active("hook") == [] and changes == [1, 1, 1]
     assert run(tool.execute(action="rename")).error
 
-    summary = tool.assess(
+    create = tool.assess(
         {"action": "create", "kind": "mail", "match": "landlord", "text": "draft a reply"}
-    ).summary
-    assert summary == "triggers create: mail “landlord”: draft a reply"
+    )
+    assert create.summary == "triggers create: mail “landlord”: draft a reply"
+    # creating standing work is a change of state; listing and cancelling are not
+    assert create.risk == RiskLevel.MODERATE
+    assert tool.assess({"action": "list"}).risk == RiskLevel.SAFE
+    assert tool.assess({"action": "cancel", "trigger_id": "t_x"}).risk == RiskLevel.SAFE
     store.close()
 
 
