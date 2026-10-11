@@ -54,6 +54,7 @@ title and last exchange quoted, and the run says `resumed: false`; the apps say
 so above the composer. The same fallback runs when a chat the store called
 resumable turns out unknown to the CLI.
 
+dsh is read and driven by the desktop app; the Python runtime does not list it yet.
 dsh's store needs two things said: it is **zstd**, and it is **many zstd frames**
 appended as the session is written, so decompressing it once stops at the end of
 the first frame and a long chat loses everything after its opening lines. The
