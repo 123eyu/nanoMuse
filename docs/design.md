@@ -85,6 +85,11 @@ The Android app's chat palette is `ChatColors.kt`, written by `scripts/rebrand.p
 | send button (`sendButton`), arrow in the canvas colour | `#000000` | `#FFFFFF` |
 | links, status line (`link`, `thinking`) | `#015CFB` | `#58A6FF` |
 
+The iOS app's chat uses the same values: `NanoMuseTones.ink` and `onInk` for your pill, the
+send disc and the scroll-to-latest disc, `agentPill` for the agent's, in `NanoMuseFaces.swift`;
+the canvas is the system background, white and black. The pill bar's indicator disc is the same
+ink with the glyph in `onInk` (`tabIndicator`, `tabIndicatorGlyph`), see [ios.md](ios.md).
+
 The panda: fur `#d8632e` lit to `#ee8a4c` and shaded to `#9e3f18`, deep fur `#bf4f23` (ears, tail rings, paws), cream `#fff4e6` from `#fffaf2` to `#f3dfc6` at the cheeks, markings `#2a1a14` with an eye highlight `#4a302a`, blush `#f4a0a0`; the plate behind it in the app `#dcebdc`, the logo plate `#2f7a5a`. The `mark` level uses only the base colours.
 
 Figtree throughout, set with Tailwind's scale: 15 px in bubbles, 12–13 px for status lines and captions, 17–20 px semibold for titles.
