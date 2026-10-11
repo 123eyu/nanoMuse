@@ -7877,7 +7877,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "거의 다 썼습니다: 무료 사용량 ¥%@ 중 ¥%@ 남았습니다. 직접 추가한 키나 이미 결제 중인 요금제로 계속 쓸 수 있습니다. 설정 → nanoMuse Cloud에서."
+            "value" : "거의 다 썼습니다: 무료 사용량 ¥%2$@ 중 ¥%1$@ 남았습니다. 직접 추가한 키나 이미 결제 중인 요금제로 계속 쓸 수 있습니다. 설정 → nanoMuse Cloud에서."
           }
         },
         "ru" : {
@@ -115003,64 +115003,6 @@
         }
       }
     },
-    "%@ · %@ of the allowance left" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ · %@ des Guthabens übrig"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ · %@ of the allowance left"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ · queda %@ del saldo"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ · %@ du crédit restants"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ · 無料枠の残り %@"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ · 사용량 %@ 남음"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ · осталось %@ лимита"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ · 额度还剩 %2$@"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ · 額度還剩 %2$@"
-          }
-        }
-      }
-    },
     "Signed in" : {
       "localizations" : {
         "de" : {
@@ -119521,6 +119463,242 @@
         }
       }
     },
+    "That password is too long." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Passwort ist zu lang."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That password is too long."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esa contraseña es demasiado larga."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce mot de passe est trop long."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パスワードが長すぎます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "비밀번호가 너무 깁니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот пароль слишком длинный."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "密码太长了。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "密碼太長了。"
+          }
+        }
+      }
+    },
+    "Enter the current password first." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib zuerst das aktuelle Passwort ein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the current password first."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escribe primero la contraseña actual."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saisissez d’abord le mot de passe actuel."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まず現在のパスワードを入力してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "먼저 현재 비밀번호를 입력하세요."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сначала введите текущий пароль."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先输入当前密码。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請先輸入目前的密碼。"
+          }
+        }
+      }
+    },
+    "Too many wrong attempts. Wait a few minutes, or sign in with a code." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu viele falsche Versuche. Warte ein paar Minuten oder melde dich mit einem Code an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Too many wrong attempts. Wait a few minutes, or sign in with a code."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demasiados intentos fallidos. Espera unos minutos o inicia sesión con un código."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trop de tentatives incorrectes. Attendez quelques minutes ou connectez-vous avec un code."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "間違いが続きました。数分待つか、コードでサインインしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "틀린 시도가 너무 많습니다. 몇 분 기다리거나 코드로 로그인하세요."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Слишком много неверных попыток. Подождите несколько минут или войдите по коду."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "错误次数太多。请过几分钟再试，或改用验证码登录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "錯誤次數太多。請過幾分鐘再試，或改用驗證碼登入。"
+          }
+        }
+      }
+    },
+    "Wrong phone number, e-mail or password." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Telefonnummer, E-Mail oder Passwort falsch."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wrong phone number, e-mail or password."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teléfono, correo o contraseña incorrectos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Numéro de téléphone, e-mail ou mot de passe incorrect."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "電話番号、メールアドレスまたはパスワードが違います。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전화번호, 이메일 또는 비밀번호가 틀렸습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Неверный номер телефона, e-mail или пароль."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手机号、邮箱或密码不对。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手機號碼、信箱或密碼不對。"
+          }
+        }
+      }
+    },
     "This account has no password yet. Sign in with a code and set one under nanoMuse Cloud." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -120454,13 +120632,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "画好了 %d 个状态里的 %d 个，其余先用主图。"
+            "value" : "画好了 %2$d 个状态里的 %1$d 个，其余先用主图。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "畫好了 %d 個狀態裡的 %d 個，其餘先用主圖。"
+            "value" : "畫好了 %2$d 個狀態裡的 %1$d 個，其餘先用主圖。"
           }
         }
       }
@@ -122766,61 +122944,61 @@
         }
       }
     },
-    "In a chat, just ask: “on my Mac, list the downloads folder”, “tell my PC to build the project and send me the log”. Approvals show on this phone." : {
+    "In a chat, just ask: “on my Mac, list the downloads folder”, “tell my PC to build the project and send me the log”. A step that needs permission is approved on that device, not here." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bitte einfach im Chat: „auf meinem Mac den Downloads-Ordner auflisten“, „sag meinem PC, er soll das Projekt bauen und mir das Log schicken“. Freigaben erscheinen auf diesem Telefon."
+            "value" : "Bitte einfach im Chat: „auf meinem Mac den Downloads-Ordner auflisten“, „sag meinem PC, er soll das Projekt bauen und mir das Log schicken“. Ein Schritt, der eine Freigabe braucht, wird auf dem jeweiligen Gerät freigegeben, nicht hier."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In a chat, just ask: “on my Mac, list the downloads folder”, “tell my PC to build the project and send me the log”. Approvals show on this phone."
+            "value" : "In a chat, just ask: “on my Mac, list the downloads folder”, “tell my PC to build the project and send me the log”. A step that needs permission is approved on that device, not here."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "En un chat, solo pídelo: “en mi Mac, lista la carpeta de descargas”, “dile a mi PC que compile el proyecto y me mande el registro”. Las aprobaciones se muestran en este teléfono."
+            "value" : "En un chat, solo pídelo: “en mi Mac, lista la carpeta de descargas”, “dile a mi PC que compile el proyecto y me mande el registro”. Un paso que necesita permiso se aprueba en ese dispositivo, no aquí."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dans une discussion, demandez simplement : « sur mon Mac, liste le dossier Téléchargements », « dis à mon PC de compiler le projet et de m’envoyer le journal ». Les approbations s’affichent sur ce téléphone."
+            "value" : "Dans une discussion, demandez simplement : « sur mon Mac, liste le dossier Téléchargements », « dis à mon PC de compiler le projet et de m’envoyer le journal ». Une étape qui demande une autorisation s’approuve sur cet appareil-là, pas ici."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "チャットでこう頼むだけです: 「Mac でダウンロードフォルダの一覧を出して」「PC にプロジェクトをビルドさせてログを送って」。承認はこの端末に表示されます。"
+            "value" : "チャットでこう頼むだけです: 「Mac でダウンロードフォルダの一覧を出して」「PC にプロジェクトをビルドさせてログを送って」。許可が要る手順はその端末側で承認します。この端末には表示されません。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "채팅에서 그냥 말하세요. “내 Mac에서 다운로드 폴더 목록 보여 줘”, “내 PC에 프로젝트를 빌드하고 로그를 보내라고 해 줘”. 승인은 이 휴대전화에 표시됩니다."
+            "value" : "채팅에서 그냥 말하세요. “내 Mac에서 다운로드 폴더 목록 보여 줘”, “내 PC에 프로젝트를 빌드하고 로그를 보내라고 해 줘”. 허가가 필요한 단계는 그 기기에서 승인합니다. 여기에는 표시되지 않습니다."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "В чате просто попросите: «на моём Mac покажи папку загрузок», «скажи моему ПК собрать проект и прислать мне лог». Подтверждения показываются на этом телефоне."
+            "value" : "В чате просто попросите: «на моём Mac покажи папку загрузок», «скажи моему ПК собрать проект и прислать мне лог». Шаг, которому нужно разрешение, подтверждается на том устройстве, а не здесь."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在聊天里直接说就行：「在我 Mac 上列一下下载文件夹」「让电脑把项目编译一遍，把日志发给我」。需要确认的事会在这台手机上弹卡片。"
+            "value" : "在聊天里直接说就行：「在我 Mac 上列一下下载文件夹」「让电脑把项目编译一遍，把日志发给我」。需要确认的步骤要在那台设备上批准，这里不会弹卡片。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在聊天裡直接說就好：「在我的 Mac 上列出下載資料夾」「讓電腦把專案編譯一遍，把日誌傳給我」。需要確認的事會在這支手機上跳出卡片。"
+            "value" : "在聊天裡直接說就好：「在我的 Mac 上列出下載資料夾」「讓電腦把專案編譯一遍，把日誌傳給我」。需要確認的步驟要在那台裝置上核准，這裡不會跳出卡片。"
           }
         }
       }

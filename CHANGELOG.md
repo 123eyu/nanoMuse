@@ -16,6 +16,13 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### iOS
 
+- **A wrong password says so.** The sign-in and account pages name the relay's password refusals: a wrong address or password, too many wrong attempts in a row, a password that is too short or too long, the current password left out. Before, a wrong password read as a sign-in that had expired, and the lock-out read as too many requests. In all nine languages.
+- **The nanoMuse Cloud row under Providers stops saying *0% of the allowance left*.** On a relay without a token ceiling it shows who is signed in; on one that prices in money it shows the yuan left, the same figure as the Settings card.
+- **The relay's key is written to this phone's keychain only, from the first moment.** Signing in wrote the key as an iCloud-synchronizable item first and replaced it with a device-only one after the model list arrived; the device-only write now follows at once.
+- **Reduce Motion is honoured.** With it on, the pill bar's indicator moves to the tapped tab without the spring, and the face keeps still: no breath, bob, tilt, pop or shake; the mood still changes with its crossfade, and a clip of your own still plays.
+- **Three translations put their numbers back in order.** The avatar studio's *n of m moods drawn* line in Chinese and Traditional Chinese, and the Korean *nearly used up* line above the composer, had the two figures swapped.
+- **The Devices footer tells the truth about approvals.** A step a computer must ask about is approved on that computer, not on the phone; the footer said approvals would show here.
+
 ### Project
 
 ## [1.0.3] - 2026-10-12 · Helm
