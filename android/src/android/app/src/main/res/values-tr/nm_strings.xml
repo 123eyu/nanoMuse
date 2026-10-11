@@ -351,6 +351,23 @@
     <string name="nm_avatar_use_this">Bunu kullan</string>
     <string name="nm_avatar_use_this_hint">Ruh halleri (çalışıyor, bekliyor, tamamlandı, hata) bundan sonra arka planda ondan çizilir.</string>
     <string name="nm_avatar_footer">Resimler bu telefonda minis-global/nanomuse/avatar altında saklanır. Her yüz sağlayıcından beş görsel tutar: seçtiğin bir tane artı dört ruh hali.</string>
+    <string name="nm_own_clip_title">Kendi klibiniz</string>
+    <string name="nm_own_clip_body">Size ait kısa bir video, beklemedeki yüz olarak oynar ve diğer ruh halleri de ona döner. H.264 videolu MP4 veya MOV, en fazla 15 saniye ve 30 MB; sessiz ve döngüde oynar.</string>
+    <string name="nm_own_clip_on">Klibiniz açık ve her ruh halinde oynuyor; sabit bir görüntünün gösterildiği yerlerde çizilen resimler kullanılmaya devam eder. “Varsayılan yüz” onu kaldırır.</string>
+    <string name="nm_own_clip_local">Klip bu telefonda kalır. nanoMuse Cloud\'a yüklenmez ve diğer cihazlarınızla eşitlenmez.</string>
+    <string name="nm_own_clip_choose">Klip seç</string>
+    <string name="nm_own_clip_replace">Klibi değiştir</string>
+    <string name="nm_own_clip_default">Varsayılan yüz</string>
+    <string name="nm_own_clip_menu">Kendi klibiniz…</string>
+    <string name="nm_own_clip_preview_title">Önizleme</string>
+    <string name="nm_own_clip_preview_body">Yüz olarak böyle oynar: sessiz, döngüde, daireye kırpılmış.</string>
+    <string name="nm_own_clip_details">%1$d sn · %2$s</string>
+    <string name="nm_own_clip_use">Kullan</string>
+    <string name="nm_own_clip_refused_format">Bu dosya burada kullanılamaz. H.264 videolu, en fazla 15 saniye ve 30 MB olan bir MP4 veya MOV seçin.</string>
+    <string name="nm_own_clip_refused_long">Bu klip %1$d saniye sürüyor. Sınır 15 saniye ve 30 MB.</string>
+    <string name="nm_own_clip_refused_large">Bu klip %1$s. Sınır 30 MB ve 15 saniye.</string>
+    <string name="nm_own_clip_unreadable">Klip okunamadı. Başka birini deneyin.</string>
+    <string name="nm_a11y_own_clip_preview">Klibinizin önizlemesi</string>
 
     <!-- First run (Muse-style welcome; the steps are OpenMinis' provider and model screens) -->
     <string name="nm_setup_title">nanoMuse’a hoş geldin</string>

@@ -84,6 +84,10 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   *正在处理：〈简述〉*，空闲时是模型的名字；正在画新形象时，显示的是形象流程那边的那行字。
   形象（`NanoMuseFaces.swift`：Application Support 里画出来的脸，或者 bundle 里的小龙，五种
   状态，带着其他客户端那样的呼吸、浮动、歪头、弹出和抖动）点一下进入**智能体的页面**。
+  也可以换成一段你自己的短视频来当形象（`NanoMuseOwnClip.swift`：智能体页面钢笔菜单和形象
+  工作室里的 *你自己的视频…*；MP4 或 MOV，H.264 或 HEVC 视频，最长 15 秒、最大 30 MB，用之前
+  先预览，只保存在这台手机的 `Application Support/nanomuse/avatar/own-clip.mp4`，*默认形象*
+  可移除；回退规则见 [avatar.md](avatar.md) 里的那一节）。
   抽屉里放着会话、搜索、新建旁聊、*设为主要聊天*、*全部对话* 和 nanoMuse 设置；点圆形按钮
   打开，在主要聊天里从左边缘向右滑也打开（`NanoMuseEdgeSwipe.swift`，挂在窗口上的屏幕边缘
   手势，和 Android 聊天页上的抽屉一样；推出来的旁聊仍然用系统的返回手势）。
@@ -439,13 +443,30 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   不透明度的外壳 surface 色（对比度靠这层色，模糊靠材质，和 Android 在背景模糊上盖 55% surface
   一样），边上一道 1 pt 的 `NanoMuseTones.hairline`；原来那条通栏的条和它顶上的细线没有了。
   五个标签平分胶囊的宽度，每一格整格可点；当前这个用 `tabIndicatorGlyph` 色显示实心符号，底下一个
-  60 × 46 pt 的 `tabIndicator` 色胶囊（Android 的 primaryContainer 和 onPrimaryContainer：浅色 `#E5F0FF`
-  配 `#012F80`，深色 `#1A2B4A` 配 `#E5F0FF`），点下一个标签时它带着弹簧滑过去
+  60 × 46 pt 的 `tabIndicator` 色胶囊（聊天的墨色：浅色黑底白符号，深色白底黑符号，和 Android 的
+  `MuseBottomBar` 一样），点下一个标签时它带着弹簧滑过去
   （`matchedGeometryEffect`）；其他标签用次要颜色显示线框符号。键盘弹起或聊天的语音面板打开时，
   底栏仍然离开。布局：胶囊在一个贴底对齐的 `ZStack` 里盖在房间和聊天上面。聊天沿用上面
   0.1.40 的规矩（聊天层加一段底栏高度、70 pt 的底部 padding：46 加上下各 6，再加 12 pt 的间隙，所以输入区在胶囊上面，
   `NavigationStack` 的祖先上没有任何 inset）；房间是普通的 SwiftUI 滚动视图，同样的高度用
   `safeAreaInset` 给出，于是它们的内容会滚到胶囊下面，玻璃才有东西可模糊。在没有 Mac 的 Linux
+  上写的：iOS 检查能编译它，还没有设备显示过它。
+- **聊天是单色的**（`NanoMuseFaces.swift` 里的 `NanoMuseTones.ink` / `onInk` / `agentPill`，
+  `NanoMuseHeader.swift` 里的 `NanoMuseHeaderScrim`，`NanoMuseComposer.swift`，
+  `NanoMuseChatCards.swift`，以及 `Views/Chat/ChatMessageViews.swift` 和
+  `Views/Chat/AIChatView.swift` 里的 `// nanoMuse:` 行；对应 Android 的 #331，@Ichiro786）。开着
+  Muse 外壳时，你的消息是墨色的胶囊，文字用画布色：浅色主题下白色画布上是黑胶囊白字，深色主题下
+  黑色画布上是白胶囊黑字，没有蓝也没有灰。智能体的回复放在一个比
+  画布深一点或浅一点的胶囊里，浅色 `#F2F2F7`，深色 `#1C1C1E`，文字用主题的文字色；代码、表格和
+  原始标记照旧不加胶囊。输入胶囊里的发送箭头是同一种墨色的 30 pt 圆盘，箭头用画布色（没有可发
+  的内容时圆盘是一层淡淡的墨色，箭头 40%），智能体回答时的停止方块也在同一个圆盘上；输入胶囊
+  本身还是灰的。列表下面*回到最新*的圆盘也是
+  同一种墨色，箭头用画布色；它上面那颗往回走的按钮保留浅色圆盘。主聊天上方的标题栏不再是模糊
+  层：一层画布色的渐变遮罩，顶边 80%，过半一点 35%，到底部透明，于是对话会滚到形象下面并融进
+  画布，而不是停在一条线上；列表滚离最新消息时，再从顶边以 250 ms 淡入一层完整画布色的渐变
+  （外壳 `safeAreaInset` 的背景，像标题栏绑定心情那样绑定主聊天的 `isNearBottom`）。排队中的消息
+  保留上游的虚线边框和灰字，*来自 {设备}* 的说明和附件都在胶囊外面，长按预览还是原来那张不透明
+  的卡片。从抽屉推出的侧聊天保留系统栏和它的材质；房间保留它们的画布。在没有 Mac 的 Linux
   上写的：iOS 检查能编译它，还没有设备显示过它。
 
 ## 用操作按钮说一句 {#voice-prompts-from-the-action-button}

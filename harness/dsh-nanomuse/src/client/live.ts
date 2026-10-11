@@ -143,6 +143,8 @@ export interface Live {
   update: UpdateInfo | null
   /** The drawn face's clips and how their drawing goes (desk-b). */
   motion: LiveMotion
+  /** The person's own clip as the face (#324): size, the mtime (`v`) its URL carries, whether a first frame was kept; null for none. */
+  ownClip: LiveOwnClip | null
   /** When the hands last saw an all-black screen (macOS: Screen Recording missing or granted after launch); 0 when never. */
   blackScreenAt: number
   /** Conversation sync (C8): `rev` moves with every change; the session that is the account's main conversation. Absent on an older host. */
@@ -189,6 +191,12 @@ export interface LiveMotion {
 
 export const NO_MOTION: LiveMotion = { progress: null, clips: {}, faceId: '' }
 
+export interface LiveOwnClip {
+  size: number
+  v: number
+  poster: boolean
+}
+
 export const DEFAULT_PROFILE: LiveProfile = { rev: 0, name: 'nanoMuse', avatar: 'dragon', emoji: '', color: '', description: '', style: '', faceId: '', connectors: [] }
 
 const INITIAL: Live = {
@@ -204,6 +212,7 @@ const INITIAL: Live = {
   handsModel: '',
   update: null,
   motion: NO_MOTION,
+  ownClip: null,
   blackScreenAt: 0,
   streaming: false,
 }
@@ -228,7 +237,7 @@ function open(): void {
     try {
       const data = JSON.parse(event.data) as Partial<Omit<Live, 'streaming'>>
       // An older host (0.1.33) sends no approvals/holds; keep the defaults rather than undefined.
-      publish({ ...snapshot, ...data, profile: { ...DEFAULT_PROFILE, ...data.profile }, approvals: data.approvals ?? [], holds: data.holds ?? [], grants: data.grants ?? [], handsModel: data.handsModel ?? '', update: data.update ?? null, motion: data.motion ?? NO_MOTION, blackScreenAt: data.blackScreenAt ?? 0, streaming: true })
+      publish({ ...snapshot, ...data, profile: { ...DEFAULT_PROFILE, ...data.profile }, approvals: data.approvals ?? [], holds: data.holds ?? [], grants: data.grants ?? [], handsModel: data.handsModel ?? '', update: data.update ?? null, motion: data.motion ?? NO_MOTION, ownClip: data.ownClip ?? null, blackScreenAt: data.blackScreenAt ?? 0, streaming: true })
     } catch {
       // a malformed frame is skipped; the next snapshot replaces everything anyway
     }

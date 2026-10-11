@@ -2725,7 +2725,7 @@ struct AIChatView: View {
                     Button {
                         vm.forceScrollToBottom.send()
                     } label: {
-                        scrollFloatingButtonLabel("chevron.down")
+                        scrollFloatingButtonLabel("chevron.down", ink: NanoMuseShellPrefs.shell) // nanoMuse: in the shell the scroll-to-latest disc is the chat's ink, as the send disc (Android #331)
                     }
                     .transition(.opacity.combined(with: .scale(scale: 0.8)))
                 }
@@ -2760,16 +2760,16 @@ struct AIChatView: View {
 
     /// Shared label style for the floating scroll buttons (up / down), matching
     /// the original scroll-to-bottom button look.
-    private func scrollFloatingButtonLabel(_ systemName: String) -> some View {
+    private func scrollFloatingButtonLabel(_ systemName: String, ink: Bool = false) -> some View { // nanoMuse: `ink` draws the disc in NanoMuseTones.ink with the glyph in the canvas colour
         Image(systemName: systemName)
             .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(ink ? AnyShapeStyle(NanoMuseTones.onInk) : AnyShapeStyle(HierarchicalShapeStyle.secondary)) // nanoMuse:
             .frame(width: 36, height: 36)
-            .background { ScrollToBottomBackground().clipShape(Circle()) }
+            .background { if ink { NanoMuseTones.ink.clipShape(Circle()) } else { ScrollToBottomBackground().clipShape(Circle()) } } // nanoMuse:
             // Border + shadow give the near-opaque disc its edge on a white
             // page — at 0.25/0.12 the button had no readable outline over
             // plain reply text. [T-ios-scrollbtn-invisible-lightmode]
-            .overlay(Circle().stroke(Color.gray.opacity(0.35), lineWidth: 0.5))
+            .overlay(Circle().stroke(Color.gray.opacity(ink ? 0 : 0.35), lineWidth: 0.5)) // nanoMuse: the ink disc needs no edge
             .shadow(color: .black.opacity(0.18), radius: 5, y: 2)
     }
 

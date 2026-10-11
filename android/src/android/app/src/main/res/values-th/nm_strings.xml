@@ -348,6 +348,23 @@
     <string name="nm_avatar_use_this">ใช้แบบนี้</string>
     <string name="nm_avatar_use_this_hint">อารมณ์ต่าง ๆ (ทำงาน รอ เสร็จ ผิดพลาด) จะวาดจากรูปนี้ต่อในเบื้องหลัง</string>
     <string name="nm_avatar_footer">รูปภาพเก็บไว้บนโทรศัพท์เครื่องนี้ที่ minis-global/nanomuse/avatar ใบหน้าแต่ละแบบใช้ห้ารูปจากผู้ให้บริการของคุณ: รูปที่คุณเลือกหนึ่งรูปและอารมณ์อีกสี่รูป</string>
+    <string name="nm_own_clip_title">คลิปของคุณเอง</string>
+    <string name="nm_own_clip_body">วิดีโอสั้นของคุณจะเล่นเป็นใบหน้าตอนพัก และอารมณ์อื่นก็ใช้คลิปเดียวกัน MP4 หรือ MOV ที่เป็นวิดีโอ H.264 ยาวไม่เกิน 15 วินาทีและไม่เกิน 30 MB เล่นวนซ้ำแบบปิดเสียง</string>
+    <string name="nm_own_clip_on">คลิปของคุณเปิดอยู่และเล่นในทุกอารมณ์ ตรงที่แสดงภาพนิ่งยังใช้ภาพที่วาดไว้ “ใบหน้าเริ่มต้น” จะลบคลิปออก</string>
+    <string name="nm_own_clip_local">คลิปอยู่ในโทรศัพท์เครื่องนี้เท่านั้น ไม่ได้อัปโหลดไป nanoMuse Cloud และไม่ซิงค์ไปยังอุปกรณ์อื่นของคุณ</string>
+    <string name="nm_own_clip_choose">เลือกคลิป</string>
+    <string name="nm_own_clip_replace">เปลี่ยนคลิป</string>
+    <string name="nm_own_clip_default">ใบหน้าเริ่มต้น</string>
+    <string name="nm_own_clip_menu">คลิปของคุณเอง…</string>
+    <string name="nm_own_clip_preview_title">ดูตัวอย่าง</string>
+    <string name="nm_own_clip_preview_body">เมื่อเป็นใบหน้าจะเล่นแบบนี้: ปิดเสียง วนซ้ำ ตัดเป็นวงกลม</string>
+    <string name="nm_own_clip_details">%1$d วิ · %2$s</string>
+    <string name="nm_own_clip_use">ใช้</string>
+    <string name="nm_own_clip_refused_format">ใช้ไฟล์นี้ที่นี่ไม่ได้ เลือก MP4 หรือ MOV ที่เป็นวิดีโอ H.264 ยาวไม่เกิน 15 วินาทีและไม่เกิน 30 MB</string>
+    <string name="nm_own_clip_refused_long">คลิปนี้ยาว %1$d วินาที ขีดจำกัดคือ 15 วินาที และ 30 MB</string>
+    <string name="nm_own_clip_refused_large">คลิปนี้มีขนาด %1$s ขีดจำกัดคือ 30 MB และ 15 วินาที</string>
+    <string name="nm_own_clip_unreadable">อ่านคลิปไม่ได้ ลองคลิปอื่น</string>
+    <string name="nm_a11y_own_clip_preview">ตัวอย่างคลิปของคุณ</string>
 
     <!-- First run (Muse-style welcome; the steps are OpenMinis' provider and model screens) -->
     <string name="nm_setup_title">ยินดีต้อนรับสู่ nanoMuse</string>

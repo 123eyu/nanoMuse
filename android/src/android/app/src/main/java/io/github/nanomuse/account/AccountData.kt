@@ -217,6 +217,7 @@ object AccountData {
         runCatching { io.github.nanomuse.feed.FeedStore.reload() }
         runCatching { io.github.nanomuse.goals.GoalStore.get(ctx).reload() }
         runCatching { io.github.nanomuse.avatar.AvatarStore.reload() }
+        runCatching { io.github.nanomuse.avatar.OwnClip.rescan() }
         runCatching { com.openminis.app.agent.SoulStore.refreshCache(ctx) }
         runCatching { io.github.nanomuse.home.MainChat.reset() }
     }

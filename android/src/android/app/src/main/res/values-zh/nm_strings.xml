@@ -341,6 +341,23 @@
     <string name="nm_avatar_use_this">就用这个</string>
     <string name="nm_avatar_use_this_hint">接下来会在后台以它为底画出各个状态：干活、等你、搞定、出错。</string>
     <string name="nm_avatar_footer">图片存在这台手机的 minis-global/nanomuse/avatar 下。每换一次形象会向你的提供方要五张图：你选的那张加四个状态。</string>
+    <string name="nm_own_clip_title">你自己的视频</string>
+    <string name="nm_own_clip_body">一段你自己的短视频会作为待机时的形象播放，其他状态也沿用它。MP4 或 MOV，H.264 视频，最长 15 秒、最大 30 MB；静音循环播放。</string>
+    <string name="nm_own_clip_on">你的视频已启用，所有状态都播放它；需要静态图的地方仍用画好的图片。「默认形象」可移除它。</string>
+    <string name="nm_own_clip_local">视频只保存在这台手机上，不会上传到 nanoMuse Cloud，也不会同步到你的其他设备。</string>
+    <string name="nm_own_clip_choose">选择视频</string>
+    <string name="nm_own_clip_replace">更换视频</string>
+    <string name="nm_own_clip_default">默认形象</string>
+    <string name="nm_own_clip_menu">你自己的视频…</string>
+    <string name="nm_own_clip_preview_title">预览</string>
+    <string name="nm_own_clip_preview_body">作为形象时就是这样播放的：静音、循环、裁成圆形。</string>
+    <string name="nm_own_clip_details">%1$d 秒 · %2$s</string>
+    <string name="nm_own_clip_use">使用</string>
+    <string name="nm_own_clip_refused_format">这个文件无法在这里使用。请选择 MP4 或 MOV（H.264 视频），最长 15 秒、最大 30 MB。</string>
+    <string name="nm_own_clip_refused_long">这段视频长 %1$d 秒。上限是 15 秒，以及 30 MB。</string>
+    <string name="nm_own_clip_refused_large">这段视频有 %1$s。上限是 30 MB，以及 15 秒。</string>
+    <string name="nm_own_clip_unreadable">无法读取这段视频，请换一段试试。</string>
+    <string name="nm_a11y_own_clip_preview">你的视频预览</string>
 
     <!-- 首次运行 -->
     <string name="nm_setup_title">欢迎使用 nanoMuse</string>

@@ -72,6 +72,8 @@ import io.github.nanomuse.sysfiles.SystemFiles
 import io.github.nanomuse.ui.avatar.AgentAvatar
 import io.github.nanomuse.ui.avatar.AgentMood
 import io.github.nanomuse.ui.avatar.AvatarShareSheet
+import io.github.nanomuse.ui.avatar.OwnClipChooserHost
+import io.github.nanomuse.ui.avatar.rememberOwnClipChooser
 import io.github.nanomuse.ui.home.MuseRoundButton
 import io.github.nanomuse.ui.home.MuseTones
 import kotlinx.coroutines.Dispatchers
@@ -86,7 +88,7 @@ const val ROUTE_AGENT_PROFILE = "nanomuse/profile"
  * Muse's agent page — tap the face to get here: the face with its edit badge, the name,
  * "online", and four panes: what it did today, the approvals it holds, its daily routines,
  * and its soul & memory. The pen on the face offers "Change avatar" (back to the chat with the
- * request pre-typed) and "Edit name".
+ * request pre-typed), "Edit name", a clip of your own as the face, and the studio.
  */
 @Composable
 fun AgentProfileScreen(
@@ -106,6 +108,9 @@ fun AgentProfileScreen(
     var pane by rememberSaveable { mutableIntStateOf(0) }
     var penMenu by remember { mutableStateOf(false) }
     var share by remember { mutableStateOf(false) }
+    // A clip of the person's own as the face (#324), offered under the pen as well.
+    val ownClip by io.github.nanomuse.avatar.OwnClip.current.collectAsState()
+    val clipChooser = rememberOwnClipChooser()
 
     Scaffold(containerColor = MuseTones.canvas) { padding ->
         Column(
@@ -159,6 +164,16 @@ fun AgentProfileScreen(
                                 onClick = { penMenu = false; onEditName() },
                             )
                             DropdownMenuItem(
+                                text = { Text(stringResource(R.string.nm_own_clip_menu)) },
+                                onClick = { penMenu = false; clipChooser.choose() },
+                            )
+                            if (ownClip != null) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.nm_own_clip_default)) },
+                                    onClick = { penMenu = false; io.github.nanomuse.avatar.OwnClip.clear() },
+                                )
+                            }
+                            DropdownMenuItem(
                                 text = { Text(stringResource(R.string.nm_profile_avatar_studio), color = MaterialTheme.colorScheme.onSurfaceVariant) },
                                 onClick = { penMenu = false; onOpenAvatarStudio() },
                             )
@@ -195,6 +210,7 @@ fun AgentProfileScreen(
         }
     }
     if (share) AvatarShareSheet(onDismiss = { share = false })
+    OwnClipChooserHost(clipChooser)
 }
 
 /** Muse's four-way segmented control: glyphs on a white bar, a grey pill under the current one. */

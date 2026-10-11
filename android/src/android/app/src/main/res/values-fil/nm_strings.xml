@@ -351,6 +351,23 @@
     <string name="nm_avatar_use_this">Gamitin ito</string>
     <string name="nm_avatar_use_this_hint">Ang mga mood (gumagawa, naghihintay, tapos na, nagkamali) ay iguguhit mula rito sa susunod, sa background.</string>
     <string name="nm_avatar_footer">Nakatago ang mga larawan sa teleponong ito sa ilalim ng minis-global/nanomuse/avatar. Ang bawat mukha ay nagkakahalaga ng limang larawan mula sa provider mo: isang pinili mo at apat na mood.</string>
+    <string name="nm_own_clip_title">Ang sarili mong clip</string>
+    <string name="nm_own_clip_body">Isang maikling video mo ang tumutugtog bilang mukha kapag nakapahinga, at ginagamit din ito ng ibang mood. MP4 o MOV na may H.264 na video, hanggang 15 segundo at 30 MB; naka-mute at paulit-ulit itong tumutugtog.</string>
+    <string name="nm_own_clip_on">Naka-on ang clip mo at tumutugtog ito sa bawat mood; kung saan ipinapakita ang isang still, ginagamit pa rin ang mga iginuhit na larawan. Inaalis ito ng “Default na mukha”.</string>
+    <string name="nm_own_clip_local">Nananatili ang clip sa teleponong ito. Hindi ito ina-upload sa nanoMuse Cloud o sini-sync sa iba mong device.</string>
+    <string name="nm_own_clip_choose">Pumili ng clip</string>
+    <string name="nm_own_clip_replace">Palitan ang clip</string>
+    <string name="nm_own_clip_default">Default na mukha</string>
+    <string name="nm_own_clip_menu">Ang sarili mong clip…</string>
+    <string name="nm_own_clip_preview_title">Preview</string>
+    <string name="nm_own_clip_preview_body">Ganito ito tumutugtog bilang mukha: naka-mute, paulit-ulit, pinutol sa bilog.</string>
+    <string name="nm_own_clip_details">%1$d s · %2$s</string>
+    <string name="nm_own_clip_use">Gamitin</string>
+    <string name="nm_own_clip_refused_format">Hindi magagamit ang file na iyon dito. Pumili ng MP4 o MOV na may H.264 na video, hanggang 15 segundo at 30 MB.</string>
+    <string name="nm_own_clip_refused_long">%1$d segundo ang clip na iyon. Ang limitasyon ay 15 segundo, at 30 MB.</string>
+    <string name="nm_own_clip_refused_large">%1$s ang clip na iyon. Ang limitasyon ay 30 MB, at 15 segundo.</string>
+    <string name="nm_own_clip_unreadable">Hindi mabasa ang clip. Sumubok ng iba.</string>
+    <string name="nm_a11y_own_clip_preview">Preview ng clip mo</string>
 
     <!-- First run (Muse-style welcome; the steps are OpenMinis' provider and model screens) -->
     <string name="nm_setup_title">Maligayang pagdating sa nanoMuse</string>
