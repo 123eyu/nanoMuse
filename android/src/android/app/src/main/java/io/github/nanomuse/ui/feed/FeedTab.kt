@@ -60,9 +60,12 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openminis.app.R
@@ -98,6 +101,7 @@ fun FeedTab(
     header: @Composable () -> Unit,
     onDiscuss: (FeedPost) -> Unit,
     onEditRoutine: (String) -> Unit,
+    bottomInset: Dp = 0.dp,
 ) {
     val context = LocalContext.current
     val posts by FeedStore.posts.collectAsState()
@@ -114,7 +118,8 @@ fun FeedTab(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(MuseTones.canvas),
-        contentPadding = PaddingValues(bottom = 28.dp),
+        // The last card ends above the floating pill, which overlays the page.
+        contentPadding = PaddingValues(bottom = 28.dp + bottomInset),
     ) {
         item(key = "header") { header() }
 
@@ -262,6 +267,8 @@ private fun PostCard(
                     icon = if (post.liked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                     tint = heartTint,
                     label = null,
+                    contentDescription = stringResource(if (post.liked) R.string.nm_a11y_unlike else R.string.nm_a11y_like),
+                    stateDescription = stringResource(if (post.liked) R.string.nm_a11y_liked else R.string.nm_a11y_not_liked),
                     onClick = onLike,
                     iconModifier = Modifier.graphicsLayer { scaleX = heartScale.value; scaleY = heartScale.value },
                 )
@@ -270,30 +277,45 @@ private fun PostCard(
                     icon = Icons.Outlined.ChatBubbleOutline,
                     tint = MaterialTheme.colorScheme.onSurface,
                     label = stringResource(R.string.nm_feed_discuss),
+                    contentDescription = null,
                     onClick = onDiscuss,
                 )
                 Spacer(Modifier.weight(1f))
-                FooterAction(icon = Icons.Outlined.Info, tint = MaterialTheme.colorScheme.onSurface, label = null, onClick = onInfo)
+                FooterAction(
+                    icon = Icons.Outlined.Info,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    label = null,
+                    contentDescription = stringResource(R.string.nm_a11y_post_details),
+                    onClick = onInfo,
+                )
             }
         }
     }
 }
 
+/**
+ * One action under a post. [label] is the visible text, if any; [contentDescription] is the
+ * name a screen reader gets for an icon-only action (null when the label already names it);
+ * [stateDescription] is read after the name for a toggle such as Like.
+ */
 @Composable
 private fun FooterAction(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     tint: Color,
     label: String?,
+    contentDescription: String?,
     onClick: () -> Unit,
+    stateDescription: String? = null,
     iconModifier: Modifier = Modifier,
 ) {
     Row(
         modifier = Modifier
+            .then(if (stateDescription != null) Modifier.semantics { this.stateDescription = stateDescription } else Modifier)
             .clickable(onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, contentDescription = label, tint = tint, modifier = iconModifier.size(22.dp))
+        Icon(icon, contentDescription = contentDescription, tint = tint, modifier = iconModifier.size(22.dp))
         if (label != null) {
             Spacer(Modifier.width(6.dp))
             Text(label, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)

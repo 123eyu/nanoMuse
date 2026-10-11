@@ -1073,4 +1073,19 @@
     <string name="nm_models_search">搜尋模型</string>
     <string name="nm_models_search_clear">清除搜尋</string>
     <string name="nm_models_no_match">沒有符合的模型</string>
+    <!-- Names for icon-only controls, read by screen readers (#338) -->
+    <string name="nm_a11y_show_password">顯示密碼</string>
+    <string name="nm_a11y_hide_password">隱藏密碼</string>
+    <string name="nm_a11y_avatar_candidate">候選 %1$d</string>
+    <string name="nm_a11y_share_card">卡片 %1$d</string>
+    <string name="nm_a11y_add">新增</string>
+    <string name="nm_a11y_mark_done">標記為已完成</string>
+    <string name="nm_a11y_mark_not_done">標記為未完成</string>
+    <string name="nm_a11y_done">已完成</string>
+    <string name="nm_a11y_not_done">未完成</string>
+    <string name="nm_a11y_like">喜歡</string>
+    <string name="nm_a11y_unlike">取消喜歡</string>
+    <string name="nm_a11y_liked">已喜歡</string>
+    <string name="nm_a11y_not_liked">未喜歡</string>
+    <string name="nm_a11y_post_details">貼文詳情</string>
 </resources>

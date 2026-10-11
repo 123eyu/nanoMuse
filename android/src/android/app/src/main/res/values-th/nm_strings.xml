@@ -1103,4 +1103,19 @@
     <string name="nm_models_search">ค้นหาโมเดล</string>
     <string name="nm_models_search_clear">ล้างการค้นหา</string>
     <string name="nm_models_no_match">ไม่มีโมเดลที่ตรงกัน</string>
+    <!-- Names for icon-only controls, read by screen readers (#338) -->
+    <string name="nm_a11y_show_password">แสดงรหัสผ่าน</string>
+    <string name="nm_a11y_hide_password">ซ่อนรหัสผ่าน</string>
+    <string name="nm_a11y_avatar_candidate">ตัวเลือกที่ %1$d</string>
+    <string name="nm_a11y_share_card">การ์ดที่ %1$d</string>
+    <string name="nm_a11y_add">เพิ่ม</string>
+    <string name="nm_a11y_mark_done">ทำเครื่องหมายว่าเสร็จแล้ว</string>
+    <string name="nm_a11y_mark_not_done">ทำเครื่องหมายว่ายังไม่เสร็จ</string>
+    <string name="nm_a11y_done">เสร็จแล้ว</string>
+    <string name="nm_a11y_not_done">ยังไม่เสร็จ</string>
+    <string name="nm_a11y_like">ถูกใจ</string>
+    <string name="nm_a11y_unlike">เลิกถูกใจ</string>
+    <string name="nm_a11y_liked">ถูกใจแล้ว</string>
+    <string name="nm_a11y_not_liked">ยังไม่ถูกใจ</string>
+    <string name="nm_a11y_post_details">รายละเอียดโพสต์</string>
 </resources>

@@ -1107,4 +1107,19 @@
     <string name="nm_models_search">Modelle suchen</string>
     <string name="nm_models_search_clear">Suche löschen</string>
     <string name="nm_models_no_match">Kein Modell passt</string>
+    <!-- Names for icon-only controls, read by screen readers (#338) -->
+    <string name="nm_a11y_show_password">Passwort anzeigen</string>
+    <string name="nm_a11y_hide_password">Passwort verbergen</string>
+    <string name="nm_a11y_avatar_candidate">Kandidat %1$d</string>
+    <string name="nm_a11y_share_card">Karte %1$d</string>
+    <string name="nm_a11y_add">Hinzufügen</string>
+    <string name="nm_a11y_mark_done">Als erledigt markieren</string>
+    <string name="nm_a11y_mark_not_done">Als nicht erledigt markieren</string>
+    <string name="nm_a11y_done">Erledigt</string>
+    <string name="nm_a11y_not_done">Nicht erledigt</string>
+    <string name="nm_a11y_like">Gefällt mir</string>
+    <string name="nm_a11y_unlike">Gefällt mir nicht mehr</string>
+    <string name="nm_a11y_liked">Gefällt mir</string>
+    <string name="nm_a11y_not_liked">Gefällt mir nicht</string>
+    <string name="nm_a11y_post_details">Beitragsdetails</string>
 </resources>

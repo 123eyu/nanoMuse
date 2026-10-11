@@ -22,12 +22,12 @@ A study of Muse's screens (the announcement, the walkthrough and sizzle videos, 
 
 | Muse | nanoMuse | Where |
 |---|---|---|
-| Near-white / near-black, one blue | The same palette: `bg`, `surface-2`, `fg`, `muted`, accent `#0064d4`; dark mode by `prefers-color-scheme` | `web/src/index.css`, `android/…/values/colors.xml` |
+| Near-white / near-black, one blue | The same palette: `bg`, `surface-2`, `fg`, `muted`, accent `#0064d4`; dark mode by `prefers-color-scheme`. The Android app goes further: the chat, the pill bar, the menus and the drawer sit on pure black in dark and pure white in light, and the blue stays with links and the status line | `web/src/index.css`, `android/…/values/colors.xml`, `android/…/ui/theme/ChatColors.kt` |
 | Optimistic | [Figtree](https://github.com/erikdkennedy/figtree) (OFL), bundled; close in proportions and warmth | `web/public/fonts/` |
-| Grey / light-blue bubbles, chips for tool use, cards for approvals | The same; chips open to the tool call, cards carry the summary the Sentinel wrote and the scope buttons (once, this conversation, always; on the phone once, this chat, always) | `web/src/screens/ChatScreen.tsx`, `web/src/components/` |
+| Grey / light-blue bubbles, chips for tool use, cards for approvals | The same on the web. On the phone your messages are white pills with black text on the black canvas (black on white in light), the agent's a shade off the canvas, the send button monochrome too, and the header a scrim the conversation dissolves under; chips open to the tool call, cards carry the summary the Sentinel wrote and the scope buttons (once, this conversation, always; on the phone once, this chat, always) | `web/src/screens/ChatScreen.tsx`, `web/src/components/`, `android/…/ui/chat/ChatScreen.kt` |
 | The plush doll that changes pose | The **red panda**, an SVG drawn live with a pose per state; six plush dolls (Sunny, Moss, Sky, Fox, Bolt, Plum) and an emoji as alternatives | `web/src/components/RedPanda.tsx`, `web/public/avatars/` |
 | Name and status under the avatar; tap for the sheet | The same header; the sheet has the avatar large, the status, *Stop*, four buttons (approvals, activity, permissions, upcoming) and rows for memory, skills, connections, settings | `web/src/components/MuseSheet.tsx` |
-| Five-icon floating bar | The same five: Chat, Feed, Ideas, Goals, Library | `web/src/App.tsx` |
+| Five-icon floating bar | The same five: Chat, Feed, Ideas, Goals, Library, in a frosted-glass pill 12 px above the bottom edge, translucent over a blur with a hairline edge; the current tab's filled glyph sits on a soft blue indicator (`accent-soft`), the others are outlined in `muted`. The sidebar replaces it on a wide window | `web/src/App.tsx` |
 | Little motion | Breathing / sway / hop for the dolls and the emoji; the panda's own poses; everything off under `prefers-reduced-motion` | `web/src/index.css`, `RedPanda.css` |
 
 ## The red panda
@@ -68,6 +68,16 @@ The same drawing, reduced to the head, is the logo: `web/public/icon.svg` and `m
 | `muted` | `#6b6b71` | `#9d9da4` |
 | `accent` | `#0064d4` | `#1793ff` |
 | user bubble | `#d8e9ff` | `#1c3d66` |
+
+The Android app's chat palette is `ChatColors.kt`, written by `scripts/rebrand.py`:
+
+| Token | Light | Dark |
+|---|---|---|
+| canvas (`background`) | `#FFFFFF` | `#000000` |
+| your pill (`userBubble`) and its text | `#000000`, text `#FFFFFF` | `#FFFFFF`, text `#000000` |
+| the agent's pill (`assistantBubble`) | `#F2F2F7` | `#1C1C1E` |
+| send button (`sendButton`), arrow in the canvas colour | `#000000` | `#FFFFFF` |
+| links, status line (`link`, `thinking`) | `#015CFB` | `#58A6FF` |
 
 The panda: fur `#d8632e` lit to `#ee8a4c` and shaded to `#9e3f18`, deep fur `#bf4f23` (ears, tail rings, paws), cream `#fff4e6` from `#fffaf2` to `#f3dfc6` at the cheeks, markings `#2a1a14` with an eye highlight `#4a302a`, blush `#f4a0a0`; the plate behind it in the app `#dcebdc`, the logo plate `#2f7a5a`. The `mark` level uses only the base colours.
 

@@ -1115,4 +1115,19 @@
     <string name="nm_models_search">Поиск моделей</string>
     <string name="nm_models_search_clear">Очистить поиск</string>
     <string name="nm_models_no_match">Ни одна модель не подходит</string>
+    <!-- Names for icon-only controls, read by screen readers (#338) -->
+    <string name="nm_a11y_show_password">Показать пароль</string>
+    <string name="nm_a11y_hide_password">Скрыть пароль</string>
+    <string name="nm_a11y_avatar_candidate">Кандидат %1$d</string>
+    <string name="nm_a11y_share_card">Карточка %1$d</string>
+    <string name="nm_a11y_add">Добавить</string>
+    <string name="nm_a11y_mark_done">Отметить как выполненное</string>
+    <string name="nm_a11y_mark_not_done">Отметить как невыполненное</string>
+    <string name="nm_a11y_done">Выполнено</string>
+    <string name="nm_a11y_not_done">Не выполнено</string>
+    <string name="nm_a11y_like">Нравится</string>
+    <string name="nm_a11y_unlike">Убрать отметку «Нравится»</string>
+    <string name="nm_a11y_liked">Отмечено как понравившееся</string>
+    <string name="nm_a11y_not_liked">Не отмечено</string>
+    <string name="nm_a11y_post_details">Сведения о записи</string>
 </resources>

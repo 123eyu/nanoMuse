@@ -1103,4 +1103,19 @@
     <string name="nm_models_search">Cari model</string>
     <string name="nm_models_search_clear">Kosongkan carian</string>
     <string name="nm_models_no_match">Tiada model yang sepadan</string>
+    <!-- Names for icon-only controls, read by screen readers (#338) -->
+    <string name="nm_a11y_show_password">Tunjukkan kata laluan</string>
+    <string name="nm_a11y_hide_password">Sembunyikan kata laluan</string>
+    <string name="nm_a11y_avatar_candidate">Calon %1$d</string>
+    <string name="nm_a11y_share_card">Kad %1$d</string>
+    <string name="nm_a11y_add">Tambah</string>
+    <string name="nm_a11y_mark_done">Tandakan selesai</string>
+    <string name="nm_a11y_mark_not_done">Tandakan belum selesai</string>
+    <string name="nm_a11y_done">Selesai</string>
+    <string name="nm_a11y_not_done">Belum selesai</string>
+    <string name="nm_a11y_like">Suka</string>
+    <string name="nm_a11y_unlike">Batalkan suka</string>
+    <string name="nm_a11y_liked">Disukai</string>
+    <string name="nm_a11y_not_liked">Belum disukai</string>
+    <string name="nm_a11y_post_details">Butiran kiriman</string>
 </resources>

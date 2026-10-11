@@ -4,7 +4,6 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -119,11 +119,11 @@ fun AvatarShareSheet(onDismiss: () -> Unit) {
                                 .aspectRatio(AvatarShare.WIDTH / AvatarShare.HEIGHT.toFloat())
                                 .clip(shape)
                                 .then(if (i == selected) Modifier.border(2.5.dp, MuseTones.action, shape) else Modifier)
-                                .clickable { selected = i },
+                                .selectable(selected = i == selected, onClick = { selected = i }),
                         ) {
                             Image(
                                 bitmap = bmp.asImageBitmap(),
-                                contentDescription = null,
+                                contentDescription = stringResource(R.string.nm_a11y_share_card, i + 1),
                                 contentScale = ContentScale.FillBounds,
                                 modifier = Modifier.fillMaxSize(),
                             )

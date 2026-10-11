@@ -192,16 +192,16 @@ THEME_MAP = [
     ("0xFF899390", "0xFF8E8E93"),  # dark outline
 ]
 
-# Applied to ChatColors.kt only; light palette first, then dark.
+# Applied to ChatColors.kt only; light palette first, then dark. The user's own
+# message is a black pill in the light theme and a white one in the dark theme
+# (docs/design.md); the send button keeps upstream's black / white, so no entry.
 CHAT_MAP = [
-    ("userBubble = Color(0x1E787880)", "userBubble = Color(0xFFE5F0FF)"),
-    ("sendButton = Color(0xFF000000)", "sendButton = Color(0xFF015CFB)"),
+    ("userBubble = Color(0x1E787880)", "userBubble = Color(0xFF000000)"),
     ("codeBlockText = Color(0xFF34C759)", "codeBlockText = Color(0xFFE5E5EA)"),
     ("inlineCodeText = Color(0xFFFF9500)", "inlineCodeText = Color(0xFF015CFB)"),
     ("blockquoteBar = Color(0x80FF9500)", "blockquoteBar = Color(0x80015CFB)"),
     ("fabAccent = Color(0xFFB7AF96)", "fabAccent = Color(0xFF015CFB)"),
-    ("userBubble = Color(0xFF2F3A5C)", "userBubble = Color(0xFF1A2B4A)"),
-    ("sendButton = Color(0xFFFFFFFF)", "sendButton = Color(0xFF58A6FF)"),
+    ("userBubble = Color(0xFF2F3A5C)", "userBubble = Color(0xFFFFFFFF)"),
     ("codeBlockText = Color(0xFF8CF38C)", "codeBlockText = Color(0xFFE5E5EA)"),
     ("inlineCodeText = Color(0xFFFF9F0A)", "inlineCodeText = Color(0xFF58A6FF)"),
     ("blockquoteBar = Color(0x80FF9F0A)", "blockquoteBar = Color(0x8058A6FF)"),

@@ -1084,4 +1084,19 @@
     <string name="nm_models_search">Search models</string>
     <string name="nm_models_search_clear">Clear the search</string>
     <string name="nm_models_no_match">No model matches</string>
+    <!-- Names for icon-only controls, read by screen readers (#338) -->
+    <string name="nm_a11y_show_password">Show password</string>
+    <string name="nm_a11y_hide_password">Hide password</string>
+    <string name="nm_a11y_avatar_candidate">Candidate %1$d</string>
+    <string name="nm_a11y_share_card">Card %1$d</string>
+    <string name="nm_a11y_add">Add</string>
+    <string name="nm_a11y_mark_done">Mark as done</string>
+    <string name="nm_a11y_mark_not_done">Mark as not done</string>
+    <string name="nm_a11y_done">Done</string>
+    <string name="nm_a11y_not_done">Not done</string>
+    <string name="nm_a11y_like">Like</string>
+    <string name="nm_a11y_unlike">Unlike</string>
+    <string name="nm_a11y_liked">Liked</string>
+    <string name="nm_a11y_not_liked">Not liked</string>
+    <string name="nm_a11y_post_details">Post details</string>
 </resources>

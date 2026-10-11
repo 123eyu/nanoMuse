@@ -1103,4 +1103,19 @@
     <string name="nm_models_search">モデルを検索</string>
     <string name="nm_models_search_clear">検索をクリア</string>
     <string name="nm_models_no_match">一致するモデルはありません</string>
+    <!-- Names for icon-only controls, read by screen readers (#338) -->
+    <string name="nm_a11y_show_password">パスワードを表示</string>
+    <string name="nm_a11y_hide_password">パスワードを隠す</string>
+    <string name="nm_a11y_avatar_candidate">候補 %1$d</string>
+    <string name="nm_a11y_share_card">カード %1$d</string>
+    <string name="nm_a11y_add">追加</string>
+    <string name="nm_a11y_mark_done">完了にする</string>
+    <string name="nm_a11y_mark_not_done">未完了に戻す</string>
+    <string name="nm_a11y_done">完了</string>
+    <string name="nm_a11y_not_done">未完了</string>
+    <string name="nm_a11y_like">いいね</string>
+    <string name="nm_a11y_unlike">いいねを取り消す</string>
+    <string name="nm_a11y_liked">いいね済み</string>
+    <string name="nm_a11y_not_liked">いいねしていません</string>
+    <string name="nm_a11y_post_details">投稿の詳細</string>
 </resources>
