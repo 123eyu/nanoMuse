@@ -63,6 +63,9 @@ class Triggers(BaseTool):
         a = super().assess(args)
         action = str(args.get("action") or "?")
         if action == "create":
+            # a trigger is standing work: the model acts on it later, in a thread nobody
+            # may be watching, so creating one changes state (strict mode asks)
+            a.risk = RiskLevel.MODERATE
             detail = f"{args.get('kind') or '?'} “{args.get('match') or '*'}”: {str(args.get('text') or '')[:60]}"
         elif action == "cancel":
             detail = str(args.get("trigger_id") or "")

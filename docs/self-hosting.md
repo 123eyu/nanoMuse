@@ -89,9 +89,19 @@ The database schema migrates forward on start. Read the release notes before a j
 Everything the relay keeps is `cloud/data/cloud.db` (SQLite) plus `CLOUD_SECRET` in `cloud/.env`. The database is useless without the secret (the identifiers are hashed and encrypted with it, and so is a sign-in code still waiting to be used, which is only six digits), and the secret is useless without the database; back them up together, and never rotate the secret unless you mean to start over:
 
 ```bash
-cd cloud && docker compose exec relay sqlite3 /srv/nanomuse-cloud/data/cloud.db ".backup /srv/nanomuse-cloud/data/backup.db" \
-  || cp data/cloud.db data/backup.db   # when the container has no sqlite3: stop the relay first for a clean copy
+cd cloud && docker compose exec -T relay python - > cloud-$(date -u +%Y%m%d).db <<'EOF'
+import os, shutil, sqlite3, sys
+src = sqlite3.connect("/srv/nanomuse-cloud/data/cloud.db")
+dst = sqlite3.connect("/tmp/backup.db")
+src.backup(dst)
+dst.close(); src.close()
+with open("/tmp/backup.db", "rb") as f:
+    shutil.copyfileobj(f, sys.stdout.buffer)
+os.remove("/tmp/backup.db")
+EOF
 ```
+
+The copy is taken with SQLite's own backup API inside the running container (the image has no `sqlite3` command) and streamed out, so it is consistent while the relay keeps writing and lands as a file of yours, outside the data directory that belongs to uid 10001. A plain `cp data/cloud.db` is not consistent: under WAL the newest writes sit in `cloud.db-wal`, and a copy of the main file alone misses them.
 
 Caddy's certificates live in the `caddy_data` volume and are fetched again if lost.
 

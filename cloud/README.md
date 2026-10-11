@@ -181,7 +181,11 @@ for the full list. The ones that matter:
 | `DAILY_CAP_TOKENS` | 0 (off) | tokens per account per day |
 | `PER_MINUTE_REQUESTS` | 30 | per account — what stops a runaway loop |
 | `MAX_IN_FLIGHT` | 4 | requests of one account under way at the same time (0 = off); each holds a reservation against the allowance while it runs — see *Money* |
+| `UPSTREAM_TIMEOUT_S` | 180 | how long one call to the provider may take (connecting has 20 s of its own); a reservation that outlives it by two minutes is dropped |
+| `TRUSTED_PROXIES` | empty | whose `X-Forwarded-For` to believe, comma-separated addresses or networks; empty = every loopback, private, link-local and shared address (Caddy on this box or the compose network, a tailnet) |
+| `PASSWORD_MIN_LEN` | 8 | the shortest password the relay accepts (`400 password_short` below it) |
 | `PASSWORD_MAX_ATTEMPTS`, `LOCKOUT_S` | 5, 900 | wrong passwords before an account is locked for that long (a code still works) |
+| `PASSWORD_RESET_WINDOW_S` | 1800 | after a sign-in with a code, how long a new password may be set without the old one (the way back in when it is forgotten) |
 | `LOGIN_FAIL_PER_IP_HOUR` | 30 | wrong passwords from one network address per hour across all accounts — a list of numbers tried once each never trips the per-account lock, this does (0.12); 0 = off |
 | `CODE_TTL_S`, `CODE_MAX_ATTEMPTS` | 600, 5 | how long a sign-in code is good for, and how many wrong guesses it survives |
 | `CODE_PER_IDENTIFIER_10M`, `CODE_PER_IP_HOUR` | 3, 10 | codes one number or address may request per ten minutes, and one network address per hour; past either the request is answered `429 code_too_often` |

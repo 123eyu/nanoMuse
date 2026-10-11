@@ -241,7 +241,7 @@ export function AvatarStudioScreen() {
               {view === null
                 ? "…"
                 : view.available
-                  ? t("Drawn by {provider} · {model}", { provider, model: view.image_model || "—" })
+                  ? t("Drawn by {provider} · {model}", { provider, model: view.image_model || t("default model") })
                   : unavailableLine(t, "image", regionOf(state.hub?.account), getLocale())}
             </span>
             <span className="shrink-0 font-medium text-accent">{t("Change model")}</span>
@@ -358,7 +358,7 @@ export function AvatarStudioScreen() {
 
 /** The provider behind a host, by the name people know it by; the host itself otherwise. */
 function providerName(host: string, t: (s: string) => string): string {
-  if (!host) return "—";
+  if (!host) return t("your provider");
   if (/dashscope|aliyuncs/.test(host)) return t("Alibaba Cloud Bailian");
   if (/openai\.com/.test(host)) return "OpenAI";
   if (/deepseek/.test(host)) return "DeepSeek";

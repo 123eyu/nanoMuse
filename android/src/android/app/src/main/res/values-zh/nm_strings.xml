@@ -400,7 +400,7 @@
 
     <!-- 0.1.9 · Portrait -->
     <string name="nm_appearance_section_avatar_size">虚拟形象大小</string>
-    <string name="nm_appearance_avatar_size_footer">首页顶部形象的大小。选择"已隐藏"时只显示名字。</string>
+    <string name="nm_appearance_avatar_size_footer">首页顶部形象的大小。选择“已隐藏”时只显示名字。</string>
     <string name="nm_avatar_size_small">小</string>
     <string name="nm_avatar_size_medium">中</string>
     <string name="nm_avatar_size_large">大</string>
@@ -421,11 +421,11 @@
     <string name="nm_profile_today">今天</string>
     <string name="nm_profile_yesterday">昨天</string>
     <string name="nm_profile_activity_empty">今天还没有动态。你提的要求和它做的事会显示在这里。</string>
-    <string name="nm_profile_approvals_empty">还没有长期批准。对有风险的操作选择"始终允许"后，会列在这里，随时可以撤回。</string>
+    <string name="nm_profile_approvals_empty">还没有长期批准。对有风险的操作选择“始终允许”后，会列在这里，随时可以撤回。</string>
     <string name="nm_profile_approvals_always">已始终允许</string>
     <string name="nm_profile_always_allowed">已始终允许 · %1$s</string>
     <string name="nm_profile_manage_permissions">管理权限</string>
-    <string name="nm_profile_daily_empty">还没有每日任务。跟它说"每天早上……"，就会出现在这里。</string>
+    <string name="nm_profile_daily_empty">还没有每日任务。跟它说“每天早上……”，就会出现在这里。</string>
     <string name="nm_profile_manage_routines">管理每日任务</string>
     <string name="nm_profile_card_soul">SOUL</string>
     <string name="nm_profile_card_memory">记忆</string>
@@ -433,21 +433,21 @@
     <!-- 在对话里更换形象 -->
     <string name="nm_avatar_status_options">正在生成选项</string>
     <string name="nm_avatar_status_finalizing">正在完成形象</string>
-    <string name="nm_avatar_options_drawing">正在画四个"%1$s"的样子…</string>
-    <string name="nm_avatar_options_pick_hint">点一个你喜欢的，或者直接告诉我"第二个"。</string>
+    <string name="nm_avatar_options_drawing">正在画四个“%1$s”的样子…</string>
+    <string name="nm_avatar_options_pick_hint">点一个你喜欢的，或者直接告诉我“第二个”。</string>
     <string name="nm_avatar_options_failed">图片没有生成出来。到 ••• → 形象工坊检查一下图像模型，再试一次。</string>
     <string name="nm_avatar_provider_busy">生图服务现在有点忙，请过一分钟再试。</string>
     <string name="nm_avatar_options_again">再来一组</string>
     <string name="nm_avatar_options_keep">先不换了</string>
     <string name="nm_avatar_option_n">第 %1$d 个</string>
     <string name="nm_avatar_option_retry">重试</string>
-    <string name="nm_avatar_options_ready">几个"%1$s"的形象准备好了，选一个你最喜欢的。</string>
-    <string name="nm_avatar_drawing_now">我这就去画几版"%1$s"。出图需要一点时间，画好了我会告诉你。</string>
+    <string name="nm_avatar_options_ready">几个“%1$s”的形象准备好了，选一个你最喜欢的。</string>
+    <string name="nm_avatar_drawing_now">我这就去画几版“%1$s”。出图需要一点时间，画好了我会告诉你。</string>
     <string name="nm_avatar_drawing_again">再画一轮，稍等一下。</string>
     <string name="nm_avatar_adopted">换好了，我的新形象是%1$s。</string>
     <string name="nm_avatar_pick_line">第 %1$d 个</string>
     <string name="nm_avatar_cannot_start">现在还画不了新形象：%1$s</string>
-    <string name="nm_avatar_memory_line">- %1$s：用户把我的虚拟形象换成了"%2$s"。</string>
+    <string name="nm_avatar_memory_line">- %1$s：用户把我的虚拟形象换成了“%2$s”。</string>
     <string name="nm_avatar_share_text">我的新形象：%1$s，分享给朋友看看。</string>
     <string name="nm_avatar_share_button">分享形象</string>
     <string name="nm_avatar_share_later">以后再说</string>

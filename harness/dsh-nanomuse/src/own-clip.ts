@@ -110,7 +110,9 @@ function lengthOf(buf: Buffer, moov: Box): number | undefined {
     if (version === 1) {
       if (mvhd.end - mvhd.start < 32) return undefined
       timescale = buf.readUInt32BE(mvhd.start + 20)
-      duration = Number(buf.readBigUInt64BE(mvhd.start + 24))
+      const d = buf.readBigUInt64BE(mvhd.start + 24)
+      // all ones is "unknown" in a version 1 header, as 0xffffffff is in a version 0 one
+      duration = d === 0xffffffffffffffffn ? 0 : Number(d)
     } else {
       timescale = buf.readUInt32BE(mvhd.start + 12)
       duration = buf.readUInt32BE(mvhd.start + 16)

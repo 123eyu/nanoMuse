@@ -242,7 +242,9 @@ async def test_the_accounts_list_is_one_grouped_query_with_the_old_numbers():
     c = await sign_up(client, sender, "dev-b@example.com", "pc")
     ha, hb = auth(a["api_key"]), auth(b["api_key"])
     for _ in range(3):
-        await client.post("/v1/chat/completions", json={"model": "qwen3.8-27b", "messages": [{"role": "user", "content": "hi"}]}, headers=ha)
+        await client.post(
+            "/v1/chat/completions", json={"model": "qwen3.8-27b", "messages": [{"role": "user", "content": "hi"}]}, headers=ha
+        )
     await client.post("/v1/images/generations", json={"model": "qwen-image-3.0", "prompt": "a cat"}, headers=hb)
     await client.post("/v1/auth/session-key", json={"device": "mac-2"}, headers=hb)
     await client.delete("/v1/me/sessions/" + b["api_key"][:12], headers=hb)

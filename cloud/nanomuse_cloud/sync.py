@@ -273,9 +273,7 @@ class SyncStore:
         tail = max(0, min(int(tail or 0), MAX_TAIL)) if since == 0 else 0
         # the scope as a SQL fragment over sync_conversations (sc) and sync_messages (sm)
         conv_scope = " AND kind='main'" if scope == "main" else ""
-        msg_scope = (
-            " AND cid IN (SELECT cid FROM sync_conversations WHERE account_id=? AND kind='main')" if scope == "main" else ""
-        )
+        msg_scope = " AND cid IN (SELECT cid FROM sync_conversations WHERE account_id=? AND kind='main')" if scope == "main" else ""
         with self.db.tx() as c:
             if not self._enabled(c, account_id):
                 raise CloudError(409, "sync_off", "Conversation sync is off for this account")
@@ -352,7 +350,9 @@ class SyncStore:
     @staticmethod
     def _live_conversations(c: sqlite3.Connection, account_id: str) -> int:
         return int(
-            c.execute("SELECT COUNT(*) FROM sync_conversations WHERE account_id=? AND kind='side' AND deleted=0", (account_id,)).fetchone()[0]
+            c.execute("SELECT COUNT(*) FROM sync_conversations WHERE account_id=? AND kind='side' AND deleted=0", (account_id,)).fetchone()[
+                0
+            ]
         )
 
     def _enabled(self, c: sqlite3.Connection, account_id: str) -> bool:

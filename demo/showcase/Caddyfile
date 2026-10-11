@@ -1,7 +1,8 @@
 # The showcase's front door. Two names:
 #
 #   SITE_HOST         the page around the phone (/, with MobileGym + the nanoMuse app at
-#                     /phone.html), plus /api/demo/* and, when on, nanoMuse Web at /web/
+#                     /phone.html), plus /api/demo/*, /api/trial* and /llm/trial/*; nanoMuse
+#                     Web's /web/ and /api/web/* are the project site's (mirror/nanomuse.cn.caddy)
 #   *.SESSION_DOMAIN  one hostname per visitor session, everything relayed to the gateway
 #
 # Certificates come from Let's Encrypt through Cloudflare's DNS API for both names: the wildcard

@@ -22,7 +22,7 @@ nanomuse serve --port 9000 --no-qr
   <img src="../screenshots/web/library.png" width="24%" alt="资源库：带实时预览的页面">
 </p>
 
-外观跟着 Meta 的 Muse 走：接近纯白和接近纯黑的底色，一种蓝色作强调，智能体的气泡是灰色、你的是浅蓝色（手机上是黑底上的白色、白底上的黑色，见 [android.md](android.md)），聊天顶部有一只小龙，姿势跟着智能体正在做的事变，底下是一枚带五个图标的毛玻璃悬浮胶囊栏。字体是 [Figtree](https://github.com/erikdkennedy/figtree)（OFL），已内置。这些选择背后的研究在 [design.md](design.md)。
+外观跟着 Meta 的 Muse 走：接近纯白和接近纯黑的底色，一种蓝色作强调，智能体的气泡是灰色、你的是一枚墨色胶囊，白底上是黑色、黑底上是白色，和手机一样（[android.md](android.md)），聊天顶部有一只小龙，姿势跟着智能体正在做的事变，底下是一枚带五个图标的毛玻璃悬浮胶囊栏。字体是 [Figtree](https://github.com/erikdkennedy/figtree)（OFL），已内置。这些选择背后的研究在 [design.md](design.md)。
 
 ## 装到手机上 {#getting-it-onto-your-phone}
 
@@ -50,9 +50,9 @@ nanomuse serve --port 9000 --no-qr
 
 五个标签页（聊天、动态、点子、目标、资源库）加上形象后面的一个菜单。手机宽度下，这五个放在一枚圆角胶囊里，悬浮在底边上方 12 px 处，和聊天的输入框一样宽（最宽 420 px，更宽的屏幕上居中），只有图标、没有文字，和 Android 应用画的是同一条栏：胶囊半透明，把身后的内容模糊掉，边上有一圈细线；当前标签页显示填充的图形，底下垫一块墨色的指示块（浅色主题黑、深色主题白），其余的保持灰色描边。各个页面和聊天的输入框都会让开它。宽窗口下，以及桌面应用在任何宽度下，由侧栏代替这条栏。
 
-**聊天。** 一个主要聊天，加上旁聊（右上角的「对话」按钮）。消息一边生成一边流进来。工具调用显示成小标签：点一下看参数和输出。智能体写的文件显示成构件卡片，在应用里就能打开。哨兵（Sentinel）需要你拿主意时出现一张审批卡片；智能体需要信息时出现一张提问卡片。智能体干活时输入框一直开着；你这时发的任何东西都会在下一次调用模型之前并进正在进行的这一轮。
+**聊天。** 一个主要聊天，加上旁聊（左上角的圆形「对话」按钮打开列出它们的抽屉）。消息一边生成一边流进来。工具调用显示成小标签：点一下看参数和输出。智能体写的文件显示成构件卡片，在应用里就能打开。哨兵（Sentinel）需要你拿主意时出现一张审批卡片；智能体需要信息时出现一张提问卡片。智能体干活时输入框一直开着；你这时发的任何东西都会在下一次调用模型之前并进正在进行的这一轮。
 
-*附件。* 回形针（或者粘贴）可以附上照片和文件，每条消息最多十个，每个 25 MB（`server.max_upload_mb`），来源是相机、相册或者手机里的文件。选中就开始上传，显示成缩略图和可以去掉的小标签，一条消息也可以只有附件。每个文件都落到工作区的 `attachments/<date>/` 下（所以资源库里有它，任何工具都能用它），消息里会给智能体列出这些文件和它们是什么。模型接得住的时候，图片以图像形式发给模型：`llm.vision = auto` 会发，如果端点拒绝（DeepSeek 和大多数纯文本模型都会拒绝），从那以后就只发文字，并告诉你一次（图片仍然作为文件留着，智能体知道它的文件名，会说自己看不见它，而不是瞎猜）；`off` 从不发图片，`on` 坚持发。手机照片在编码前会缩到 1568 px，所以一张 10 MB 的照片花的钱和一张小图一样。PDF、电子表格和文档智能体用 `files` 读；PDF 的文字按页提取（扫描版 PDF 会说它没有文字层）。在聊天里，点图片或文件小标签就能打开。
+*附件。* 「+」按钮（或者粘贴）可以附上照片和文件，每条消息最多十个，每个 25 MB（`server.max_upload_mb`），来源是相机、相册或者手机里的文件。选中就开始上传，显示成缩略图和可以去掉的小标签，一条消息也可以只有附件。每个文件都落到工作区的 `attachments/<date>/` 下（所以资源库里有它，任何工具都能用它），消息里会给智能体列出这些文件和它们是什么。模型接得住的时候，图片以图像形式发给模型：`llm.vision = auto` 会发，如果端点拒绝（DeepSeek 和大多数纯文本模型都会拒绝），从那以后就只发文字，并告诉你一次（图片仍然作为文件留着，智能体知道它的文件名，会说自己看不见它，而不是瞎猜）；`off` 从不发图片，`on` 坚持发。手机照片在编码前会缩到 1568 px，所以一张 10 MB 的照片花的钱和一张小图一样。PDF、电子表格和文档智能体用 `files` 读；PDF 的文字按页提取（扫描版 PDF 会说它没有文字层）。在聊天里，点图片或文件小标签就能打开。
 
 *浏览器视图。* 智能体用浏览器工具时，会出现一张浏览器卡片，显示它正在看的东西：每做一个动作之后页面的一张图、页面标题、它在哪儿、刚做了什么（「打开了 example.com」「点击了『Sign in』」）。运行期间卡片是 LIVE 的，之后留在聊天里。点一下看完整视图；「接管」把控制权交到你手上（点图片就在那个位置点击，往聚焦的输入框里打字，按回车，打开一个 URL），「交还」把页面还给智能体，它会被告知你做了什么，然后从那里接着干。登录就是这么发生的：智能体停在表单那儿问你，你登录，它继续。你输入的密码直接去网站，从不经过模型。画面帧只在当前会话期间留在服务器内存里（每个聊天最近十几帧）；重启之后旧卡片显示一个占位图。需要浏览器工具（`pip install "nanomuse[browser]" && playwright install chromium`，或者 `-browser` 的 Docker 镜像），或者 Android 应用：只要它连着，它自己的 WebView 就是智能体的浏览器（卡片会说明是哪一种：`backend`）。在应用里，这种卡片上的「接管」滑上来的是真实页面的一层弹出面板，而不是页面的一张图；用手机的键盘和自动填充登录，点**完成**，智能体接着干。完整的故事，包括哪些东西没法在 WebView 里登录：[browser.md](browser.md)。
 
@@ -137,7 +137,7 @@ Meta 的 Muse「自己会做事，但不会做太多」。「设置」里的*主
 | POST | `/api/threads/{id}/send` `{text, files?, language?, via?}` | 把一条消息排进队列；立即返回。`files`：下面那个上传接口返回的工作区路径，最多十个；有文件时文字可以为空。`language`（1.0.0 起）：客户端界面语言的 BCP-47 标签（`en`、`zh-CN`）；除非「回复语言」固定了一种，回复就用这种语言写。不带它时照旧按消息的文字书写系统判断。`via: "cloud"` 是「这次改用 nanoMuse Cloud」：这一个回合用账号的 key 在账号推荐的聊天模型上跑，下一回合回到配置的模型，`[llm]` 不动；用户气泡、回复和这一回合的失败提示都带 `model_used`。没有登录账号时回 `401 signed_out` |
 | POST | `/api/threads/{id}/stop` | 停掉那个聊天里正在跑的一轮：队列丢弃，那里待处理的审批和提问卡片过期，对话照常能用。没有东西在跑时返回 `{ok: false}` |
 | POST | `/api/files/upload?name=` （请求体：文件字节） | 一个要附上的文件：落到 `attachments/<date>/` 下，文件名是 `name` 的安全版本；返回给 `files` 用的 `{path, name, size, kind, mime}`。超过 `server.max_upload_mb` 返回 413 |
-| POST | `/api/approvals/{id}` `{approved, scope, reason}` | 回答一张卡片；`scope` 是这张卡片 `grant_options` 中的一个（`once`、`task`、`session`、`24h`、`always`） |
+| POST | `/api/approvals/{id}` `{approved, scope, reason}` | 回答一张卡片；`scope` 是这张卡片 `grant_options` 中的一个（`once`、`conversation`、`session`、`24h`、`always`；`task` 仍按 `conversation` 读） |
 | DELETE | `/api/approvals` | 忘掉所有已授予的权限 |
 | DELETE | `/api/approvals/grants/{key}` | 撤销一条权限（`key` 按 `/api/activity` 列出的来，比如 `shell:git`） |
 | GET / POST | `/api/goals[?status=&category=]` | 列出 / 创建 `{title, description, steps[], category, due (YYYY-MM-DD), check_in ("daily 08:00", "weekdays 07:30", "weekly mon 09:00", "monthly 1 09:00")}` |
@@ -192,6 +192,9 @@ Meta 的 Muse「自己会做事，但不会做太多」。「设置」里的*主
 | PUT | `/api/connections/gui` `{enabled, provider, model, base_url, api_key}` | 操作手机（[gui.md](gui.md)）：这个开关立刻添加或移除手机工具；模型字段是操作器自己的模型（`""` → 用主模型的）；`api_key` 给了 → 保险库（`GUI_API_KEY`），`""` → 用主 key，没给 → 不变。用 `endpoint` 代替 `provider` / `base_url` / `api_key` 时指向列表里的一个接口，和对话模型一样；`PUT /api/connections/image` 和 `/video` 也是 |
 | POST | `/api/connections/gui/test` | 和操作器的模型来一次简短往返：`{ok, reply, ms}` 或 `{ok: false, error}` |
 | GET | `/api/phone` | `{connected, device{id, name, platform, gui, apps, width, height}, gui_enabled, last_screen, screen}`：哪台手机连着，以及它最后发来的屏幕 |
+| GET | `/api/hands` | 这台电脑自己的屏幕和双手（[gui.md](gui.md)）：`{enabled, available, backend, reason, mode, coords, screen_size, picture_size, window{available, reason, active, app, title, frame}, device, task_active, task_text, last_screen}`；在手机上是 `{enabled: false, available: false, reason}` |
+| PUT | `/api/connections/hands` `{enabled, backend (auto · desktop · pyautogui · xdotool), mode (auto · screen · window)}` | 这台电脑双手的开关，以及由哪个后端驱动；省略的字段不变；未知的后端或模式返回 400。回答上面的视图 |
+| POST | `/api/hands/stop` | 双手卡片上的「停止」：这台电脑屏幕上的任务在下一步结束；`{stopped}` |
 | POST · DELETE | `/api/connections/mcp` `{name, command, args[], env{}, url, risk}` · `/api/connections/mcp/{name}` | 现在就连接一个服务器（起不来返回 502）/ 断开并移除一个从应用里添加的 |
 | GET | `/api/skills` | `{count, built_in, yours, dir, errors{}, skills[{name, description, source (built-in · yours), enabled, path, files[], metadata{}, channel, updated_at}]}` |
 | GET / PUT / DELETE | `/api/skills/{name}` | 一个技能，带 `body` 和 `content`（整个 `SKILL.md`）/ 从 `{content}` 写入（用内置技能的名字会创建你的副本）/ 删除你自己的一个 |
@@ -208,6 +211,25 @@ Meta 的 Muse「自己会做事，但不会做太多」。「设置」里的*主
 | GET / PUT | `/api/sync/state` · `{enabled}` | 账号各设备之间同步的对话（[every-device.md](every-device.md#the-same-conversations-everywhere)）：`{enabled, available, paused, cursor, last_pull_at, last_push_at, error, relay}`；`available` 是「已登录且设置允许」，`paused` 在收到 401 后置上，直到下一次登录，`relay` 是中继自己的 `{enabled, cursor, counts{conversations, messages}, limits}`，问不到时为 `null`。`PUT {enabled: false}` 在这里关掉同步，并删掉中继为这个账号保存的内容（其他设备的开关会在它们下一次推送或拉取时跟着关，中继会以 `sync_off` 拒绝）；`PUT {enabled: true}` 重新打开，并把这里的聊天推上去。中继的拒绝会以它的状态码和代码原样返回（`409 sync_off`）。从 0.1.38 起，状态里还带 `side_chats`（这台设备的*同时同步旁聊*，默认关闭：只推送和拉取主要聊天）和 `working`（`[{thread, cid, device, device_name, at}]`：此刻正在回答的其他设备，来自 hub 的 `working` 帧，每条十分钟后丢弃）；`PUT {side_chats: true}` 把这台设备的旁聊发上去，并从头把账号的旁聊拉一次，`false` 则从此留在本地 |
 | POST | `/api/sync/delete` | 删掉中继上每一段已同步的对话，开关保持原样；返回状态 |
 | POST | `/api/sync/pull` | 现在就抓取并应用其他设备的改动：`{applied, …state}` |
+| GET | `/api/cloud` | 应用所显示的 nanoMuse Cloud 账号：`{base_url, signed_in, required, models, hint, channel, signed_in_at, has_password, account_id, member, any_model, region, is_model}`（[cloud.md](cloud.md)）。下面每条 `/api/cloud/*` 路由遇到中继拒绝时，都以中继的状态码、它的那句话作答，代码放在 `X-Nanomuse-Code` 头里；没有登录账号时是 401 `bad_key` |
+| GET | `/api/cloud/config` | 中继的公开数字（新账号的额度、邀请奖励、是否开放注册、要加星的仓库）；旧中继或没有中继时是 `{}` |
+| POST | `/api/cloud/code` `{identifier}` | 向一个邮箱地址或手机号发送登录验证码；`{ok}` |
+| POST | `/api/cloud/verify` `{identifier, code, invite?}` | 用验证码登录（首次注册可带邀请码）；回答中继的 `/v1/me`，顺带刷新提示策略 |
+| POST | `/api/cloud/login` `{identifier, password}` | 用账号密码登录；回答与 `verify` 相同 |
+| POST | `/api/cloud/password` `{password, current?}` | 设置或更改密码（已有密码时要带 `current`，刚用验证码登录的除外；空的 `password` 加 `current` 表示取消密码） |
+| GET | `/api/cloud/me` | 中继此刻看到的账号（`/v1/me`），顺带刷新提示策略 |
+| GET · DELETE | `/api/cloud/sessions` · `/api/cloud/sessions/{prefix}` | 账号在各设备上的登录 / 按列表显示的前缀撤销一个；两者都回答 `{sessions}` |
+| POST | `/api/cloud/sign-out` · `/api/cloud/sign-out-all` `{all}` | 退出这台设备 / 撤销其他所有设备的登录（`all: true` 时连这台一起，`{signed_out}` 加账号视图） |
+| GET | `/api/cloud/events?limit=` | 中继上这个账号的活动记录：`{events}` |
+| POST | `/api/cloud/models` `{on}` | 「使用 nanoMuse Cloud 模型」：关掉后，账号的模型退出双手、图片和短片的自动顺序以及提供方列表；登录保留。聊天模型正在用账号时返回 409 `chat_on_cloud` |
+| POST | `/api/cloud/use-as-model` `{model?}` | 让账号当聊天模型：不点名就用推荐模型，Cloud 的 key 来自保险库；同时把账号的模型重新打开。回答连接视图里的 `llm` |
+| POST · DELETE | `/api/cloud/contribute` `{on}` · `/api/cloud/samples` | 数据控制：「帮助改进 nanoMuse 的 AI 模型」开或关（只有开着时中继才保留聊天回合）/ 删除它保留的内容，`{deleted}` |
+| POST | `/api/cloud/delete` | 在中继上删除账号并在这里退出；回答账号视图 |
+| GET / PUT | `/api/hub` · `{enabled, remote_control, name}` | 这台设备在账号枢纽上的状态（[hub.md](hub.md)）：`{enabled, remote_control, state, detail, device{id, name, kind, actions}, devices[], account}` / 加入或离开、允许或拒绝远程控制、给这台设备改名（最多 60 个字符） |
+| POST | `/api/hub/join` · `/api/hub/leave` · `/api/hub/refresh` | 加入（没有登录账号时 401）/ 离开 / 再向中继要一次设备列表；各自回答枢纽视图 |
+| DELETE | `/api/hub/devices/{device_id}` | 忘掉账号下的一台设备；枢纽没连上时 502 |
+| POST | `/api/hub/ask` `{device, text?}` | 对着某台设备（按 id 或名字；没有就新建）的侧聊，带 `text` 时作为其中第一条消息，在那台设备上运行：`{thread, event}`；没有这台设备时 404 |
+| GET | `/api/bridge/tools` | 给代理运行的命令用，不是给应用用：`nanomuse-device list` 打印的设备工具，`{ok, tools[{name, description}]}`。不走应用令牌；shell 工具签发的调用令牌放在 `X-Nanomuse-Bridge` 头里（否则 401），与 `POST /api/bridge/{kind}` 相同（[local-runtime.md](local-runtime.md)） |
 | GET | `/api/browser/{thread}/frames/{id}.jpg` | 一帧浏览器画面（JPEG，当前会话期间留在内存里） |
 | POST | `/api/browser/{thread}/control` `{action: click(x,y as 0–1 fractions) · type(text) · key(key) · scroll(dy) · navigate(url) · look · handed_back}` | 你来开智能体的浏览器；`handed_back` 是 Android 应用在你关掉它的接管面板时发的（取一帧新画面，告知智能体）；浏览器没打开时返回 `409`（先打开一个 URL） |
 | GET | `/api/push` | `{available, public_key, subscriptions, devices[]}`：用来订阅的 VAPID 公钥 |

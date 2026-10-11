@@ -192,8 +192,8 @@ base URL（从不包括中继的，从不包括局域网地址）它回答代理
 
 中继保存账号 id、一个打码的标识、用量计数，以及智能体的名字和外观（让你的设备保持一致）；
 消息内容只以对话同步的形式保存：登录后默认开启，在*数据控制*里关掉（[privacy.md](privacy.md)、
-[sync.md](sync.md)）；第一次对话的第四句话会这么说。在手机上，API key、账号 key 和 Reach 配对令牌放在
-`EncryptedSharedPreferences` 里；从 0.1.40 起 App 完全不参与设备备份（`allowBackup="false"`：
+[sync.md](sync.md)）；第一次对话的第四句话会这么说。在手机上，API key 和账号 key 放在
+`EncryptedSharedPreferences` 里（*设置 → 网络* 的代理密码放在普通偏好里，只在这台手机上）；从 0.1.40 起 App 完全不参与设备备份（`allowBackup="false"`：
 聊天、记忆和 key 从不上传到 Google，重装后从空白开始，账号的聊天通过同步回来；`res/xml/` 下的
 两个规则文件留着，等哪天开关再打开时用）。手需要无障碍服务和悬浮窗权限，两者都可选、都能在
 同一屏撤销（首次运行的「手」那一页在 App 标志下面请求这两项，和登录页一样）；会发送东西的步骤（点「发送」，或在聊天软件的消息框里按回车）一次一次地审批，
@@ -256,7 +256,7 @@ keytool -genkeypair -keystore ~/.nanomuse-release/nanomuse.jks -alias nanomuse \
 | `sync/` | 对话同步（契约 C7–C10）：`SyncEngine`（什么上传、什么下载；每个映射带 `owner`，只有本账号的）、`ConversationSync`（何时同步；`hidden`：另一个账号的聊天，从 `ChatRepository.observeSessions()` 里排除）、`LocalChats`、Room 存储 `nanomuse_sync.db`（含 C12 的 `session_owners` 表） |
 | `account/` | 契约 C12（0.1.40，[sync.md](sync.md)）：`AccountScope`（规则：一个会话是谁的聊天、账号的 key、列表排除什么、被拒绝的 key 保留什么（`keepOnRefusedKey`：全部保留，除非中继说 `account_deleted`）；有单元测试）、`AccountData`（执行规则：每个聊天一行归属记录，`leave` 把账号的聊天、记忆、动态、目标、例程、形象和偏好收起来或删掉，`enter` 把一个账号的东西带回来）。「库」标签遵循同一条规则：只列出聊天列表会显示的那些会话的工作区，共用一台手机时另一个账号的文件不会出现（`library/LibraryIndex.shows`，有单元测试） |
 | `hub/` | `Hub`（状态、设备身份、设置）、`HubClient`（带退避的 socket；key 被拒绝时每分钟重试一次并如实显示，连接被替换时等 30 秒，运营者暂停 hub 时等两分钟并如实显示）、`HubService`（前台服务）、`HubActions`（其他设备可以让这台手机做什么；`stop {call | conversation}` 结束发起设备在这里启动的任务，由 `HubTasks` 记账，有单元测试）、`HubErrors`（用文字描述的失败） |
-| `reach/` | `Computers`（已配对的电脑，令牌在加密存储里）、把工作转交给电脑的处理器 |
+| `reach/` | `Computers`（账号的设备，按 hub 列出的样子，以及对它们的调用；0.1.24 起不再有配对，也没有自己的令牌）、把工作转交给电脑的处理器 |
 | `models/` | 「设置 → 模型」背后的逻辑：`ModelSlots`（四个槽位、各自设成了什么、存在哪里、选择页列出的分组、对话默认的 `followPick`、「用它来做什么」卡片的 `applyProvider`），`SlotOrder`（解析顺序和目录默认，纯 Kotlin，有单元测试），`PickerList`（选择页每组 8 行的折叠、排序和搜索过滤，纯 Kotlin，有单元测试） |
 | `ui/models/` | 「模型」页、每一行背后的选择页、「用它来做什么」卡片（`minis://settings/models`） |
 | `chat/CloudRetry.kt` | 「这次改用 nanoMuse Cloud」：卡片何时提供它，以及 `ChatViewModel.retryLast` 这一轮用的服务商 |

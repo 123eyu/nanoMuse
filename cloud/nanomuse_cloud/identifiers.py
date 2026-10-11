@@ -23,7 +23,7 @@ class BadIdentifier(ValueError):
 @dataclass(frozen=True)
 class Identifier:
     channel: str  # phone | email
-    value: str    # +8613800138000 / user@example.com (normalised)
+    value: str  # +8613800138000 / user@example.com (normalised)
 
     @property
     def hint(self) -> str:

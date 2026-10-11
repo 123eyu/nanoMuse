@@ -68,6 +68,18 @@ def test_web_console_translates_every_refusal_in_both_languages():
     assert "!" not in re.sub(r"[!=]==?|!\w", "", zh + en) and "！" not in zh
 
 
+def test_web_console_is_one_hub_device_per_tab():
+    """The id the console says hello with lives in sessionStorage, so two tabs of one
+    browser are two devices on the hub. Shared through localStorage, as before, the two
+    took turns replacing each other (close 4003) and reconnecting for as long as both
+    stayed open."""
+    source = (CONSOLE / "app.js").read_text(encoding="utf-8")
+    assert 'sessionStorage.getItem("nm.webid")' in source and 'sessionStorage.setItem("nm.webid"' in source
+    assert 'LS.setItem("nm.webid"' not in source and 'LS.getItem("nm.webid")' not in source
+    # the hello carries that id; the hub keys its connections on it (hub.py _attach)
+    assert "device: { id: webId," in source
+
+
 def test_console_copy_has_no_dashes_in_sentences():
     """The house rule: what a person reads carries no em dash. Checked on the two string
     tables (`const T = zh ? {...} : {...}`) of each console; the one-character placeholder

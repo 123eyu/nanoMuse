@@ -605,8 +605,9 @@ class ServerSettings(BaseModel):
     cors_origins: list[str] = Field(default_factory=list)
     # Largest file the app may attach to a message (photos from a phone run 3–12 MB).
     max_upload_mb: int = 25
-    # Ask GitHub Releases (at most every six hours) whether a newer nanoMuse is out, and say so
-    # under Settings → About. Nothing is downloaded or reported. NANOMUSE_NO_UPDATE_CHECK=1 also turns it off.
+    # Ask the download mirror's index, then GitHub Releases (once a day, or on "Check now")
+    # whether a newer nanoMuse is out, and say so under Settings → About. Nothing is downloaded
+    # or reported. NANOMUSE_NO_UPDATE_CHECK=1 also turns it off.
     update_check: bool = True
     # How long the services (tools, MCP servers, the cloud account) may take before the
     # socket opens anyway; past it the app answers and /api/health names the step still running.
@@ -854,19 +855,28 @@ def load_app_settings(data_dir: Path) -> dict[str, Any]:
         return {}
     try:
         data = json.loads(path.read_text("utf-8"))
-    except (OSError, json.JSONDecodeError):
+    except (OSError, json.JSONDecodeError) as exc:
+        # a file that cannot be read is not silently a first start: say so in the log, the
+        # defaults apply until the next save rewrites it
+        logger.warning("{} could not be read ({}); the app's settings are ignored", path, exc)
         return {}
     return data if isinstance(data, dict) else {}
 
 
 def save_app_settings(data_dir: Path, data: dict[str, Any]) -> None:
+    """Write the file whole or not at all: a temporary file next to it, mode 0600 before any
+    content is in it, then renamed over the old one, so a crash mid-write cannot leave a
+    truncated file that the next start reads as a first start."""
     data_dir.mkdir(parents=True, exist_ok=True)
     path = data_dir / APP_SETTINGS_FILE
-    path.write_text(json.dumps({"version": 1, **data}, ensure_ascii=False, indent=1), "utf-8")
+    tmp = path.with_suffix(".tmp")
+    tmp.touch(mode=0o600, exist_ok=True)
+    tmp.write_text(json.dumps({"version": 1, **data}, ensure_ascii=False, indent=1), "utf-8")
     try:
-        path.chmod(0o600)
+        tmp.chmod(0o600)
     except OSError:  # pragma: no cover
         pass
+    tmp.replace(path)
 
 
 def apply_app_settings(settings: Settings, data: dict[str, Any]) -> None:

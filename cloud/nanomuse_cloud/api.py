@@ -534,6 +534,7 @@ def create_app(
     @app.delete("/v1/me/sessions/{prefix}", status_code=204)
     async def me_revoke_session(prefix: str, caller: Caller = Depends(caller_dep)) -> Response:
         cloud.revoke_session(caller, prefix)
+        await _drop_signed_out(caller.account_id)
         return Response(status_code=204)
 
     @app.get("/v1/me/events")
@@ -543,7 +544,15 @@ def create_app(
     @app.post("/v1/auth/sign-out", status_code=204)
     async def sign_out(caller: Caller = Depends(caller_dep)) -> Response:
         cloud.sign_out(caller)
+        await _drop_signed_out(caller.account_id)
         return Response(status_code=204)
+
+    async def _drop_signed_out(account_id: str) -> None:
+        # a key that was just revoked may still hold a hub socket (the device signed out
+        # from elsewhere); the hub closes it with 4001 now rather than at the next reconnect
+        hub = getattr(app.state, "hub", None)
+        if hub is not None:
+            await hub.drop_signed_out(account_id)
 
     @app.post("/v1/auth/session-key")
     async def session_key(request: Request, caller: Caller = Depends(caller_dep)) -> dict:
@@ -563,6 +572,7 @@ def create_app(
         """Every other device; {"all": true} takes this one too."""
         body = await _json(request)
         n = cloud.sign_out_all(caller, keep_current=not bool(body.get("all")))
+        await _drop_signed_out(caller.account_id)
         return {"signed_out": n}
 
     @app.post("/v1/auth/delete", status_code=204)
@@ -1132,7 +1142,9 @@ def create_app(
             cloud.db.note_video_check(task_id)
             done += 1
             if charged is not None:
-                log.info("video task %s settled by the relay for %s: %s, charged %d", task_id[:12], str(task["account_id"])[:8], status, charged)
+                log.info(
+                    "video task %s settled by the relay for %s: %s, charged %d", task_id[:12], str(task["account_id"])[:8], status, charged
+                )
         return done
 
     app.state.settle_video_tasks = settle_video_tasks  # the tests call it directly
@@ -1191,7 +1203,10 @@ def create_app(
         def hub_dep(caller: Caller = Depends(caller_dep)) -> Caller:
             if not cloud.controls.on("hub"):
                 raise CloudError(
-                    503, "hub_paused", "The device hub is paused on this relay for now; each device keeps working on its own.", {"paused": True}
+                    503,
+                    "hub_paused",
+                    "The device hub is paused on this relay for now; each device keeps working on its own.",
+                    {"paused": True},
                 )
             return caller
 
