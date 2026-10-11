@@ -53,7 +53,8 @@ android/build/
 android/app/build/
 android/local.properties
 android/keystore.properties
-android/.kotlin/
+# the Kotlin daemon's session files, beside the Gradle project (android/src/android)
+android/src/android/.kotlin/
 android/native/build/
 *.jks
 *.keystore

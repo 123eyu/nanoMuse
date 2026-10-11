@@ -1,0 +1,16 @@
+# The relay's image (Dockerfile) copies pyproject.toml, README.md and nanomuse_cloud/ only.
+# The rest never enters the build context: the database and the uploads under data/, the
+# .env with the keys, the deploy recipes, the tests and the caches. A pattern without `**/`
+# matches at the root only (Go's filepath.Match, not gitignore).
+.env
+.env.*
+data/
+deploy/
+tests/
+.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+**/*.egg-info

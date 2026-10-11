@@ -3,3 +3,15 @@
 # normalised: android/ is an upstream subtree and carries a few vendored files as they came.
 *.sh text eol=lf
 gradlew text eol=lf
+
+# The desktop (harness/) is built and tested on Windows runners, whose checkout turns LF into
+# CRLF under core.autocrlf; its tests read their own sources and look for `\n` in them (the
+# v1.0.3 tag's Windows installer build failed on exactly that), so the tree's text files keep
+# LF on every platform. Git tells text from binary itself; the clips and pictures are named
+# so that the detection can never touch them.
+harness/** text=auto eol=lf
+harness/**/*.mp4 binary
+harness/**/*.png binary
+harness/**/*.webp binary
+harness/**/*.icns binary
+harness/**/*.ico binary

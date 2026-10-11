@@ -35,7 +35,12 @@ web:
 runtime:
   - changed-files:
       - any-glob-to-any-file:
-          - "nanomuse/**"
+          # nanomuse/ without nanomuse/server/static/, the committed web build (that is `web`,
+          # above): the four globs together cover every other file under nanomuse/
+          - "nanomuse/*"
+          - "nanomuse/!(server)/**"
+          - "nanomuse/server/*"
+          - "nanomuse/server/!(static)/**"
           - "tests/**"
           - "pyproject.toml"
           - "Dockerfile"

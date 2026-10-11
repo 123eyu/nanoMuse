@@ -5,20 +5,24 @@
 #                                   (docs/harness.md, harness/README.md); nanoMuse Desktop
 #                                   itself carries the same bundle (desktop-app.yml)
 #
-# A push or pull request that touches harness/ builds, typechecks and tests the bundle; a
-# release tag `v*` also packs it and attaches the tarball and its checksum to the release of
+# A push or pull request that touches harness/ builds, typechecks and tests the bundle and the
+# Electron shell (harness/desktop: typecheck and its node tests, no installer), on Linux and on
+# Windows, where the tests see a checkout made with core.autocrlf and Windows paths; a
+# release tag `v*` also packs the bundle and attaches the tarball and its checksum to the release of
 # the same name (the one scripts/release-apk.sh creates with the APK), retrying until it
 # exists. "Run workflow" with a release tag does the same for a release that already exists.
 # The bundle's version must be the tag's: the release recipe bumps harness/dsh-nanomuse/package.json.
+# The paths include the phones' copies of the catalogues and of the Ideas list: the tests
+# check that they match the desktop's (tests/fences.test.mjs, connectors-json.mjs --check).
 name: harness bundle
 
 on:
   push:
     branches: ["**"]
-    paths: ["harness/**", "scripts/connectors-json.mjs", "scripts/providers-json.mjs", "nanomuse/llm/providers.json", "android/src/android/app/src/main/assets/nanomuse/connectors.json", "android/src/android/app/src/main/assets/nanomuse/providers.json", "android/src/ios/NanoMuse/Resources/connectors.json", "android/src/ios/NanoMuse/Resources/providers.json", ".github/workflows/harness.yml"]
+    paths: ["harness/**", "scripts/connectors-json.mjs", "scripts/providers-json.mjs", "nanomuse/llm/providers.json", "android/src/android/app/src/main/assets/nanomuse/connectors.json", "android/src/android/app/src/main/assets/nanomuse/providers.json", "android/src/android/app/src/main/assets/nanomuse/ideas.*.json", "android/src/ios/NanoMuse/Resources/connectors.json", "android/src/ios/NanoMuse/Resources/providers.json", ".github/workflows/harness.yml"]
     tags: ["v*"]
   pull_request:
-    paths: ["harness/**", "scripts/connectors-json.mjs", "scripts/providers-json.mjs", "nanomuse/llm/providers.json", "android/src/android/app/src/main/assets/nanomuse/connectors.json", "android/src/android/app/src/main/assets/nanomuse/providers.json", "android/src/ios/NanoMuse/Resources/connectors.json", "android/src/ios/NanoMuse/Resources/providers.json", ".github/workflows/harness.yml"]
+    paths: ["harness/**", "scripts/connectors-json.mjs", "scripts/providers-json.mjs", "nanomuse/llm/providers.json", "android/src/android/app/src/main/assets/nanomuse/connectors.json", "android/src/android/app/src/main/assets/nanomuse/providers.json", "android/src/android/app/src/main/assets/nanomuse/ideas.*.json", "android/src/ios/NanoMuse/Resources/connectors.json", "android/src/ios/NanoMuse/Resources/providers.json", ".github/workflows/harness.yml"]
   workflow_dispatch:
     inputs:
       release_tag:
@@ -59,6 +63,16 @@ jobs:
           pnpm build
           pnpm typecheck
           pnpm test
+      # The Electron shell's own checks (AGENTS.md). Its tests stand in a fake `electron`
+      # module, so the Electron binary is not downloaded; desktop-app.yml builds the real thing.
+      - name: The desktop shell typechecks and its tests pass
+        working-directory: harness/desktop
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
       - name: The phones' copies of the connectors catalogue are current
         run: node scripts/connectors-json.mjs --check
       - name: The clients' copies of the provider catalogue are current
@@ -98,6 +112,40 @@ jobs:
           name: harness-bundle
           path: packages/*
           if-no-files-found: error
+
+  # The same build, typecheck and tests on Windows, on every pull request: the v1.0.3 tag's
+  # Windows installer build failed on a test that first met a CRLF checkout there, which
+  # desktop-app.yml only runs on a tag or by hand. No pack, no dsh install, no installer.
+  windows:
+    name: build · test (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: harness/dsh-nanomuse/pnpm-lock.yaml
+      - name: The bundle
+        working-directory: harness/dsh-nanomuse
+        shell: bash
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+          pnpm typecheck
+          pnpm test
+      - name: The desktop shell
+        working-directory: harness/desktop
+        shell: bash
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
 
   release:
     if: startsWith(github.ref, 'refs/tags/v') || inputs.release_tag != ''
