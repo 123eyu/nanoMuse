@@ -40,7 +40,10 @@ permissions:
   contents: read
 
 # One run per branch; a newer push to the same branch cancels the older build,
-# but a tag or a manual run is never cancelled.
+# but a tag or a manual run is never cancelled. A manual run shares the group of the branch it
+# runs on: "Run workflow" on main while a push to main is building waits for that build to end
+# rather than running beside it, which is slower but never leaves two runs attaching the
+# same installers.
 concurrency:
   group: desktop-app-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' && !startsWith(github.ref, 'refs/tags/') }}

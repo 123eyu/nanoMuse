@@ -6,6 +6,8 @@ name: iOS · TestFlight
 #   IOS_DIST_P12_BASE64, IOS_DIST_P12_PASSWORD
 # Signing is manual: the team's Apple Distribution certificate from the secrets, the App Store
 # profiles fetched from the account with the key. Nothing that signs is in the repository.
+# The build number (CFBundleVersion) is this workflow's run number, so every upload counts up
+# on its own and the release notes can name it; the marketing version is the project's.
 
 on:
   workflow_dispatch:
