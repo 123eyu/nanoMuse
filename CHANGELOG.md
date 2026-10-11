@@ -18,6 +18,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Project
 
+- **The READMEs' visitor counter runs on hits.sh.** The badge from komarev.com stopped showing now and then: GitHub's image proxy answers 404 for it at times, as its own tracker reports, and the badge was blank until a reload. The counter is now `hits.sh/github.com/nano-muse/nanoMuse.svg`, which also takes a starting number, so the 16,719 views counted so far are carried over; the same badge in the ten READMEs, twice each (the badge row and the end), one URL so a visit counts once.
 - **The showcase page no longer takes the phone's address from the link.** MobileGym's page reads `?sim=` to point its frame at a separate dev server; on the public site that let a crafted link put any page, a `javascript:` one included, inside the phone on the site's own origin, where a visitor's sign-in ticket is kept. The composed page now loads `/phone.html` and nothing else.
 - **The showcase gateway lets DeepSeek Flash see screenshots.** A visitor's own key with `deepseek-flash` or `deepseek-v4-flash` (the names DeepSeek serves with V4.1 Flash, and the key page's default) was marked text-only, so the chat model in that session ran with vision off; the gateway now follows the runtime's rule (`nanomuse/llm/vision.py`). The DeepSeek V4 Pro, V4 and chat ids stay text-only.
 - **The showcase's containers roll their logs.** The gateway, Caddy and the Docker proxy keep five 20 MB files each (`docker compose logs`) instead of one file that grows for as long as the box runs.
