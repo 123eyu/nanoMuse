@@ -339,7 +339,8 @@ fun NanoMuseHome(
         gesturesEnabled = drawerState.isOpen || tab == HomeTab.CHAT,
         drawerContent = {
             ModalDrawerSheet(
-                drawerContainerColor = MuseTones.surface,
+                // nanoMuse: pure canvas like Muse's drawer, not the grey sheet.
+                drawerContainerColor = com.openminis.app.ui.theme.ChatColors.background,
                 drawerShape = androidx.compose.foundation.shape.RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
             ) {
                 SideChatDrawer(
