@@ -374,7 +374,9 @@ internal fun UserMessageBubble(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        val textColor = if (isQueued) secondaryTextColor else MaterialTheme.colorScheme.onSurface
+                        // nanoMuse: ink on the Meta AI user pill (white pill/black
+                        // ink in dark theme, inverted in light) — not onSurface.
+                        val textColor = if (isQueued) secondaryTextColor else ChatColors.onUserBubble
                         val bubbleBg = if (isQueued) Color.Transparent else userBubbleColor
                         val shape = RoundedCornerShape(18.dp)
                         val dashedStroke = if (isQueued) {

@@ -32,6 +32,7 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bolt
@@ -210,6 +211,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TileMode // nanoMuse
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
@@ -536,6 +538,9 @@ fun ChatScreen(
     // nanoMuse: non-null when this chat is a tab of the home shell — hamburger
     // instead of back, round kebab, big-face header on the main chat.
     nmHome: io.github.nanomuse.ui.chat.NmHomeChrome? = null,
+    // nanoMuse: height of the floating pill bar overlaying the bottom. The
+    // composer sits above it; the message list slides behind it for the blur.
+    nmBottomOverlay: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -1194,6 +1199,8 @@ fun ChatScreen(
             "ScrollSrc",
             "scrollToItem src=$source idx=$idx off=$off canBwd=${listState.canScrollBackward} firstIdx=${listState.firstVisibleItemIndex} firstOff=${listState.firstVisibleItemScrollOffset} inProgress=${listState.isScrollInProgress}",
         )
+        // nanoMuse: contentPadding clears the measured footer. Offset zero
+        // pins the latest row above it; another overlay offset would count it twice.
         runCatching { listState.scrollToItem(idx, off) }
         Unit
     }
@@ -2604,6 +2611,20 @@ fun ChatScreen(
         containerColor = ChatColors.background,
         contentWindowInsets = WindowInsets(0),
         topBar = {
+            // nanoMuse: Meta AI's overlay header. The list slides underneath and
+            // the scrim melts it away — a soft shade at the top edge dissolving
+            // to clear, never a bar.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to ChatColors.background.copy(alpha = 0.8f),
+                            0.55f to ChatColors.background.copy(alpha = 0.35f),
+                            1f to Color.Transparent,
+                        )
+                    ),
+            ) {
             TopAppBar(
                 title = {
                     // iOS-style centered layout: "nanoMuse" + group row + provider·model row
@@ -2735,7 +2756,10 @@ fun ChatScreen(
                                 modifier = Modifier
                                     // nanoMuse: the name sits in a capsule under the face (Muse's name pill).
                                     .clip(CircleShape)
-                                    .background(ChatColors.userBubble)
+                                    // nanoMuse: not userBubble — that is now the
+                                    // white Meta AI message pill; the capsule
+                                    // keeps a neutral wash.
+                                    .background(ChatColors.secondaryBg)
                                     .clickable { io.github.nanomuse.ui.header.openSoulSettings(context) }
                                     .padding(horizontal = 12.dp, vertical = 3.dp),
                             )
@@ -3331,9 +3355,11 @@ fun ChatScreen(
                     }
                 },
                 windowInsets = WindowInsets.statusBars,
+                // nanoMuse: transparent — the gradient wrapper behind this bar
+                // carries the Meta AI header fade from the top edge.
                 colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                    containerColor = ChatColors.background.copy(alpha = 0.92f),
-                    scrolledContainerColor = ChatColors.background.copy(alpha = 0.92f),
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Transparent,
                 ),
                 // [T-android-topbar-shrink] 76dp → 68dp. The earlier
                 // T-topbar-model-row-clip fix bumped 60dp → 76dp to give the
@@ -3360,6 +3386,7 @@ fun ChatScreen(
                     else -> 72.dp
                 },
             )
+            } // nanoMuse: close the header-fade wrapper
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
@@ -3369,13 +3396,39 @@ fun ChatScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                // nanoMuse: the message list slides UNDER the header (Meta AI's
+                // overlay), so only the bottom bar insets the content. The
+                // header itself is a scrim over the scrolling list.
+                .padding(bottom = padding.calculateBottomPadding())
                 .imePadding()
                 .onGloballyPositioned { chatPaneWidthPx = it.size.width },
         ) {
-        Column(
+        // nanoMuse: merge live steps once so the footer and its reserve agree
+        // on the same frame, including tools still in the streaming side channel.
+        val streamingById by viewModel.streamingById.collectAsState()
+        val lastToolBlocks = remember(messages, streamingById) {
+            val merged = if (streamingById.isEmpty()) messages
+                         else mergeStreamingOverlay(messages, streamingById)
+            merged.filter { it.role == "assistant" }
+                .flatMap { it.toolBlocks }
+                .filter { it.toolStatus != null && it.kind != "thinking" && it.kind != "info" }
+        }
+        var nmBarLingers by remember { mutableStateOf(false) }
+        LaunchedEffect(isStreaming) {
+            if (isStreaming) nmBarLingers = true
+            else if (nmBarLingers) { kotlinx.coroutines.delay(1_500); nmBarLingers = false }
+        }
+        val nmToolBarShown = nmShowSteps && (isStreaming || nmBarLingers) && lastToolBlocks.isNotEmpty()
+        // nanoMuse: browser/tool controls take priority over the composer's top fade.
+        val nmBrowserHandOver by io.github.nanomuse.browser.BrowserHandOver.pending.collectAsState()
+        val nmComposerFadeSuppressed = nmToolBarShown || showBrowserSheet || nmBrowserHandOver != null
+
+        // nanoMuse: measure the whole footer before the list, while keeping the
+        // list full-size behind the pill for Haze. No asynchronous height feedback.
+        io.github.nanomuse.ui.chat.NmChatBottomLayout(
             modifier = Modifier.fillMaxSize(),
-        ) {
+            bottomInset = nmBottomOverlay,
+            content = { bottomChromeHeight ->
             // Dismiss keyboard when the USER scrolls the messages. Gated on
             // `isUserDragging` (a real finger drag) rather than
             // `listState.isScrollInProgress` — the latter is also true during
@@ -3395,122 +3448,22 @@ fun ChatScreen(
             }
 
             // Messages + scroll-to-bottom button
-            Box(modifier = Modifier.weight(1f)) {
-                var toolBarHeightPx by remember { mutableStateOf(0) }
-                val density = LocalDensity.current
-                val toolBarHeightDp = with(density) { toolBarHeightPx.toDp() }
-                // T166 / T170 / T173: bottomReserve must clear the visible
-                // top of the floating tool-status overlay. Layout primitives
-                // come from FloatingToolStatusBar:
-                //   - status bar height = 38 dp
-                //   - thumbnail floats over the bar with overhang = 27 dp
-                //   - thumbnail TOP = bar top - overhang = 65 dp above the
-                //     input bar's upper edge (which is also the LazyColumn
-                //     bottom edge under reverseLayout).
-                //
-                // `onGloballyPositioned` on the wrapper Box reports ~98 dp
-                // because it includes wrapper padding(bottom=6) + horizontal
-                // padding insets + shadow allowance — none of which are
-                // *visually occluding* the LazyColumn. Using the measured
-                // value + 8 dp left a ~25 dp gap above the thumbnail (red
-                // box in the user's report).
-                //
-                // Pin to the visual constant: thumbnail height (65 dp) + a
-                // visual buffer (18 dp) so the latest row's bottom has clear
-                // breathing room above the thumbnail top.
-                //
-                // T174: an earlier version gated reserve on `toolBarHeightPx
-                // > 0`, but `onGloballyPositioned` fires asynchronously after
-                // the first floating-bar layout pass; for one frame after
-                // toolBlocks appeared the reserve evaluated the small
-                // default (28 dp) and the just-arrived user bubble landed
-                // beneath the bar. Logcat showed the inverse glitch too:
-                // `toolBarHeightPx=258 toolBarHeightDp=0 reserve=28` — the
-                // px state and the dp/reserve values come from different
-                // recomposition snapshots. Drive the reserve directly off
-                // the same predicate used for *whether* the floating bar is
-                // emitted (`hasFloatingTools` below) so reserve and bar
-                // visibility flip on the same frame.
-                // [T-android-chat-cannot-scroll-bottom-many-tools]
-                // Bug 𝙓𝙄𝙉 TG36286: with 7+ tools the user couldn't scroll the
-                // last messages above the floating tool status bar.
-                //
-                // Asymmetry between the bar's render condition and its
-                // bottomReserve gate: [lastToolBlocks] (drives whether to
-                // mount FloatingToolStatusBar) merges `messages` with the
-                // streaming-side-channel `streamingById`, so during a live
-                // turn the in-flight tool's toolStatus shows up there →
-                // bar renders. [hasFloatingTools] (drives bottomReserve)
-                // only read `messages`, which the streaming architecture
-                // intentionally leaves stable during a turn — so the
-                // in-flight tool is invisible to this predicate → reserve
-                // collapsed to 20dp while a 65dp+6dp floating bar covered
-                // the bottom of the LazyColumn. The new arrivals (status
-                // pill, "nanoMuse is thinking" indicator, inline retry banner) landed
-                // behind the bar with no way to scroll them into view.
-                //
-                // Fix: also subscribe to streamingById so the predicate
-                // matches the bar's actual mount condition. The bar's
-                // mount uses `lastToolBlocks.isNotEmpty()` over the merged
-                // view; we mirror that semantically by checking the same
-                // filter on both sources.
-                val streamingById by viewModel.streamingById.collectAsState()
-                // nanoMuse (issue #67): the bar is for the run under way. It
-                // used to stay as long as the chat had any step in it — a
-                // finished step hung over the composer for good. Now it is
-                // up while the turn streams and for a moment after, so the
-                // last step is seen through to Done, and only when the steps
-                // are shown at all (Settings → Appearance → Conversation).
-                // The reserve below and the mount further down read this
-                // same predicate, so they flip together.
-                var nmBarLingers by remember { mutableStateOf(false) }
-                LaunchedEffect(isStreaming) {
-                    if (isStreaming) nmBarLingers = true
-                    else if (nmBarLingers) { kotlinx.coroutines.delay(1_500); nmBarLingers = false }
-                }
-                val nmAnyToolStep = remember(messages, streamingById) {
-                    val merged = if (streamingById.isEmpty()) messages
-                                 else mergeStreamingOverlay(messages, streamingById)
-                    merged.any { msg ->
-                        msg.role == "assistant" && msg.toolBlocks.any { tb ->
-                            tb.toolStatus != null && tb.kind != "thinking" && tb.kind != "info"
-                        }
-                    }
-                }
-                val hasFloatingTools = nmShowSteps && (isStreaming || nmBarLingers) && nmAnyToolStep // nanoMuse: the steps bar
-                val visualOverlayHeight = 65.dp  // thumbnailHeight in FloatingToolStatusBar
-                // Halve the breathing room above the input bar in both
-                // states — felt too sparse before. The thumbnail's 65dp
-                // physical height is preserved (it has to clear the
-                // floating overlay).
-                //
-                // T245: buffer raised 9dp → 14dp so the gap between the
-                // last LazyColumn tool row and the floating thumbnail's
-                // top reads at least as loose as the inter-tool spacing
-                // (each ToolCallPill carries padding(vertical = 3.dp) +
-                // LazyColumn spacedBy(2.dp) = ~8dp inter-tool gap; the
-                // 9dp buffer combined with the floating bar's internal
-                // overhang was visually tighter than 8dp). 14dp also
-                // matches the no-tool branch — single visual constant
-                // for "row-bottom → bottom chrome" breathing room.
-                // [T-bottom-occluded 0a6d3c92] No-tools branch bumped from
-                // 14dp → 20dp to give the last message bubble a comfortable
-                // gap above the composer's top edge. With 14dp the trailing
-                // line sat too close to the composer shadow / rounded edge
-                // (user reported "the bottom of the text is slightly clipped"). The floating-tools branch
-                // already reserves visualOverlayHeight (65dp) + buffer and
-                // was not part of the report; keep its +14 buffer.
-                val bottomReserve =
-                    if (hasFloatingTools) visualOverlayHeight + 14.dp else 20.dp
-                // T174: when bottomReserve changes (toolbar appearing /
-                // disappearing or thumbnail height shift), re-pin to bottom
+            // nanoMuse: the list fills the whole Box, extending behind the
+            // pill bar so the haze has content to blur. Bottom contentPadding
+            // keeps the last message clear of the composer + pill.
+            Box(modifier = Modifier.fillMaxSize()) {
+                // nanoMuse: the measured footer already includes the tool preview,
+                // approval cards, composer and pill inset. Only breathing room is extra.
+                val bottomReserve = if (nmToolBarShown) 14.dp else 20.dp
+                // nanoMuse: when the measured footer changes (tools, composer,
+                // approval or keyboard), re-pin to bottom
                 // if we are currently following. Without this, the new
                 // contentPadding is honoured for layout but reverseLayout
                 // won't actively scroll the list — items can wind up below
                 // the viewport's new bottom edge until the next streaming
                 // delta triggers a follow. iOS does the same in V3:54-68
                 // when contentInset.bottom changes.
-                LaunchedEffect(bottomReserve) {
+                LaunchedEffect(bottomChromeHeight, bottomReserve) {
                     // [T-android-send-no-autoscroll-behind-preview] Send-grace
                     // bypass: within SEND_FOLLOW_GRACE_MS of a user message
                     // append the isNearBottom gate is waived — the user JUST
@@ -3810,7 +3763,7 @@ fun ChatScreen(
                     // covers. contentPadding.bottom already reserves that space
                     // via bottomReserve, yet the reserve does NOT change here:
                     // a tool bar was already on screen before the enqueue, so
-                    // hasFloatingTools stays true and LE(bottomReserve) never
+                    // nmToolBarShown stays true and the footer resize effect never
                     // re-fires (verified: zero `reserve-change` events at the
                     // enqueue moment). The bubble is laid out inside the
                     // reserved band and stays half-occluded.
@@ -4015,9 +3968,13 @@ fun ChatScreen(
                     // the bubble's 4dp = 8dp (≈22px), tighter but still a clear
                     // breath under the title bar. Bottom padding and inter-
                     // message spacing are untouched.
+                    // nanoMuse: the list slides under the overlay header, so it
+                    // starts below it (status bars + 68dp bar + breathing room).
+                    // The bottom clears the floating pill bar the same way.
                     contentPadding = PaddingValues(
-                        top = 4.dp,
-                        bottom = if (bottomReserve == 0.dp) 12.dp else bottomReserve,
+                        top = 100.dp,
+                        // nanoMuse: use this layout pass's full footer height.
+                        bottom = bottomChromeHeight + bottomReserve,
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -4703,109 +4660,25 @@ fun ChatScreen(
                 } // Box (selection scope)
                 } // CompositionLocalProvider
 
-                // Floating tool status bar — shows only actual tool calls (not text/thinking/info).
-                // Matches iOS: filter on toolStatus != nil (text blocks have toolStatus = null).
-                //
-                // T-streaming-side-channel-tool-blocks: derive lastToolBlocks
-                // from a state that combines messages + streamingById INSIDE
-                // a LaunchedEffect (not via a top-level collectAsState read),
-                // so streaming-tick churn stays off the ChatScreen invalidation
-                // list. Without including streamingById, a tool pill clicked
-                // mid-turn is missing from lastToolBlocks → ToolDetailSheet
-                // never opens (and its sentinel LaunchedEffect immediately
-                // closes the detail state because the id "doesn't exist").
-                var lastToolBlocks by remember { mutableStateOf<List<AssistantBlock>>(emptyList()) }
-                LaunchedEffect(messages) {
-                    kotlinx.coroutines.flow.combine(
-                        kotlinx.coroutines.flow.flowOf(messages),
-                        viewModel.streamingById,
-                    ) { msgs, stream ->
-                        val merged = if (stream.isEmpty()) msgs else mergeStreamingOverlay(msgs, stream)
-                        merged.filter { it.role == "assistant" }
-                            .flatMap { it.toolBlocks }
-                            .filter { it.toolStatus != null && it.kind != "thinking" && it.kind != "info" }
-                    }.collect { lastToolBlocks = it }
-                }
-                val allToolBlocks = lastToolBlocks
-                // nanoMuse (issue #67): mounted on the same predicate as the
-                // bottom reserve (`hasFloatingTools`, above) — while the run
-                // is under way and a moment after, steps shown — never for
-                // a step that finished long ago.
-                val nmToolBarShown = hasFloatingTools && lastToolBlocks.isNotEmpty()
-                if (nmToolBarShown) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            // [T-android-chat-max-content-width] The tool status
-                            // bar is part of the conversation column, so it
-                            // takes the same cap as the message list and the
-                            // composer. Without it the bar alone spanned the
-                            // full pane while everything above and below it was
-                            // capped, so on a tablet it visibly overhung both.
-                            //
-                            // ORDER MATTERS: widthIn must come BEFORE
-                            // fillMaxWidth. fillMaxWidth pins the incoming
-                            // MIN width to the full pane as well as the max, so
-                            // a widthIn placed after it is raised back up by
-                            // that min and does nothing — which is exactly how
-                            // the first attempt at this failed. Declared first,
-                            // widthIn narrows the constraint and fillMaxWidth
-                            // then fills the already-narrowed one.
-                            //
-                            // BottomCenter on the parent centres the result, so
-                            // no extra alignment is needed.
-                            .widthIn(max = CHAT_MAX_CONTENT_WIDTH)
-                            .fillMaxWidth()
-                            .onGloballyPositioned { toolBarHeightPx = it.size.height }
-                            .padding(horizontal = 12.dp)
-                            .padding(bottom = 6.dp),
-                    ) {
-                        FloatingToolStatusBar(
-                            toolBlocks = lastToolBlocks,
-                            // T14: per-card stop on the floating bar — same
-                            // global cancel as the message-list pill button.
-                            onStop = { viewModel.cancelStream() },
-                            onOpenTerminalWithCommand = onOpenTerminalWithCommand,
-                            // T261: route detail open through the same VM
-                            // state as in-list pills so both surfaces share
-                            // one always-mounted sheet instance.
-                            onOpenDetail = { viewModel.openToolDetail(it) },
-                        )
-                    }
-                } else {
-                    SideEffect { toolBarHeightPx = 0 }
-                }
-
                 // [T-android-tts-capsule] Floating speech-player control for
                 // "Read replies" TTS — expand/compact capsule with mute, model
                 // switch and speed cycling. Mounted LAST in this Box so it
                 // draws above the list, the FABs and the floating tool bar
                 // (iOS mounts its SpeechPlayerControl at app root; chat-screen
                 // scope is the Android first pass).
-                // [T-android-tts-capsule-avoid] toolBarHeightPx is the same
-                // measurement bottomReserve uses — the capsule lifts above the
-                // floating tool bar instead of covering its trailing edge.
-                // [T-android-tts-capsule-avoid-fabs] The scroll FABs share the
-                // capsule's bottom-end corner and OVERLAPPED it (user report:
-                // capsule stacked on the jump-to-user-message / scroll-to-
-                // bottom buttons). Mirror their exact placement math — same
-                // visibility predicates, same base offsets as the FAB blocks
-                // below — so the capsule clears the TOP of whatever part of
-                // the FAB stack is currently visible, and drops back when the
-                // FABs hide. This is the Android stand-in for iOS's
-                // protectedRects: derived from the same layout constants
-                // instead of measured rects, which keeps it deterministic.
+                // nanoMuse: speech controls and scroll buttons share the same
+                // measured footer obstruction, even when no tools are shown.
                 val upFabVisible = messages.isNotEmpty() && !isNearBottom.value
                 val downFabVisible =
                     userScrolledAway && contentOverflows.value && messages.isNotEmpty()
-                val fabBaseDp = if (nmToolBarShown) 80.dp else 8.dp // nanoMuse: follows the bar
+                val fabBaseDp = bottomChromeHeight + 8.dp
                 val fabStackTopDp = when {
                     upFabVisible -> fabBaseDp + 46.dp + 36.dp
                     downFabVisible -> fabBaseDp + 36.dp
                     else -> 0.dp
                 }
                 com.openminis.app.ui.chat.voice.SpeechPlayerCapsule(
-                    bottomObstructionPx = toolBarHeightPx,
+                    bottomObstructionPx = with(LocalDensity.current) { bottomChromeHeight.roundToPx() },
                     additionalObstructionDp = fabStackTopDp,
                 )
 
@@ -4858,6 +4731,65 @@ fun ChatScreen(
                     if (leftover > 0.dp) leftover / 2 else 0.dp
                 }
 
+                // nanoMuse: fade into the canvas above the composer while reading
+                // older messages. Browser/tool controls hide it immediately, even
+                // if a scroll animation or the alpha tween is still in progress.
+                val nmEdgeFade = ChatColors.background
+                val nmScrolledUp = listState.firstVisibleItemIndex > 0 ||
+                    listState.firstVisibleItemScrollOffset > 0
+                val nmBottomFadeAlpha by animateFloatAsState(
+                    targetValue = if (nmScrolledUp && !nmComposerFadeSuppressed) 1f else 0f,
+                    animationSpec = tween(250),
+                    label = "nmBottomFade",
+                )
+                if (!nmComposerFadeSuppressed) {
+                    val nmFadeHeight = 90.dp
+                    val nmFooterHeight = (bottomChromeHeight - nmBottomOverlay).coerceAtLeast(0.dp)
+                    // nanoMuse: the gradient ends at the footer's top, then its
+                    // solid canvas continues behind the composer padding and
+                    // rounded corners. Stop above the nav pill to retain its blur.
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .padding(bottom = nmBottomOverlay)
+                            .height(nmFadeHeight + nmFooterHeight)
+                            .graphicsLayer { alpha = nmBottomFadeAlpha }
+                            .background(
+                                Brush.verticalGradient(
+                                    0f to Color.Transparent,
+                                    1f to nmEdgeFade,
+                                    endY = with(LocalDensity.current) { nmFadeHeight.toPx() },
+                                    tileMode = TileMode.Clamp,
+                                ),
+                            ),
+                    )
+                }
+
+                // nanoMuse: Meta AI's top vignette — when scrolled up away from
+                // the latest, the top edge gets a slow dark fade so messages
+                // dissolve under the header instead of hitting a hard edge.
+                // Distinct from the header's static scrim; this one earns its
+                // place dynamically with scroll.
+                val nmTopFadeAlpha by animateFloatAsState(
+                    targetValue = if (nmScrolledUp) 1f else 0f,
+                    animationSpec = tween(250),
+                    label = "nmTopFade",
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .height(80.dp)
+                        .graphicsLayer { alpha = nmTopFadeAlpha }
+                        .background(
+                            Brush.verticalGradient(
+                                0f to nmEdgeFade,
+                                1f to Color.Transparent,
+                            )
+                        ),
+                )
+
                 // Scroll-to-bottom FAB (iOS: circle chevron.down, bottom-right)
                 // T138 phase 2 v3: show on user-scroll intent, not transient
                 // layout state. Otherwise the FAB flickers whenever multi-tool
@@ -4879,7 +4811,8 @@ fun ChatScreen(
                 // spacing). Tapping walks BACK one user turn at a time rather
                 // than jumping to the oldest message.
                 if (messages.isNotEmpty() && !isNearBottom.value) {
-                    val upBaseBottom = if (nmToolBarShown) 80.dp else 8.dp // nanoMuse: follows the bar
+                    // nanoMuse: clear every visible part of the measured footer.
+                    val upBaseBottom = bottomChromeHeight + 8.dp
                     androidx.compose.material3.FilledIconButton(
                         onClick = {
                             // [T-android-updown-fab-asymmetry] Arm the same flag a
@@ -4921,7 +4854,8 @@ fun ChatScreen(
                 }
 
                 if (userScrolledAway && contentOverflows.value && messages.isNotEmpty()) {
-                    val fabBottomPadding = if (nmToolBarShown) 80.dp else 8.dp // nanoMuse: follows the bar
+                    // nanoMuse: clear every visible part of the measured footer.
+                    val fabBottomPadding = bottomChromeHeight + 8.dp
                     androidx.compose.material3.FilledIconButton(
                         onClick = {
                             // [T-android-scroll-fab-down-stuck] Clear the
@@ -4950,14 +4884,16 @@ fun ChatScreen(
                                 tracedScrollToItem("FAB-DOWN/settle", 0, 0)
                             }
                         },
+                        // nanoMuse: Meta AI's scroll-to-latest — centered under the
+                        // conversation, white disc with a black arrow.
                         modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(end = 12.dp + fabEndInset, bottom = fabBottomPadding)
-                            .shadow(4.dp, CircleShape)
-                            .size(36.dp),
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = fabBottomPadding)
+                            .shadow(6.dp, CircleShape)
+                            .size(40.dp),
                         colors = androidx.compose.material3.IconButtonDefaults.filledIconButtonColors(
-                            containerColor = ChatColors.inputBg,
-                            contentColor = ChatColors.primaryText,
+                            containerColor = Color.White,
+                            contentColor = Color.Black,
                         ),
                     ) {
                         Icon(
@@ -4981,6 +4917,28 @@ fun ChatScreen(
 
                 // nanoMuse: dim the conversation while the approval card is up.
                 io.github.nanomuse.ui.guard.RiskScrim(sessionId = viewModel.activeSessionId)
+            }
+
+            },
+            bottomContent = {
+            // nanoMuse: tools and composer are siblings in one footer, so their
+            // bounds cannot overlap regardless of composer/preview height.
+            if (nmToolBarShown) {
+                Box(
+                    modifier = Modifier
+                        .widthIn(max = CHAT_MAX_CONTENT_WIDTH)
+                        .fillMaxWidth()
+                        .align(Alignment.CenterHorizontally)
+                        .padding(horizontal = 12.dp)
+                        .padding(bottom = 6.dp),
+                ) {
+                    FloatingToolStatusBar(
+                        toolBlocks = lastToolBlocks,
+                        onStop = { viewModel.cancelStream() },
+                        onOpenTerminalWithCommand = onOpenTerminalWithCommand,
+                        onOpenDetail = { viewModel.openToolDetail(it) },
+                    )
+                }
             }
 
             // nanoMuse: Muse's "Needs approval" card sits between the messages and the composer.
@@ -5026,6 +4984,7 @@ fun ChatScreen(
                 !com.openminis.app.ui.chat.voice.VoiceModePrefs.isVoiceActive &&
                 !nmRecording && editingId == null
             // ─── Input area (iOS-style: rounded box with text + buttons below) ───
+            // nanoMuse: the footer places the composer above the pill.
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -5050,7 +5009,12 @@ fun ChatScreen(
                     // which is exactly how the first attempt at this fix still
                     // looked broken.
                     .onGloballyPositioned { composerWidthPx = it.size.width }
-                    .navigationBarsPadding()
+                    // nanoMuse: the footer owns the home pill inset; standalone
+                    // chats still consume their system navigation inset here.
+                    .then(
+                        if (nmBottomOverlay > 0.dp) Modifier
+                        else Modifier.navigationBarsPadding()
+                    )
                     .padding(horizontal = if (nmPill) 16.dp else 12.dp) // nanoMuse: Muse's 16dp margins
                     .padding(top = 2.dp, bottom = 8.dp),
             ) {
@@ -7007,14 +6971,24 @@ fun ChatScreen(
                             // Streaming with content → Send-into-queue; Idle with content → Send.
                             // Idle without text or attachments → disabled.
                             val canActivate = hasContent
+                            // nanoMuse: monochrome send — white disc, black arrow in
+                            // dark theme, inverted in light. No more blue accent.
+                            val nmSendDark = ChatColors.isDark
+                            val nmSendBg = if (canActivate) {
+                                if (nmSendDark) Color.White else Color.Black
+                            } else {
+                                if (nmSendDark) Color.White.copy(alpha = 0.15f)
+                                else Color.Black.copy(alpha = 0.08f)
+                            }
+                            val nmSendFg = if (canActivate) {
+                                if (nmSendDark) Color.Black else Color.White
+                            } else {
+                                ChatColors.primaryText.copy(alpha = 0.4f)
+                            }
                             Box(
                                 modifier = Modifier
                                     .size(38.dp)
-                                    .background(
-                                        if (canActivate) ChatColors.sendButton
-                                        else ChatColors.sendButtonDisabled,
-                                        CircleShape,
-                                    )
+                                    .background(nmSendBg, CircleShape)
                                     .clip(CircleShape)
                                     .clickable(enabled = canActivate) {
                                         // T-drag-send-queue: route through the
@@ -7034,8 +7008,7 @@ fun ChatScreen(
                                 Icon(
                                     Icons.Default.ArrowUpward,
                                     contentDescription = "Send",
-                                    tint = if (canActivate) ChatColors.background
-                                    else ChatColors.primaryText.copy(alpha = 0.5f),
+                                    tint = nmSendFg,
                                     modifier = Modifier.size(20.dp),
                                 )
                             }
@@ -7190,7 +7163,8 @@ fun ChatScreen(
                     },
                 )
             }
-        }
+            },
+        )
         // Top gradient fade: messages fade into the Scaffold background.
         Box(
             modifier = Modifier

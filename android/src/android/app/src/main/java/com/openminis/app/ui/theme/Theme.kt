@@ -96,9 +96,10 @@ private val LightColorScheme = lightColorScheme(
     onTertiary = TealOnTertiary,
     tertiaryContainer = TealTertiaryContainer,
     onTertiaryContainer = TealOnTertiaryContainer,
-    background = NeutralGroupedBg,
+    // nanoMuse: Meta AI's light theme is white, not iOS grouped grey.
+    background = Color.White,
     onBackground = TealOnBackground,
-    surface = NeutralGroupedBg,
+    surface = Color.White,
     onSurface = TealOnSurface,
     surfaceVariant = NeutralGroupedCard,
     onSurfaceVariant = TealOnSurfaceVariant,
