@@ -662,6 +662,7 @@ nowhere else.
   rate limit) and GitHub's releases API when the index does not answer, then compares
   versions; a newer one shows as a dot, an *Update to 0.1.x* menu item and a *Download*
   button for this platform's asset in About (on Linux the `.deb`, or the AppImage when
-  the running app is one).
+  the running app is one). The result is kept for a day and read against the version
+  that runs now, so an update installed in the meantime is not offered to itself.
 - **Open source, no closed component.** The bundle is GPL-3.0-or-later; the harness is
   MIT and travels with its notice; the About row says so.

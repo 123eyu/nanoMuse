@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import socket
 import sys
 from pathlib import Path
 
@@ -284,6 +285,24 @@ async def test_web_fetch_refuses_redirects_into_private_networks():
         "http://public.example/old", timeout=5, transport=httpx.MockTransport(fine)
     )
     assert resp.status_code == 200 and resp.text == "moved here" and str(resp.url).endswith("/new")
+
+
+async def test_web_fetch_refuses_local_names_without_dns(monkeypatch: pytest.MonkeyPatch):
+    """``localhost`` and ``.internal`` names are refused by name; the resolver is never asked,
+    so the refusal does not depend on what the machine's DNS would answer (#339)."""
+
+    def no_dns(*args: object, **kwargs: object) -> object:
+        raise AssertionError(f"the resolver was asked: {args!r}")
+
+    monkeypatch.setattr(socket, "getaddrinfo", no_dns)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text="should never be reached")
+
+    transport = httpx.MockTransport(handler)
+    for url in ("http://localhost/admin", "http://metadata.internal/latest"):
+        with pytest.raises(PermissionError, match="private/internal host"):
+            await fetch_public(url, timeout=5, transport=transport)
 
 
 async def test_web_fetch_stops_reading_at_the_body_cap(monkeypatch: pytest.MonkeyPatch):
