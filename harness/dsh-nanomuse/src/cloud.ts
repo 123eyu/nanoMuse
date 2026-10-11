@@ -27,7 +27,7 @@
  */
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { ApprovalDesk, appOf, checkForUpdate, DEVICE_GRANT_PREFIX, HoldDesk, modelFor, pickChatModel, pickHandsModel, REMOTE_CONTROL_GRANT_ID, sharedConnectors, standingGrants, takesImages, type Grant, type Hold, type HoldTool, type PendingApproval, type StandingGrant, type UpdateInfo } from './desk.ts'
+import { ApprovalDesk, appOf, checkForUpdate, compareVersions, DEVICE_GRANT_PREFIX, HoldDesk, modelFor, pickChatModel, pickHandsModel, REMOTE_CONTROL_GRANT_ID, sharedConnectors, standingGrants, takesImages, type Grant, type Hold, type HoldTool, type PendingApproval, type StandingGrant, type UpdateInfo } from './desk.ts'
 import { arch, homedir, hostname, release, type, userInfo } from 'node:os'
 import { dirname, join } from 'node:path'
 import { createHmac, randomBytes, randomUUID } from 'node:crypto'
@@ -440,6 +440,21 @@ export interface MediaView {
 
 /** One check a day, at most, by itself; the About row may ask any time. */
 const UPDATE_EVERY_MS = 24 * 60 * 60_000
+
+/**
+ * A cached check, read against the bundle that runs now. The state file outlives an
+ * update: right after 1.0.2 was installed over 1.0.1, the check 1.0.1 made within the day
+ * still said `{ current: '1.0.1', latest: '1.0.2', newer: true }`, and the sidebar offered
+ * "Update to 1.0.2" to the 1.0.2 that was running until the next daily check (#341). So
+ * `current` becomes this bundle's version and `newer` is compared again against the cached
+ * `latest`; the time of the check is kept, so no extra request is made. A cache made by
+ * this very version is returned as it is.
+ */
+export function updateForThisVersion(cached: UpdateInfo, current: string = BUNDLE_VERSION): UpdateInfo {
+  if (cached.current === current) return cached
+  const latest = typeof cached.latest === 'string' ? cached.latest : ''
+  return { ...cached, current, latest, newer: Boolean(latest) && compareVersions(latest, current) > 0 }
+}
 
 /** Tool names whose calls the capsule follows. */
 export function isHandsTool(name: string): boolean {
@@ -955,7 +970,9 @@ export default class NanomuseCloud extends Service {
   /** The newest release against what runs here; cached a day unless `force`. */
   update(force: boolean): Promise<UpdateInfo> {
     const cached = this.state.update
-    if (!force && cached && Date.now() - cached.checkedAt < UPDATE_EVERY_MS) return Promise.resolve(cached)
+    // a cache made by another version of this bundle (the one that ran before an update was
+    // installed) compared the wrong `current`; it is not an answer for this one (#341)
+    if (!force && cached && cached.current === BUNDLE_VERSION && Date.now() - cached.checkedAt < UPDATE_EVERY_MS) return Promise.resolve(cached)
     if (this.updateCheck) return this.updateCheck
     // the bare number: 0.1.40 compared the labelled `VERSION` ("dsh-nanomuse 0.1.40"), which
     // parsed as 0, so every release read as newer and the installed one was offered again
@@ -2983,7 +3000,7 @@ export default class NanomuseCloud extends Service {
         ...(typeof raw.handsModel === 'string' && raw.handsModel ? { handsModel: raw.handsModel } : {}),
         // a grant 0.1.37 kept for the "app" "Done. Screen now:" (the mis-read head line) names nothing — dropped
         ...(Array.isArray(raw.grants) ? { grants: (raw.grants as Grant[]).filter((g) => g && typeof g.id === 'string' && typeof g.target === 'string' && !MISREAD_GRANT.test(g.target)).map((g) => ({ id: g.id, target: g.target, at: Number(g.at) || 0 })) } : {}),
-        ...(raw.update && typeof raw.update === 'object' && typeof (raw.update as UpdateInfo).checkedAt === 'number' ? { update: raw.update as UpdateInfo } : {}),
+        ...(raw.update && typeof raw.update === 'object' && typeof (raw.update as UpdateInfo).checkedAt === 'number' ? { update: updateForThisVersion(raw.update as UpdateInfo) } : {}),
         ...(raw.remoteControl === true ? { remoteControl: true } : {}),
         ...(raw.trusted && typeof raw.trusted === 'object' ? { trusted: trustedOf(raw.trusted) } : {}),
         ...(raw.taskSessions && typeof raw.taskSessions === 'object' ? { taskSessions: raw.taskSessions } : {}),

@@ -20,6 +20,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 ### Desktop
 
 - **OpenCode Go works from the desktop.** Saving a Go key writes the model adapter's own `opencode-go` route (no `api`, no base URL), which sends `x-opencode-session` with the harness's conversation id and reaches each model on its own shape, so the models that route's catalog lists on the Responses and Messages shapes come through as well. A hand-declared route, the way the other own keys are written, sends no session id (thanks @PovedaAqui).
+- **A freshly installed update is no longer offered to itself.** The daily update check keeps its result for a day, and the state file outlives an update, so right after installing 1.0.2 over 1.0.1 the sidebar still showed the dot and *Update to 1.0.2* from the check 1.0.1 had made, until the next day's check or *Check for updates*. The cached result is now read against the version that runs, and a result another version made is not answered from the cache (reported by @jiangkaiqi2005, #341).
 
 ### Android
 
