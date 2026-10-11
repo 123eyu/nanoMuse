@@ -153,6 +153,17 @@ def main(argv: list[str]) -> int:
     if not Path("pyproject.toml").is_file():
         print("run from the repository root", file=sys.stderr)
         return 2
+    # The roadmap rows are worked out before anything is written, so a page without the table
+    # or with the row already there refuses the run while every file is still as it was.
+    roadmap_texts: dict[str, str] = {}
+    for name, line in roadmap.items():
+        try:
+            roadmap_texts[name] = add_roadmap_row(
+                Path(name).read_text(encoding="utf-8"), new, newname, line
+            )
+        except ValueError as exc:
+            print(f"{name}: {exc}", file=sys.stderr)
+            return 1
 
     changelog = Path("CHANGELOG.md")
     s = changelog.read_text(encoding="utf-8")
@@ -191,15 +202,9 @@ def main(argv: list[str]) -> int:
         if moved:
             print(f"{name}: {moved} example version(s) now {new} ({code})")
 
-    for name, line in roadmap.items():
-        p = Path(name)
-        try:
-            text = add_roadmap_row(p.read_text(encoding="utf-8"), new, newname, line)
-        except ValueError as exc:
-            print(f"{name}: {exc}", file=sys.stderr)
-            return 1
+    for name, text in roadmap_texts.items():
         if not dry_run:
-            p.write_text(text, encoding="utf-8")
+            Path(name).write_text(text, encoding="utf-8")
         print(f"{name}: a row for {new} {newname} at the end of the past-releases table")
 
     template = Path("docs/release-notes-template.md")

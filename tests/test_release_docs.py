@@ -250,6 +250,17 @@ def test_main_writes_both_roadmap_rows_or_asks_for_them(
         .endswith("| 1.0.1 | Still | 一句话 |\n")
     )
 
+    # a page without the table refuses the run before anything is written
+    bare = tmp_path / "bare"
+    bare.mkdir()
+    monkeypatch.chdir(bare)
+    _tree(bare)
+    (bare / "docs" / "roadmap.md").write_text("# Roadmap\n", encoding="utf-8")
+    (bare / "docs" / "zh" / "roadmap.md").write_text("# 路线图\n", encoding="utf-8")
+    assert release_docs.main([*args, "--roadmap", "One line", "--roadmap-zh", "一句话"]) == 1
+    assert "no past-releases table" in capsys.readouterr().err
+    assert "## [1.0.1]" not in (bare / "CHANGELOG.md").read_text(encoding="utf-8")
+
     # without the flags the rows are left to hand work, and the message says so
     again = tmp_path / "again"
     again.mkdir()
