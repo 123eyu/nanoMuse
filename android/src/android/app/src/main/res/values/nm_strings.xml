@@ -345,6 +345,23 @@
     <string name="nm_avatar_use_this">Use this one</string>
     <string name="nm_avatar_use_this_hint">The moods (working, waiting, done, oops) are drawn from it next, in the background.</string>
     <string name="nm_avatar_footer">Pictures are stored on this phone under minis-global/nanomuse/avatar. Each face costs five images from your provider: one you chose plus four moods.</string>
+    <string name="nm_own_clip_title">Your own clip</string>
+    <string name="nm_own_clip_body">A short video of yours plays as the face at rest, and the other moods fall back to it. MP4 or MOV with H.264 video, up to 15 seconds and 30 MB; it plays muted in a loop.</string>
+    <string name="nm_own_clip_on">Your clip is on and plays for every mood; the drawn stills still show where a still is used. Default face removes it.</string>
+    <string name="nm_own_clip_local">The clip stays on this phone. It is not uploaded to nanoMuse Cloud or synced to your other devices.</string>
+    <string name="nm_own_clip_choose">Choose a clip</string>
+    <string name="nm_own_clip_replace">Replace the clip</string>
+    <string name="nm_own_clip_default">Default face</string>
+    <string name="nm_own_clip_menu">Your own clip…</string>
+    <string name="nm_own_clip_preview_title">Preview</string>
+    <string name="nm_own_clip_preview_body">This is how it plays as the face: muted, in a loop, cropped to the circle.</string>
+    <string name="nm_own_clip_details">%1$d s · %2$s</string>
+    <string name="nm_own_clip_use">Use</string>
+    <string name="nm_own_clip_refused_format">That file cannot be used here. Pick an MP4 or MOV with H.264 video, up to 15 seconds and 30 MB.</string>
+    <string name="nm_own_clip_refused_long">That clip runs %1$d seconds. The limit is 15 seconds, and 30 MB.</string>
+    <string name="nm_own_clip_refused_large">That clip is %1$s. The limit is 30 MB, and 15 seconds.</string>
+    <string name="nm_own_clip_unreadable">The clip could not be read. Try another one.</string>
+    <string name="nm_a11y_own_clip_preview">Preview of your clip</string>
 
     <!-- First run (Muse-style welcome; the steps are OpenMinis' provider and model screens) -->
     <string name="nm_setup_title">Welcome to nanoMuse</string>

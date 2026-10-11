@@ -58,3 +58,27 @@ With a nanoMuse Cloud account the face follows you to every device ([docs/cloud.
 the stills go to the relay once, the other devices wear them from `avatar/sync-<hash>/`
 with the description and style in their `face.json`, and a device keeps the face it drew,
 clips and all, when the account's pictures are the ones it already wears.
+
+## Your own clip
+
+A short video of your own can take the place of the clips. On the phone, pick one under the
+pen on the face in the profile (*Your own clip…*) or in the *Your own clip* section of the
+avatar studio; on the desktop, in the avatar studio or the profile drawer. The clip plays
+muted in a loop wherever the face moves: for the mood at rest, and for every other mood too,
+since there is only the one clip. Where a still is shown (under the clip until its first frame
+is on screen, in the share cards, in the tiles) the stills of a studio face keep their place,
+and with no studio face the clip's first frame is the still. Before anything changes, a
+preview plays the clip in the face's own round frame, with *Use* and *Cancel*; *Default face*
+removes the clip, and the studio face or the dragon shows again.
+
+The limits: MP4 or MOV with H.264 video (on iOS also HEVC, which the system decodes), at most
+15 seconds and 30 MB. A longer or larger clip, or another format, is refused with a sentence
+that states the limits; nothing is trimmed or re-encoded, and the sound is never played.
+
+The clip stays on the device that chose it. It is not uploaded to nanoMuse Cloud and does not
+sync to your other devices, unlike the stills of a studio face; each device chooses its own.
+On Android it lives under `minis-global/nanomuse/avatar/own-clip.mp4` with its first frame
+beside it as `own-clip.png`, filed with the signed-in account's other files; on iOS under the
+app's `Application Support/nanomuse/avatar/own-clip.mp4`; on the desktop under
+`$DSH_HOME/nanomuse/avatar/own-clip.mp4`. It survives a new studio face and a reset to the
+built-in one.

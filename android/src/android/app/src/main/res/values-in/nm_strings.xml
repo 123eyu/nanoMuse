@@ -348,6 +348,23 @@
     <string name="nm_avatar_use_this">Pakai yang ini</string>
     <string name="nm_avatar_use_this_hint">Ekspresinya (bekerja, menunggu, selesai, ups) digambar dari gambar ini berikutnya, di latar belakang.</string>
     <string name="nm_avatar_footer">Gambar disimpan di ponsel ini di minis-global/nanomuse/avatar. Setiap wajah memakai lima gambar dari penyediamu: satu yang kamu pilih ditambah empat ekspresi.</string>
+    <string name="nm_own_clip_title">Klip Anda sendiri</string>
+    <string name="nm_own_clip_body">Video pendek milik Anda diputar sebagai wajah saat diam, dan suasana lain memakainya juga. MP4 atau MOV dengan video H.264, paling lama 15 detik dan 30 MB; diputar tanpa suara, berulang.</string>
+    <string name="nm_own_clip_on">Klip Anda aktif dan diputar untuk setiap suasana; di tempat gambar diam ditampilkan, gambar yang digambar tetap dipakai. “Wajah bawaan” menghapusnya.</string>
+    <string name="nm_own_clip_local">Klip tetap di ponsel ini. Tidak diunggah ke nanoMuse Cloud dan tidak disinkronkan ke perangkat Anda yang lain.</string>
+    <string name="nm_own_clip_choose">Pilih klip</string>
+    <string name="nm_own_clip_replace">Ganti klip</string>
+    <string name="nm_own_clip_default">Wajah bawaan</string>
+    <string name="nm_own_clip_menu">Klip Anda sendiri…</string>
+    <string name="nm_own_clip_preview_title">Pratinjau</string>
+    <string name="nm_own_clip_preview_body">Beginilah klip diputar sebagai wajah: tanpa suara, berulang, dipotong ke lingkaran.</string>
+    <string name="nm_own_clip_details">%1$d dtk · %2$s</string>
+    <string name="nm_own_clip_use">Gunakan</string>
+    <string name="nm_own_clip_refused_format">File itu tidak bisa dipakai di sini. Pilih MP4 atau MOV dengan video H.264, paling lama 15 detik dan 30 MB.</string>
+    <string name="nm_own_clip_refused_long">Klip itu berdurasi %1$d detik. Batasnya 15 detik, dan 30 MB.</string>
+    <string name="nm_own_clip_refused_large">Klip itu berukuran %1$s. Batasnya 30 MB, dan 15 detik.</string>
+    <string name="nm_own_clip_unreadable">Klip tidak bisa dibaca. Coba yang lain.</string>
+    <string name="nm_a11y_own_clip_preview">Pratinjau klip Anda</string>
 
     <!-- First run (Muse-style welcome; the steps are OpenMinis' provider and model screens) -->
     <string name="nm_setup_title">Selamat datang di nanoMuse</string>
