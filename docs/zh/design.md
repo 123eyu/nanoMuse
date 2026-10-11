@@ -22,9 +22,9 @@
 
 | Muse | nanoMuse | 在哪里 |
 |---|---|---|
-| 接近纯白 / 接近纯黑，一种蓝 | 同一套调色板：`bg`、`surface-2`、`fg`、`muted`，强调色 `#0064d4`；深色模式跟 `prefers-color-scheme` | `web/src/index.css`、`android/…/values/colors.xml` |
+| 接近纯白 / 接近纯黑，一种蓝 | 同一套调色板：`bg`、`surface-2`、`fg`、`muted`，强调色 `#0064d4`；深色模式跟 `prefers-color-scheme`。对话更进一步：聊天浅色下是纯白、深色下是接近纯黑，蓝色只留给链接和状态行 | `web/src/index.css`、`android/…/values/colors.xml` |
 | Optimistic | [Figtree](https://github.com/erikdkennedy/figtree)（OFL），已内置；比例和温度都接近 | `web/public/fonts/` |
-| 灰色 / 浅蓝色气泡，工具用小标签，审批用卡片 | 一样；小标签点开是工具调用，卡片上是哨兵（Sentinel）写的摘要和范围按钮（一次、本次对话、总是；手机上是一次、本聊天、总是） | `web/src/screens/ChatScreen.tsx`、`web/src/components/` |
+| 灰色 / 浅蓝色气泡，工具用小标签，审批用卡片 | 和手机一样的单色胶囊：你的消息是白底上的黑色胶囊、白色文字（深色下白胶囊黑文字），智能体的胶囊比底色略深一级，发送按钮和*最新*按钮是同一色的墨色圆钮，顶栏是一层渐隐，对话从它下面滚过去、融进底色；小标签点开是工具调用，卡片上是哨兵（Sentinel）写的摘要和范围按钮（一次、本次对话、总是；手机上是一次、本聊天、总是） | `web/src/screens/ChatScreen.tsx`、`web/src/components/` |
 | 会换姿势的毛绒玩偶 | **小熊猫**，一个实时绘制的 SVG，每种状态一个姿势；六只毛绒玩偶（Sunny、Moss、Sky、Fox、Bolt、Plum）和一个 emoji 作为备选 | `web/src/components/RedPanda.tsx`、`web/public/avatars/` |
 | 形象下面是名字和状态；点开面板 | 同样的头部；面板里是大图的形象、状态、*停止*、四个按钮（审批、活动、权限、日程）以及记忆、技能、连接、设置几行 | `web/src/components/MuseSheet.tsx` |
 | 五图标悬浮栏 | 同样的五个：聊天、动态、点子、目标、资源库，放在底边上方 12 px 的一枚毛玻璃胶囊里，半透明、带模糊和一圈细线边；当前标签页的填充图形垫在一块淡蓝色指示块上（`accent-soft`），其余的用 `muted` 描边。宽窗口下由侧栏代替 | `web/src/App.tsx` |
@@ -58,14 +58,18 @@ Muse 的玩偶不用转圈就说明了「这儿有人，而且它在忙」。nan
 
 | 变量 | 浅色 | 深色 |
 |---|---|---|
-| `bg` | `#fcfcfc` | `#181819` |
+| `bg` | `#ffffff` | `#181819` |
 | `surface` | `#ffffff` | `#202022` |
 | `surface-2` | `#f2f2f4` | `#2a2a2d` |
 | `border` | `#e7e7ea` | `#333337` |
 | `fg` | `#111112` | `#ffffff` |
 | `muted` | `#6b6b71` | `#9d9da4` |
 | `accent` | `#0064d4` | `#1793ff` |
-| 用户气泡 | `#d8e9ff` | `#1c3d66` |
+| `ink`（发送按钮、*最新*按钮；`ink-fg` 是上面的图形） | `#000000`，图形 `#ffffff` | `#ffffff`，图形 `#000000` |
+| `bubble-user` 和它的文字（`bubble-user-fg`） | `#000000`，文字 `#ffffff` | `#ffffff`，文字 `#000000` |
+| `bubble-agent` | `#f2f2f7` | `#2a2a2d` |
+
+聊天的顶栏不是一条栏，而是一层渐隐：顶边是 80% 的 `bg`，过了中间是 35%，底边透明，对话从它下面滚过去；往回翻旧消息时，最上面 80 px 完全融进 `bg`。你的胶囊里的链接保持胶囊的文字颜色，带下划线。深色下智能体的胶囊相对 `#181819` 的那一级，和手机上 `#1c1c1e` 相对纯黑的一级相同。
 
 小熊猫：毛色 `#d8632e`，亮部到 `#ee8a4c`，暗部到 `#9e3f18`，深毛色 `#bf4f23`（耳朵、尾巴环纹、爪子），奶油色 `#fff4e6`，从 `#fffaf2` 到脸颊处的 `#f3dfc6`，纹路 `#2a1a14`，眼睛高光 `#4a302a`，腮红 `#f4a0a0`；应用里它身后的底盘 `#dcebdc`，logo 的底盘 `#2f7a5a`。`mark` 层级只用基础色。
 

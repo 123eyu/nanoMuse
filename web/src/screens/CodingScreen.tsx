@@ -525,8 +525,8 @@ function Bubble({ who, agent, badge, children }: { who: "you" | "agent"; agent: 
   return (
     <div className={cx("flex", who === "you" ? "justify-end" : "justify-start")}>
       {who === "agent" && <AgentGlyph agent={agent} size={24} className="mr-2 mt-1 shrink-0" />}
-      <div className={cx("max-w-[86%] rounded-3xl px-3.5 py-2 text-[14px] leading-relaxed", who === "you" ? "rounded-br-lg bg-bubble-user text-bubble-user-fg" : "rounded-bl-lg bg-surface-2")}>
-        {badge && <div className="mb-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-fg/45">{badge}</div>}
+      <div className={cx("max-w-[86%] rounded-3xl px-3.5 py-2 text-[14px] leading-relaxed", who === "you" ? "bubble-user rounded-br-lg bg-bubble-user text-bubble-user-fg" : "rounded-bl-lg bg-bubble-agent")}>
+        {badge && <div className="mb-0.5 text-[10.5px] font-semibold uppercase tracking-wide opacity-60">{badge}</div>}
         <div className="md break-words">{children}</div>
       </div>
     </div>

@@ -16,6 +16,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 ### Web
 
 - **The phone layout's tab bar is a floating frosted-glass pill.** The five tabs sit in a rounded pill 12 px above the bottom edge, icons only and no labels; the pill is translucent over a blur of what is behind it and has a hairline edge. The current tab shows its filled glyph on a soft blue indicator, the others stay outlined in grey. The screens and the chat's composer keep clear of the pill, and the toast rises above it; a wide window and the desktop app keep the sidebar (follows #329 by @Ichiro786).
+- **The chat is monochrome, as on the phone.** Your messages are black pills with white text in the light theme and white pills with black text in the dark one, the agent's replies sit in a pill a shade off the canvas, and the send button and the *Latest* button are the same ink disc instead of blue; a link inside your pill keeps the pill's text colour, underlined. The light canvas is plain white. The chat's header is a scrim over the conversation rather than a bar: messages scroll under the face and dissolve into the canvas, and the top edge fades fully while older messages are being read. The coding agents' chat uses the same pills (follows #331 by @Ichiro786).
 
 ### Desktop
 
