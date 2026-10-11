@@ -446,6 +446,23 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   `NavigationStack` 的祖先上没有任何 inset）；房间是普通的 SwiftUI 滚动视图，同样的高度用
   `safeAreaInset` 给出，于是它们的内容会滚到胶囊下面，玻璃才有东西可模糊。在没有 Mac 的 Linux
   上写的：iOS 检查能编译它，还没有设备显示过它。
+- **聊天是单色的**（`NanoMuseFaces.swift` 里的 `NanoMuseTones.ink` / `onInk` / `agentPill`，
+  `NanoMuseHeader.swift` 里的 `NanoMuseHeaderScrim`，`NanoMuseComposer.swift`，
+  `NanoMuseChatCards.swift`，以及 `Views/Chat/ChatMessageViews.swift` 和
+  `Views/Chat/AIChatView.swift` 里的 `// nanoMuse:` 行；对应 Android 的 #331，@Ichiro786）。开着
+  Muse 外壳时，你的消息是墨色的胶囊，文字用画布色：浅色主题下白色画布上是黑胶囊白字，深色主题下
+  黑色画布上是白胶囊黑字，没有蓝也没有灰。智能体的回复放在一个比
+  画布深一点或浅一点的胶囊里，浅色 `#F2F2F7`，深色 `#1C1C1E`，文字用主题的文字色；代码、表格和
+  原始标记照旧不加胶囊。输入胶囊里的发送箭头是同一种墨色的 30 pt 圆盘，箭头用画布色（没有可发
+  的内容时圆盘是一层淡淡的墨色，箭头 40%），智能体回答时的停止方块也在同一个圆盘上；输入胶囊
+  本身还是灰的。列表下面*回到最新*的圆盘也是
+  同一种墨色，箭头用画布色；它上面那颗往回走的按钮保留浅色圆盘。主聊天上方的标题栏不再是模糊
+  层：一层画布色的渐变遮罩，顶边 80%，过半一点 35%，到底部透明，于是对话会滚到形象下面并融进
+  画布，而不是停在一条线上；列表滚离最新消息时，再从顶边以 250 ms 淡入一层完整画布色的渐变
+  （外壳 `safeAreaInset` 的背景，像标题栏绑定心情那样绑定主聊天的 `isNearBottom`）。排队中的消息
+  保留上游的虚线边框和灰字，*来自 {设备}* 的说明和附件都在胶囊外面，长按预览还是原来那张不透明
+  的卡片。从抽屉推出的侧聊天保留系统栏和它的材质；房间保留它们的画布。在没有 Mac 的 Linux
+  上写的：iOS 检查能编译它，还没有设备显示过它。
 
 ## 用操作按钮说一句 {#voice-prompts-from-the-action-button}
 

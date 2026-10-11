@@ -597,7 +597,8 @@ struct NanoMuseHomeView: View {
             }
             // Android: the header floats over the transcript, which scrolls under it. A safe-area
             // inset (not a VStack row) so the message list keeps its full height and only its
-            // content inset moves; the blur is the material, there is no divider line.
+            // content inset moves; behind it a scrim of the canvas colour fading to clear, not a
+            // blur and not a bar, and there is no divider line (NanoMuseHeaderScrim).
             .safeAreaInset(edge: .top, spacing: 0) {
                 VStack(spacing: 0) {
                     // MuseHeader over the main chat — the face, the name pill, the drawer and ••• discs.
@@ -639,8 +640,7 @@ struct NanoMuseHomeView: View {
                     }
                 }
                 .background {
-                    Rectangle()
-                        .fill(.ultraThinMaterial)
+                    NanoMuseChatScrimHost(liveId: main.liveId)
                         .ignoresSafeArea(edges: .top)
                 }
             }
@@ -961,15 +961,7 @@ struct NanoMuseChatHeaderHost<Leading: View, Trailing: View>: View {
     /// AIChatView puts the view model in the cache as it appears; look a few times, then give up quietly.
     private func bind() async {
         vm = nil
-        guard let liveId else { return }
-        for _ in 0..<20 {
-            if let found = ViewModelCache.shared.get(for: liveId) {
-                vm = found
-                return
-            }
-            try? await Task.sleep(for: .milliseconds(150))
-            if Task.isCancelled { return }
-        }
+        vm = await NanoMuseChatLookup.viewModel(for: liveId)
     }
 }
 

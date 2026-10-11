@@ -459,6 +459,14 @@ enum NanoMuseTones {
     static let hairline = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? UIColor(red: 0.227, green: 0.227, blue: 0.235, alpha: 1) : UIColor(red: 0.898, green: 0.898, blue: 0.918, alpha: 1) })
     static let canvas = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? .black : UIColor(red: 0.953, green: 0.953, blue: 0.961, alpha: 1) })
     static let action = Color(red: 0.039, green: 0.4, blue: 0.894)
+    /// The chat's ink (Android's `ChatColors.userBubble` and `sendButton` since #331): your
+    /// message pill, the send disc and the scroll-to-latest disc. Black on the white canvas in
+    /// light, white on the black canvas in dark; `onInk` is what sits on it, the canvas colour.
+    static let ink = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? .white : .black })
+    static let onInk = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? .black : .white })
+    /// The agent's message pill, a shade off the canvas (Android's `ChatColors.assistantBubble`:
+    /// #F2F2F7 in light, #1C1C1E in dark). The composer pill keeps `bubble`.
+    static let agentPill = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? UIColor(red: 0.11, green: 0.11, blue: 0.118, alpha: 1) : UIColor(red: 0.949, green: 0.949, blue: 0.969, alpha: 1) })
     /// The bottom bar's indicator capsule under the current tab, and the glyph on it: Android's
     /// primaryContainer and onPrimaryContainer (#E5F0FF with #012F80 in light, #1A2B4A with
     /// #E5F0FF in dark).
