@@ -79,7 +79,7 @@ Android App 的聊天调色板在 `ChatColors.kt`，由 `scripts/rebrand.py` 写
 
 iOS App 的聊天用同样的值：你的胶囊、发送圆盘和「回到最新」圆盘用 `NanoMuseTones.ink` 和 `onInk`，
 智能体的胶囊用 `agentPill`，都在 `NanoMuseFaces.swift` 里；底色是系统背景色，白和黑。胶囊栏的
-指示器是 iOS App 里唯一还留着蓝色容器色的地方（`tabIndicator`），见 [ios.md](ios.md)。
+指示器圆盘也是同一种墨色，上面的符号用 `onInk`（`tabIndicator`、`tabIndicatorGlyph`），见 [ios.md](ios.md)。
 
 小熊猫：毛色 `#d8632e`，亮部到 `#ee8a4c`，暗部到 `#9e3f18`，深毛色 `#bf4f23`（耳朵、尾巴环纹、爪子），奶油色 `#fff4e6`，从 `#fffaf2` 到脸颊处的 `#f3dfc6`，纹路 `#2a1a14`，眼睛高光 `#4a302a`，腮红 `#f4a0a0`；应用里它身后的底盘 `#dcebdc`，logo 的底盘 `#2f7a5a`。`mark` 层级只用基础色。
 

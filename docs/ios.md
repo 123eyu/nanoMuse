@@ -529,8 +529,8 @@ Ours, in `NanoMuse/`:
   backdrop blur) with a 1 pt `NanoMuseTones.hairline` edge; the old full-width strip and its hairline
   on top are gone. The five tabs share the pill's width equally, each slot tappable across; the
   current one shows the filled symbol in `tabIndicatorGlyph` on a 60 by 46 pt capsule of
-  `tabIndicator` (Android's primaryContainer and onPrimaryContainer: `#E5F0FF` with `#012F80` in
-  light, `#1A2B4A` with `#E5F0FF` in dark) that slides to the tab tapped next with a spring
+  `tabIndicator` (the chat's ink: black with a white symbol in light, white with a black symbol
+  in dark, as Android's `MuseBottomBar`) that slides to the tab tapped next with a spring
   (`matchedGeometryEffect`); the others show the outlined symbol in the secondary colour. The bar
   still leaves while the keyboard or the chat's voice panel is up. Layout: the pill lies over the
   rooms and the chat in a `ZStack` aligned to the bottom. The chat keeps the 0.1.40 rule above

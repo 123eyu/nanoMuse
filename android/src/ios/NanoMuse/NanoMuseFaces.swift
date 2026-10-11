@@ -470,8 +470,10 @@ enum NanoMuseTones {
     /// The bottom bar's indicator capsule under the current tab, and the glyph on it: Android's
     /// primaryContainer and onPrimaryContainer (#E5F0FF with #012F80 in light, #1A2B4A with
     /// #E5F0FF in dark).
-    static let tabIndicator = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? UIColor(red: 0.102, green: 0.169, blue: 0.29, alpha: 1) : UIColor(red: 0.898, green: 0.941, blue: 1, alpha: 1) })
-    static let tabIndicatorGlyph = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? UIColor(red: 0.898, green: 0.941, blue: 1, alpha: 1) : UIColor(red: 0.004, green: 0.184, blue: 0.502, alpha: 1) })
+    /// The pill bar's indicator disc and the glyph on it: the same ink as the chat, black with
+    /// a white glyph in light and white with a black glyph in dark, as Android's MuseBottomBar.
+    static let tabIndicator = ink
+    static let tabIndicatorGlyph = onInk
 }
 
 /// Whether the UI runs in Chinese right now (the in-app override wins).

@@ -439,8 +439,8 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   不透明度的外壳 surface 色（对比度靠这层色，模糊靠材质，和 Android 在背景模糊上盖 55% surface
   一样），边上一道 1 pt 的 `NanoMuseTones.hairline`；原来那条通栏的条和它顶上的细线没有了。
   五个标签平分胶囊的宽度，每一格整格可点；当前这个用 `tabIndicatorGlyph` 色显示实心符号，底下一个
-  60 × 46 pt 的 `tabIndicator` 色胶囊（Android 的 primaryContainer 和 onPrimaryContainer：浅色 `#E5F0FF`
-  配 `#012F80`，深色 `#1A2B4A` 配 `#E5F0FF`），点下一个标签时它带着弹簧滑过去
+  60 × 46 pt 的 `tabIndicator` 色胶囊（聊天的墨色：浅色黑底白符号，深色白底黑符号，和 Android 的
+  `MuseBottomBar` 一样），点下一个标签时它带着弹簧滑过去
   （`matchedGeometryEffect`）；其他标签用次要颜色显示线框符号。键盘弹起或聊天的语音面板打开时，
   底栏仍然离开。布局：胶囊在一个贴底对齐的 `ZStack` 里盖在房间和聊天上面。聊天沿用上面
   0.1.40 的规矩（聊天层加一段底栏高度、70 pt 的底部 padding：46 加上下各 6，再加 12 pt 的间隙，所以输入区在胶囊上面，
