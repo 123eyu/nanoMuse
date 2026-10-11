@@ -25,7 +25,7 @@
 | 接近纯白 / 接近纯黑，一种蓝 | 同一套调色板：`bg`、`surface-2`、`fg`、`muted`，强调色 `#0064d4`；深色模式跟 `prefers-color-scheme`。手机和网页版的对话都更进一步：聊天浅色下是纯白（手机上胶囊栏、菜单和抽屉也是），深色下手机是纯黑、网页版接近纯黑，蓝色只留给链接和状态行 | `web/src/index.css`、`android/…/values/colors.xml`、`android/…/ui/theme/ChatColors.kt` |
 | Optimistic | [Figtree](https://github.com/erikdkennedy/figtree)（OFL），已内置；比例和温度都接近 | `web/public/fonts/` |
 | 灰色 / 浅蓝色气泡，工具用小标签，审批用卡片 | 手机和网页版都是单色胶囊：你的消息是深色底上的白色胶囊、黑色文字（浅色下白底黑胶囊），智能体的胶囊比底色略浅或略深一级，发送按钮和回到最新的按钮用同一种墨色，顶栏是一层渐隐，对话从它下面滚过去、融进底色；小标签点开是工具调用，卡片上是哨兵（Sentinel）写的摘要和范围按钮（一次、本次对话、总是；手机上是一次、本聊天、总是） | `web/src/screens/ChatScreen.tsx`、`web/src/components/`、`android/…/ui/chat/ChatScreen.kt` |
-| 会换姿势的毛绒玩偶 | 内置的**小龙**，每种状态（空闲、工作中、等待、开心、出错）一张静态图和一段短循环短片；在形象工作室里画的一张脸，或色块上的一个 emoji 作为备选（早期版本的小熊猫见下文的历史） | `web/src/components/Avatar.tsx`、`web/public/avatars/` |
+| 会换姿势的毛绒玩偶 | 内置的**小龙**，每种状态（空闲、工作中、等待、开心、出错）一张静态图，除出错以外每种状态还有一段短循环短片；在形象工作室里画的一张脸，或色块上的一个 emoji 作为备选（早期版本的小熊猫见下文的历史） | `web/src/components/Avatar.tsx`、`web/public/avatars/` |
 | 形象下面是名字和状态；点开面板 | 同样的头部；面板里是大图的形象、状态、*停止*、四个按钮（审批、活动、权限、日程）以及记忆、技能、连接、设置几行 | `web/src/screens/MuseSheet.tsx` |
 | 五图标悬浮栏 | 同样的五个：聊天、动态、点子、目标、资源库，放在底边上方 12 px 的一枚毛玻璃胶囊里，半透明、带模糊和一圈细线边；当前标签页的填充图形垫在一块墨色指示块上（`ink`，图形用 `ink-fg`），其余的用 `muted` 描边。宽窗口下由侧栏代替 | `web/src/App.tsx` |
 | 很少的动效 | 小龙和工作室脸的短片，emoji 的呼吸 / 摇摆 / 蹦跳；`prefers-reduced-motion` 下全部关闭 | `web/src/index.css`、`web/src/components/Avatar.tsx` |
