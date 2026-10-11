@@ -21,6 +21,23 @@ function box(type, ...parts) {
   return Buffer.concat([head, body])
 }
 
+/** The same box with the 64-bit size field (`size` 1, then the length after the type). */
+function largeBox(type, ...parts) {
+  const body = Buffer.concat(parts.map((p) => (typeof p === 'string' ? Buffer.from(p, 'latin1') : p)))
+  const head = Buffer.alloc(16)
+  head.writeUInt32BE(1, 0)
+  head.write(type, 4, 'latin1')
+  head.writeBigUInt64BE(BigInt(body.length + 16), 8)
+  return Buffer.concat([head, body])
+}
+
+/** The same box with size 0: it runs to the end of the file, so it must be the last one. */
+function lastBox(type, ...parts) {
+  const out = box(type, ...parts)
+  out.writeUInt32BE(0, 0)
+  return out
+}
+
 function u32(n) {
   const b = Buffer.alloc(4)
   b.writeUInt32BE(n, 0)
@@ -37,6 +54,13 @@ function u64(n) {
 function mvhd(timescale, duration, version = 0) {
   if (version === 1) return box('mvhd', Buffer.from([1, 0, 0, 0]), u64(0), u64(0), u32(timescale), u64(duration), Buffer.alloc(80))
   return box('mvhd', u32(0), u32(0), u32(0), u32(timescale), u32(duration), Buffer.alloc(80))
+}
+
+/** `mvex` with a `mehd`, the length of a fragmented file; without `mehd` when `duration` is undefined. */
+function mvex(duration, version = 0) {
+  if (duration === undefined) return box('mvex', box('trex', Buffer.alloc(24)))
+  const mehd = version === 1 ? box('mehd', Buffer.from([1, 0, 0, 0]), u64(duration)) : box('mehd', u32(0), u32(duration))
+  return box('mvex', mehd, box('trex', Buffer.alloc(24)))
 }
 
 function trak(handler, codec) {
@@ -141,6 +165,40 @@ test('probe finds the video track behind an audio track, and reports other codec
   assert.equal(probeOwnClip(mp4({ audioFirst: true })).codec, 'avc1')
   assert.equal(probeOwnClip(mp4({ codec: 'hvc1' })).codec, 'hvc1')
   assert.equal(probeOwnClip(mp4({ codec: 'vp09' })).codec, 'vp09')
+})
+
+test('probe reads a moov with a 64-bit size, a file that opens with wide and free atoms, and an mdat that runs to the end', () => {
+  const ftyp = box('ftyp', 'isom', u32(0), 'isom', 'mp42')
+  const large = Buffer.concat([ftyp, largeBox('moov', mvhd(1000, 7000), trak('vide', 'avc1')), box('mdat', Buffer.alloc(64, 7))])
+  assert.deepEqual(probeOwnClip(large), { container: true, bytes: large.length, durationMs: 7000, codec: 'avc1' })
+  // an old QuickTime file: no ftyp, a wide and a free atom before the movie
+  const quicktime = Buffer.concat([box('wide'), box('free', Buffer.alloc(16)), box('mdat', Buffer.alloc(64, 7)), box('moov', mvhd(600, 1800), trak('vide', 'avc1'))])
+  assert.deepEqual(probeOwnClip(quicktime), { container: true, bytes: quicktime.length, durationMs: 3000, codec: 'avc1' })
+  // the media as the last box with size 0, which means "to the end of the file"
+  const open = Buffer.concat([ftyp, box('moov', mvhd(1000, 2000), trak('vide', 'avc3')), lastBox('mdat', Buffer.alloc(64, 7))])
+  assert.deepEqual(probeOwnClip(open), { container: true, bytes: open.length, durationMs: 2000, codec: 'avc3' })
+  // a 64-bit size the file cannot hold ends the look without a throw
+  const lying = Buffer.concat([ftyp, largeBox('moov', mvhd(1000, 2000), trak('vide', 'avc1'))])
+  lying.writeBigUInt64BE(0xfffffffffffffn, ftyp.length + 8)
+  assert.equal(probeOwnClip(lying).container, true)
+  assert.equal(probeOwnClip(lying).codec, undefined)
+})
+
+test('probe takes the length of a fragmented file from mvex/mehd, and has none without it', () => {
+  const ftyp = box('ftyp', 'iso5', u32(0), 'iso5', 'dash')
+  const fragmented = (header, ex) => Buffer.concat([ftyp, box('moov', header, trak('vide', 'avc1'), ex), box('moof', Buffer.alloc(16)), box('mdat', Buffer.alloc(64, 7))])
+  // the movie header says 0 (or all ones, "unknown"), the extends header has the length
+  assert.equal(probeOwnClip(fragmented(mvhd(1000, 0), mvex(9500))).durationMs, 9500)
+  assert.equal(probeOwnClip(fragmented(mvhd(1000, 0xffffffff), mvex(9500, 1))).durationMs, 9500)
+  const unknown64 = box('mvhd', Buffer.from([1, 0, 0, 0]), u64(0), u64(0), u32(1000), Buffer.alloc(8, 0xff), Buffer.alloc(80))
+  assert.equal(probeOwnClip(fragmented(unknown64, mvex(12_000))).durationMs, 12_000)
+  // without mehd the length is not in the file, and the rule refuses it as a format problem
+  const open = probeOwnClip(fragmented(mvhd(1000, 0), mvex(undefined)))
+  assert.equal(open.codec, 'avc1')
+  assert.equal(open.durationMs, undefined)
+  assert.equal(checkOwnClip(open), 'format')
+  // a mehd that says 16 s is too long, as a mvhd would be
+  assert.equal(checkOwnClip(probeOwnClip(fragmented(mvhd(1000, 0), mvex(16_000)))), 'too_long')
 })
 
 test('probe calls a WebM, a text file and an empty file no container at all', () => {

@@ -358,7 +358,7 @@ a community project with no affiliation) apply unchanged.
    project of its own), but a small Electron app that does what that one does at its
    core: starts the harness's Host as a child process with its own binary in Node mode
    (`ELECTRON_RUN_AS_NODE`, `--expose-internals`; the harness's `require-builtin` addon
-   fingerprints the Electron it was built for, so the shell pins `44.0.0`), from a `dsh`
+   fingerprints the Electron it was built for, so the shell pins one exact Electron version), from a `dsh`
    that npm installed under `resources/dsh` together with the bundle at build time,
    against a profile of its own under `~/.nanomuse/desktop` that names the bundle and
    links it from the copy inside the app. The runtime for the hands rides along as a

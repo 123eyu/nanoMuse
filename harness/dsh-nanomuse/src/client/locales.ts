@@ -2071,7 +2071,7 @@ export const zh: typeof en = {
   cnGateSentinelMail: '发信每次都会先问；一次性验证码和重置链接会在模型看到之前抹掉。',
   cnOwnPage: '打开它的设置页',
   cnDetailFine: '连接器只会在你看得见的聊天里被使用；个人资料里的活动记录列出每一次调用。',
-  cnConnectTitle: '连接{name}',
+  cnConnectTitle: '连接 {name}',
   cnConsentGets: '智能体会得到什么',
   cnConsentGetsSub: '只有这个连接器列出的那几个工具。除了工具本身发给该服务的内容，你的东西不会离开这台电脑。',
   cnConsentYou: '它能做什么由你定',
