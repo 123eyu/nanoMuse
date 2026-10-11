@@ -25,7 +25,26 @@ def test_catalogue_shape():
     cat = pv.catalogue()
     ids = [p["id"] for p in cat["providers"]]
     assert len(ids) == len(set(ids))
-    for must in ("bailian", "openrouter", "openai", "anthropic", "gemini", "deepseek", "moonshot", "zhipu", "siliconflow", "volcengine", "minimax", "xai", "groq", "mistral", "ollama", "lm-studio", "vllm", "custom"):
+    for must in (
+        "bailian",
+        "openrouter",
+        "openai",
+        "anthropic",
+        "gemini",
+        "deepseek",
+        "moonshot",
+        "zhipu",
+        "siliconflow",
+        "volcengine",
+        "minimax",
+        "xai",
+        "groq",
+        "mistral",
+        "ollama",
+        "lm-studio",
+        "vllm",
+        "custom",
+    ):
         assert must in ids
     for p in cat["providers"]:
         assert "chat" in p["capabilities"]

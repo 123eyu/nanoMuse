@@ -122,7 +122,9 @@ async def test_a_renamed_conversation_rides_along_with_its_messages():
     app, client, sender, up, cloud, settings = make()
     key = await signed_in(client, sender)
     cid, m1 = uid(), uid()
-    await client.post("/v1/sync/changes", json={"device": "d1", "conversations": [conv(cid)], "messages": [msg(m1, cid)]}, headers=auth(key))
+    await client.post(
+        "/v1/sync/changes", json={"device": "d1", "conversations": [conv(cid)], "messages": [msg(m1, cid)]}, headers=auth(key)
+    )
     await client.post(
         "/v1/sync/changes", json={"device": "d1", "conversations": [conv(cid, title="Renamed", updated_at=1738000500)]}, headers=auth(key)
     )
@@ -444,12 +446,18 @@ async def test_scope_main_delivers_the_main_conversation_only():
     key = await signed_in(client, sender)
     # no main yet: an empty page whose cursor is the account's counter
     side, s1 = uid(), uid()
-    await client.post("/v1/sync/changes", json={"device": "a", "conversations": [conv(side, "side", "Side")], "messages": [msg(s1, side)]}, headers=auth(key))
+    await client.post(
+        "/v1/sync/changes",
+        json={"device": "a", "conversations": [conv(side, "side", "Side")], "messages": [msg(s1, side)]},
+        headers=auth(key),
+    )
     r = await client.get("/v1/sync/changes?scope=main", headers=auth(key))
     assert r.status_code == 200 and r.json() == {"cursor": 2, "more": False, "conversations": [], "messages": []}
     main, m1 = uid(), uid()
     await client.post(
-        "/v1/sync/changes", json={"device": "a", "conversations": [conv(main, "main", "Main")], "messages": [msg(m1, main)]}, headers=auth(key)
+        "/v1/sync/changes",
+        json={"device": "a", "conversations": [conv(main, "main", "Main")], "messages": [msg(m1, main)]},
+        headers=auth(key),
     )
     out = (await client.get("/v1/sync/changes?scope=main", headers=auth(key))).json()
     assert [c["cid"] for c in out["conversations"]] == [main] and [m["mid"] for m in out["messages"]] == [m1]
@@ -482,7 +490,11 @@ async def test_tail_is_the_newest_messages_with_their_conversations():
         cid = main if i % 2 == 0 else old_side
         mid = uid()
         mids.append((cid, mid))
-        await client.post("/v1/sync/changes", json={"device": "a", "messages": [msg(mid, cid, text=f"m{i}", created_at=1738000000 + i)]}, headers=auth(key))
+        await client.post(
+            "/v1/sync/changes",
+            json={"device": "a", "messages": [msg(mid, cid, text=f"m{i}", created_at=1738000000 + i)]},
+            headers=auth(key),
+        )
     newest = uid()  # seq 10, in the side chat nobody else wrote in
     await client.post("/v1/sync/changes", json={"device": "a", "messages": [msg(newest, new_side, text="newest")]}, headers=auth(key))
     # the two newest messages, in seq order, with the rows of their conversations and nothing else
@@ -622,8 +634,12 @@ async def test_deleting_the_account_purges_everything_and_the_next_sign_in_start
         headers=auth(key),
     )
     assert r.status_code == 200 and r.json()["accepted"] == 2
-    assert (await client.put("/v1/me/profile", json={"device": "phone-1", "name": "kwai", "avatar": "dragon"}, headers=auth(key))).status_code == 200
-    assert (await client.post("/v1/sync/working", json={"cid": cid, "working": True, "device": "phone-1"}, headers=auth(key))).status_code == 204
+    assert (
+        await client.put("/v1/me/profile", json={"device": "phone-1", "name": "kwai", "avatar": "dragon"}, headers=auth(key))
+    ).status_code == 200
+    assert (
+        await client.post("/v1/sync/working", json={"cid": cid, "working": True, "device": "phone-1"}, headers=auth(key))
+    ).status_code == 204
     assert app.state.sync.presence.working(account_id)
 
     assert (await client.post("/v1/auth/delete", headers=auth(key))).status_code == 204
@@ -635,7 +651,9 @@ async def test_deleting_the_account_purges_everything_and_the_next_sign_in_start
     r = await client.post("/v1/chat/completions", json={"model": "x", "messages": []}, headers=auth(key))
     assert r.status_code == 401 and r.json()["error"]["code"] == "account_deleted"
     assert cloud.db._conn.execute("SELECT COUNT(*) FROM deleted_keys").fetchone()[0] == 1
-    assert cloud.db._conn.execute("SELECT * FROM deleted_keys").fetchone().keys() == ["key_hash", "deleted_at"], "a dead key's hash names nobody"
+    assert cloud.db._conn.execute("SELECT * FROM deleted_keys").fetchone().keys() == ["key_hash", "deleted_at"], (
+        "a dead key's hash names nobody"
+    )
 
     # every table that names the account is empty of it
     for table, column in (

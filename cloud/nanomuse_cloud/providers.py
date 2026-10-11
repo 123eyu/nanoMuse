@@ -102,7 +102,11 @@ def guidance(region: str, docs_url: str) -> dict[str, Any]:
     # a vendor that wants a session id per conversation (`session_header`, OpenCode Go) is listed
     # apart, under `session_providers`: the apps of before it (1.0.1 and older) read `providers`
     # and do not send the id, the apps that do read both
-    rest = [p for p in cat["providers"] if p["id"] not in first and p["id"] not in LOCAL and p["id"] != "custom" and not p.get("session_header") and _fits(p, region)]
+    rest = [
+        p
+        for p in cat["providers"]
+        if p["id"] not in first and p["id"] not in LOCAL and p["id"] != "custom" and not p.get("session_header") and _fits(p, region)
+    ]
     session = [p for p in cat["providers"] if p.get("session_header") and _fits(p, region)]
     # the rest grouped by what they can do: the fuller key first, the catalogue's order within
     rest.sort(key=lambda p: -len(p["capabilities"]))
