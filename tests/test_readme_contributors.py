@@ -108,5 +108,5 @@ def test_the_ten_readmes_carry_the_block_and_the_maintainer_card(script: ModuleT
         assert text.index(script.START) < text.index(script.END), path.name
         assert 'href="https://github.com/lgy0404"' in text, path.name
         # The same badge URL twice (badge row and footer): one camo URL, one view per visit.
-        assert text.count("komarev.com/ghpvc/?username=nano-muse-nanomuse") == 2, path.name
+        assert text.count("hits.sh/github.com/nano-muse/nanoMuse.svg?") == 2, path.name
         assert "lgy0404" not in text[text.index(script.START) : text.index(script.END)], path.name
