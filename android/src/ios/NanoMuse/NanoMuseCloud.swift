@@ -515,17 +515,22 @@ enum NanoMuseCloud {
         case "upstream":
             return AppLocalized("nanoMuse Cloud did not answer. Try again in a moment.")
         // The relay's password codes (cloud/nanomuse_cloud/service.py): a 401 `bad_credentials`
-        // for a wrong address or password, `no_password` for an account that has none yet,
-        // `password_required` when the current one was left out, `password_short` and
-        // `password_long` from the rules; the two names after them are kept for older relays.
-        case "bad_credentials", "password_wrong":
+        // at sign-in for a wrong address or password, `password_wrong` when the current password
+        // given while changing or removing it is not the one set, `no_password` for an account
+        // that has none yet, `password_required` when the current one was left out, and
+        // `password_short`, `password_long`, `password_weak` from the rules for a new one.
+        case "bad_credentials":
             return AppLocalized("Wrong phone number, e-mail or password.")
+        case "password_wrong":
+            return AppLocalized("That password is not right.")
         case "no_password":
             return AppLocalized("This account has no password yet. Sign in with a code and set one under nanoMuse Cloud.")
         case "password_required":
             return AppLocalized("Enter the current password first.")
-        case "password_short", "password_weak":
+        case "password_short":
             return AppLocalized("Use eight characters or more.")
+        case "password_weak":
+            return AppLocalized("Use a few different characters, not the address itself.")
         case "password_long":
             return AppLocalized("That password is too long.")
         case "invite_bad":

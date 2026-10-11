@@ -119876,6 +119876,65 @@
         }
       }
     },
+    "Use a few different characters, not the address itself." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwende ein paar verschiedene Zeichen; die Adresse selbst geht nicht als Passwort."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use a few different characters, not the address itself."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa varios caracteres distintos; la propia dirección no vale como contraseña."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisez quelques caractères différents ; l’adresse elle-même ne peut pas servir de mot de passe."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いくつか異なる文字を使ってください。アドレスそのものはパスワードにできません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "서로 다른 문자를 몇 가지 섞어 주세요. 주소 자체는 비밀번호로 쓸 수 없습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Используйте несколько разных символов; сам адрес паролем быть не может."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "密码要含几种不同的字符，也不能是手机号或邮箱本身。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "密碼要含幾種不同的字元，也不能是手機號碼或信箱本身。"
+          }
+        }
+      }
+    },
     "Use eight characters or more." : {
       "extractionState" : "manual",
       "localizations" : {
