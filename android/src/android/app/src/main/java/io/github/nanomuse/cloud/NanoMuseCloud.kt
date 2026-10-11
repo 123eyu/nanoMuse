@@ -13,6 +13,7 @@ import com.openminis.app.data.model.ProviderInstance
 import com.openminis.app.data.model.ProviderType
 import com.openminis.app.data.repository.ProviderRepository
 import io.github.nanomuse.avatar.ImageGen
+import io.github.nanomuse.net.await
 import java.io.IOException
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -24,6 +25,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -430,13 +432,13 @@ object NanoMuseCloud {
      */
     fun profile(context: Context, withFace: Boolean): JSONObject {
         val key = apiKey(context) ?: throw CloudException("bad_key", "Not signed in")
-        return call(context, "GET", if (withFace) "/v1/me/profile" else "/v1/me/profile?face=false", null, token = key)
+        return callBlocking(context, "GET", if (withFace) "/v1/me/profile" else "/v1/me/profile?face=false", null, token = key)
     }
 
     /** This phone's name and look for the account (last writer wins); the new `rev`. Blocking. */
     fun putProfile(context: Context, body: JSONObject): JSONObject {
         val key = apiKey(context) ?: throw CloudException("bad_key", "Not signed in")
-        return call(context, "PUT", "/v1/me/profile", body, token = key)
+        return callBlocking(context, "PUT", "/v1/me/profile", body, token = key)
     }
 
     /** Delete every turn the relay kept from this account; returns how many went. */
@@ -1084,7 +1086,31 @@ object NanoMuseCloud {
         io.github.nanomuse.sync.ConversationSync.forget(context) // the next account starts with its own ids and cursor
     }
 
-    private fun call(context: Context, method: String, path: String, body: JSONObject?, token: String?): JSONObject {
+    /**
+     * One request to the relay, suspending until it answers. Cancelling the coroutine cancels
+     * the call ([await]): a sign-in page left while the code is on its way frees the socket
+     * at once (#336). Every suspending caller is on IO already.
+     */
+    private suspend fun call(context: Context, method: String, path: String, body: JSONObject?, token: String?): JSONObject {
+        val response = try {
+            http.newCall(request(context, method, path, body, token)).await()
+        } catch (e: IOException) {
+            throw CloudException("unreachable", e.message ?: "unreachable")
+        }
+        return read(response)
+    }
+
+    /** The same request, blocking: for [ProfileSync]'s worker thread, which runs no coroutine. */
+    private fun callBlocking(context: Context, method: String, path: String, body: JSONObject?, token: String?): JSONObject {
+        val response = try {
+            http.newCall(request(context, method, path, body, token)).execute()
+        } catch (e: IOException) {
+            throw CloudException("unreachable", e.message ?: "unreachable")
+        }
+        return read(response)
+    }
+
+    private fun request(context: Context, method: String, path: String, body: JSONObject?, token: String?): Request {
         val builder = Request.Builder().url(baseUrl(context) + path)
         if (token != null) builder.header("Authorization", "Bearer $token")
         builder.header("User-Agent", "nanoMuse-Android/${BuildConfig.VERSION_NAME}")
@@ -1092,11 +1118,11 @@ object NanoMuseCloud {
             "GET" -> builder.get()
             else -> builder.method(method, (body?.toString() ?: "{}").toRequestBody(json))
         }
-        val response = try {
-            http.newCall(builder.build()).execute()
-        } catch (e: IOException) {
-            throw CloudException("unreachable", e.message ?: "unreachable")
-        }
+        return builder.build()
+    }
+
+    /** The relay's reply as JSON, or the [CloudException] its error body describes. */
+    private fun read(response: Response): JSONObject {
         response.use { r ->
             val text = r.body?.string().orEmpty()
             if (r.isSuccessful) {

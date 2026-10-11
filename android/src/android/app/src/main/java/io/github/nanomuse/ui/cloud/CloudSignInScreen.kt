@@ -65,6 +65,7 @@ import io.github.nanomuse.cloud.RelayAddress
 import io.github.nanomuse.cloud.SignInIdentifier
 import io.github.nanomuse.ui.home.MuseTones
 import io.github.nanomuse.ui.muse.MuseTopAppBar
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -125,6 +126,8 @@ fun CloudSignInScreen(
                 NanoMuseCloud.requestCode(context, identifier)
                 codeSent = true
                 countdown = 60
+            } catch (e: CancellationException) {
+                throw e // the page was left: the request is cancelled, not failed (#336)
             } catch (e: Exception) {
                 error = NanoMuseCloud.describe(context, e)
             }
@@ -140,6 +143,8 @@ fun CloudSignInScreen(
             try {
                 NanoMuseCloud.verify(context, identifier, code, invite)
                 onSignedIn()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 error = NanoMuseCloud.describe(context, e)
                 verifying = false
@@ -155,6 +160,8 @@ fun CloudSignInScreen(
             try {
                 NanoMuseCloud.login(context, identifier, password)
                 onSignedIn()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 error = NanoMuseCloud.describe(context, e)
                 verifying = false
