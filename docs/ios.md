@@ -517,7 +517,7 @@ Ours, in `NanoMuse/`:
   Status section's footer on the provider page. Before, the switch went off, the Chat row kept
   naming the account, and the main chat stopped with upstream's *No model configured* error; the
   *Not set* state is no longer reachable through this switch. A provider of your own switched off
-  on its page keeps upstream's path: the chat re-resolves through the   default group and, when
+  on its page keeps upstream's path: the chat re-resolves through the default group and, when
   nothing is left, says *No model configured. Add a provider in Settings.*
 - **The bottom bar is a floating pill** (`NanoMuseShell.swift` → `NanoMuseBottomBar`,
   `NanoMuseTones.tabIndicator` / `tabIndicatorGlyph` in `NanoMuseFaces.swift`; Android's
