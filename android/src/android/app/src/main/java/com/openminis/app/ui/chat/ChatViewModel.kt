@@ -6965,6 +6965,7 @@ class ChatViewModel(
         if (editingId != null) _editingMessageId.value = null
 
         viewModelScope.launch {
+            streamJob = coroutineContext[Job] // nanoMuse: Stop during the setup (session, attachments, the user row) cancels it too, not only the agent loop launched below (#340)
             var streamLaunched = false
             try {
             // Ensure session exists in DB (creates on first message for draft sessions)
@@ -12136,7 +12137,7 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
      */
     private fun handleUserCancelledCleanup() {
         val msgs = _messages.value.toMutableList()
-        val lastIdx = msgs.indexOfLast { it.role == "assistant" }
+        val lastIdx = io.github.nanomuse.chat.InterruptedReply.lastRealAssistantIndex(msgs) // nanoMuse: never the on-screen-only intro (#340)
         if (lastIdx < 0) return
         var last = msgs[lastIdx]
 
@@ -12236,7 +12237,9 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
             )
             viewModelScope.launch(Dispatchers.IO) {
                 val partsJson = buildAssistantPartsJson(parts)
-                chatRepository.appendMessage(activeSessionId, "assistant", partsJson)
+                // nanoMuse: a session id the database does not know yet (Stop inside the session insert) must not take the process down (#340)
+                runCatching { chatRepository.appendMessage(activeSessionId, "assistant", partsJson) }
+                    .onFailure { AppLogger.warning(TAG_STREAM, "cancel: interrupted reply not persisted: ${it.message}") }
             }
             // [T-android-group-pause-badge-restamp] A LIVE interruption just
             // happened: this is a real entry into the paused state, so the
