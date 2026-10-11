@@ -38,6 +38,23 @@ object LLMRequestLog {
 
     private val entries = mutableListOf<Entry>()
 
+    // nanoMuse: header names whose values are credentials; matched case-insensitively, and any
+    // name containing "token" or "secret" counts too. The copy keeps the caller's order (#347).
+    private val CREDENTIAL_HEADERS = setOf(
+        "authorization", "proxy-authorization", "x-api-key", "api-key", "apikey",
+        "x-goog-api-key", "cookie", "set-cookie",
+    )
+
+    private fun maskHeaders(headers: Map<String, String>): Map<String, String> {
+        val copy = LinkedHashMap<String, String>(headers.size)
+        for ((name, value) in headers) {
+            val lower = name.lowercase()
+            val secret = lower in CREDENTIAL_HEADERS || lower.contains("token") || lower.contains("secret")
+            copy[name] = if (secret) "***" else value
+        }
+        return copy
+    }
+
     @Synchronized
     fun add(entry: Entry) {
         // T302: belt-and-suspenders. Release builds short-circuit the whole
@@ -48,12 +65,15 @@ object LLMRequestLog {
         // each entry truncated to MAX_BODY_CHARS so even a single retained
         // entry can't push a memory-tight device over the line.
         if (!BuildConfig.DEBUG) return
-        val safeEntry = if (entry.requestBody.length > MAX_BODY_CHARS) {
-            entry.copy(
-                requestBody = entry.requestBody.take(MAX_BODY_CHARS) +
-                    "\n…[truncated ${entry.requestBody.length - MAX_BODY_CHARS} chars]",
+        // nanoMuse: keep an independent, masked copy of the headers so no credential sits
+        // in this buffer and a later change to the caller's map cannot rewrite the entry (#347).
+        val masked = entry.copy(requestHeaders = maskHeaders(entry.requestHeaders))
+        val safeEntry = if (masked.requestBody.length > MAX_BODY_CHARS) {
+            masked.copy(
+                requestBody = masked.requestBody.take(MAX_BODY_CHARS) +
+                    "\n…[truncated ${masked.requestBody.length - MAX_BODY_CHARS} chars]",
             )
-        } else entry
+        } else masked
         entries.add(safeEntry)
         if (entries.size > MAX_ENTRIES) {
             entries.removeAt(0)
