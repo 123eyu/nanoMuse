@@ -333,6 +333,11 @@ test('runner: the CLI environment is scrubbed and keeps the agent’s own variab
   const bedrock = agentEnv('claude', { ...source, CLAUDE_CODE_USE_BEDROCK: '1' })
   assert.equal(bedrock.AWS_SECRET_ACCESS_KEY, 's')
   assert.equal(agentEnv('cursor', source).CURSOR_API_KEY, 'c')
+  // the desktop app points DSH_HOME at its own home; a dsh started from here works in the store
+  // the readers list instead, so the session it adopts or starts is the one the phone sees
+  const dsh = agentEnv('dsh', { ...source, DSH_HOME: '/app/home', NANOMUSE_CODING_HOME: '/h' })
+  assert.equal(dsh.DSH_HOME, join('/h', '.dsh'))
+  assert.equal(agentEnv('codex', { ...source, DSH_HOME: '/app/home' }).DSH_HOME, '/app/home', 'only dsh is redirected')
 })
 
 test('runner: Cursor stream-json → started, partial text then the whole message, tools, done', () => {

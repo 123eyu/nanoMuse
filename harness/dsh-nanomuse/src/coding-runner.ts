@@ -17,7 +17,8 @@
  */
 import { spawn, type ChildProcess } from 'node:child_process'
 import { stat } from 'node:fs/promises'
-import { AGENTS, readSession, which, type AgentId, type CodingSession } from './coding-readers.ts'
+import { join } from 'node:path'
+import { AGENTS, home, readSession, which, type AgentId, type CodingSession } from './coding-readers.ts'
 
 export const RUN_TIMEOUT_MS = 20 * 60 * 1000
 /** Characters of agent text kept per run. */
@@ -183,6 +184,11 @@ export function agentEnv(agent: AgentId, source: NodeJS.ProcessEnv = process.env
     if (ALWAYS_DROP.has(name) || SECRET_ENV.test(upper) || SECRET_ENV_PREFIXES.some((p) => upper.startsWith(p))) continue
     env[name] = value
   }
+  // dsh's store is wherever DSH_HOME points, and the desktop app sets it to its own home for
+  // the harness this plugin runs in; a dsh started from here works in the store the readers
+  // list (`~/.dsh`, where dsh web and DeepSeek's desktop app keep their chats), so a chat read
+  // here is the one `--session-id` finds and a new one shows up in the list
+  if (agent === 'dsh') env.DSH_HOME = join(home(source), '.dsh')
   env.NO_COLOR = '1'
   env.CI = '1'
   return env
