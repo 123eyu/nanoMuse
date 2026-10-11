@@ -277,17 +277,23 @@ export class AvatarMotion {
 }
 
 const CLIP = /^\/motion\/([a-z]+)\.mp4$/
+/** The person's own clip (#324), its first frame, and the copy waiting in the preview (`own-clip.ts`). */
+const OWN = /^\/(own-clip\.mp4|own-clip\.png|own-clip\.pending\.mp4)$/
 
-/** `GET /nanomuse/avatar/motion/<mood>.mp4`: the clip of the worn face, or 404. */
-export async function serveClip(req: IncomingMessage, res: ServerResponse, clipPath: (mood: string) => string | undefined): Promise<void> {
+/**
+ * `GET /nanomuse/avatar/motion/<mood>.mp4`: the clip of the worn face, or 404. With `ownPath`,
+ * `GET /nanomuse/avatar/own-clip.mp4` (and `.png`, `.pending.mp4`) the same way for the person's own clip.
+ */
+export async function serveClip(req: IncomingMessage, res: ServerResponse, clipPath: (mood: string) => string | undefined, ownPath?: (name: string) => string | undefined): Promise<void> {
   const url = new URL(req.url ?? '/', 'http://127.0.0.1')
   const rel = url.pathname.slice(MOTION_PREFIX.length)
   const m = CLIP.exec(rel)
-  if ((req.method !== 'GET' && req.method !== 'HEAD') || !m) {
+  const own = ownPath ? OWN.exec(rel) : null
+  if ((req.method !== 'GET' && req.method !== 'HEAD') || (!m && !own)) {
     res.writeHead(404, { 'cache-control': 'no-store' }).end()
     return
   }
-  const path = clipPath(m[1] ?? '')
+  const path = own ? ownPath?.(own[1] ?? '') : clipPath(m?.[1] ?? '')
   if (!path) {
     res.writeHead(404, { 'cache-control': 'no-store' }).end()
     return
@@ -300,7 +306,8 @@ export async function serveClip(req: IncomingMessage, res: ServerResponse, clipP
     return
   }
   // the URL carries the mtime, so a clip may be cached for good
-  res.writeHead(200, { 'content-type': 'video/mp4', 'content-length': size, 'cache-control': url.searchParams.has('v') ? 'public, max-age=31536000, immutable' : 'no-cache' })
+  const type = own && own[1]?.endsWith('.png') ? 'image/png' : 'video/mp4'
+  res.writeHead(200, { 'content-type': type, 'content-length': size, 'cache-control': url.searchParams.has('v') ? 'public, max-age=31536000, immutable' : 'no-cache' })
   if (req.method === 'HEAD') {
     res.end()
     return

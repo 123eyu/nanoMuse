@@ -62,10 +62,10 @@ struct NanoMuseChatCardsHost: View {
 
 // MARK: - The agent's bubble
 
-/// Muse's transcript: the agent's prose sits in a grey bubble (Android:
-/// NmAssistantBubble, MuseTones.bubble, radius 20, at most 340 wide); a block
-/// that is a code fence, a table or raw HTML stays bare, as does everything
-/// in the classic layout.
+/// Muse's transcript: the agent's prose sits in a pill a shade off the canvas
+/// (Android: NmAssistantBubble, ChatColors.assistantBubble, radius 20, at most
+/// 340 wide), in the theme's text colour; a block that is a code fence, a table
+/// or raw HTML stays bare, as does everything in the classic layout.
 struct NanoMuseAssistantBubble: ViewModifier {
     var content: String
 
@@ -82,7 +82,7 @@ struct NanoMuseAssistantBubble: ViewModifier {
             view
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
-                .background(NanoMuseTones.bubble, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .background(NanoMuseTones.agentPill, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
                 .frame(maxWidth: 340, alignment: .leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
         } else {

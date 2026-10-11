@@ -38,6 +38,10 @@ harness 构建以 *nanoMuse Harness* 的名字另放在旁边；从 0.1.30 起�
   邀请码、按类型和按模型的用量、密码、持有 key 的设备、时间线、注销），通过 Host 的透传路由
   读出来（`/nanomuse/cloud/me`、`/sessions`、`/account-events`、`/password`、`/sign-out-all`、
   `/delete-account`、`/config`）；
+- **一段你自己的视频当形象**：智能体页面钢笔菜单和形象工作室里的「你自己的视频…」接受一段
+  MP4 或 MOV（H.264 视频，最长 15 秒、最大 30 MB），先在形象的圆形框里预览，再在所有状态下
+  静音循环播放；视频只保存在这台电脑的 `$DSH_HOME/nanomuse/avatar/own-clip.mp4`，不会发给
+  nanoMuse Cloud，「默认形象」可移除（回退规则见 [avatar.md](avatar.md)）；
 - **手（Hands）**，在这台电脑上：自带运行时的 `nanomuse mcp` 走 stdio，运行时的
   `computer_screen` 和 `computer_act` 工具连同它们的审批一起接进来，所以「我屏幕上是什么？」
   和「打开设置把音量调小」开箱就能用。鼠标、键盘和截图是应用自己的（`src/operator.ts`，

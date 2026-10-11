@@ -792,6 +792,65 @@
         }
       }
     },
+    "%d s · %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d s · %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d s · %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d s · %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d s · %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d 秒 · %@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d초 · %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d с · %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d 秒 · %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d 秒 · %@"
+          }
+        }
+      }
+    },
     "%d thinking rules" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1826,6 +1885,65 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "讓這個應用程式透過代理存取提供方：設定 → 網路"
+          }
+        }
+      }
+    },
+    "A short video of yours plays as the face at rest, and the other moods fall back to it. MP4 or MOV with H.264 or HEVC video, up to 15 seconds and 30 MB; it plays muted in a loop." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein kurzes Video von dir läuft als Gesicht im Ruhezustand, und die anderen Stimmungen greifen darauf zurück. MP4 oder MOV mit H.264- oder HEVC-Video, höchstens 15 Sekunden und 30 MB; es läuft stumm in einer Schleife."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A short video of yours plays as the face at rest, and the other moods fall back to it. MP4 or MOV with H.264 or HEVC video, up to 15 seconds and 30 MB; it plays muted in a loop."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un vídeo corto tuyo se reproduce como la cara en reposo, y los demás estados recurren a él. MP4 o MOV con vídeo H.264 o HEVC, de hasta 15 segundos y 30 MB; se reproduce sin sonido en bucle."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une courte vidéo à vous s'affiche comme visage au repos, et les autres humeurs s'y rabattent. MP4 ou MOV en vidéo H.264 ou HEVC, 15 secondes et 30 Mo au plus ; elle tourne en boucle, sans le son."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自分の短い動画が待機中の顔として再生され、他の状態でも同じ動画が使われます。H.264 または HEVC の MP4 または MOV、最長 15 秒、最大 30 MB。無音でループ再生されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내 짧은 동영상이 대기 중 얼굴로 재생되고, 다른 상태에서도 같은 동영상을 씁니다. H.264 또는 HEVC 영상의 MP4 또는 MOV, 최대 15초, 30 MB까지. 음소거로 반복 재생됩니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Короткое видео из вашей галереи играет как лицо в покое, а остальные состояния тоже используют его. MP4 или MOV с видео H.264 или HEVC, не длиннее 15 секунд и не больше 30 МБ; играет без звука, по кругу."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一段你自己的短视频会作为待机时的形象播放，其他状态也沿用它。MP4 或 MOV，H.264 或 HEVC 视频，最长 15 秒、最大 30 MB；静音循环播放。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一段你自己的短影片會作為待機時的形象播放，其他狀態也沿用它。MP4 或 MOV，H.264 或 HEVC 影片，最長 15 秒、最大 30 MB；靜音循環播放。"
           }
         }
       }
@@ -2966,6 +3084,124 @@
         }
       }
     },
+    "Choose a clip" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clip auswählen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a clip"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegir un clip"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisir un clip"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画を選ぶ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "동영상 선택"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрать клип"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择视频"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選擇影片"
+          }
+        }
+      }
+    },
+    "Default face" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standardgesicht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default face"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cara predeterminada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visage par défaut"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "標準の顔"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "기본 얼굴"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Лицо по умолчанию"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认形象"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "預設形象"
+          }
+        }
+      }
+    },
     "Existing session to continue. Leave empty for the chat that is open." : {
       "localizations" : {
         "de" : {
@@ -3082,6 +3318,537 @@
         }
       }
     },
+    "Preview of your clip" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorschau deines Clips"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview of your clip"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vista previa de tu clip"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aperçu de votre clip"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自分の動画のプレビュー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내 동영상 미리보기"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Предпросмотр вашего клипа"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的视频预览"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的影片預覽"
+          }
+        }
+      }
+    },
+    "Replace the clip" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clip ersetzen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replace the clip"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sustituir el clip"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remplacer le clip"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画を差し替える"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "동영상 바꾸기"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заменить клип"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更换视频"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更換影片"
+          }
+        }
+      }
+    },
+    "That clip is %@. The limit is 30 MB, and 15 seconds." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Clip hat %@. Die Grenze liegt bei 30 MB und 15 Sekunden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That clip is %@. The limit is 30 MB, and 15 seconds."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ese clip ocupa %@. El límite es 30 MB, y 15 segundos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce clip pèse %@. La limite est de 30 Mo, et 15 secondes."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この動画は %@ あります。上限は 30 MB、および 15 秒です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 동영상은 %@입니다. 제한은 30 MB, 그리고 15초입니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот клип весит %@. Предел 30 МБ, и 15 секунд."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这段视频有 %@。上限是 30 MB，以及 15 秒。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這段影片有 %@。上限是 30 MB，以及 15 秒。"
+          }
+        }
+      }
+    },
+    "That clip runs %d seconds. The limit is 15 seconds, and 30 MB." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Clip dauert %d Sekunden. Die Grenze liegt bei 15 Sekunden und 30 MB."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That clip runs %d seconds. The limit is 15 seconds, and 30 MB."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ese clip dura %d segundos. El límite es 15 segundos, y 30 MB."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce clip dure %d secondes. La limite est de 15 secondes, et 30 Mo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この動画は %d 秒あります。上限は 15 秒、および 30 MB です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 동영상은 %d초입니다. 제한은 15초, 그리고 30 MB입니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот клип длится %d с. Предел 15 секунд, и 30 МБ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这段视频长 %d 秒。上限是 15 秒，以及 30 MB。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這段影片長 %d 秒。上限是 15 秒，以及 30 MB。"
+          }
+        }
+      }
+    },
+    "That file cannot be used here. Pick an MP4 or MOV with H.264 or HEVC video, up to 15 seconds and 30 MB." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Datei kann hier nicht verwendet werden. Wähle ein MP4 oder MOV mit H.264- oder HEVC-Video, höchstens 15 Sekunden und 30 MB."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That file cannot be used here. Pick an MP4 or MOV with H.264 or HEVC video, up to 15 seconds and 30 MB."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ese archivo no se puede usar aquí. Elige un MP4 o MOV con vídeo H.264 o HEVC, de hasta 15 segundos y 30 MB."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce fichier ne peut pas être utilisé ici. Choisissez un MP4 ou MOV en vidéo H.264 ou HEVC, 15 secondes et 30 Mo au plus."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このファイルはここでは使えません。H.264 または HEVC の MP4 または MOV で、15 秒以内かつ 30 MB 以内のものを選んでください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 파일은 여기서 쓸 수 없습니다. H.264 또는 HEVC 영상의 MP4 또는 MOV로, 15초 이하이고 30 MB 이하인 것을 고르세요."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот файл здесь не подходит. Выберите MP4 или MOV с видео H.264 или HEVC, не длиннее 15 секунд и не больше 30 МБ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这个文件无法在这里使用。请选择 MP4 或 MOV（H.264 或 HEVC 视频），最长 15 秒、最大 30 MB。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個檔案無法在這裡使用。請選擇 MP4 或 MOV（H.264 或 HEVC 影片），最長 15 秒、最大 30 MB。"
+          }
+        }
+      }
+    },
+    "The clip could not be read. Try another one." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Clip konnte nicht gelesen werden. Versuche einen anderen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The clip could not be read. Try another one."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo leer el clip. Prueba con otro."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le clip n'a pas pu être lu. Essayez-en un autre."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画を読み込めませんでした。別のものを試してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "동영상을 읽을 수 없습니다. 다른 것을 시도해 보세요."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось прочитать клип. Попробуйте другой."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法读取这段视频，请换一段试试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法讀取這段影片，請換一段試試。"
+          }
+        }
+      }
+    },
+    "The clip stays on this phone. It is not uploaded to nanoMuse Cloud or synced to your other devices." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Clip bleibt auf diesem Telefon. Er wird weder zu nanoMuse Cloud hochgeladen noch mit deinen anderen Geräten synchronisiert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The clip stays on this phone. It is not uploaded to nanoMuse Cloud or synced to your other devices."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El clip se queda en este teléfono. No se sube a nanoMuse Cloud ni se sincroniza con tus otros dispositivos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le clip reste sur ce téléphone. Il n'est ni envoyé à nanoMuse Cloud ni synchronisé avec vos autres appareils."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画はこの端末にだけ保存されます。nanoMuse Cloud にアップロードされず、他の端末にも同期されません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "동영상은 이 휴대폰에만 남습니다. nanoMuse Cloud에 올라가지 않고 다른 기기와 동기화되지도 않습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Клип остаётся на этом телефоне. Он не загружается в nanoMuse Cloud и не синхронизируется с другими вашими устройствами."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "视频只保存在这台手机上，不会上传到 nanoMuse Cloud，也不会同步到你的其他设备。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "影片只保存在這支手機上，不會上傳到 nanoMuse Cloud，也不會同步到你的其他裝置。"
+          }
+        }
+      }
+    },
+    "This is how it plays as the face: muted, in a loop, cropped to the circle." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "So läuft er als Gesicht: stumm, in einer Schleife, auf den Kreis zugeschnitten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is how it plays as the face: muted, in a loop, cropped to the circle."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Así se reproduce como cara: sin sonido, en bucle, recortado al círculo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voici comment il joue comme visage : sans le son, en boucle, recadré dans le cercle."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顔として再生されるとこうなります: 無音、ループ、円形に切り抜き。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "얼굴로 재생되면 이렇게 보입니다. 음소거, 반복, 원형으로 잘라서."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Так он играет как лицо: без звука, по кругу, обрезанный до круга."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作为形象时就是这样播放的：静音、循环、裁成圆形。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作為形象時就是這樣播放的：靜音、循環、裁成圓形。"
+          }
+        }
+      }
+    },
+    "Use" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utiliser"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使う"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사용"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Использовать"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用"
+          }
+        }
+      }
+    },
     "Voice Prompt" : {
       "localizations" : {
         "de" : {
@@ -3194,6 +3961,183 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "語音提示給 nanoMuse"
+          }
+        }
+      }
+    },
+    "Your clip is on and plays for every mood; the drawn stills still show where a still is used. Default face removes it." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Clip ist aktiv und läuft für jede Stimmung; wo ein Standbild gezeigt wird, bleiben die gezeichneten Bilder. „Standardgesicht“ entfernt ihn."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your clip is on and plays for every mood; the drawn stills still show where a still is used. Default face removes it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu clip está activo y se reproduce en todos los estados; donde se muestra una imagen fija siguen usándose las dibujadas. «Cara predeterminada» lo quita."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre clip est actif et joue pour chaque humeur ; là où une image fixe est montrée, les images dessinées restent. « Visage par défaut » le retire."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自分の動画が有効で、すべての状態で再生されます。静止画が使われる場所では描かれた画像がそのまま使われます。「標準の顔」で取り除けます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내 동영상이 켜져 있고 모든 상태에서 재생됩니다. 정지 화면이 쓰이는 곳에서는 그린 그림이 그대로 쓰입니다. “기본 얼굴”로 제거할 수 있습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваш клип включён и играет в каждом состоянии; там, где показывается неподвижная картинка, по-прежнему используются нарисованные. «Лицо по умолчанию» убирает его."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的视频已启用，所有状态都播放它；需要静态图的地方仍用画好的图片。「默认形象」可移除它。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的影片已啟用，所有狀態都播放它；需要靜態圖的地方仍用畫好的圖片。「預設形象」可移除它。"
+          }
+        }
+      }
+    },
+    "Your own clip" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein eigener Clip"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your own clip"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu propio clip"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre propre clip"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自分の動画"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내 동영상"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваш собственный клип"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你自己的视频"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你自己的影片"
+          }
+        }
+      }
+    },
+    "Your own clip…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein eigener Clip…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your own clip…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu propio clip…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre propre clip…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自分の動画…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내 동영상…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваш собственный клип…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你自己的视频…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你自己的影片…"
           }
         }
       }

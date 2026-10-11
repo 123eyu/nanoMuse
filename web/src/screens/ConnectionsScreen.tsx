@@ -26,10 +26,15 @@ import {
   Upload,
 } from "lucide-react";
 import {
+  Children,
+  cloneElement,
+  isValidElement,
   useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
+  type ReactElement,
   type ReactNode,
 } from "react";
 import { accessibilityState, androidApp } from "../android";
@@ -3774,6 +3779,43 @@ function OwnKeyHow() {
   );
 }
 
+type ControlProps = { id?: string; "aria-describedby"?: string };
+
+const CONTROL_TAGS = new Set(["input", "select", "textarea"]);
+
+function isControl(node: ReactNode): node is ReactElement<ControlProps> {
+  return isValidElement(node) && typeof node.type === "string" && CONTROL_TAGS.has(node.type);
+}
+
+/** `children` with its one native control (a direct child, or one level down inside a
+ * fragment or a wrapper element) given an id and the hint's id, so the field's label can
+ * point at it; `null` when there is no single control to point at. */
+function wireControl(
+  children: ReactNode,
+  id: string,
+  hintId?: string,
+): { node: ReactNode; id: string } | null {
+  const wire = (el: ReactElement<ControlProps>) => {
+    const used = el.props.id ?? id;
+    const node = cloneElement(el, {
+      id: used,
+      "aria-describedby": el.props["aria-describedby"] ?? hintId,
+    });
+    return { node, id: used };
+  };
+  if (isControl(children)) return wire(children);
+  if (!isValidElement<{ children?: ReactNode }>(children)) return null;
+  const inner = Children.toArray(children.props.children);
+  const controls = inner.filter(isControl);
+  if (controls.length !== 1) return null;
+  const one = wire(controls[0]);
+  const wired = inner.map((n) => (n === controls[0] ? one.node : n));
+  return { node: cloneElement(children, undefined, ...wired), id: one.id };
+}
+
+/** A labelled control. The label is tied to the control by id when the children hold one
+ * native input, select or textarea; a set of controls (chips, two inputs) is a group named by
+ * the label instead. */
 function Field({
   label,
   hint,
@@ -3783,12 +3825,27 @@ function Field({
   hint?: string;
   children: ReactNode;
 }) {
+  const id = useId();
+  const hintId = hint ? `${id}-hint` : undefined;
+  const labelId = `${id}-label`;
+  const wired = wireControl(children, id, hintId);
   return (
     <div>
-      <label className="text-[12px] text-muted">{label}</label>
-      <div className="mt-1">{children}</div>
+      <label id={labelId} htmlFor={wired?.id} className="text-[12px] text-muted">
+        {label}
+      </label>
+      <div
+        className="mt-1"
+        role={wired ? undefined : "group"}
+        aria-labelledby={wired ? undefined : labelId}
+        aria-describedby={wired ? undefined : hintId}
+      >
+        {wired ? wired.node : children}
+      </div>
       {hint && (
-        <div className="mt-1 text-[11.5px] text-muted leading-snug">{hint}</div>
+        <div id={hintId} className="mt-1 text-[11.5px] text-muted leading-snug">
+          {hint}
+        </div>
       )}
     </div>
   );

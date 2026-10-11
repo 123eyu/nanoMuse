@@ -3,7 +3,7 @@
 //  nanoMuse
 //
 //  What opens when the face is tapped: the agent's own page. The face,
-//  large, with a pen badge (Change avatar / Edit name / Avatar studio…),
+//  large, with a pen badge (Change avatar / Edit name / Your own clip… / Avatar studio…),
 //  the name, "online", and four panes — Activity (the last two days as a
 //  log), Approvals (what is always allowed), Daily (the routines), Soul &
 //  memory (the files). Plus the share cards for a new look.
@@ -35,6 +35,8 @@ struct NanoMuseAgentPage: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var faces = NanoMuseFaceStore.shared
     @ObservedObject private var flow = NanoMuseAvatarFlow.shared
+    @ObservedObject private var own = NanoMuseOwnClip.shared
+    @StateObject private var clipPicker = NanoMuseOwnClipPicker()
     @State private var pane = 0
     @State private var showShare = false
     @State private var showEditName = false
@@ -82,6 +84,7 @@ struct NanoMuseAgentPage: View {
             .sheet(isPresented: $showEditName) {
                 NavigationStack { SoulSettingsView() }
             }
+            .nanoMuseOwnClipHost(clipPicker)
             .onReceive(NotificationCenter.default.publisher(for: .soulMdChanged)) { _ in
                 soulName = SoulStore.cachedMetadata.name
             }
@@ -100,6 +103,11 @@ struct NanoMuseAgentPage: View {
                         onPrefillChat(AppLocalized("Change your avatar to "))
                     } label: { Label(AppLocalized("Change avatar"), systemImage: "paintbrush") }
                     Button { showEditName = true } label: { Label(AppLocalized("Edit name"), systemImage: "pencil") }
+                    // A clip of the person's own as the face (#324), and the way back.
+                    Button { clipPicker.choose() } label: { Label(AppLocalized("Your own clip…"), systemImage: "film") }
+                    if own.clip != nil {
+                        Button { own.clear() } label: { Label(AppLocalized("Default face"), systemImage: "arrow.uturn.backward") }
+                    }
                     NavigationLink { NanoMuseAvatarStudioView(embedded: true) } label: { Label(AppLocalized("Avatar studio…"), systemImage: "wand.and.stars") }
                 } label: {
                     Image(systemName: "pencil")

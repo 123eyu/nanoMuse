@@ -1067,6 +1067,13 @@ html[data-nm-platform='darwin']:not([data-nm-fullscreen]) .nm-lib-col-top { heig
 .nm-st-mood { position: relative; width: 92px; height: 92px; border-radius: 14px; overflow: hidden; background: var(--nm-card); box-shadow: inset 0 0 0 1px var(--nm-field-border); display: flex; align-items: center; justify-content: center; }
 .nm-st-mood img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .nm-st-mood .nm-st-tag { left: 6px; bottom: 6px; font-size: 10.5px; padding: 1px 6px; }
+/* a clip of the person's own as the face (#324): the studio's section and the preview's disc */
+.nm-oc-section { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--nm-divider); }
+.nm-oc-section .nm-st-label { margin-top: 0; }
+.nm-sheet-body .nm-oc-body { margin: 0 0 8px; line-height: 1.5; }
+.nm-oc-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 10px; }
+.nm-oc-disc { width: 148px; height: 148px; margin: 12px auto 8px; }
+.nm-sheet-body .nm-oc-details { margin: 0 0 12px; text-align: center; }
 
 /* ---- memory and the data controls ---- */
 .nm-mem-add { display: flex; gap: 8px; align-items: center; }

@@ -44,6 +44,12 @@ speaking as nanoMuse through the `nanomuse` preset, with:
   usage by kind and by model, the password, the devices holding a key, the timeline, deletion),
   read through the host's pass-through routes (`/nanomuse/cloud/me`, `/sessions`,
   `/account-events`, `/password`, `/sign-out-all`, `/delete-account`, `/config`);
+- **a clip of your own as the face**: *Your own clip…* under the pen on the agent's page
+  and in the avatar studio takes an MP4 or MOV with H.264 video of up to 15 seconds and
+  30 MB, previews it in the face's round frame, and plays it muted in a loop for every mood;
+  it stays on this computer as `$DSH_HOME/nanomuse/avatar/own-clip.mp4`, is never sent to
+  nanoMuse Cloud, and *Default face* removes it (the fallback rule is in
+  [avatar.md](avatar.md));
 - **Hands** on this computer: `nanomuse mcp` from the bundled runtime over stdio, the
   runtime's `computer_screen` and `computer_act` tools with their approvals, so "what is
   on my screen?" and "open the settings and turn the volume down" work out of the box.

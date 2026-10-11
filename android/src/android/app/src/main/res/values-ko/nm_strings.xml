@@ -348,6 +348,23 @@
     <string name="nm_avatar_use_this">이것으로 하기</string>
     <string name="nm_avatar_use_this_hint">표정(작업 중, 기다리는 중, 완료, 이런)은 이어서 백그라운드에서 그립니다.</string>
     <string name="nm_avatar_footer">그림은 이 휴대전화의 minis-global/nanomuse/avatar에 저장됩니다. 얼굴 하나에 제공자에서 이미지 다섯 장이 듭니다. 고른 한 장과 네 가지 표정.</string>
+    <string name="nm_own_clip_title">내 동영상</string>
+    <string name="nm_own_clip_body">내 짧은 동영상이 대기 중 얼굴로 재생되고, 다른 상태에서도 같은 동영상을 씁니다. H.264 영상의 MP4 또는 MOV, 최대 15초, 30 MB까지. 음소거로 반복 재생됩니다.</string>
+    <string name="nm_own_clip_on">내 동영상이 켜져 있고 모든 상태에서 재생됩니다. 정지 화면이 쓰이는 곳에서는 그린 그림이 그대로 쓰입니다. “기본 얼굴”로 제거할 수 있습니다.</string>
+    <string name="nm_own_clip_local">동영상은 이 휴대폰에만 남습니다. nanoMuse Cloud에 올라가지 않고 다른 기기와 동기화되지도 않습니다.</string>
+    <string name="nm_own_clip_choose">동영상 선택</string>
+    <string name="nm_own_clip_replace">동영상 바꾸기</string>
+    <string name="nm_own_clip_default">기본 얼굴</string>
+    <string name="nm_own_clip_menu">내 동영상…</string>
+    <string name="nm_own_clip_preview_title">미리보기</string>
+    <string name="nm_own_clip_preview_body">얼굴로 재생되면 이렇게 보입니다. 음소거, 반복, 원형으로 잘라서.</string>
+    <string name="nm_own_clip_details">%1$d초 · %2$s</string>
+    <string name="nm_own_clip_use">사용</string>
+    <string name="nm_own_clip_refused_format">이 파일은 여기서 쓸 수 없습니다. H.264 영상의 MP4 또는 MOV로, 15초 이하이고 30 MB 이하인 것을 고르세요.</string>
+    <string name="nm_own_clip_refused_long">이 동영상은 %1$d초입니다. 제한은 15초, 그리고 30 MB입니다.</string>
+    <string name="nm_own_clip_refused_large">이 동영상은 %1$s입니다. 제한은 30 MB, 그리고 15초입니다.</string>
+    <string name="nm_own_clip_unreadable">동영상을 읽을 수 없습니다. 다른 것을 시도해 보세요.</string>
+    <string name="nm_a11y_own_clip_preview">내 동영상 미리보기</string>
 
     <!-- First run (Muse-style welcome; the steps are OpenMinis' provider and model screens) -->
     <string name="nm_setup_title">nanoMuse에 오신 것을 환영합니다</string>
