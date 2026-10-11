@@ -1107,4 +1107,19 @@
     <string name="nm_models_search">Buscar modelos</string>
     <string name="nm_models_search_clear">Limpar a busca</string>
     <string name="nm_models_no_match">Nenhum modelo corresponde</string>
+    <!-- Names for icon-only controls, read by screen readers (#338) -->
+    <string name="nm_a11y_show_password">Mostrar senha</string>
+    <string name="nm_a11y_hide_password">Ocultar senha</string>
+    <string name="nm_a11y_avatar_candidate">Candidato %1$d</string>
+    <string name="nm_a11y_share_card">Cartão %1$d</string>
+    <string name="nm_a11y_add">Adicionar</string>
+    <string name="nm_a11y_mark_done">Marcar como concluído</string>
+    <string name="nm_a11y_mark_not_done">Marcar como não concluído</string>
+    <string name="nm_a11y_done">Concluído</string>
+    <string name="nm_a11y_not_done">Não concluído</string>
+    <string name="nm_a11y_like">Curtir</string>
+    <string name="nm_a11y_unlike">Descurtir</string>
+    <string name="nm_a11y_liked">Curtido</string>
+    <string name="nm_a11y_not_liked">Não curtido</string>
+    <string name="nm_a11y_post_details">Detalhes da publicação</string>
 </resources>

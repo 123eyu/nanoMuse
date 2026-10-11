@@ -898,7 +898,11 @@ private fun PasswordDialog(hasPassword: Boolean, onDismiss: () -> Unit, onSaved:
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     trailingIcon = {
                         IconButton(onClick = { show = !show }) {
-                            Icon(if (show) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility, contentDescription = null, tint = muted)
+                            Icon(
+                                if (show) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                                contentDescription = stringResource(if (show) R.string.nm_a11y_hide_password else R.string.nm_a11y_show_password),
+                                tint = muted,
+                            )
                         }
                     },
                     shape = RoundedCornerShape(12.dp),

@@ -1107,4 +1107,19 @@
     <string name="nm_models_search">Maghanap ng mga modelo</string>
     <string name="nm_models_search_clear">I-clear ang paghahanap</string>
     <string name="nm_models_no_match">Walang tumutugmang modelo</string>
+    <!-- Names for icon-only controls, read by screen readers (#338) -->
+    <string name="nm_a11y_show_password">Ipakita ang password</string>
+    <string name="nm_a11y_hide_password">Itago ang password</string>
+    <string name="nm_a11y_avatar_candidate">Kandidato %1$d</string>
+    <string name="nm_a11y_share_card">Card %1$d</string>
+    <string name="nm_a11y_add">Idagdag</string>
+    <string name="nm_a11y_mark_done">Markahan bilang tapos na</string>
+    <string name="nm_a11y_mark_not_done">Markahan bilang hindi pa tapos</string>
+    <string name="nm_a11y_done">Tapos na</string>
+    <string name="nm_a11y_not_done">Hindi pa tapos</string>
+    <string name="nm_a11y_like">Gusto</string>
+    <string name="nm_a11y_unlike">Alisin ang gusto</string>
+    <string name="nm_a11y_liked">Nagustuhan</string>
+    <string name="nm_a11y_not_liked">Hindi nagustuhan</string>
+    <string name="nm_a11y_post_details">Mga detalye ng post</string>
 </resources>

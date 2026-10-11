@@ -1107,4 +1107,19 @@
     <string name="nm_models_search">Model ara</string>
     <string name="nm_models_search_clear">Aramayı temizle</string>
     <string name="nm_models_no_match">Eşleşen model yok</string>
+    <!-- Names for icon-only controls, read by screen readers (#338) -->
+    <string name="nm_a11y_show_password">Parolayı göster</string>
+    <string name="nm_a11y_hide_password">Parolayı gizle</string>
+    <string name="nm_a11y_avatar_candidate">Aday %1$d</string>
+    <string name="nm_a11y_share_card">Kart %1$d</string>
+    <string name="nm_a11y_add">Ekle</string>
+    <string name="nm_a11y_mark_done">Tamamlandı olarak işaretle</string>
+    <string name="nm_a11y_mark_not_done">Tamamlanmadı olarak işaretle</string>
+    <string name="nm_a11y_done">Tamamlandı</string>
+    <string name="nm_a11y_not_done">Tamamlanmadı</string>
+    <string name="nm_a11y_like">Beğen</string>
+    <string name="nm_a11y_unlike">Beğeniyi geri al</string>
+    <string name="nm_a11y_liked">Beğenildi</string>
+    <string name="nm_a11y_not_liked">Beğenilmedi</string>
+    <string name="nm_a11y_post_details">Gönderi ayrıntıları</string>
 </resources>
