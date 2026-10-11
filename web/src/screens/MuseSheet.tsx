@@ -373,7 +373,7 @@ function UpcomingView({ onSettings }: { onSettings: () => void }) {
                 <div className="min-w-0 flex-1">
                   <div className="text-[13.5px] font-medium truncate">{g.title}</div>
                   <div className="text-[11.5px] text-muted truncate">
-                    {g.next_step ?? "—"} · {t("{done}/{total} done", { done: g.progress.done, total: g.progress.total })}
+                    {g.next_step ?? t("No next step")} · {t("{done}/{total} done", { done: g.progress.done, total: g.progress.total })}
                   </div>
                 </div>
                 <button
@@ -481,7 +481,7 @@ function RemindersSection({ items, name, onChange }: { items: Reminder[]; name: 
               <div className="min-w-0 flex-1">
                 <div className="text-[13.5px] font-medium truncate">{r.text}</div>
                 <div className="text-[11.5px] text-muted truncate">
-                  {r.next_at ? `${relativeTime(r.next_at)} · ${timeShort(r.next_at)}` : "—"}
+                  {r.next_at ? `${relativeTime(r.next_at)} · ${timeShort(r.next_at)}` : t("Not scheduled")}
                   {r.repeat && ` · ${describeCadence(r.repeat).toLowerCase()}`}
                   {r.kind === "task" && ` · ${t("does the work")}`}
                 </div>

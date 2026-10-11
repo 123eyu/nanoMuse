@@ -269,7 +269,7 @@ export function ApprovalCard({
       <div
         className={cx(
           "w-full max-w-[600px] overflow-hidden rounded-[22px] bg-surface shadow-[0_2px_12px_rgba(0,0,0,0.12)] dark:border dark:border-border dark:shadow-none",
-          pending && sensitive && "border border-rose-400/60",
+          pending && sensitive && "border border-rose-400/60 dark:border-rose-400/60",
         )}
       >
         <div className="flex items-start gap-3 px-4 pt-4 pb-2">

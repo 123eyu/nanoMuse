@@ -361,7 +361,7 @@ function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         events: { ...state.events, [action.thread]: state.events[action.thread] ?? [] },
-        toast: t("Could not load the conversation. Pull to retry."),
+        toast: t("Could not load the conversation. Open the chat again to retry."),
       };
     case "activeThread":
       return { ...state, activeThread: action.thread, tab: "chat" };

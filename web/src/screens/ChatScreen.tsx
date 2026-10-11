@@ -933,6 +933,7 @@ function Composer({
           }}
           rows={1}
           placeholder={waiting ? t("Answer {name}…", { name }) : pending.length > 0 ? t("Say what to do with it…") : t("Message")}
+          aria-label={t("Message")}
           className="flex-1 resize-none bg-transparent px-1 py-2 text-[15px] leading-[1.4] outline-none placeholder:text-muted"
         />
         {dictation.supported && <MicButton listening={dictation.listening} onClick={toggleDictation} />}
