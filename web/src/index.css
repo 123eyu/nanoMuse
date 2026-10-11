@@ -120,15 +120,15 @@ html.desktop[data-platform="darwin"] .titlebar-room {
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }
-/* The floating tab bar (App.tsx). The pill is 62px tall (46px tap boxes inside 8px of padding)
-   and floats 12px above the bottom edge, over the safe area; `tabbar-room` is the same 74px as
+/* The floating tab bar (App.tsx). The pill is 58px tall (46px slots inside 6px of padding)
+   and floats 12px above the bottom edge, over the safe area; `tabbar-room` is the same 70px as
    padding under the screens, so nothing scrolls under the pill and the chat's composer stays
    above it. Both are `@utility`, not plain classes, so `wide:pb-0` on the same element wins. */
 @utility tabbar-float {
   bottom: calc(12px + env(safe-area-inset-bottom));
 }
 @utility tabbar-room {
-  padding-bottom: calc(74px + env(safe-area-inset-bottom));
+  padding-bottom: calc(70px + env(safe-area-inset-bottom));
 }
 
 /* Scrollbars: thin and quiet on a desktop, none at all at phone widths or on touch screens —
