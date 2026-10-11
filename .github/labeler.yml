@@ -1,0 +1,47 @@
+# Platform labels for pull requests, from the files a pull request touches (actions/labeler).
+# The kind label (bug, enhancement, documentation, ci, release, maintenance) comes from the title;
+# see .github/workflows/labels.yml and CONTRIBUTING.md, "Issues and pull requests (maintainers)".
+
+android:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "android/src/android/**"
+          - "android/deps/**"
+          - "android/scripts/**"
+          - "scripts/android/**"
+          - "scripts/release-apk.sh"
+
+ios:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "android/src/ios/**"
+          - "scripts/gen-ios-icons.py"
+          - ".github/workflows/ios-*.yml"
+
+desktop:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "harness/**"
+          - ".github/workflows/desktop-app.yml"
+          - ".github/workflows/harness.yml"
+
+web:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "web/**"
+          - "nanomuse/server/static/**"
+          - "demo/**"
+
+runtime:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "nanomuse/**"
+          - "tests/**"
+          - "pyproject.toml"
+          - "Dockerfile"
+          - "docker-compose.yml"
+
+cloud:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "cloud/**"
