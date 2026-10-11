@@ -459,6 +459,11 @@ enum NanoMuseTones {
     static let hairline = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? UIColor(red: 0.227, green: 0.227, blue: 0.235, alpha: 1) : UIColor(red: 0.898, green: 0.898, blue: 0.918, alpha: 1) })
     static let canvas = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? .black : UIColor(red: 0.953, green: 0.953, blue: 0.961, alpha: 1) })
     static let action = Color(red: 0.039, green: 0.4, blue: 0.894)
+    /// The bottom bar's indicator capsule under the current tab, and the glyph on it: Android's
+    /// primaryContainer and onPrimaryContainer (#E5F0FF with #012F80 in light, #1A2B4A with
+    /// #E5F0FF in dark).
+    static let tabIndicator = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? UIColor(red: 0.102, green: 0.169, blue: 0.29, alpha: 1) : UIColor(red: 0.898, green: 0.941, blue: 1, alpha: 1) })
+    static let tabIndicatorGlyph = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? UIColor(red: 0.898, green: 0.941, blue: 1, alpha: 1) : UIColor(red: 0.004, green: 0.184, blue: 0.502, alpha: 1) })
 }
 
 /// Whether the UI runs in Chinese right now (the in-app override wins).

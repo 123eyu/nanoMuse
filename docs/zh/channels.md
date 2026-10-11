@@ -36,7 +36,7 @@ Docker 镜像带全了这些。没装 SDK 时，应用会显示要安装的那�
 
 ### 飞书 / Lark {#feishu-lark}
 
-最快的办法：在应用里按「扫码创建机器人」（或运行 `nanomuse channels login feishu`，国际版加 `--lark`），用飞书扫码，确认，完成；App ID 和 Secret 已经保存，这个入口随即打开。这是飞书自己为个人智能体提供的扫码建应用流程；它创建出来的应用已经带上机器人能力和长连接事件。
+简便的办法：在应用里按「扫码创建机器人」（或运行 `nanomuse channels login feishu`，国际版加 `--lark`），用飞书扫码，确认，完成；App ID 和 Secret 已经保存，这个入口随即打开。这是飞书自己为个人智能体提供的扫码建应用流程；它创建出来的应用已经带上机器人能力和长连接事件。
 
 手动的话，到 <https://open.feishu.cn/app>（Lark：<https://open.larksuite.com/app>）：
 
