@@ -15,7 +15,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Web
 
-- **The phone layout's tab bar is a floating frosted-glass pill.** The five tabs sit in a rounded pill 12 px above the bottom edge, icons only and no labels; the pill is translucent over a blur of what is behind it and has a hairline edge. The current tab shows its filled glyph on a soft blue indicator, the others stay outlined in grey. The screens and the chat's composer keep clear of the pill, and the toast rises above it; a wide window and the desktop app keep the sidebar (follows #329 by @Ichiro786).
+- **The phone layout's tab bar is a floating frosted-glass pill.** The five tabs sit in a rounded pill 12 px above the bottom edge, as wide as the composer above it (420 px at most, centred on a wider screen), icons only and no labels; the pill is translucent over a blur of what is behind it and has a hairline edge. The current tab shows its filled glyph on a soft blue indicator, the others stay outlined in grey. The screens and the chat's composer keep clear of the pill, and the toast rises above it; a wide window and the desktop app keep the sidebar (follows #329 by @Ichiro786).
 
 ### Desktop
 
