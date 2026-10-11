@@ -226,3 +226,19 @@ test('busy, usage, a model error and a pending approval cancelled with the run',
   assert.ok(call.events.some((e) => e.stage === 'error' && e.message === 'provider down'))
   off()
 })
+
+test('a closed gate refuses a task with the usual busy error, and opens again', async () => {
+  const h = fakeContext()
+  let closed = true
+  const r = new TaskRunner(h.ctx, { deviceName: () => 'Desk', log: () => undefined, closed: () => closed })
+  const off = r.attach()
+  await assert.rejects(r.task({ text: 'hello' }, fakeCall('c1')), (e) => e.code === 'busy' && e.message === 'this computer is ending its work; ask again in a moment')
+  assert.deepEqual(h.ctx.sessionController.created, [], 'nothing was opened for the refused task')
+  closed = false
+  const p = r.task({ text: 'hello' }, fakeCall('c2'))
+  await tick()
+  assert.equal(r.running, 1, 'the gate is open, the task runs')
+  h.emit('session-1', 'turn/end', { turn: 1, reason: { kind: 'completed' } })
+  await p
+  off()
+})
