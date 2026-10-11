@@ -521,18 +521,20 @@ Ours, in `NanoMuse/`:
   nothing is left, says *No model configured. Add a provider in Settings.*
 - **The bottom bar is a floating pill** (`NanoMuseShell.swift` → `NanoMuseBottomBar`,
   `NanoMuseTones.tabIndicator` / `tabIndicatorGlyph` in `NanoMuseFaces.swift`; Android's
-  `MuseBottomBar`, #329 by @Ichiro786): the five tabs sit in a centred `Capsule` 12 pt above the
-  bottom safe area, icons only, with the same SF symbols, accessibility labels and selected trait as
+  `MuseBottomBar`, #329 by @Ichiro786): the five tabs sit in a `Capsule` 12 pt above the bottom
+  safe area, as wide as the composer above it (the same 16 pt margins; 420 pt at most, centred on
+  a wider screen), icons only, with the same SF symbols, accessibility labels and selected trait as
   before. The pill is `.ultraThinMaterial` under the shell's surface tone at 55 percent opacity (the
   tint carries the contrast, the material carries the blur, as Android's 55 percent surface over its
   backdrop blur) with a 1 pt `NanoMuseTones.hairline` edge; the old full-width strip and its hairline
-  on top are gone. Each tab is a 60 by 46 pt tap box; the current one shows the filled symbol in
-  `tabIndicatorGlyph` on a capsule of `tabIndicator` (Android's primaryContainer and
-  onPrimaryContainer: `#E5F0FF` with `#012F80` in light, `#1A2B4A` with `#E5F0FF` in dark) that
-  slides to the tab tapped next with a spring (`matchedGeometryEffect`); the others show the
-  outlined symbol in the secondary colour. The bar still leaves while the keyboard or the chat's
-  voice panel is up. Layout: the pill lies over the rooms and the chat in a `ZStack` aligned to the
-  bottom. The chat keeps the 0.1.40 rule above (bottom padding of the bar's height, 74 pt, so the
+  on top are gone. The five tabs share the pill's width equally, each slot tappable across; the
+  current one shows the filled symbol in `tabIndicatorGlyph` on a 60 by 46 pt capsule of
+  `tabIndicator` (Android's primaryContainer and onPrimaryContainer: `#E5F0FF` with `#012F80` in
+  light, `#1A2B4A` with `#E5F0FF` in dark) that slides to the tab tapped next with a spring
+  (`matchedGeometryEffect`); the others show the outlined symbol in the secondary colour. The bar
+  still leaves while the keyboard or the chat's voice panel is up. Layout: the pill lies over the
+  rooms and the chat in a `ZStack` aligned to the bottom. The chat keeps the 0.1.40 rule above
+  (bottom padding of the bar's height, 70 pt: 46 plus 6 above and below plus the 12 pt gap, so the
   composer sits above the pill and nothing is an inset of the `NavigationStack`'s ancestor); the
   rooms, plain SwiftUI scroll views, take the same height as a `safeAreaInset`, so their content
   scrolls under the pill and the glass has something to blur. Written on Linux without a Mac: the

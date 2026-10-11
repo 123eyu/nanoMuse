@@ -433,16 +433,17 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   默认分组重新解析，什么都不剩时说*未配置模型。请在设置中添加服务商。*
 - **底栏是一个悬浮的胶囊**（`NanoMuseShell.swift` → `NanoMuseBottomBar`，`NanoMuseFaces.swift`
   里的 `NanoMuseTones.tabIndicator` / `tabIndicatorGlyph`；对应 Android 的 `MuseBottomBar`，
-  @Ichiro786 的 #329）：五个标签放在一个居中的 `Capsule` 里，离底部安全区 12 pt，只有图标，
+  @Ichiro786 的 #329）：五个标签放在一个 `Capsule` 里，离底部安全区 12 pt，和上方的输入框
+  一样宽（同样的 16 pt 边距；最宽 420 pt，更宽的屏幕上居中），只有图标，
   SF 符号、无障碍标签和选中特征都和以前一样。胶囊是 `.ultraThinMaterial`，上面盖一层 55%
   不透明度的外壳 surface 色（对比度靠这层色，模糊靠材质，和 Android 在背景模糊上盖 55% surface
   一样），边上一道 1 pt 的 `NanoMuseTones.hairline`；原来那条通栏的条和它顶上的细线没有了。
-  每个标签是 60 × 46 pt 的点击区；当前这个用 `tabIndicatorGlyph` 色显示实心符号，底下一个
-  `tabIndicator` 色的胶囊（Android 的 primaryContainer 和 onPrimaryContainer：浅色 `#E5F0FF`
+  五个标签平分胶囊的宽度，每一格整格可点；当前这个用 `tabIndicatorGlyph` 色显示实心符号，底下一个
+  60 × 46 pt 的 `tabIndicator` 色胶囊（Android 的 primaryContainer 和 onPrimaryContainer：浅色 `#E5F0FF`
   配 `#012F80`，深色 `#1A2B4A` 配 `#E5F0FF`），点下一个标签时它带着弹簧滑过去
   （`matchedGeometryEffect`）；其他标签用次要颜色显示线框符号。键盘弹起或聊天的语音面板打开时，
   底栏仍然离开。布局：胶囊在一个贴底对齐的 `ZStack` 里盖在房间和聊天上面。聊天沿用上面
-  0.1.40 的规矩（聊天层加一段底栏高度、74 pt 的底部 padding，所以输入区在胶囊上面，
+  0.1.40 的规矩（聊天层加一段底栏高度、70 pt 的底部 padding：46 加上下各 6，再加 12 pt 的间隙，所以输入区在胶囊上面，
   `NavigationStack` 的祖先上没有任何 inset）；房间是普通的 SwiftUI 滚动视图，同样的高度用
   `safeAreaInset` 给出，于是它们的内容会滚到胶囊下面，玻璃才有东西可模糊。在没有 Mac 的 Linux
   上写的：iOS 检查能编译它，还没有设备显示过它。

@@ -810,18 +810,25 @@ private struct NanoMuseClassicCover: View {
 /// Android's MuseBottomBar: a floating frosted-glass pill a little above the bottom edge, five
 /// glyphs and no labels. The pill is `.ultraThinMaterial` under the shell's surface tone at 55
 /// percent, with a 1 pt hairline; the current tab shows its filled glyph on a soft indicator
-/// capsule that springs across to the tab tapped next, the others stay outlined and muted.
+/// capsule that springs across to the tab tapped next, the others stay outlined and muted. The
+/// pill is as wide as the composer above it (the same 16 pt margins), capped on a wide screen.
 struct NanoMuseBottomBar: View {
     @Binding var selected: NanoMuseTab
     var onPick: (NanoMuseTab) -> Void
     @Namespace private var indicator
 
-    /// A tab's tap box.
+    /// The indicator capsule behind the selected glyph, centred in its slot; the five slots share
+    /// the pill's width equally.
     static let tabSize = CGSize(width: 60, height: 46)
-    /// The pill's padding around the tap boxes.
-    static let pillPadding: CGFloat = 8
+    /// The pill's padding above and below the slots.
+    static let pillPadding: CGFloat = 6
     /// Between the pill and the bottom safe area.
     static let bottomGap: CGFloat = 12
+    /// The pill's distance from the screen's sides: the composer's margins in the shell
+    /// (AIChatView, `nmPill`), so the two capsules stack with one edge.
+    static let inset: CGFloat = 16
+    /// A wide screen gets a centred pill of this width, not a bar across the window.
+    static let maxWidth: CGFloat = 420
     /// How much of the screen the bar takes above the safe area: what the rooms and the chat
     /// leave free under their content so nothing lies behind the pill.
     static var height: CGFloat { tabSize.height + pillPadding * 2 + bottomGap }
@@ -836,7 +843,9 @@ struct NanoMuseBottomBar: View {
                     Image(systemName: isSelected ? tab.selectedSymbol : tab.symbol)
                         .font(.system(size: 22, weight: isSelected ? .semibold : .regular))
                         .foregroundStyle(isSelected ? NanoMuseTones.tabIndicatorGlyph : Color.secondary)
-                        .frame(width: Self.tabSize.width, height: Self.tabSize.height)
+                        // The capsule keeps its 60 by 46 (narrower only when the slot is).
+                        .frame(maxWidth: Self.tabSize.width)
+                        .frame(height: Self.tabSize.height)
                         .background {
                             if isSelected {
                                 Capsule()
@@ -844,7 +853,9 @@ struct NanoMuseBottomBar: View {
                                     .matchedGeometryEffect(id: "indicator", in: indicator)
                             }
                         }
-                        .contentShape(Capsule())
+                        // The slot: an equal share of the pill, all of it tappable.
+                        .frame(maxWidth: .infinity)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(Text(tab.title))
@@ -859,7 +870,9 @@ struct NanoMuseBottomBar: View {
         }
         .overlay(Capsule().strokeBorder(NanoMuseTones.hairline, lineWidth: 1))
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: selected)
+        .frame(maxWidth: Self.maxWidth)
         .frame(maxWidth: .infinity)
+        .padding(.horizontal, Self.inset)
         .padding(.bottom, Self.bottomGap)
     }
 }
