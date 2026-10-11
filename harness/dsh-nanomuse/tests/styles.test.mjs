@@ -6,7 +6,9 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-const css = readFileSync(fileURLToPath(new URL('../src/client/styles.ts', import.meta.url)), 'utf8')
+// A Windows checkout may carry CRLF line endings (core.autocrlf); the tests look for
+// `\n<selector> {\n`, so the file is read with LF endings whatever the checkout did.
+const css = readFileSync(fileURLToPath(new URL('../src/client/styles.ts', import.meta.url)), 'utf8').replace(/\r\n/g, '\n')
 
 /** The declarations of the first rule whose selector list is exactly `selector`. */
 function rule(selector) {
