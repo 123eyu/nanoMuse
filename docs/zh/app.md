@@ -22,7 +22,7 @@ nanomuse serve --port 9000 --no-qr
   <img src="../screenshots/web/library.png" width="24%" alt="资源库：带实时预览的页面">
 </p>
 
-外观跟着 Meta 的 Muse 走：接近纯白和接近纯黑的底色，一种蓝色作强调，智能体的气泡是灰色、你的是浅蓝色，聊天顶部有一只小龙，姿势跟着智能体正在做的事变，底下是一枚带五个图标的毛玻璃悬浮胶囊栏。字体是 [Figtree](https://github.com/erikdkennedy/figtree)（OFL），已内置。这些选择背后的研究在 [design.md](design.md)。
+外观跟着 Meta 的 Muse 走：接近纯白和接近纯黑的底色，一种蓝色作强调，智能体的气泡是灰色、你的是浅蓝色（手机上是黑底上的白色、白底上的黑色，见 [android.md](android.md)），聊天顶部有一只小龙，姿势跟着智能体正在做的事变，底下是一枚带五个图标的毛玻璃悬浮胶囊栏。字体是 [Figtree](https://github.com/erikdkennedy/figtree)（OFL），已内置。这些选择背后的研究在 [design.md](design.md)。
 
 ## 装到手机上 {#getting-it-onto-your-phone}
 
