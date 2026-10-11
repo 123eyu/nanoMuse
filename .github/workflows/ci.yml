@@ -35,6 +35,7 @@ jobs:
               - "nanomuse/**"
               - "tests/**"
               - "scripts/**"
+              - "config/**" # config.example.toml: the tests read it, the image carries it
               - "pyproject.toml"
               - "Dockerfile"
               - ".dockerignore"
