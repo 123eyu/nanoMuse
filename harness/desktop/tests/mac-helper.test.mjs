@@ -10,7 +10,7 @@ import { createServer } from "node:http";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import Module, { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { after, test } from "node:test";
 import { MacHelper, MacHelperError, HELPER_NAME, HELPER_SCREEN_PERMISSION_TEXT, QUARANTINE_KEPT_TEXT, clearQuarantine, defaultHelperPath, describeAction, translocated } from "../out/mac-helper.js";
 
@@ -504,9 +504,14 @@ test("clearQuarantine: xattr's answers → none, removed, kept (with what it sai
   assert.equal(calls.length, before);
 });
 
+// macOS paths from a function that joins with the platform's separator, so the assertions
+// read the same on a Windows checkout (the helper never runs there; its path logic is tested)
+const posix = (path) => path.split(sep).join("/");
+
 test("an app under App Translocation does not start its helper, and says why", async () => {
   const dir = scratch();
-  const app = join(dir, "AppTranslocation", "4F1C", "d", "nanoMuse.app", "Contents", "Helpers", `${HELPER_NAME}.app`);
+  // joined with "/" on purpose: translocation is a macOS path, and Windows accepts the slash
+  const app = [dir, "AppTranslocation", "4F1C", "d", "nanoMuse.app", "Contents", "Helpers", `${HELPER_NAME}.app`].join("/");
   mkdirSync(app, { recursive: true });
   assert.equal(translocated(app), true);
   assert.equal(translocated("/Applications/nanoMuse.app/Contents/Helpers/x.app"), false);
@@ -520,8 +525,8 @@ test("an app under App Translocation does not start its helper, and says why", a
 
 test("defaultHelperPath: the env override, Contents/Helpers when packaged, the build dir in development", () => {
   assert.equal(defaultHelperPath("/x/nanoMuse.app/Contents/MacOS/nanomuse-desktop", true, "/proj", { NANOMUSE_COMPUTER_USE_APP: "/elsewhere/Helper.app" }), "/elsewhere/Helper.app");
-  assert.equal(defaultHelperPath("/x/nanoMuse.app/Contents/MacOS/nanomuse-desktop", true, "/proj", {}), "/x/nanoMuse.app/Contents/Helpers/nanoMuse Computer Use.app");
-  assert.equal(defaultHelperPath("/usr/bin/electron", false, "/proj", {}), "/proj/mac/computer-use/build/nanoMuse Computer Use.app");
+  assert.equal(posix(defaultHelperPath("/x/nanoMuse.app/Contents/MacOS/nanomuse-desktop", true, "/proj", {})), "/x/nanoMuse.app/Contents/Helpers/nanoMuse Computer Use.app");
+  assert.equal(posix(defaultHelperPath("/usr/bin/electron", false, "/proj", {})), "/proj/mac/computer-use/build/nanoMuse Computer Use.app");
 });
 
 test("describeAction: the glow's words, as the operator phrases them", () => {
