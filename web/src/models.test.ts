@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { CLOUD_ID, currentChoice, entryFor, handsValue, mediaChoices, providerLabel, slotValue } from "./models";
-import type { MediaSlotData } from "./types";
+import { CLOUD_ID, currentChoice, endpointChoice, endpointGroups, endpointLabel, endpointOf, entryFor, handsValue, mediaChoices, providerLabel, slotValue } from "./models";
+import type { CustomEndpoint, MediaSlotData } from "./types";
 
 const BAILIAN = "https://dashscope.aliyuncs.com/compatible-mode/v1";
 
@@ -91,5 +91,67 @@ describe("the model slots (the Models contract)", () => {
     expect(currentChoice(slot({ configured: true, provider: "zhipu", provider_id: "zhipu" }), "")).toBe("zhipu");
     expect(currentChoice(slot({ configured: true, provider: "openai", base_url: "https://relay.example/v1" }), "https://relay.example/v1")).toBe(CLOUD_ID);
     expect(currentChoice(slot({ configured: true, provider: "openai", base_url: "https://images.example.com/v1" }), "")).toBe("custom");
+  });
+});
+
+describe("several endpoints of one's own (#294)", () => {
+  const gateway: CustomEndpoint = {
+    id: "ep-1a2b3c4d",
+    label: "my gateway",
+    base_url: "https://gateway.example/v1",
+    key_source: "vault",
+    models: ["ui-tars", "deepseek-chat", "qwen3-vl"],
+    slots: ["chat"],
+  };
+  const local: CustomEndpoint = { id: "ep-9f9f9f9f", label: "", base_url: "http://127.0.0.1:8000/v1", key_source: "none", models: ["llava"], slots: [] };
+  const endpoints = [gateway, local];
+
+  it("names a picker value after the endpoint and reads it back", () => {
+    expect(endpointChoice("ep-1a2b3c4d")).toBe("endpoint:ep-1a2b3c4d");
+    expect(endpointOf("endpoint:ep-1a2b3c4d")).toBe("ep-1a2b3c4d");
+    expect(endpointOf("endpoint:")).toBeNull();
+    expect(endpointOf("bailian")).toBeNull();
+  });
+
+  it("reads an endpoint by its name, else by its host with the port", () => {
+    expect(endpointLabel(gateway)).toBe("my gateway");
+    expect(endpointLabel(local)).toBe("127.0.0.1:8000");
+    expect(endpointLabel({ label: "  ", base_url: "not a url" })).toBe("not a url");
+  });
+
+  it("offers the endpoints to the media pickers between the chat provider and the catalogue", () => {
+    const chat = { provider: "openai", base_url: BAILIAN, cloud: false };
+    const image = mediaChoices("image", { signedIn: false, chat, region: "cn", locale: "en", endpoints });
+    expect(image.slice(0, 3).map((c) => [c.value, c.label, c.group, c.needsKey])).toEqual([
+      ["bailian", "Alibaba Cloud Bailian", "chat", false],
+      ["endpoint:ep-1a2b3c4d", "my gateway", "endpoints", false],
+      ["endpoint:ep-9f9f9f9f", "127.0.0.1:8000", "endpoints", false],
+    ]);
+    expect(image[image.length - 1].value).toBe("custom");
+    // a slot standing on one reads back as that endpoint, whatever its host
+    expect(currentChoice(slot({ configured: true, provider: "openai", base_url: gateway.base_url, endpoint: gateway.id }), "")).toBe("endpoint:ep-1a2b3c4d");
+    expect(slotValue(slot({ effective_provider: "custom", effective_model: "flux-2", base_url: gateway.base_url, endpoint: gateway.id }), "en", undefined, endpoints)).toBe(
+      "my gateway · flux-2",
+    );
+    // without the list (an older runtime) the host stands, as before
+    expect(slotValue(slot({ effective_provider: "custom", effective_model: "flux-2", base_url: gateway.base_url, endpoint: gateway.id }), "en")).toBe("gateway.example · flux-2");
+  });
+
+  it("gives the hands picker one group per other endpoint, less the models known not to see", () => {
+    const groups = endpointGroups(endpoints, "ep-9f9f9f9f");
+    expect(groups.map((g) => [g.key, g.label, g.rows.map((r) => r.id)])).toEqual([["endpoint:ep-1a2b3c4d", "my gateway", ["ui-tars", "qwen3-vl"]]]);
+    expect(endpointGroups([{ ...gateway, models: ["deepseek-chat"] }])).toEqual([]);
+  });
+
+  it("writes the hands row's value with the endpoint's name", () => {
+    const deepseek = { provider: "openai", base_url: "https://api.deepseek.com", cloud: false };
+    const onGateway = { provider: "openai", provider_id: "", base_url: gateway.base_url, endpoint: gateway.id, effective_model: "ui-tars", effective_source: "gui" as const };
+    expect(handsValue(onGateway, deepseek, "en", undefined, endpoints)).toBe("my gateway · ui-tars");
+    expect(handsValue(onGateway, deepseek, "en")).toBe("gateway.example · ui-tars");
+    // riding on a chat model that answers through an endpoint
+    const chatOnLocal = { provider: "openai", base_url: local.base_url, cloud: false, endpoint: local.id };
+    expect(handsValue({ provider: "openai", provider_id: "", base_url: "", effective_model: "llava", effective_source: "chat" }, chatOnLocal, "en", undefined, endpoints)).toBe(
+      "127.0.0.1:8000 · llava",
+    );
   });
 });

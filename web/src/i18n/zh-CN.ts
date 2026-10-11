@@ -1765,6 +1765,51 @@ const zhCN: Record<string, string> = {
   "Add a provider of your own first; with nanoMuse Cloud off, nothing else could answer.": "先添加一个自己的服务商；关掉 nanoMuse Cloud 后没有别的模型能回答。",
   "Use your own API key instead": "改用自己的 API key",
   "You can sign in later under Connections, for sync and your devices.": "之后可以在「连接」里登录，用于同步和你的设备。",
+
+  // ── several OpenAI-compatible endpoints of one's own (#294) ────────────────────
+  "Add an endpoint": "添加接口",
+  "Add endpoint": "添加接口",
+  "An endpoint joins your list with its own key and stays there; add as many as you use. Pick one as the chat model, or use its models for the hands, pictures and clips.":
+    "接口带着自己的密钥加入列表并一直保留；用几个就加几个。可以选一个作为对话模型，也可以把它的模型用于双手、图片和短片。",
+  "Name (optional)": "名字（可选）",
+  "How the endpoint reads in the lists; its host when left empty.": "接口在列表里显示的名字；留空则显示主机名。",
+  "for example: my gateway": "例如：我的网关",
+  "Stored encrypted in the vault under this endpoint's own name.": "加密保存在保险库里，以这个接口自己的名字命名。",
+  "Models (optional)": "模型（可选）",
+  "Leave empty when the endpoint lists its models at /models. Otherwise type their ids, separated by commas.":
+    "接口能在 /models 列出模型时留空；否则输入模型 id，用逗号分隔。",
+  "Endpoint added": "已添加接口",
+  "Endpoint renamed": "已给接口改名",
+  "Endpoint removed": "已移除接口",
+  "Key saved": "密钥已保存",
+  "Models saved": "模型已保存",
+  Models: "模型",
+  Rename: "改名",
+  "Change key": "换密钥",
+  "Edit models": "编辑模型",
+  "Ask for its models": "重新获取模型",
+  "{n} models": "{n} 个模型",
+  "{n} models saved with this endpoint": "这个接口保存了 {n} 个模型",
+  "Used by {slots}": "用于{slots}",
+  "the hands": "双手",
+  pictures: "图片",
+  clips: "短片",
+  "The ids of the models this endpoint serves, separated by commas; what it lists at /models is added after them.":
+    "这个接口提供的模型 id，用逗号分隔；它在 /models 列出的模型会接在后面。",
+  "The endpoint did not list its models; the saved list stands.": "接口没有列出模型；沿用已保存的列表。",
+  "The chat model answers through this endpoint; pick another chat model first.": "对话模型正通过这个接口回答；请先换一个对话模型。",
+  "Its key goes with it, and the hands, pictures or clips set on it go back to automatic.": "它的密钥会一起删除；设在它上面的双手、图片或短片会回到自动。",
+  "Uses the key saved with this endpoint.": "使用这个接口保存的密钥。",
+  "Your endpoints": "你的接口",
+  "The model that looks at screens when the hands run: a small, fast one that takes pictures. Pick one of this provider's, or one from another endpoint of your list, which then lends its address and key.":
+    "双手运行时看屏幕的模型：一个小而快、能看图的模型。可以选这个服务商的，也可以选你列表里另一个接口的，那个接口的地址和密钥会一并使用。",
+  // the runtime's sentences about the endpoint list
+  "the endpoint did not list its models (GET /models); type the ids of the models it serves, separated by commas":
+    "接口没有列出模型（GET /models）；请输入它提供的模型 id，用逗号分隔",
+  "the chat model answers through this endpoint; pick another chat model first": "对话模型正通过这个接口回答；请先换一个对话模型",
+  "the address must start with http:// or https://": "地址必须以 http:// 或 https:// 开头",
+  "that is nanoMuse Cloud; it is the account, not an endpoint": "那是 nanoMuse Cloud；它是账号，不是接口",
+  "a key has no spaces in it": "密钥里不会有空格",
 };
 
 export default zhCN;

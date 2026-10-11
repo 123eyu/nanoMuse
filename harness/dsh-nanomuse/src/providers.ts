@@ -174,6 +174,12 @@ export async function loadCatalogue(path?: string | URL): Promise<ProviderEntry[
 
 /** An own-key provider this plugin wrote into the harness's model adapter (`llm-pi-ai`), as kept in `cloud.json`. */
 export interface OwnProvider {
+  /**
+   * The row's own id: the key under `state.providers` and the model adapter's route. The
+   * catalogue entry's id for a vendor; `custom`, `custom-2`, `custom-3`... for hand-made
+   * endpoints, which may be several at once (#294).
+   */
+  id: string
   /** The catalogue entry it came from (`custom` for a hand-made endpoint, `chatgpt` for the sign-in). */
   provider: string
   label: string
