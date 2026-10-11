@@ -38,7 +38,9 @@ struct NanoMuseReachSection: View {
             } header: {
                 Text(AppLocalized("Reach a device"))
             } footer: {
-                Text(AppLocalized("In a chat, just ask: “on my Mac, list the downloads folder”, “tell my PC to build the project and send me the log”. Approvals show on this phone."))
+                // A step the other Muse must ask about is declined from here and left to that device
+                // (NanoMuseDeviceMention); the footer says so rather than promising a card.
+                Text(AppLocalized("In a chat, just ask: “on my Mac, list the downloads folder”, “tell my PC to build the project and send me the log”. A step that needs permission is approved on that device, not here."))
             }
             .sheet(item: $target) { device in
                 NanoMuseReachSheet(device: device)

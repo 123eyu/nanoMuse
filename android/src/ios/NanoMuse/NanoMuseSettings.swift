@@ -92,15 +92,7 @@ struct NanoMuseSettingsHomeView: View {
     private var cloudLine: String {
         _ = store.instances
         guard NanoMuseCloud.isSignedIn, let account = NanoMuseCloud.account else { return AppLocalized("Sign in") }
-        if account.unlimited { return account.hint }
-        if let left = account.poolLeftCny {
-            let whole = left.rounded() == left
-            return String(format: AppLocalized("%@ left"), "¥" + left.formatted(.number.precision(.fractionLength(whole ? 0 : 2))))
-        }
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        let left = formatter.string(from: NSNumber(value: account.remaining)) ?? "\(account.remaining)"
-        return String(format: AppLocalized("%@ left"), left)
+        return account.leftLine ?? account.hint
     }
 
     // MARK: Card 2 — the agent
