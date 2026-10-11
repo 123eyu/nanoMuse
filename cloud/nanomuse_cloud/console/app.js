@@ -92,8 +92,19 @@
   let ws = null, wsState = "off", hubPaused = false, backoff = 1000, devices = [], selected = params.get("device") || LS.getItem("nm.selected") || "";
   const pending = new Map(); // call id → {onEvent, resolve, reject}
   const chats = new Map(); // device id → {messages:[], busy:false, callId:null}
-  const webId = LS.getItem("nm.webid") || ("web-" + Math.random().toString(36).slice(2, 12));
-  LS.setItem("nm.webid", webId);
+  // One hub device per tab, not per browser: the id lives in sessionStorage, so a reload
+  // keeps it and a second tab gets its own. Two tabs sharing one id took turns replacing
+  // each other on the hub (close 4003) and reconnecting, for as long as both stayed open.
+  const webId = (() => {
+    let id = "";
+    try { id = window.sessionStorage.getItem("nm.webid") || ""; } catch (_) { /* storage denied */ }
+    if (!id) {
+      id = "web-" + Math.random().toString(36).slice(2, 12);
+      try { window.sessionStorage.setItem("nm.webid", id); } catch (_) { /* this tab's life only */ }
+    }
+    return id;
+  })();
+  LS.removeItem("nm.webid"); // the id of before, shared by every tab of this browser
 
   const app = document.getElementById("app");
   const h = (tag, attrs = {}, ...kids) => {

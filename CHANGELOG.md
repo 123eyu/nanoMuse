@@ -6,6 +6,10 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Cloud
 
+- **Signing a device out also drops its line to the hub.** *Sign out everywhere*, a sign-in revoked on the account page and a device's own sign-out revoked the key at once, but a hub socket that device had open stayed open until it next reconnected, so a lost phone could still reach the account's other devices for a while. The relay now closes such a socket with `4001 bad_key` the moment the key is revoked, and the other devices see the device offline.
+- **The web console open in two tabs no longer fights itself.** Every tab of one browser said hello to the hub with the same device id, so the two took turns replacing each other and reconnecting for as long as both stayed open, and a message sent from the tab that had just lost came back as disconnected. Each tab is now its own device on the hub; a reload keeps the tab's id.
+- **A self-hosted relay's backup recipe takes a consistent copy.** The command in the self-hosting guide called a `sqlite3` binary the image does not have and fell back to copying `cloud.db`, which under WAL misses the newest writes; it now uses SQLite's backup API inside the running container and streams the copy out. The production notes restore a backup into the data directory as uid 10001, the user the relay runs as. A code mail composed with a `CODE_TTL_S` under a minute says the code is good for one minute, as the SMS template already did.
+
 ### Runtime
 
 - **Creating a reminder, a trigger or a goal counts as a change, not a read.** The `reminders`, `triggers` and `goals` tools declared every action `safe`, the level for reads with no side effect, although each `create` sets up work the model takes up later on its own. `create` is now `moderate`, so `strict` mode asks before a routine, a mail trigger or a goal is set up; `list`, `cancel` and the goals' bookkeeping stay `safe`, and `ask` and `auto` mode behave as before. The risk table in the Sentinel page says so (#387).

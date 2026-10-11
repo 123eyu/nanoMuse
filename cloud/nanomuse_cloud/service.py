@@ -1028,6 +1028,11 @@ class Cloud:
         self.db.daily_add("active", caller.account_id)
         return caller
 
+    def key_live(self, key_hash: str) -> bool:
+        """Whether a key still opens: not revoked, not past its time. What the hub asks after
+        a sign-out to find the sockets whose key just stopped working."""
+        return self._caller(key_hash) is not None
+
     def sign_out(self, caller: Caller) -> None:
         self.db.revoke_key(caller.key_hash)
         self.db.add_event(caller.account_id, "sign_out")
