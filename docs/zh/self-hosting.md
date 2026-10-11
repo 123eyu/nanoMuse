@@ -37,7 +37,7 @@ bash scripts/self-host.sh --local          # http://127.0.0.1:8787, codes in the
 bash scripts/self-host.sh --local --bind 0.0.0.0   # reachable from the phones on the same network
 ```
 
-不用脚本、自己动手：`cd cloud && cp .env.example .env`，填上 `CLOUD_DOMAIN`、`PUBLIC_BASE`、`ACME_EMAIL`、`CLOUD_SECRET`、`CLOUD_ADMIN_TOKEN`、`UPSTREAM_KEY` 和发信设置，然后 `docker compose up -d`；或者不要 Caddy，`docker compose -f docker-compose.yml -f docker-compose.local.yml up -d`。
+不用脚本、自己动手：`cd cloud && cp .env.example .env`，填上 `CLOUD_DOMAIN`、`PUBLIC_BASE`、`ACME_EMAIL`、`CLOUD_SECRET`、`CLOUD_ADMIN_TOKEN`、`UPSTREAM_KEY` 和发信设置，然后 `docker compose up -d`；或者不要 Caddy，`docker compose -f docker-compose.yml -f docker-compose.local.yml up -d`。中继在容器里以 uid 10001 运行，绑定挂载的数据目录 `cloud/data` 在宿主机上必须属于这个 uid：第一次启动前执行 `mkdir -p data && sudo chown -R 10001:10001 data`，从以 root 运行的旧镜像升级时再执行一次（脚本会替你做；写不了数据目录的中继会在启动时说明原因并停下）。
 
 ### 登录验证码 {#sign-in-codes}
 

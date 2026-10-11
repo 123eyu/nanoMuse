@@ -45,6 +45,23 @@ export function ChatScreen() {
   const contentRef = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
   const [showJump, setShowJump] = useState(false);
+  // away from the latest message by any amount: the top edge fades into the canvas
+  const [scrolledUp, setScrolledUp] = useState(false);
+
+  // The header lies over the list as a scrim rather than above it, so the conversation scrolls
+  // under the face and dissolves. The list keeps the header's height clear at its top, measured
+  // here because the header grows with the chip under the name tag and the safe area.
+  const headerRef = useRef<HTMLDivElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  useLayoutEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    setHeaderHeight(el.offsetHeight);
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => setHeaderHeight(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // The first conversation (contract C4), when it is bound to this chat: the runtime's state,
   // the opening lines it speaks, the chooser. `fr` is null on an older runtime.
@@ -110,6 +127,7 @@ export function ChatScreen() {
     if (!el) return;
     el.scrollTop = el.scrollHeight;
     setShowJump(false);
+    setScrolledUp(false);
   }, []);
 
   const measure = useCallback(() => {
@@ -118,6 +136,7 @@ export function ChatScreen() {
     const gap = el.scrollHeight - el.scrollTop - el.clientHeight;
     stickToBottom.current = gap < 120;
     setShowJump(gap > 400);
+    setScrolledUp(gap > 8);
   }, []);
 
   // a chat opens at its latest message whatever the previous chat's position was; the pill
@@ -184,44 +203,52 @@ export function ChatScreen() {
   );
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Header: Muse's — the face on its disc, the name tag with what it is doing, the round hamburger and menu */}
-      <MuseHeader
-        profile={profile}
-        status={status}
-        name={name}
-        statusLine={statusLine}
-        statusTone={status.state === "idle" && !thread?.busy ? "muted" : "accent"}
-        spinning={((status.state === "working" && status.thread === activeThread) || !!thread?.busy) && waitingHere === 0}
-        badge={queued}
-        onAvatar={() => setActivityOpen(true)}
-        leading={
-          <MuseRoundButton onClick={() => setDrawer(true)} label={t("Chats")} dot={threads.length > 1 && activeThread !== "main"} className="wide:invisible">
-            <Menu size={22} />
-          </MuseRoundButton>
-        }
-        trailing={<MoreMenu actions={[{ label: t("Coding agents"), onClick: () => setTab("coding") }]} />}
-        under={
-          thread && thread.id !== "main" ? (
-            thread.device ? (
-              <span className="flex max-w-full items-center gap-1 rounded-full bg-accent/12 px-2.5 py-0.5 text-[11.5px] font-medium text-accent">
-                {deviceOnline === false ? <span className="h-1.5 w-1.5 rounded-full bg-border" /> : <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />}
-                <span className="truncate">{t("on {device}", { device: thread.device_name || thread.device })}</span>
-              </span>
-            ) : thread.remote_from ? (
-              <span className="flex max-w-full items-center gap-1 rounded-full bg-surface-2 px-2.5 py-0.5 text-[11.5px] font-medium text-fg/80">
-                <MonitorSmartphone size={11} /> <span className="truncate">{t("from {device}", { device: thread.remote_from.name })}</span>
-              </span>
-            ) : (
-              <span className="truncate rounded-full bg-surface-2 px-2.5 py-0.5 text-[11.5px] font-medium text-fg/80">{thread.title}</span>
-            )
-          ) : undefined
-        }
-      />
+    <div className="relative flex h-full flex-col">
+      {/* Muse's header: the face on its disc, the name tag with what it is doing, the round hamburger
+          and menu. A scrim over the list, which scrolls under it; no bar and no line below it. */}
+      <div ref={headerRef} className="pointer-events-none absolute inset-x-0 top-0 z-10">
+        <MuseHeader
+          scrim
+          profile={profile}
+          status={status}
+          name={name}
+          statusLine={statusLine}
+          statusTone={status.state === "idle" && !thread?.busy ? "muted" : "accent"}
+          spinning={((status.state === "working" && status.thread === activeThread) || !!thread?.busy) && waitingHere === 0}
+          badge={queued}
+          onAvatar={() => setActivityOpen(true)}
+          leading={
+            <MuseRoundButton onClick={() => setDrawer(true)} label={t("Chats")} dot={threads.length > 1 && activeThread !== "main"} className="wide:invisible">
+              <Menu size={22} />
+            </MuseRoundButton>
+          }
+          trailing={<MoreMenu actions={[{ label: t("Coding agents"), onClick: () => setTab("coding") }]} />}
+          under={
+            thread && thread.id !== "main" ? (
+              thread.device ? (
+                <span className="flex max-w-full items-center gap-1 rounded-full bg-accent/12 px-2.5 py-0.5 text-[11.5px] font-medium text-accent">
+                  {deviceOnline === false ? <span className="h-1.5 w-1.5 rounded-full bg-border" /> : <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />}
+                  <span className="truncate">{t("on {device}", { device: thread.device_name || thread.device })}</span>
+                </span>
+              ) : thread.remote_from ? (
+                <span className="flex max-w-full items-center gap-1 rounded-full bg-surface-2 px-2.5 py-0.5 text-[11.5px] font-medium text-fg/80">
+                  <MonitorSmartphone size={11} /> <span className="truncate">{t("from {device}", { device: thread.remote_from.name })}</span>
+                </span>
+              ) : (
+                <span className="truncate rounded-full bg-surface-2 px-2.5 py-0.5 text-[11.5px] font-medium text-fg/80">{thread.title}</span>
+              )
+            ) : undefined
+          }
+        />
+      </div>
+      {/* while reading older messages the top edge fades fully into the canvas, under the header */}
+      <div aria-hidden className="list-fade-top pointer-events-none absolute inset-x-0 top-0 z-[5] h-20" style={{ opacity: scrolledUp ? 1 : 0 }} />
 
       {/* Timeline */}
-      <div ref={listRef} onScroll={measure} className="relative flex-1 overflow-y-auto px-3 py-3">
+      <div ref={listRef} onScroll={measure} className="relative flex-1 overflow-y-auto px-3 pb-3">
         <div ref={contentRef} className="space-y-2.5">
+          {/* the room the header takes; the first message starts under it, not behind it */}
+          <div aria-hidden style={{ height: headerHeight }} />
           {state.hasMore[activeThread] && events.length > 0 && (
             <div className="flex justify-center">
               <button
@@ -277,7 +304,7 @@ export function ChatScreen() {
           <button
             type="button"
             onClick={jumpToBottom}
-            className="sticky bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-surface border border-border shadow px-3 py-1.5 text-[12.5px] flex items-center gap-1"
+            className="sticky bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-ink text-ink-fg shadow px-3 py-1.5 text-[12.5px] font-medium flex items-center gap-1"
           >
             <ChevronDown size={14} /> {t("Latest")}{pendingApprovals ? ` · ${t("{n} approval", { n: pendingApprovals })}` : ""}
           </button>
@@ -510,14 +537,14 @@ function AssistantBubble({
             {reasoning}
           </div>
         )}
-        {/* Muse's grey bubbles: one per block of the reply; code and tables carry their own frame */}
+        {/* the agent's pills, a step off the canvas: one per block of the reply; code and tables carry their own frame */}
         {blocks.map((b, i) =>
           b.bare ? (
             <div key={i} className="my-1 max-w-full">
               <Markdown text={b.text} files={files} onOpenFile={onOpenFile} />
             </div>
           ) : (
-            <div key={i} className={cx("my-1 max-w-[340px] rounded-[20px] bg-surface-2 px-3.5 py-2.5 wide:max-w-[600px]", spoken && "border border-accent/15")}>
+            <div key={i} className={cx("my-1 max-w-[340px] rounded-[20px] bg-bubble-agent px-3.5 py-2.5 wide:max-w-[600px]", spoken && "border border-accent/15")}>
               {spoken && i === 0 && (
                 <div className="mb-0.5 flex items-center gap-1 text-[11px] font-medium text-accent/80">
                   <Phone size={10} /> {t("said on a call")}
@@ -529,7 +556,7 @@ function AssistantBubble({
           ),
         )}
         {blocks.length === 0 && streaming && (
-          <div className="my-1 rounded-[20px] bg-surface-2 px-3.5 py-2.5">
+          <div className="my-1 rounded-[20px] bg-bubble-agent px-3.5 py-2.5">
             <span className="inline-block w-1.5 h-4 align-middle bg-accent/70 animate-pulse rounded-sm" />
           </div>
         )}
@@ -559,7 +586,7 @@ function QuietLine({ text, about, ts }: { text: string; about?: string; ts?: str
 function TypingIndicator({ label }: { label?: string }) {
   return (
     <div className="flex items-center gap-2">
-      <div className="rounded-[20px] rounded-bl-md bg-surface-2 px-3.5 py-2.5 flex items-center gap-1">
+      <div className="rounded-[20px] rounded-bl-md bg-bubble-agent px-3.5 py-2.5 flex items-center gap-1">
         <span className="typing-dot h-2 w-2 rounded-full bg-muted" />
         <span className="typing-dot h-2 w-2 rounded-full bg-muted" />
         <span className="typing-dot h-2 w-2 rounded-full bg-muted" />
@@ -914,8 +941,9 @@ function Composer({
           disabled={(!text.trim() && attached.length === 0) || uploading}
           aria-label={t("Send")}
           className={cx(
+            // the ink disc of the phone: black with a white arrow in the light theme, inverted in the dark
             "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition active:scale-95",
-            text.trim() || attached.length > 0 ? "bg-accent text-accent-fg" : "bg-surface-2 text-muted",
+            text.trim() || attached.length > 0 ? "bg-ink text-ink-fg" : "bg-surface-2 text-muted",
             "disabled:opacity-60",
           )}
         >
