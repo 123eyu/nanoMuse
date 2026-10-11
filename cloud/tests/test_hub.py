@@ -352,6 +352,56 @@ def test_reconnect_replaces_the_older_socket(client):
             assert all(len(f["devices"]) == 1 for f in frames)
 
 
+def test_a_sign_out_closes_the_hub_socket_of_the_key_it_revoked(client):
+    """Sign out everywhere is what to do after losing a phone. The lost phone's key stops
+    opening at once; its hub socket, open before the sign-out, must go too (4001 bad_key,
+    docs/hub.md), or the phone keeps a live line to the other devices until it next
+    reconnects. The device that asked keeps its socket; a session revoked by prefix from
+    the account page and a device's own sign-out close the same way."""
+    phone_key = sign_up(client, "13800138000")
+    pc_key = sign_up(client, "13800138000")
+    with connect(client, phone_key) as phone, connect(client, pc_key) as pc:
+        phone.send_json(hello("phone", "phone-1", "Pixel"))
+        phone.receive_json()
+        phone.receive_json()
+        pc.send_json(hello("computer", "pc-1", "desk"))
+        pc.receive_json()
+        pc.receive_json()
+        phone.receive_json()  # the pc arrived
+        # every other device: the phone's key is revoked, its socket closed; the pc stays
+        r = client.post("/v1/auth/sign-out-all", headers={"Authorization": f"Bearer {pc_key}"}, json={})
+        assert r.status_code == 200 and r.json()["signed_out"] == 1
+        with pytest.raises(WebSocketDisconnect) as closed:
+            phone.receive_json()
+        assert closed.value.code == 4001 and closed.value.reason == "bad_key"
+        pc.send_json({"type": "devices"})
+        assert pc.receive_json()["type"] == "devices"  # the pc's line is still open
+        r = client.get("/v1/devices", headers={"Authorization": f"Bearer {pc_key}"})
+        assert {d["id"]: d["online"] for d in r.json()["devices"]} == {"phone-1": False, "pc-1": True}
+    # a session revoked by prefix from the account page
+    key_a = sign_up(client, "dev-a@example.com")
+    key_b = sign_up(client, "dev-a@example.com")
+    with connect(client, key_b) as other:
+        other.send_json(hello("computer", "pc-2", "laptop"))
+        other.receive_json()
+        other.receive_json()
+        sessions = client.get("/v1/me/sessions", headers={"Authorization": f"Bearer {key_a}"}).json()["sessions"]
+        prefix = next(s["prefix"] for s in sessions if not s["current"])
+        assert client.delete(f"/v1/me/sessions/{prefix}", headers={"Authorization": f"Bearer {key_a}"}).status_code == 204
+        with pytest.raises(WebSocketDisconnect) as closed:
+            other.receive_json()
+        assert closed.value.code == 4001
+    # a device's own sign-out
+    with connect(client, key_a) as own:
+        own.send_json(hello("computer", "pc-3", "desk"))
+        own.receive_json()
+        own.receive_json()
+        assert client.post("/v1/auth/sign-out", headers={"Authorization": f"Bearer {key_a}"}).status_code == 204
+        with pytest.raises(WebSocketDisconnect) as closed:
+            own.receive_json()
+        assert closed.value.code == 4001
+
+
 def test_the_profile_is_shared_and_announced(client):
     """The agent's name and look live on the relay so every device of the account wears
     the same one: a PUT from one device is a ``profile`` frame on the other's socket, and
