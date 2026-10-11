@@ -342,6 +342,7 @@ final class NanoMuseAccountData {
         NanoMuseFeedStore.shared.reload()
         NanoMuseGoalStore.shared.reload()
         NanoMuseFaceStore.shared.reload()
+        NanoMuseOwnClip.shared.rescan()
         SoulStore.refreshCache()
     }
 

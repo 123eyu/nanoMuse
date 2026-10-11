@@ -149,13 +149,22 @@ final class NanoMuseFaceStore: ObservableObject {
         load()
     }
 
-    /// Back to the dragon.
+    /// Back to the dragon. The stills and the meta go; a clip of the person's own
+    /// (NanoMuseOwnClip, in the same folder) is not the drawn face's and stays.
     func reset(sync: Bool = true) {
         NanoMuseAvatarMotion.shared.clear()
-        try? FileManager.default.removeItem(at: Self.directory)
+        removeStills()
         custom = [:]
         meta = Meta()
         if sync { NanoMuseProfileSync.shared.faceChanged() }
+    }
+
+    private func removeStills() {
+        let fm = FileManager.default
+        for mood in NanoMuseMood.allCases {
+            try? fm.removeItem(at: Self.file(mood))
+        }
+        try? fm.removeItem(at: Self.metaFile)
     }
 
     /// Wear a face that another device drew (pulled from the profile). Clips are per device:
@@ -164,7 +173,7 @@ final class NanoMuseFaceStore: ObservableObject {
         guard stills[.idle] != nil else { return }
         NanoMuseAvatarMotion.shared.clear()
         let fm = FileManager.default
-        try? fm.removeItem(at: Self.directory)
+        removeStills()
         try? fm.createDirectory(at: Self.directory, withIntermediateDirectories: true)
         var kept: [NanoMuseMood: UIImage] = [:]
         for (mood, image) in stills {
@@ -240,6 +249,7 @@ final class NanoMuseFaceStore: ObservableObject {
 /// Otherwise the still, with the small life the Android header gives it: a
 /// slow breath when idle, a quicker bob while working, a tilt while
 /// waiting, a pop when happy and a shake on error. Android: AgentAvatar.kt.
+/// A clip of the person's own (NanoMuseOwnClip, #324) plays instead for every mood.
 struct NanoMuseFaceView: View {
     var mood: NanoMuseMood
     var size: CGFloat
@@ -247,15 +257,27 @@ struct NanoMuseFaceView: View {
 
     @ObservedObject private var faces = NanoMuseFaceStore.shared
     @ObservedObject private var motion = NanoMuseAvatarMotion.shared
+    @ObservedObject private var own = NanoMuseOwnClip.shared
     @Environment(\.scenePhase) private var scenePhase
     @State private var breath = false
     @State private var popped = false
     @State private var shake: CGFloat = 0
 
-    /// The clip for this mood, when there is one for the face that is worn.
+    /// The clip for this mood: the person's own, when one is set (#324), stands in for every
+    /// mood; else the drawn face's clip for this mood, or the dragon's.
     private var clip: URL? {
+        if let ownClip = own.clip { return ownClip }
         if faces.hasCustomFace { return motion.clips[mood] }
         return NanoMuseAvatarMotion.dragonClip(mood)
+    }
+
+    private var clipVersion: Int { own.clip != nil ? own.version : motion.clipVersion }
+
+    /// The still under the clip, and the face itself when there is no clip: the drawn one for
+    /// this mood, or the own clip's first frame when nothing was drawn, else the dragon.
+    private var still: UIImage? {
+        if !faces.hasCustomFace, own.clip != nil, let poster = own.poster { return poster }
+        return faces.image(for: mood)
     }
 
     var body: some View {
@@ -266,15 +288,15 @@ struct NanoMuseFaceView: View {
             if let clip {
                 ZStack {
                     // The still underneath covers the first frames while the player warms up.
-                    if let img = faces.image(for: mood) {
+                    if let img = still {
                         Image(uiImage: img).resizable().scaledToFill()
                     }
-                    NanoMuseLoopingClipView(url: clip, version: motion.clipVersion)
+                    NanoMuseLoopingClipView(url: clip, version: clipVersion)
                 }
                 .frame(width: size, height: size)
                 .clipShape(Circle())
                 .transition(.opacity)
-            } else if let img = faces.image(for: mood) {
+            } else if let img = still {
                 Image(uiImage: img)
                     .resizable()
                     .scaledToFill()
