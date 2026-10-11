@@ -2,6 +2,7 @@
 """The release-day edits to the pages that name the current version.
 
     scripts/release-docs.py <old> <new> <old-codename> <new-codename> <date> [--dry-run]
+                            [--roadmap "<one line>" --roadmap-zh "<一句话>"]
     scripts/release-docs.py 0.1.40 0.1.41 Clear Still 2026-10-20
 
 - ``CHANGELOG.md``: a ``## [<new>] - <date> · <Codename>`` heading goes right under
@@ -17,8 +18,10 @@
 - ``docs/release-notes-template.md``: the new codename joins the list.
 - ``.github/ISSUE_TEMPLATE/*.yml``: the example versions (``1.0.0 (43)``, ``desktop 1.0.0``)
   move to the new version and the ``VERSION_CODE`` that ``scripts/rebrand.py`` carries.
-- ``docs/roadmap.md`` (the past-releases table) and ``docs/parity.md`` (cells that said "next
-  release") are edited by hand.
+- ``docs/roadmap.md`` and ``docs/zh/roadmap.md``: with ``--roadmap`` and ``--roadmap-zh`` (both
+  or neither) a row ``| <new> | <NewName> | <one line> |`` goes at the end of the past-releases
+  table of each; without them the row is written by hand, like the ``docs/parity.md`` cells
+  that said "next release".
 
 ``--dry-run`` writes nothing and prints, for every page with a News list, its first three News
 lines (unchanged by this script) so the reviewer sees what a new milestone line would go above.
@@ -98,6 +101,28 @@ def edit_issue_form(text: str, old: str, new: str, code: str) -> tuple[str, int]
     return out, n1 + n2
 
 
+def add_roadmap_row(text: str, version: str, codename: str, line: str) -> str:
+    """The roadmap page with ``| version | codename | line |`` as the last row of its
+    past-releases table (the table whose separator is ``|---|---|---|``).
+
+    Raises ``ValueError`` when the page has no such table or already has a row for the
+    version; the one line is taken as written, with ``|`` not allowed in it."""
+    if "|" in line:
+        raise ValueError("the roadmap line cannot contain |")
+    lines = text.split("\n")
+    try:
+        start = next(i for i, text_line in enumerate(lines) if text_line.strip() == "|---|---|---|")
+    except StopIteration:
+        raise ValueError("no past-releases table (|---|---|---|)") from None
+    end = start + 1
+    while end < len(lines) and lines[end].startswith("|"):
+        end += 1
+    if any(text_line.startswith(f"| {version} |") for text_line in lines[start:end]):
+        raise ValueError(f"a row for {version} is already there")
+    lines.insert(end, f"| {version} | {codename} | {line.strip()} |")
+    return "\n".join(lines)
+
+
 def version_code() -> str:
     """The Android ``VERSION_CODE`` as ``scripts/rebrand.py`` carries it after the bump."""
     m = re.search(r"^VERSION_CODE = (\d+)$", Path("scripts/rebrand.py").read_text("utf-8"), re.M)
@@ -109,6 +134,18 @@ def version_code() -> str:
 def main(argv: list[str]) -> int:
     dry_run = "--dry-run" in argv
     argv = [a for a in argv if a != "--dry-run"]
+    roadmap: dict[str, str] = {}
+    for flag, page in (("--roadmap", "docs/roadmap.md"), ("--roadmap-zh", "docs/zh/roadmap.md")):
+        if flag in argv:
+            at = argv.index(flag)
+            if at + 1 >= len(argv):
+                print(f"{flag} needs the one line of the row", file=sys.stderr)
+                return 2
+            roadmap[page] = argv[at + 1]
+            del argv[at : at + 2]
+    if len(roadmap) == 1:
+        print("--roadmap and --roadmap-zh go together (one row per language)", file=sys.stderr)
+        return 2
     if len(argv) != 5:
         print(__doc__.strip().splitlines()[2].strip(), file=sys.stderr)
         return 2
@@ -154,6 +191,17 @@ def main(argv: list[str]) -> int:
         if moved:
             print(f"{name}: {moved} example version(s) now {new} ({code})")
 
+    for name, line in roadmap.items():
+        p = Path(name)
+        try:
+            text = add_roadmap_row(p.read_text(encoding="utf-8"), new, newname, line)
+        except ValueError as exc:
+            print(f"{name}: {exc}", file=sys.stderr)
+            return 1
+        if not dry_run:
+            p.write_text(text, encoding="utf-8")
+        print(f"{name}: a row for {new} {newname} at the end of the past-releases table")
+
     template = Path("docs/release-notes-template.md")
     s = template.read_text(encoding="utf-8")
     if f", {oldname} (CHANGELOG" not in s:
@@ -173,12 +221,19 @@ def main(argv: list[str]) -> int:
         if is_major(new)
         else "no News line (the News lists are milestones; this is not a major version), "
     )
+    roadmap_note = (
+        ""
+        if roadmap
+        else "docs/roadmap.md's and docs/zh/roadmap.md's past-releases rows (or run again with "
+        "--roadmap and --roadmap-zh), "
+    )
     print(
         ("dry run, nothing written. " if dry_run else "")
         + "by hand now: "
         + news
-        + "the homepage's version line and download links, docs/roadmap.md's past-releases row, "
-        "docs/parity.md, the empty Unreleased headings in CHANGELOG.md"
+        + "the homepage's version line and download links, "
+        + roadmap_note
+        + "docs/parity.md, the empty Unreleased headings in CHANGELOG.md"
     )
     return 0
 

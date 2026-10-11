@@ -19,6 +19,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 ### Project
 
 - **The READMEs' visitor counter runs on hits.sh.** The badge from komarev.com stopped showing now and then: GitHub's image proxy answers 404 for it at times, as its own tracker reports, and the badge was blank until a reload. The counter is now `hits.sh/github.com/nano-muse/nanoMuse.svg`, which also takes a starting number, so the 16,719 views counted so far are carried over; the same badge in the ten READMEs, twice each (the badge row and the end), one URL so a visit counts once.
+- **The release scripts write the roadmap rows and check the iPhone's version.** `scripts/release-docs.py` takes `--roadmap "<one line>" --roadmap-zh "<一句话>"` and puts the version's row at the end of the past-releases tables of `docs/roadmap.md` and `docs/zh/roadmap.md`, two edits the 1.0.3 release still made by hand; `scripts/release-apk.sh` refuses to publish when the iOS project's `MARKETING_VERSION` is not the release's, beside the six files it already checked.
 
 ## [1.0.3] - 2026-10-12 · Helm
 

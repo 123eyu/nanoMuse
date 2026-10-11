@@ -45,8 +45,8 @@ command -v sha256sum >/dev/null 2>&1 || sha256sum() { shasum -a 256 "$@"; }
 out="$NM_ROOT/dist/nanoMuse-$version-arm64.apk"
 
 # Every part of the release carries the same version: the runtime, the desktop app, the web
-# app (the APK is checked by badging below). Packages are named after
-# these, so one left behind shows up as a wrong file name on the release.
+# app, the iPhone app's MARKETING_VERSION (the APK is checked by badging below). Packages are
+# named after these, so one left behind shows up as a wrong file name on the release.
 echo "== versions"
 versions_ok=1
 check_version() { # file, what grep should find in it
@@ -58,6 +58,7 @@ check_version web/package.json "\"version\": \"$version\""
 check_version CITATION.cff "^version: $version$"
 check_version harness/dsh-nanomuse/package.json "\"version\": \"$version\""
 check_version harness/desktop/package.json "\"version\": \"$version\""
+check_version android/src/ios/Minis.xcodeproj/project.pbxproj "MARKETING_VERSION = $version;"
 [ $versions_ok = 1 ] || { echo "the versions above disagree — bump them first" >&2; exit 1; }
 
 # Signature + badging of one APK; exits on the debug key unless allowed.
