@@ -744,7 +744,7 @@ const ZSTD_MAGIC = Buffer.from([0x28, 0xb5, 0x2f, 0xfd])
 
 /**
  * Decompress a dsh session file. The store appends one zstd frame per write, and Node's
- * `zstdDecompressSync` stops at the first frame's end — a long chat would lose everything
+ * `zstdDecompressSync` stops at the first frame's end, so a long chat would lose everything
  * after its opening lines. So the frames are cut at the magic and decompressed one by one;
  * a frame that does not decompress is skipped rather than failing the whole read.
  */

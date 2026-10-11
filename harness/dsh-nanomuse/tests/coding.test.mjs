@@ -36,7 +36,7 @@ async function write(path, lines) {
 
 /**
  * Write a dsh session file the way the harness does: one zstd frame per write. `groups` is a
- * list of frames, each a list of JSON objects — reading it back must decompress every frame,
+ * list of frames, each a list of JSON objects; reading it back must decompress every frame,
  * not just the first.
  */
 async function writeZstdFrames(path, groups) {
@@ -77,7 +77,7 @@ async function fixtureHome(home) {
     { type: 'assistant', message: { role: 'assistant', content: [{ type: 'text', text: 'The build runs esbuild twice.' }] }, timestamp: '2026-01-03T09:00:05Z', cwd: ws, sessionId: 'c1a2b3d4-aaaa-bbbb-cccc-ddddeeeeffff' },
     { type: 'user', message: { role: 'user', content: '<local-command-stdout>ignored</local-command-stdout>' }, isMeta: true, cwd: ws },
   ])
-  // dsh: the harness's own store — one zstd frame per write (a long chat is many frames
+  // dsh: the harness's own store, one zstd frame per write (a long chat is many frames
   // appended, which is what a single zstdDecompressSync would stop at), with runtime context
   // and a subagent session that must not show up as chats the person had
   const dshDir = join(home, '.dsh', 'sessions', slugOf(ws), 'session-1111-2222-3333')

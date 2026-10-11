@@ -56,8 +56,8 @@ resumable turns out unknown to the CLI.
 
 dsh's store needs two things said: it is **zstd**, and it is **many zstd frames**
 appended as the session is written, so decompressing it once stops at the end of
-the first frame and a long chat loses everything after its opening lines — the
-frames are cut at the magic and decompressed one by one. Two kinds of session are
+the first frame and a long chat loses everything after its opening lines. The
+frames are therefore cut at the magic and decompressed one by one. Two kinds of session are
 also not chats the person had and are left out: a `user/message` whose
 `source.kind` is not `user` (runtime context, the skill catalog, background-job
 notices all arrive that way), and a session whose header says `origin:
