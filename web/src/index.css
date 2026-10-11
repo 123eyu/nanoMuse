@@ -478,3 +478,12 @@ html.desktop[data-platform="darwin"] .titlebar-room {
 .drawer-in {
   animation: om-drawer-in 0.2s ease-out;
 }
+/* with reduced motion asked for, sheets, drawers and toasts appear in place and the typing dots hold still */
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .sheet-in,
+  .drawer-in,
+  .typing-dot {
+    animation: none;
+  }
+}

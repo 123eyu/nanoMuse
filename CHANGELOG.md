@@ -10,6 +10,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Web
 
+- **Adding an MCP server with its tools marked *high* no longer fails.** The risk chips under *Connections → MCP servers* offered *high*, a level the runtime does not have, so saving answered with a 400; the third chip is now *sensitive*, the level the Sentinel knows. The API key fields, the working hours and quiet hours times, the contacts search, the chat composer and the browser take-over fields are named for screen readers, the Settings selects are tied to their labels, a sheet's title names the dialog, the toast is announced, a pending sensitive approval keeps its red edge in the dark theme, sheets and drawers appear in place under *reduce motion*, and the places that showed a bare dash (the chat model summary without a model, a goal without a next step, a reminder without a time) say so in words. The docs' description of the chat now matches the screen (the ink pill, the chats drawer top left, the + button for attachments, the `conversation` grant scope). (#380)
+
 ### Desktop
 
 ### Android
