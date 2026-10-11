@@ -17,6 +17,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 ### Web
 
 - **The phone layout's tab bar is a floating frosted-glass pill.** The five tabs sit in a rounded pill 12 px above the bottom edge, icons only and no labels; the pill is translucent over a blur of what is behind it and has a hairline edge. The current tab shows its filled glyph on a soft blue indicator, the others stay outlined in grey. The screens and the chat's composer keep clear of the pill, and the toast rises above it; a wide window and the desktop app keep the sidebar (follows #329 by @Ichiro786).
+- **Several custom OpenAI-compatible endpoints on the Connections screen.** Under *Local or your own endpoint* each endpoint of the runtime's list is a tile reading its name over its host, and *Add an endpoint* is the last tile: a name, the address, a key or *No key*, and the model ids when the endpoint does not list them. A chosen endpoint shows a card with where its key is, how many models it serves and which slots use it, with *Rename*, *Change key*, *Edit models*, *Ask for its models* and *Remove*; saving the chat model names the endpoint by id, never its key. The *Hands model* picker gains one group per other endpoint, and the *Making pictures* and *Making clips* selects list them under *Your endpoints*, so a second gateway can serve the hands while the first answers the chat. The *Chat model* summary and the *Currently* lines read the endpoint's name (reported by @Alasco123, #294).
 
 ### Desktop
 

@@ -95,7 +95,13 @@ export function Onboarding() {
 
   const identity = identityOf(state.profile, DRAGON, AVATAR_COLORS[0]);
   const preview = { ...identity, proactivity: "default" as const, proactive: true, goal_interval_minutes: 60, quiet_hours: "" };
-  const modelReady = conn ? conn.llm.key_source === "vault" || conn.llm.key_source === "config" || !!conn.providers[presetOf(conn)]?.no_key : false;
+  // an endpoint of the list (#294) may run without a key; only a key named and missing is not ready
+  const modelReady = conn
+    ? conn.llm.key_source === "vault" ||
+      conn.llm.key_source === "config" ||
+      !!conn.providers[presetOf(conn)]?.no_key ||
+      (!!conn.llm.endpoint && conn.llm.key_source === "none")
+    : false;
   const connected = !!conn && (conn.email.configured || conn.calendar.feeds.length > 0 || conn.contacts.sources.length > 0);
   const progress: Step[] = ["welcome", "list"];
   const idx = step === "welcome" ? 0 : 1;
