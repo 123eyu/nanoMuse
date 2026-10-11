@@ -59,20 +59,26 @@ stylesheet over the harness's stable DOM hooks (`data-composer-card`,
   profile panel. At the top right, *Invite* (with an account), then the harness's
   right-sidebar toggle; the harness's own title row, tabs (*Conversation* / *Trace*)
   and session actions are hidden: the chat rows carry rename, pin and archive.
-- The conversation: your messages in bubbles toned from the accent on the right, the
-  agent's in large-radius grey bubbles on the left, timestamps and the per-message
-  actions on hover only; an empty chat has no greeting: the composer waits at the
-  bottom, as in Muse, with the workspace and preset row above it.
+- The conversation is monochrome, as on the phone: your messages are ink pills on the
+  right (black with white text in the light theme, white with black text in the dark
+  one), the agent's are large-radius grey pills a step off the canvas on the left,
+  timestamps and the per-message actions on hover only; a link inside your pill keeps
+  the pill's text colour, underlined. The header is a scrim over the conversation rather
+  than a bar: messages scroll under the face and dissolve into the canvas, and no line
+  runs under it. An empty chat has no greeting: the composer waits at the bottom, as in
+  Muse, with the workspace and preset row above it.
 - The composer is one pill: *+* (attach), *Message*, the send disc (the stop square
-  while a turn runs). The harness's model picker, permission mode and plan toggle are
+  while a turn runs); the send disc and the harness's scroll-to-latest disc are the same
+  ink as your pills, with the glyph in the opposite colour. The harness's model picker, permission mode and plan toggle are
   hidden from it (the models live in Settings → Models, dsh's own Models page is under
   Advanced, and the default permission mode in General, as in Muse) and come back with
   *Show DeepSeek Harness controls* under General. The microphone appears when the harness's voice input is switched on in
   Plugins (Settings → Dictation says how).
 - Theme: the harness's light and dark palettes are overridden to Muse's tones (`#f9f9f9`
-  surfaces, `#e3e4e6` agent bubbles in the light; `#171717` with `#242424` bubbles and
-  `#2b2b2b` fields in the dark) and the accent follows the face's colour on the account,
-  so a face coloured on the phone colours the desktop too. The desktop shell paints the
+  surfaces with a plain white chat canvas, `#000000` user pills and `#f2f2f7` agent pills
+  in the light; `#171717` with `#ffffff` user pills, `#242424` agent pills and `#2b2b2b`
+  fields in the dark) and the accent follows the face's colour on the account, so a face
+  coloured on the phone colours the desktop's lights and links too. The desktop shell paints the
   window in the same base colour, so a resize never flashes white in the dark.
 
 ## The first run
