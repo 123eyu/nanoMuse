@@ -1132,7 +1132,9 @@ def create_app(
             cloud.db.note_video_check(task_id)
             done += 1
             if charged is not None:
-                log.info("video task %s settled by the relay for %s: %s, charged %d", task_id[:12], str(task["account_id"])[:8], status, charged)
+                log.info(
+                    "video task %s settled by the relay for %s: %s, charged %d", task_id[:12], str(task["account_id"])[:8], status, charged
+                )
         return done
 
     app.state.settle_video_tasks = settle_video_tasks  # the tests call it directly
@@ -1191,7 +1193,10 @@ def create_app(
         def hub_dep(caller: Caller = Depends(caller_dep)) -> Caller:
             if not cloud.controls.on("hub"):
                 raise CloudError(
-                    503, "hub_paused", "The device hub is paused on this relay for now; each device keeps working on its own.", {"paused": True}
+                    503,
+                    "hub_paused",
+                    "The device hub is paused on this relay for now; each device keeps working on its own.",
+                    {"paused": True},
                 )
             return caller
 
