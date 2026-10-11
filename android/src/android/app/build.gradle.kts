@@ -206,6 +206,10 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
 
+    // nanoMuse: the frosted-glass pill bottom bar: Haze backdrop blur, in the Pixel taskbar's manner.
+    // 1.6.10, not 2.x: Haze 1.7.x and 2.x need compileSdk 37, and this module is on 36.
+    implementation("dev.chrisbanes.haze:haze-android:1.6.10")
+
     // nanoMuse: the camera on a video call (a JPEG frame a second to the real-time model).
     val cameraX = "1.4.2"
     implementation("androidx.camera:camera-core:$cameraX")
