@@ -2,8 +2,8 @@
 
 0.22: `nanomuse-cloud admin controls list|set <switch> on|off` talks to a running relay's
 admin API (so its in-memory switches change at once), with `--base` / `--token` or
-PUBLIC_BASE / CLOUD_ADMIN_TOKEN from the environment (inside the container they are
-already set from `.env`; from a shell, source it first).
+NANOMUSE_CLOUD_BASE (else PUBLIC_BASE) / CLOUD_ADMIN_TOKEN from the environment (inside the
+container they are already set from `.env`; from a shell, source it first).
 """
 
 from __future__ import annotations
@@ -125,7 +125,7 @@ def main(argv: list[str] | None = None) -> None:
         p.add_argument("--port", type=int, default=8787)
         p.add_argument("--log-level", default="info")
     admin = sub.add_parser("admin", help="talk to a running relay's admin API")
-    admin.add_argument("--base", help="the relay's URL (default: PUBLIC_BASE or http://127.0.0.1:8787)")
+    admin.add_argument("--base", help="the relay's URL (default: NANOMUSE_CLOUD_BASE, else PUBLIC_BASE, else http://127.0.0.1:8787)")
     admin.add_argument("--token", help="the admin token (default: CLOUD_ADMIN_TOKEN)")
     admin.add_argument("--actor", help="who is doing this, for the audit log (default: cli:<user>)")
     asub = admin.add_subparsers(dest="area")
