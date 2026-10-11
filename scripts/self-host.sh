@@ -199,6 +199,11 @@ if [ "$LOCAL" = 1 ]; then
 fi
 say
 say "Starting the relay$([ "$LOCAL" = 0 ] && echo " and Caddy")…"
+# The relay runs as uid 10001 in its container; the bind-mounted data directory must be its.
+# Docker creates a missing ./data as root, so the chown runs inside the image, as root, and
+# needs no sudo on the host. Idempotent.
+"${COMPOSE[@]}" "${FILES[@]}" build relay
+"${COMPOSE[@]}" "${FILES[@]}" run --rm --no-deps --user 0 relay chown -R 10001:10001 /srv/nanomuse-cloud/data
 "${COMPOSE[@]}" "${FILES[@]}" up -d --build
 
 health="$BASE/healthz"
