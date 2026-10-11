@@ -14,6 +14,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Web
 
+- **The phone layout's tab bar is a floating frosted-glass pill.** The five tabs sit in a rounded pill 12 px above the bottom edge, icons only and no labels; the pill is translucent over a blur of what is behind it and has a hairline edge. The current tab shows its filled glyph on a soft blue indicator, the others stay outlined in grey. The screens and the chat's composer keep clear of the pill, and the toast rises above it; a wide window and the desktop app keep the sidebar (follows #329 by @Ichiro786).
+
 ### Desktop
 
 - **OpenCode Go works from the desktop.** Saving a Go key writes the model adapter's own `opencode-go` route (no `api`, no base URL), which sends `x-opencode-session` with the harness's conversation id and reaches each model on its own shape, so the models that route's catalog lists on the Responses and Messages shapes come through as well. A hand-declared route, the way the other own keys are written, sends no session id (thanks @PovedaAqui).
