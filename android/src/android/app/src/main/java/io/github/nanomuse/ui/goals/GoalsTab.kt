@@ -68,6 +68,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openminis.app.R
@@ -102,6 +103,7 @@ fun GoalsTab(
     onEditRoutine: (String?) -> Unit,
     onRoutineRuns: (String) -> Unit,
     onAllRoutines: () -> Unit,
+    bottomInset: Dp = 0.dp,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -131,7 +133,8 @@ fun GoalsTab(
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize().background(ChatColors.background),
-        contentPadding = PaddingValues(bottom = 24.dp),
+        // The last row ends above the floating pill, which overlays the page.
+        contentPadding = PaddingValues(bottom = 24.dp + bottomInset),
     ) {
         item(key = "header") { header() }
         item(key = "title") {

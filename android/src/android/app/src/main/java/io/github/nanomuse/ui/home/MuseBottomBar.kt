@@ -49,8 +49,8 @@ fun MuseBottomBar(
     // Hoisted out of the hazeEffect block: Haze 1.x's block is not a @Composable scope,
     // so MaterialTheme lookups cannot happen inside it.
     val barBackground = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f)
-    // nanoMuse: Meta AI's selected tab — white disc, black glyph in dark theme
-    // (inverted in light). Follows the chat background, not the system setting,
+    // The selected tab: a white disc with a black glyph in the dark theme,
+    // inverted in light. Follows the chat background, not the system setting,
     // since the app has its own theme override.
     val nmDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val nmSelectedBg = if (nmDark) Color.White else Color.Black

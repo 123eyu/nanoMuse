@@ -96,7 +96,7 @@ fun NmAssistantBubble(
             modifier = Modifier
                 .widthIn(max = 340.dp)
                 .clip(RoundedCornerShape(20.dp))
-                // nanoMuse: Meta AI's assistant pill — a touch off the background.
+                // The assistant's pill: a touch off the canvas, both themes.
                 .background(ChatColors.assistantBubble)
                 .padding(horizontal = 14.dp, vertical = 10.dp),
         ) {

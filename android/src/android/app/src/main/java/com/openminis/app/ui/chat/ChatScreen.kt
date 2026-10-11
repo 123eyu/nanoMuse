@@ -2611,8 +2611,8 @@ fun ChatScreen(
         containerColor = ChatColors.background,
         contentWindowInsets = WindowInsets(0),
         topBar = {
-            // nanoMuse: Meta AI's overlay header. The list slides underneath and
-            // the scrim melts it away — a soft shade at the top edge dissolving
+            // nanoMuse: the header is an overlay. The list slides underneath and
+            // the scrim melts it away: a soft shade at the top edge dissolving
             // to clear, never a bar.
             Box(
                 modifier = Modifier
@@ -2756,9 +2756,9 @@ fun ChatScreen(
                                 modifier = Modifier
                                     // nanoMuse: the name sits in a capsule under the face (Muse's name pill).
                                     .clip(CircleShape)
-                                    // nanoMuse: not userBubble — that is now the
-                                    // white Meta AI message pill; the capsule
-                                    // keeps a neutral wash.
+                                    // nanoMuse: not userBubble, which is now the
+                                    // white message pill; the capsule keeps a
+                                    // neutral wash.
                                     .background(ChatColors.secondaryBg)
                                     .clickable { io.github.nanomuse.ui.header.openSoulSettings(context) }
                                     .padding(horizontal = 12.dp, vertical = 3.dp),
@@ -3355,8 +3355,8 @@ fun ChatScreen(
                     }
                 },
                 windowInsets = WindowInsets.statusBars,
-                // nanoMuse: transparent — the gradient wrapper behind this bar
-                // carries the Meta AI header fade from the top edge.
+                // nanoMuse: transparent; the gradient wrapper behind this bar
+                // carries the header fade from the top edge.
                 colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
                     scrolledContainerColor = Color.Transparent,
@@ -3396,8 +3396,8 @@ fun ChatScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                // nanoMuse: the message list slides UNDER the header (Meta AI's
-                // overlay), so only the bottom bar insets the content. The
+                // nanoMuse: the message list slides under the header, which is an
+                // overlay, so only the bottom bar insets the content. The
                 // header itself is a scrim over the scrolling list.
                 .padding(bottom = padding.calculateBottomPadding())
                 .imePadding()
@@ -3969,10 +3969,11 @@ fun ChatScreen(
                     // breath under the title bar. Bottom padding and inter-
                     // message spacing are untouched.
                     // nanoMuse: the list slides under the overlay header, so it
-                    // starts below it (status bars + 68dp bar + breathing room).
+                    // starts below it: the Scaffold's top inset is the header's
+                    // measured height (status bar included), plus breathing room.
                     // The bottom clears the floating pill bar the same way.
                     contentPadding = PaddingValues(
-                        top = 100.dp,
+                        top = padding.calculateTopPadding() + 8.dp,
                         // nanoMuse: use this layout pass's full footer height.
                         bottom = bottomChromeHeight + bottomReserve,
                     ),
@@ -4766,11 +4767,11 @@ fun ChatScreen(
                     )
                 }
 
-                // nanoMuse: Meta AI's top vignette — when scrolled up away from
-                // the latest, the top edge gets a slow dark fade so messages
-                // dissolve under the header instead of hitting a hard edge.
-                // Distinct from the header's static scrim; this one earns its
-                // place dynamically with scroll.
+                // nanoMuse: the top vignette. When scrolled up away from the
+                // latest, the top edge gets a slow fade in the canvas colour so
+                // messages dissolve under the header instead of hitting a hard
+                // edge. Distinct from the header's static scrim; this one comes
+                // and goes with the scroll.
                 val nmTopFadeAlpha by animateFloatAsState(
                     targetValue = if (nmScrolledUp) 1f else 0f,
                     animationSpec = tween(250),
@@ -4884,16 +4885,17 @@ fun ChatScreen(
                                 tracedScrollToItem("FAB-DOWN/settle", 0, 0)
                             }
                         },
-                        // nanoMuse: Meta AI's scroll-to-latest — centered under the
-                        // conversation, white disc with a black arrow.
+                        // nanoMuse: scroll-to-latest, centered under the conversation:
+                        // a disc in the send button's colour with an arrow in the
+                        // canvas colour (white on black in dark, inverted in light).
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .padding(bottom = fabBottomPadding)
                             .shadow(6.dp, CircleShape)
                             .size(40.dp),
                         colors = androidx.compose.material3.IconButtonDefaults.filledIconButtonColors(
-                            containerColor = Color.White,
-                            contentColor = Color.Black,
+                            containerColor = ChatColors.sendButton,
+                            contentColor = ChatColors.background,
                         ),
                     ) {
                         Icon(
@@ -6971,17 +6973,16 @@ fun ChatScreen(
                             // Streaming with content → Send-into-queue; Idle with content → Send.
                             // Idle without text or attachments → disabled.
                             val canActivate = hasContent
-                            // nanoMuse: monochrome send — white disc, black arrow in
-                            // dark theme, inverted in light. No more blue accent.
-                            val nmSendDark = ChatColors.isDark
+                            // nanoMuse: monochrome send. The palette's sendButton is
+                            // white in the dark theme and black in the light one, the
+                            // arrow takes the canvas colour; no blue accent.
                             val nmSendBg = if (canActivate) {
-                                if (nmSendDark) Color.White else Color.Black
+                                ChatColors.sendButton
                             } else {
-                                if (nmSendDark) Color.White.copy(alpha = 0.15f)
-                                else Color.Black.copy(alpha = 0.08f)
+                                ChatColors.sendButton.copy(alpha = if (ChatColors.isDark) 0.15f else 0.08f)
                             }
                             val nmSendFg = if (canActivate) {
-                                if (nmSendDark) Color.Black else Color.White
+                                ChatColors.background
                             } else {
                                 ChatColors.primaryText.copy(alpha = 0.4f)
                             }

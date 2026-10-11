@@ -65,6 +65,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openminis.app.R
@@ -100,6 +101,7 @@ fun FeedTab(
     header: @Composable () -> Unit,
     onDiscuss: (FeedPost) -> Unit,
     onEditRoutine: (String) -> Unit,
+    bottomInset: Dp = 0.dp,
 ) {
     val context = LocalContext.current
     val posts by FeedStore.posts.collectAsState()
@@ -116,7 +118,8 @@ fun FeedTab(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(MuseTones.canvas),
-        contentPadding = PaddingValues(bottom = 28.dp),
+        // The last card ends above the floating pill, which overlays the page.
+        contentPadding = PaddingValues(bottom = 28.dp + bottomInset),
     ) {
         item(key = "header") { header() }
 

@@ -383,9 +383,9 @@ fun NanoMuseHome(
                 modifier = Modifier
                     .fillMaxSize()
                     .hazeSource(hazeState)
-                    // nanoMuse: no bottom inset — the pill bar is an overlay and the
-                    // content slides behind it for the frosted blur. Each tab pads
-                    // its own scrollable content above the pill.
+                    // No bottom inset: the pill bar is an overlay and the content
+                    // slides behind it for the frosted blur. The chat and each tab
+                    // keep their own scrollable content above the pill.
                     .consumeWindowInsets(PaddingValues(bottom = bottom)),
             ) {
                 // Chat tab — always composed, hidden while another tab is on top.
@@ -446,9 +446,9 @@ fun NanoMuseHome(
                 ) {
                     Surface(
                         color = ChatColors.background,
-                        // nanoMuse: no bottom padding — tab content flows behind
-                        // the pill overlay like the chat does. Tabs handle their
-                        // own bottom contentPadding internally.
+                        // No bottom padding: tab content flows behind the pill
+                        // overlay like the chat does. Each tab ends its list
+                        // above the pill through bottomInset.
                         modifier = Modifier.fillMaxSize(),
                     ) {
                         // Pages cross-fade; the header sits at the same spot on every page,
@@ -480,12 +480,14 @@ fun NanoMuseHome(
                                     header = header,
                                     onDiscuss = { discussPost(it) },
                                     onEditRoutine = { navController.safeNavigate(Routes.scheduledTaskEdit(it)) },
+                                    bottomInset = bottom,
                                 )
                                 HomeTab.IDEAS -> IdeasTab(
                                     header = header,
                                     onSendToChat = { sendToMainChat(it) },
                                     onCreateRoutine = { createRoutine(it) },
                                     onStartGoal = { category, seed -> startGoal(category, seed) },
+                                    bottomInset = bottom,
                                 )
                                 HomeTab.GOALS -> GoalsTab(
                                     header = header,
@@ -494,6 +496,7 @@ fun NanoMuseHome(
                                     onEditRoutine = { navController.safeNavigate(Routes.scheduledTaskEdit(it)) },
                                     onRoutineRuns = { navController.safeNavigate(Routes.scheduledTaskRuns(it)) },
                                     onAllRoutines = { navController.safeNavigate(Routes.SCHEDULED_TASKS) },
+                                    bottomInset = bottom,
                                 )
                                 HomeTab.LIBRARY -> LibraryTab(
                                     header = header,
@@ -503,6 +506,7 @@ fun NanoMuseHome(
                                         navController.safeNavigate(Routes.FILE_PREVIEW)
                                     },
                                     onOpenSession = { showSession(it) },
+                                    bottomInset = bottom,
                                 )
                                 HomeTab.CHAT -> Unit
                             }

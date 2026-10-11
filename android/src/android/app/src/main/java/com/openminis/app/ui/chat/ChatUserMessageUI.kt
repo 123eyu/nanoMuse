@@ -374,8 +374,8 @@ internal fun UserMessageBubble(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        // nanoMuse: ink on the Meta AI user pill (white pill/black
-                        // ink in dark theme, inverted in light) — not onSurface.
+                        // nanoMuse: ink on the user pill (white pill, black ink in
+                        // the dark theme, inverted in light), not onSurface.
                         val textColor = if (isQueued) secondaryTextColor else ChatColors.onUserBubble
                         val bubbleBg = if (isQueued) Color.Transparent else userBubbleColor
                         val shape = RoundedCornerShape(18.dp)
