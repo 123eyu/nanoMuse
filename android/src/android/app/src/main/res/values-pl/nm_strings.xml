@@ -1115,4 +1115,19 @@
     <string name="nm_models_search">Szukaj modeli</string>
     <string name="nm_models_search_clear">Wyczyść wyszukiwanie</string>
     <string name="nm_models_no_match">Żaden model nie pasuje</string>
+    <!-- Names for icon-only controls, read by screen readers (#338) -->
+    <string name="nm_a11y_show_password">Pokaż hasło</string>
+    <string name="nm_a11y_hide_password">Ukryj hasło</string>
+    <string name="nm_a11y_avatar_candidate">Kandydat %1$d</string>
+    <string name="nm_a11y_share_card">Karta %1$d</string>
+    <string name="nm_a11y_add">Dodaj</string>
+    <string name="nm_a11y_mark_done">Oznacz jako ukończone</string>
+    <string name="nm_a11y_mark_not_done">Oznacz jako nieukończone</string>
+    <string name="nm_a11y_done">Ukończone</string>
+    <string name="nm_a11y_not_done">Nieukończone</string>
+    <string name="nm_a11y_like">Lubię to</string>
+    <string name="nm_a11y_unlike">Już nie lubię</string>
+    <string name="nm_a11y_liked">Polubione</string>
+    <string name="nm_a11y_not_liked">Niepolubione</string>
+    <string name="nm_a11y_post_details">Szczegóły wpisu</string>
 </resources>

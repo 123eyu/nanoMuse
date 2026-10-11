@@ -356,7 +356,11 @@ private fun PasswordPage(onDone: () -> Unit) {
             colors = fieldColors,
             trailingIcon = {
                 IconButton(onClick = { show = !show }) {
-                    Icon(if (show) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(
+                        if (show) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                        contentDescription = stringResource(if (show) R.string.nm_a11y_hide_password else R.string.nm_a11y_show_password),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             },
             shape = RoundedCornerShape(12.dp),

@@ -1103,4 +1103,19 @@
     <string name="nm_models_search">모델 검색</string>
     <string name="nm_models_search_clear">검색 지우기</string>
     <string name="nm_models_no_match">일치하는 모델이 없습니다</string>
+    <!-- Names for icon-only controls, read by screen readers (#338) -->
+    <string name="nm_a11y_show_password">비밀번호 표시</string>
+    <string name="nm_a11y_hide_password">비밀번호 숨기기</string>
+    <string name="nm_a11y_avatar_candidate">후보 %1$d</string>
+    <string name="nm_a11y_share_card">카드 %1$d</string>
+    <string name="nm_a11y_add">추가</string>
+    <string name="nm_a11y_mark_done">완료로 표시</string>
+    <string name="nm_a11y_mark_not_done">미완료로 표시</string>
+    <string name="nm_a11y_done">완료</string>
+    <string name="nm_a11y_not_done">미완료</string>
+    <string name="nm_a11y_like">좋아요</string>
+    <string name="nm_a11y_unlike">좋아요 취소</string>
+    <string name="nm_a11y_liked">좋아요 표시됨</string>
+    <string name="nm_a11y_not_liked">좋아요 없음</string>
+    <string name="nm_a11y_post_details">게시물 세부정보</string>
 </resources>

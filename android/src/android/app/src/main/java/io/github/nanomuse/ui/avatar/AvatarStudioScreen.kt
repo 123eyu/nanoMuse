@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -140,7 +141,7 @@ fun AvatarStudioScreen(onBack: () -> Unit, onOpenSoul: () -> Unit, onOpenMediaMo
                 Box {
                     Surface(onClick = { menu = true }, shape = CircleShape, color = MuseTones.surface, border = BorderStroke(1.dp, MuseTones.hairline)) {
                         Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Filled.MoreHoriz, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+                            Icon(Icons.Filled.MoreHoriz, contentDescription = stringResource(R.string.nm_more), tint = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
@@ -315,6 +316,7 @@ fun AvatarStudioScreen(onBack: () -> Unit, onOpenSoul: () -> Unit, onOpenMediaMo
                                     val i = row * 2 + col
                                     CandidateTile(
                                         slot = slots[i],
+                                        index = i,
                                         selected = selected == i,
                                         onClick = {
                                             when (slots[i]) {
@@ -371,24 +373,25 @@ fun AvatarStudioScreen(onBack: () -> Unit, onOpenSoul: () -> Unit, onOpenMediaMo
 }
 
 @Composable
-private fun CandidateTile(slot: AvatarStudio.Slot, selected: Boolean, onClick: () -> Unit, modifier: Modifier) {
+private fun CandidateTile(slot: AvatarStudio.Slot, index: Int, selected: Boolean, onClick: () -> Unit, modifier: Modifier) {
     val shape = RoundedCornerShape(20.dp)
     val shimmer = rememberInfiniteTransition(label = "shimmer")
     val a by shimmer.animateFloat(0.45f, 1f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "shimmerAlpha")
+    // selectable, not clickable: a screen reader then says "selected" or "not selected" for the tile.
     Box(
         modifier
             .aspectRatio(1f)
             .clip(shape)
             .background(MuseTones.fill)
             .then(if (selected) Modifier.border(3.dp, MuseTones.action, shape) else Modifier)
-            .clickable(onClick = onClick),
+            .selectable(selected = selected, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         when (slot) {
             is AvatarStudio.Slot.Ready -> {
                 Image(
                     bitmap = slot.bitmap.asImageBitmap(),
-                    contentDescription = null,
+                    contentDescription = stringResource(R.string.nm_a11y_avatar_candidate, index + 1),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
