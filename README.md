@@ -177,6 +177,6 @@ nanoMuse is an independent community project, not affiliated with or endorsed by
 [GPL-3.0-or-later](LICENSE). The phone app is based on OpenMinis 1.13 (GPL-3.0), modified since 2026-09-24; see [NOTICE](NOTICE). Earlier versions of the Python line were MIT (tag `pre-openminis`).
 
 <p align="center">
-  <em>Thanks for visiting ✨ nanoMuse!</em><br><br>
+  <em>Thanks for visiting ✨ nanoMuse.</em><br><br>
   <img src="https://hits.sh/github.com/nano-muse/nanoMuse.svg?label=visitors&color=0a66e4&extraCount=16719" alt="Visitors">
 </p>

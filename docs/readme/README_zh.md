@@ -177,6 +177,6 @@ nanoMuse 是独立的社区项目，与 Meta Platforms, Inc. 无关，也未获�
 [GPL-3.0-or-later](../../LICENSE)。手机 App 基于 OpenMinis 1.13（GPL-3.0），自 2026-09-24 起修改，见 [NOTICE](../../NOTICE)。Python 线更早的版本是 MIT（tag `pre-openminis`）。
 
 <p align="center">
-  <em>感谢来访 ✨ nanoMuse！</em><br><br>
+  <em>感谢来访 ✨ nanoMuse。</em><br><br>
   <img src="https://hits.sh/github.com/nano-muse/nanoMuse.svg?label=visitors&color=0a66e4&extraCount=16719" alt="Visitors">
 </p>

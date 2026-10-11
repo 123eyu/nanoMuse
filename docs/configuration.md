@@ -446,10 +446,10 @@ update_check     = true          # Settings → About says when a newer release 
 start_grace      = 4             # seconds the services may take before the app answers anyway
 ```
 
-`update_check` asks the download mirror's index (`nanomuse.cn/dl/index.json`), then
-`api.github.com`, for the latest release once a day (sooner on *Check now*) and shows the
-version under *Settings → About* with a link to the release page; nothing is downloaded and
-nothing about the install is sent. `NANOMUSE_NO_UPDATE_CHECK=1` turns it off too, and a hosted
+`update_check` asks the download mirror's index (`nanomuse.cn/dl/index.json`) and, when that does
+not answer, `api.github.com`, for the latest release once a day (sooner on *Check now*) and shows
+the version under *Settings → About* with a link to the release page; nothing is downloaded and
+nothing about the install is sent beyond the runtime's version in the request's `User-Agent`. `NANOMUSE_NO_UPDATE_CHECK=1` turns it off too, and a hosted
 web session (a runtime started with `NANOMUSE_CLOUD_KEY`) never checks; its operator updates it.
 
 ## Where things live

@@ -61,9 +61,13 @@ Test-only: JUnit 4.13.2 (**EPL-1.0**), MockWebServer 4.12.0 (**Apache-2.0**), ko
 
 The name nanoMuse and the mark in `assets/brand/` are the project's own. Use them to refer to this project; do not use them to suggest that something else is nanoMuse or endorsed by it.
 
-## The runtime, the relay, the web console and the showcase (`nanomuse/`, `cloud/`, `web/`, `demo/`)
+## The runtime, the relay, the web console, the desktop app and the showcase (`nanomuse/`, `cloud/`, `web/`, `harness/`, `demo/`)
 
 Our own code, GPL-3.0-or-later like the rest. Third-party code inside it keeps its own licence and notice; the ports named below say where they come from.
+
+### DeepSeek Harness (MIT)
+
+The desktop app is a plugin for [DeepSeek Harness](https://www.npmjs.com/package/@deepseek-ai/dsh) (`@deepseek-ai/dsh` and the `@deepseek-ai/dsh-*` packages, 0.2.0-rc.2, MIT), carried inside nanoMuse Desktop unmodified with every package's licence file; it is not vendored in this repository (`harness/dsh-nanomuse/package.json`, `harness/desktop/scripts/prepare-dsh.mjs`). "DeepSeek Harness" and "DSH" are DeepSeek's names; *harness* in `harness/` is the word ([harness/README.md](harness/README.md#licence-and-names)). The shell is [Electron](https://github.com/electron/electron) (MIT), installed by npm at build time.
 
 ### MemGUI-Bench (MIT)
 

@@ -61,7 +61,7 @@ OpenManus 和 Manus 押韵，却是另一个手势。标志刻意做得抽象：
 | `bg` / `surface` / `surface.2` | `#000000` / `#1C1C1E` / `#2C2C2E` | — | 沿用 OpenMinis，没有改 |
 
 规则：强调色只有一个色相。OpenMinis 用 iOS 的蓝、橙、绿着色的代码块、思考文字和链接，一律改成
-`primary` 加中性色。对话本身是单色的：你的胶囊、发送按钮和当前标签都是底色上的墨色，蓝色只留给链接和状态行（`ChatColors.kt`，由 `scripts/rebrand.py` 写入）。小熊猫身上的铁锈橙留在形象里；它不是界面颜色。
+`primary` 加中性色。对话本身是单色的：你的胶囊、发送按钮和当前标签都是底色上的墨色，蓝色只留给链接和状态行（`ChatColors.kt`，由 `scripts/rebrand.py` 写入）。小龙自己的颜色留在形象里；它们不是界面颜色。
 
 ## Android 映射（S1 已完成） {#android-mapping-done-in-s1}
 

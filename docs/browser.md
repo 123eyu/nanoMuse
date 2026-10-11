@@ -1,5 +1,12 @@
 # The browser
 
+> **Partly a design record of the Python line.** The Playwright backend, the actions, the
+> logged-in `fetch` and the testing below are the Python runtime's and still hold on a
+> computer. The phone half (the `device` backend, the virtual display, the protocol under
+> *How the phone's browser works*) belonged to the Python-line Android app; in the current
+> Android app the browser is OpenMinis's `browser_use` tool, and a page that needs you is
+> handed over through its `hand_over` action ([android.md](android.md#what-the-phone-does)).
+
 The agent has one browser tool and two browsers to run it in: Chromium through Playwright on the computer the server runs on, and the phone's own WebView inside the nanoMuse app. The tool is the same either way (the same actions, the same numbered elements on the page, the same pictures in the chat, the same take-over), so a skill written against one works on the other, and a task can move from the desk to the phone without changing a line.
 
 Where the browser sits in the order of things: the agent reaches a service through its API, MCP server or command-line tool first; then through a **logged-in `fetch`** (a request that carries the browser's cookies, no page rendered); then through the browser page itself; and only last through the screen of an app on the phone ([gui.md](gui.md)). The browser is rung two and three of that ladder.

@@ -367,7 +367,7 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   等级；文件在但读不出来时（手机锁着、App 在后台被唤醒），存储等下一次调用再读，而不是从
   空表开始并把空表写回去覆盖每个账号的记录。图片和视频生成和同一服务商的聊天一样走
   「网络」里的代理（`NanoMuseProxy.SessionSlot`），失败时是每种语言都有的整句，*服务商拒绝了
-  这把密钥（HTTP 401）*、*视频超过 12 分钟仍未完成*，服务商自己的话跟在*服务商说：*后面。
+  这把密钥（HTTP 401）*、*视频超过 12 分钟仍未完成*，服务商自己的话跟在「服务商说：」后面。
 - **审计第三遍（第 11 轮）**（`NanoMuseHubTasks.swift`、`NanoMuseHub.swift`）：其他设备发来的
   `stop` 既能按任务帧的 id 找到这次运行（`stop {call}`，桌面端发的就是这个），也能按会话找；
   只有发起任务的设备能停它；停下之后任务按 [hub.md](hub.md) 的约定答 `cancelled`。socket
@@ -398,7 +398,7 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   源码，我们的 key 里出现破折号、感叹号或翻译过的中继名就失败。服务商表单在保存 key 之前先拿它
   去取服务商的模型列表：401 或 403 时手机保持原样，并在输入框下面说明原因；之前上游的回退会
   填入一份目录里的模型列表，表单像 key 正确一样关闭。订阅的 429 带的 `Retry-After` 现在会传到
-  可达性卡片，ChatGPT 或 Claude 订阅也能看到*……后重置*。动态详情的几行是一个 `Grid`，标签列
+  可达性卡片，ChatGPT 或 Claude 订阅也能看到「……后重置」。动态详情的几行是一个 `Grid`，标签列
   按最长的标签取宽；形象大小改成菜单，不再是五段分段控件。
 - **第三轮审计：版本行（1.0.x）**（`NanoMuseUpdateCheck.swift`、
   `MinisTests/NanoMuseLogicTests.swift`）：`nanomuse.cn/dl/index.json` 的形状是
