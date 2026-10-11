@@ -413,9 +413,14 @@ page it opened, named for the page you came from; a pick in the sidebar starts f
   - **Ways on**: your account's row first while signed in (what it covers right now, from
     the relay's model list), then the catalogue in the first run's groups: the region's
     providers, the ChatGPT sign-in, the rest ordered by how much they cover, the local
-    servers, a custom endpoint. Each row says what it covers, takes or changes a key inline,
+    servers, the custom endpoints. Each row says what it covers, takes or changes a key inline,
     links to the vendor's key page and has *Remove*; removing a row drops its credential and
-    any chat or hands choice that pointed at it. The ChatGPT row runs the bundled runtime's
+    any chat or hands choice that pointed at it. The custom endpoints are one row each (#294):
+    a saved endpoint reads its name over its host and has *Rename* beside *Change key* and
+    *Remove*; the *Add an endpoint* row under them adds another with a key of its own
+    (`NANOMUSE_KEY_CUSTOM`, `NANOMUSE_KEY_CUSTOM_2`, ...) without touching the others, and
+    each stands as a group of its own in the Models page's pickers. An endpoint saved before
+    this stays the first row. The ChatGPT row runs the bundled runtime's
     sign-in: *Sign in* opens OpenAI's page, the row waits with *Cancel* (and *Open the
     sign-in page* again), then reads *Signed in as ChatGPT Plus* and offers *Sign out*; the
     sign-in covers chat and the hands only, not pictures or clips, and the line about

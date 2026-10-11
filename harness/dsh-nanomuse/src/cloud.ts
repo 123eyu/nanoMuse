@@ -472,6 +472,15 @@ function trustedOf(raw: Record<string, unknown>): Record<string, { name: string;
   return out
 }
 
+/** What a hand-made endpoint is called when the person gives it no name: its host, with the port when it has one. */
+function hostNameOf(url: string): string {
+  try {
+    return new URL(url).host
+  } catch {
+    return url
+  }
+}
+
 /** The own-key rows as `cloud.json` has them: malformed ones dropped, never a key (the credential store has those). */
 function ownProvidersOf(raw: Record<string, unknown>): Record<string, OwnProvider> {
   const out: Record<string, OwnProvider> = {}
@@ -480,6 +489,8 @@ function ownProvidersOf(raw: Record<string, unknown>): Record<string, OwnProvide
     const p = value as Partial<OwnProvider>
     if (typeof p.baseURL !== 'string' || !Array.isArray(p.capabilities)) continue
     out[id] = {
+      // the key is the id; a row written before the endpoint list (#294) carries none of its own
+      id,
       provider: typeof p.provider === 'string' && p.provider ? p.provider : id,
       label: typeof p.label === 'string' && p.label ? p.label : id,
       protocol: p.protocol === 'anthropic' || p.protocol === 'gemini' || p.protocol === 'openai-responses' ? p.protocol : 'openai',
@@ -1442,22 +1453,34 @@ export default class NanomuseCloud extends Service {
    * chat models the endpoint listed (or the catalogue's defaults) — goes into the harness's model
    * adapter the way the Models page writes one. The row's capabilities are the catalogue's;
    * `custom` takes what the person says.
+   *
+   * A vendor has one row, named after its catalogue id, so saving its key again replaces it.
+   * A hand-made endpoint (`custom`) is one row per endpoint (#294): without `row`, a new one
+   * joins under the lowest free id (`custom`, `custom-2`, ...); with `row`, that row is the one
+   * changed, and an empty key keeps the key it has.
    */
-  async saveProvider(input: { id: string; apiKey?: string; baseURL?: string; label?: string; capabilities?: string[]; models?: string[]; lang?: string }): Promise<OwnProvider> {
+  async saveProvider(input: { id: string; row?: string; apiKey?: string; baseURL?: string; label?: string; capabilities?: string[]; models?: string[]; lang?: string }): Promise<OwnProvider> {
     const id = input.id.trim().toLowerCase()
     if (id === CHATGPT_PROVIDER || id === PROVIDER_ID) throw new RelayError(400, 'bad_provider', 'That row is written by a sign-in, not a key')
     const entry = this.catalogue.find((p) => p.id === id)
     if (!entry) throw new RelayError(404, 'unknown_provider', 'Not in the catalogue')
+    const wantedRow = (input.row ?? '').trim().toLowerCase()
+    const existing = wantedRow ? this.state.providers?.[wantedRow] : this.state.providers?.[id]
+    if (wantedRow && (!existing || existing.provider !== id)) throw new RelayError(404, 'not_found', 'No such row')
+    const rowId = wantedRow || (entry.id === 'custom' ? this.freeCustomRowId() : id)
     const region = this.region(input.lang ?? '')
-    const baseURL = (input.baseURL ?? '').trim().replace(/\/+$/, '') || baseUrlFor(entry, region)
+    const baseURL = (input.baseURL ?? '').trim().replace(/\/+$/, '') || (wantedRow ? existing?.baseURL : undefined) || baseUrlFor(entry, region)
     if (!/^https?:\/\//.test(baseURL)) throw new RelayError(400, 'bad_url', 'The address must start with http:// or https://')
-    const apiKey = (input.apiKey ?? '').trim()
+    let apiKey = (input.apiKey ?? '').trim()
+    // a row changed without a new key keeps the one it has, read back to ask the endpoint for its models
+    const keptKeyRef = !apiKey && wantedRow && existing?.keyRef ? existing.keyRef : ''
+    if (keptKeyRef) apiKey = await this.credential(keptKeyRef)
     if (!apiKey && !entry.auth.includes('none')) throw new RelayError(400, 'no_key', 'This provider needs a key')
     // not `bad_key`: the client reads that code as a retired sign-in
     if (apiKey && /\s/.test(apiKey)) throw new RelayError(400, 'key_shape', 'A key has no spaces in it')
     let capabilities: Capability[] = entry.capabilities
     if (entry.user_capabilities) {
-      const said = (input.capabilities ?? []).filter((c): c is Capability => (CAPABILITIES as readonly string[]).includes(c))
+      const said = (input.capabilities ?? (wantedRow ? existing?.capabilities : undefined) ?? []).filter((c): c is Capability => (CAPABILITIES as readonly string[]).includes(c))
       capabilities = CAPABILITIES.filter((c) => c === 'chat' || said.includes(c))
     }
     // A vendor that wants a session id per conversation (OpenCode Go) is reached through the
@@ -1468,24 +1491,52 @@ export default class NanomuseCloud extends Service {
     const listed = catalogRoute ? served.map((m) => ({ id: m })) : await listModelRows(entry.protocol, baseURL, apiKey)
     // The ids the person typed (a gateway that does not answer `GET /models`, or one model
     // wanted out of hundreds): first in the list, the endpoint's own after them; a typed id the
-    // list also has keeps what the list said about it (OpenRouter's thinking levels).
-    const typed = typedModelIds(input.models).filter((m) => !catalogRoute || served.includes(m))
+    // list also has keeps what the list said about it (OpenRouter's thinking levels). A row
+    // changed without new ids keeps the ones it had.
+    const typedInput = input.models ?? (wantedRow ? existing?.models.map((m) => m.id) : undefined)
+    const typed = typedModelIds(typedInput).filter((m) => !catalogRoute || served.includes(m))
     let models = modelsOf({ ...entry, capabilities }, [...typed.map((id) => listed.find((m) => m.id === id) ?? { id }), ...listed.filter((m) => !typed.includes(m.id))])
     if (entry.user_capabilities) models = models.map((m) => ({ ...m, vision: capabilities.includes('vision') }))
     // A row with no chat model cannot be served (the model adapter refuses a route that resolves
     // no models) and nothing could pick from it: a plain sentence, before anything is written.
     if (!models.some((m) => m.kind === 'chat')) throw new RelayError(400, 'no_models', 'The endpoint did not list its models (GET /models). Type the ids of the models it serves, separated by commas.')
-    const keyRef = apiKey ? keyRefFor(id) : ''
-    if (keyRef) await this.ctx.credentials.set(credentialRef(keyRef), apiKey)
-    const label = (input.label ?? '').trim() || (input.lang?.toLowerCase().startsWith('zh') ? entry.name_zh : entry.name)
-    const row: OwnProvider = { provider: id, label, protocol: entry.protocol, baseURL, keyRef, capabilities, models, at: Date.now(), ...(catalogRoute ? { catalogRoute } : {}) }
-    await this.ctx.settings.update(LLM_ROW, { providers: { [id]: ownProviderRow(row, entry.reasoning) } })
-    this.state = { ...this.state, providers: { ...this.state.providers, [id]: row } }
+    const keyRef = keptKeyRef || (apiKey ? keyRefFor(rowId) : '')
+    if (keyRef && !keptKeyRef) await this.ctx.credentials.set(credentialRef(keyRef), apiKey)
+    // a hand-made endpoint reads as its host unless named, so several are told apart
+    const fallbackLabel = entry.id === 'custom' ? hostNameOf(baseURL) : input.lang?.toLowerCase().startsWith('zh') ? entry.name_zh : entry.name
+    const label = (input.label ?? '').trim() || (wantedRow ? existing?.label : undefined) || fallbackLabel
+    const row: OwnProvider = { id: rowId, provider: id, label, protocol: entry.protocol, baseURL, keyRef, capabilities, models, at: Date.now(), ...(catalogRoute ? { catalogRoute } : {}) }
+    await this.ctx.settings.update(LLM_ROW, { providers: { [rowId]: ownProviderRow(row, entry.reasoning) } })
+    this.state = { ...this.state, providers: { ...this.state.providers, [rowId]: row } }
     await this.writeState()
-    await this.adoptOwnDefault(id, row)
+    await this.adoptOwnDefault(rowId, row)
     await this.writeHands()
     this.broadcast()
     return row
+  }
+
+  /** The lowest free id for a hand-made endpoint's row: `custom`, then `custom-2`, `custom-3`, ... (#294). */
+  private freeCustomRowId(): string {
+    const taken = this.state.providers ?? {}
+    if (!taken.custom) return 'custom'
+    for (let n = 2; ; n++) if (!taken[`custom-${n}`]) return `custom-${n}`
+  }
+
+  /**
+   * `POST /providers/rename`: a new name for an own row, in the pickers and the model adapter
+   * alike; empty goes back to the row's host (a hand-made endpoint) or the catalogue's name.
+   */
+  async renameProvider(id: string, label: string, lang = ''): Promise<OwnProvider> {
+    const row = this.state.providers?.[id]
+    if (!row || id === CHATGPT_PROVIDER) throw new RelayError(404, 'not_found', 'No such row')
+    const entry = this.catalogue.find((p) => p.id === row.provider)
+    const name = label.trim().slice(0, 80) || (row.provider === 'custom' ? hostNameOf(row.baseURL) : lang.toLowerCase().startsWith('zh') ? entry?.name_zh : entry?.name) || id
+    const renamed: OwnProvider = { ...row, label: name }
+    await this.ctx.settings.update(LLM_ROW, { providers: { [id]: ownProviderRow(renamed, entry?.reasoning) } })
+    this.state = { ...this.state, providers: { ...this.state.providers, [id]: renamed } }
+    await this.writeState()
+    this.broadcast()
+    return renamed
   }
 
   /**
@@ -1684,7 +1735,7 @@ export default class NanomuseCloud extends Service {
     const ids = listed.length ? listed : ['gpt-5.6-sol', 'gpt-5.4', 'gpt-5.4-mini']
     const label = this.chatgpt.login.label || this.state.chatgpt?.label || 'ChatGPT'
     const own: OwnModel[] = ids.map((id) => ({ id, name: id, vision: capabilities.includes('vision'), kind: 'chat' as const }))
-    const row: OwnProvider = { provider: CHATGPT_PROVIDER, label, protocol: 'openai', baseURL: url, keyRef: CHATGPT_KEY_REF, capabilities, models: own, at: Date.now() }
+    const row: OwnProvider = { id: CHATGPT_PROVIDER, provider: CHATGPT_PROVIDER, label, protocol: 'openai', baseURL: url, keyRef: CHATGPT_KEY_REF, capabilities, models: own, at: Date.now() }
     await this.ctx.settings.update(LLM_ROW, { providers: { [CHATGPT_PROVIDER]: ownProviderRow(row) } })
     const fresh = !this.state.chatgpt
     this.state = { ...this.state, providers: { ...this.state.providers, [CHATGPT_PROVIDER]: row }, chatgpt: { label, at: this.state.chatgpt?.at ?? Date.now() } }
@@ -3410,6 +3461,7 @@ export default class NanomuseCloud extends Service {
       if (req.method === 'POST' && route === '/providers/save') {
         const body = await json(req)
         const input: Parameters<typeof this.saveProvider>[0] = { id: String(body.id ?? '') }
+        if (typeof body.row === 'string' && body.row) input.row = body.row
         if (typeof body.apiKey === 'string') input.apiKey = body.apiKey
         if (typeof body.baseURL === 'string') input.baseURL = body.baseURL
         if (typeof body.label === 'string') input.label = body.label
@@ -3418,7 +3470,11 @@ export default class NanomuseCloud extends Service {
         if (Array.isArray(body.models) || typeof body.models === 'string') input.models = typedModelIds(body.models)
         const row = await this.serialize(() => this.saveProvider(input))
         // the "Use it for" card: the slots this row could take and the model each would get
-        return send(res, 200, { ...row, offer: this.slotOffer(row.provider) })
+        return send(res, 200, { ...row, offer: this.slotOffer(row.id) })
+      }
+      if (req.method === 'POST' && route === '/providers/rename') {
+        const body = await json(req)
+        return send(res, 200, await this.serialize(() => this.renameProvider(String(body.id ?? ''), String(body.label ?? ''), typeof body.lang === 'string' ? body.lang : '')))
       }
       if (req.method === 'POST' && route === '/providers/adopt') {
         const body = await json(req)
