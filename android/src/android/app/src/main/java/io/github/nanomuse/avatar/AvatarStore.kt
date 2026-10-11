@@ -45,6 +45,11 @@ object AvatarStore {
         AvatarMotion.init()
     }
 
+    /** Tests only: the pictures go under [root]; nothing is reloaded. */
+    internal fun useDirForTests(root: File) {
+        dir = root.apply { mkdirs() }
+    }
+
     fun root(): File = dir
     fun candidatesDir(): File = File(dir, "candidates").apply { mkdirs() }
     fun baseFile(): File = File(dir, "base.png")

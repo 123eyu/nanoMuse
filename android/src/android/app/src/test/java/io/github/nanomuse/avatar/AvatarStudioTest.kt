@@ -1,12 +1,105 @@
 package io.github.nanomuse.avatar
 
+import android.content.Context
+import android.content.ContextWrapper
+import android.graphics.Bitmap
+import com.openminis.app.data.model.ProviderCredential
+import com.openminis.app.data.model.ProviderInstance
+import com.openminis.app.data.model.ProviderType
+import io.github.nanomuse.avatar.AvatarStudio.Slot
 import io.github.nanomuse.ui.avatar.AgentMood
+import java.io.IOException
+import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 
 class AvatarStudioTest {
+    @get:Rule val tmp = TemporaryFolder()
+
+    private val endpoint = ImageGen.Endpoint(
+        instance = ProviderInstance(id = "p", label = "p", providerType = ProviderType.openAI, credentialType = ProviderCredential.apiKey),
+        apiKey = "k",
+        model = "m",
+    )
+    private val context: Context = object : ContextWrapper(null) {}
+    private val realDrawer = AvatarStudio.drawer
+
+    @After fun restore() {
+        AvatarStudio.drawer = realDrawer
+    }
+
+    /** The stubbed android.jar cannot make a Bitmap the usual way; its no-argument constructor does. */
+    private fun picture(): Bitmap = Bitmap::class.java.getDeclaredConstructor().apply { isAccessible = true }.newInstance()
+
+    private suspend fun waitUntil(what: String, condition: () -> Boolean) {
+        withTimeout(5_000) { while (!condition()) delay(10) }
+        assertTrue(what, condition())
+    }
+
+    @Test fun `a cancelled run does not mark the tiles of its replacement failed`() = runBlocking {
+        AvatarStore.useDirForTests(tmp.newFolder())
+        val firstGate = CompletableDeferred<Unit>()
+        val secondGate = CompletableDeferred<Unit>()
+        val pandas = AtomicInteger(0)
+        val bitmap = picture()
+        // Two pictures are drawn at a time (the lane), so a set has two calls in flight and two waiting.
+        AvatarStudio.drawer = { _, _, _, prompt ->
+            if ("panda" in prompt) { pandas.incrementAndGet(); firstGate.await() } else secondGate.await()
+            bitmap
+        }
+        AvatarStudio.startCandidates(context, endpoint, "a round red panda", AvatarStudio.Style.MUSE, null)
+        val first = AvatarStudio.candidateJob!!
+        waitUntil("the first set is being drawn") { pandas.get() == 2 }
+        // A second description while the first set is still drawing: the first run is cancelled,
+        // its four coroutines see CancellationException and must stay out of the new tiles.
+        AvatarStudio.startCandidates(context, endpoint, "a small blue whale", AvatarStudio.Style.MUSE, null)
+        first.join()
+        assertTrue(AvatarStudio.slots.value.toString(), AvatarStudio.slots.value.all { it is Slot.Loading })
+        secondGate.complete(Unit)
+        AvatarStudio.candidateJob!!.join()
+        assertTrue(AvatarStudio.slots.value.toString(), AvatarStudio.slots.value.all { it is Slot.Ready })
+        assertEquals(null, AvatarStudio.error.value)
+    }
+
+    @Test fun `a retry that finishes after a new set is asked for does not touch the new tiles`() = runBlocking {
+        AvatarStore.useDirForTests(tmp.newFolder())
+        val retryGate = CompletableDeferred<Unit>()
+        val secondGate = CompletableDeferred<Unit>()
+        val bitmap = picture()
+        var phase = 0
+        AvatarStudio.drawer = { _, _, _, _ ->
+            when (phase) {
+                0 -> throw IOException("boom")
+                1 -> { retryGate.await(); bitmap }
+                else -> { secondGate.await(); bitmap }
+            }
+        }
+        AvatarStudio.startCandidates(context, endpoint, "a round red panda", AvatarStudio.Style.MUSE, null)
+        AvatarStudio.candidateJob!!.join()
+        assertTrue(AvatarStudio.slots.value.all { it is Slot.Failed })
+        phase = 1
+        AvatarStudio.retrySlot(context, 0)
+        waitUntil("the retry is being drawn") { AvatarStudio.slots.value[0] is Slot.Loading }
+        phase = 2
+        AvatarStudio.startCandidates(context, endpoint, "a small blue whale", AvatarStudio.Style.MUSE, null)
+        // The retry was launched outside the run, so nothing cancels it; its picture belongs to
+        // the old set and must not land in the new one.
+        retryGate.complete(Unit)
+        delay(300)
+        assertTrue(AvatarStudio.slots.value.toString(), AvatarStudio.slots.value.all { it is Slot.Loading })
+        secondGate.complete(Unit)
+        AvatarStudio.candidateJob!!.join()
+        assertTrue(AvatarStudio.slots.value.toString(), AvatarStudio.slots.value.all { it is Slot.Ready })
+    }
 
     @Test fun `four candidates get four different prompts from one description`() {
         val prompts = (0 until 4).map { AvatarStudio.buildPrompt("A round red panda", AvatarStudio.Style.FLAT, it) }
