@@ -95,6 +95,14 @@ jobs:
           export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/$NDK_VERSION"
           ./gradlew :app:testDebugUnitTest --tests 'io.github.nanomuse.*' --console=plain --no-daemon
 
+      # The on-device tests cannot run here (no emulator), but the source set must keep
+      # compiling or io.github.nanomuse.reach.ReachHubInstrumentedTest never runs anywhere (#332).
+      - name: androidTest compiles
+        working-directory: android/src/android
+        run: |
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/$NDK_VERSION"
+          ./gradlew :app:compileDebugAndroidTestKotlin --console=plain --no-daemon
+
       - name: Badging
         run: |
           bt="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"

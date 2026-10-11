@@ -75,13 +75,15 @@ object TerminalSanitizer {
                 continue
             }
 
-            // Split on CR and simulate overwriting.
-            // Each CR resets cursor to column 0. The last non-empty segment wins.
-            val segments = line.split('\r')
-            val lastNonEmpty = segments.lastOrNull { it.isNotEmpty() }
-            if (lastNonEmpty != null) {
-                result.append(lastNonEmpty)
+            // nanoMuse: a CR moves the cursor to column 0 and the next segment overwrites from there;
+            // shorter text keeps the old tail, so "AAAA\rBB" is "BBAA", not "BB" (#334)
+            val buf = StringBuilder()
+            for (segment in line.split('\r')) {
+                for ((column, ch) in segment.withIndex()) {
+                    if (column < buf.length) buf.setCharAt(column, ch) else buf.append(ch)
+                }
             }
+            result.append(buf)
         }
 
         return result.toString()
