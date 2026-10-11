@@ -357,6 +357,23 @@
     <string name="nm_avatar_use_this">Использовать этот</string>
     <string name="nm_avatar_use_this_hint">Дальше из него в фоне рисуются настроения: работает, ждёт, готово, ошибка.</string>
     <string name="nm_avatar_footer">Картинки хранятся на этом телефоне в minis-global/nanomuse/avatar. Каждый образ стоит пять изображений у вашего провайдера: одно выбранное плюс четыре настроения.</string>
+    <string name="nm_own_clip_title">Ваш собственный клип</string>
+    <string name="nm_own_clip_body">Короткое видео из вашей галереи играет как лицо в покое, а остальные состояния тоже используют его. MP4 или MOV с видео H.264, не длиннее 15 секунд и не больше 30 МБ; играет без звука, по кругу.</string>
+    <string name="nm_own_clip_on">Ваш клип включён и играет в каждом состоянии; там, где показывается неподвижная картинка, по-прежнему используются нарисованные. «Лицо по умолчанию» убирает его.</string>
+    <string name="nm_own_clip_local">Клип остаётся на этом телефоне. Он не загружается в nanoMuse Cloud и не синхронизируется с другими вашими устройствами.</string>
+    <string name="nm_own_clip_choose">Выбрать клип</string>
+    <string name="nm_own_clip_replace">Заменить клип</string>
+    <string name="nm_own_clip_default">Лицо по умолчанию</string>
+    <string name="nm_own_clip_menu">Ваш собственный клип…</string>
+    <string name="nm_own_clip_preview_title">Предпросмотр</string>
+    <string name="nm_own_clip_preview_body">Так он играет как лицо: без звука, по кругу, обрезанный до круга.</string>
+    <string name="nm_own_clip_details">%1$d с · %2$s</string>
+    <string name="nm_own_clip_use">Использовать</string>
+    <string name="nm_own_clip_refused_format">Этот файл здесь не подходит. Выберите MP4 или MOV с видео H.264, не длиннее 15 секунд и не больше 30 МБ.</string>
+    <string name="nm_own_clip_refused_long">Этот клип длится %1$d с. Предел 15 секунд, и 30 МБ.</string>
+    <string name="nm_own_clip_refused_large">Этот клип весит %1$s. Предел 30 МБ, и 15 секунд.</string>
+    <string name="nm_own_clip_unreadable">Не удалось прочитать клип. Попробуйте другой.</string>
+    <string name="nm_a11y_own_clip_preview">Предпросмотр вашего клипа</string>
 
     <!-- First run (Muse-style welcome; the steps are OpenMinis' provider and model screens) -->
     <string name="nm_setup_title">Добро пожаловать в nanoMuse</string>

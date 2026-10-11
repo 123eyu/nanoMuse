@@ -348,6 +348,23 @@
     <string name="nm_avatar_use_this">これにする</string>
     <string name="nm_avatar_use_this_hint">次に、表情（作業中、待機中、完了、おっと）をこの画像からバックグラウンドで描きます。</string>
     <string name="nm_avatar_footer">画像は端末の minis-global/nanomuse/avatar に保存されます。顔 1 つにつきプロバイダから 5 枚の画像を使います: 選んだ 1 枚と 4 つの表情です。</string>
+    <string name="nm_own_clip_title">自分の動画</string>
+    <string name="nm_own_clip_body">自分の短い動画が待機中の顔として再生され、他の状態でも同じ動画が使われます。H.264 の MP4 または MOV、最長 15 秒、最大 30 MB。無音でループ再生されます。</string>
+    <string name="nm_own_clip_on">自分の動画が有効で、すべての状態で再生されます。静止画が使われる場所では描かれた画像がそのまま使われます。「標準の顔」で取り除けます。</string>
+    <string name="nm_own_clip_local">動画はこの端末にだけ保存されます。nanoMuse Cloud にアップロードされず、他の端末にも同期されません。</string>
+    <string name="nm_own_clip_choose">動画を選ぶ</string>
+    <string name="nm_own_clip_replace">動画を差し替える</string>
+    <string name="nm_own_clip_default">標準の顔</string>
+    <string name="nm_own_clip_menu">自分の動画…</string>
+    <string name="nm_own_clip_preview_title">プレビュー</string>
+    <string name="nm_own_clip_preview_body">顔として再生されるとこうなります: 無音、ループ、円形に切り抜き。</string>
+    <string name="nm_own_clip_details">%1$d 秒 · %2$s</string>
+    <string name="nm_own_clip_use">使う</string>
+    <string name="nm_own_clip_refused_format">このファイルはここでは使えません。H.264 の MP4 または MOV で、15 秒以内かつ 30 MB 以内のものを選んでください。</string>
+    <string name="nm_own_clip_refused_long">この動画は %1$d 秒あります。上限は 15 秒、および 30 MB です。</string>
+    <string name="nm_own_clip_refused_large">この動画は %1$s あります。上限は 30 MB、および 15 秒です。</string>
+    <string name="nm_own_clip_unreadable">動画を読み込めませんでした。別のものを試してください。</string>
+    <string name="nm_a11y_own_clip_preview">自分の動画のプレビュー</string>
 
     <!-- First run (Muse-style welcome; the steps are OpenMinis' provider and model screens) -->
     <string name="nm_setup_title">nanoMuse へようこそ</string>

@@ -351,6 +351,23 @@
     <string name="nm_avatar_use_this">Utiliser celui-ci</string>
     <string name="nm_avatar_use_this_hint">Les humeurs (au travail, en attente, terminé, oups) en seront dessinées ensuite, en arrière-plan.</string>
     <string name="nm_avatar_footer">Les images sont stockées sur ce téléphone sous minis-global/nanomuse/avatar. Chaque visage coûte cinq images chez votre fournisseur : celle que vous avez choisie plus quatre humeurs.</string>
+    <string name="nm_own_clip_title">Votre propre clip</string>
+    <string name="nm_own_clip_body">Une courte vidéo à vous s\'affiche comme visage au repos, et les autres humeurs s\'y rabattent. MP4 ou MOV en vidéo H.264, 15 secondes et 30 Mo au plus ; elle tourne en boucle, sans le son.</string>
+    <string name="nm_own_clip_on">Votre clip est actif et joue pour chaque humeur ; là où une image fixe est montrée, les images dessinées restent. « Visage par défaut » le retire.</string>
+    <string name="nm_own_clip_local">Le clip reste sur ce téléphone. Il n\'est ni envoyé à nanoMuse Cloud ni synchronisé avec vos autres appareils.</string>
+    <string name="nm_own_clip_choose">Choisir un clip</string>
+    <string name="nm_own_clip_replace">Remplacer le clip</string>
+    <string name="nm_own_clip_default">Visage par défaut</string>
+    <string name="nm_own_clip_menu">Votre propre clip…</string>
+    <string name="nm_own_clip_preview_title">Aperçu</string>
+    <string name="nm_own_clip_preview_body">Voici comment il joue comme visage : sans le son, en boucle, recadré dans le cercle.</string>
+    <string name="nm_own_clip_details">%1$d s · %2$s</string>
+    <string name="nm_own_clip_use">Utiliser</string>
+    <string name="nm_own_clip_refused_format">Ce fichier ne peut pas être utilisé ici. Choisissez un MP4 ou MOV en vidéo H.264, 15 secondes et 30 Mo au plus.</string>
+    <string name="nm_own_clip_refused_long">Ce clip dure %1$d secondes. La limite est de 15 secondes, et 30 Mo.</string>
+    <string name="nm_own_clip_refused_large">Ce clip pèse %1$s. La limite est de 30 Mo, et 15 secondes.</string>
+    <string name="nm_own_clip_unreadable">Le clip n\'a pas pu être lu. Essayez-en un autre.</string>
+    <string name="nm_a11y_own_clip_preview">Aperçu de votre clip</string>
 
     <!-- First run (Muse-style welcome; the steps are OpenMinis' provider and model screens) -->
     <string name="nm_setup_title">Bienvenue dans nanoMuse</string>
