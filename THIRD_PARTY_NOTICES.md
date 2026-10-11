@@ -29,6 +29,7 @@ The app is a modified copy of [OpenMinis](https://github.com/OpenMinis/OpenMinis
 | Coil (coil-compose) | 2.7.0 | **Apache-2.0** |
 | multiplatform-markdown-renderer (+ m3), mikepenz | 0.33.0 | **Apache-2.0** |
 | Reorderable (sh.calvin.reorderable) | 2.4.0 | **Apache-2.0** |
+| Haze (dev.chrisbanes.haze:haze-android), the blur behind the bottom bar | 1.6.10 | **Apache-2.0** |
 | ACRA (acra-core) | 5.12.0 | **Apache-2.0** |
 | Shizuku API + provider (dev.rikka.shizuku) | 13.1.5 | **MIT** |
 | RealTimeCutVADLibraryForAndroid (JitPack) | see build file | **MIT** (Silero VAD **MIT**, ONNX Runtime **MIT**, WebRTC APM **BSD-3-Clause**) |

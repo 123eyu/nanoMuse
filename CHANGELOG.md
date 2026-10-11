@@ -20,6 +20,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Android
 
+- **The bottom bar is a floating frosted-glass pill.** The five tabs sit in a rounded pill a little above the bottom edge, icons only and no labels; the pill blurs what is behind it and has a hairline edge. The current tab shows a filled glyph on a soft indicator that springs across, the others stay outlined. The menus take the chat's own canvas, black in dark and white in light, with a hairline edge instead of a tinted surface (thanks @Ichiro786, #329).
 - **OpenCode Go works on the phone.** Chat and Responses requests to OpenCode's host carry `x-opencode-session`, the chat's prompt cache key (a hash of its first message, the same on every turn), beside the app's own `nanoMuse/<version>` user agent; the ways-on card lists Go from the relay's new `session_providers`, and a provider set up on Go's address is told apart from Zen by the whole address (thanks @PovedaAqui).
 
 ### iOS
@@ -326,12 +327,10 @@ Keel: the first stable version. What has been a preview since 2026-09-25 is now 
 - **The connectors' background token refresh runs in one supervised scope**, and two cross-thread flags (the browser hand-over waiter, the profile sync timer) are marked volatile.
 - Copy buttons use the current Compose clipboard API and the open-in-new icon mirrors in right-to-left layouts; the Android build has no warnings in nanoMuse's code.
 - CI runs the Android unit tests (`io.github.nanomuse.*`) after building the debug APK.
-<<<<<<< HEAD
 - **The Library shows the signed-in account's files only.** On a phone two accounts share, the Library tab listed the workspaces of the other account's chats as well; it now follows the chat list's rule (the account's own sessions, or the local ones when signed out), and a workspace whose chat is gone is not listed.
 - **Connector keys and client secrets are masked while typed**, with the eye to show them, like the other key fields in the app.
 - **The Hands page follows its switch wherever it is flipped**: a change made while the page is open shows at once instead of after reopening it.
 - **Another device can stop a task it asked this phone to run.** The hub's `stop {call}` / `stop {conversation}` ends the run after the step in flight and the task answers `cancelled`; it used to answer `stopped: false` and let the task run on. Only the device that asked may stop it.
-- **The bottom bar is a floating frosted-glass pill.** The five tabs sit in a rounded pill that blurs whatever is behind it, icons only; the current tab shows a filled glyph on a soft indicator that springs in.
 
 ### iOS
 

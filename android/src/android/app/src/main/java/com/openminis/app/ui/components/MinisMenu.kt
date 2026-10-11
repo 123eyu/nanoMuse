@@ -71,7 +71,7 @@ fun MinisMenu(
     // in dark, a subtle shade in light) so the menu pops out — same fix already
     // validated on the text-selection toolbar (T-android-text-toolbar-dark-
     // visibility). The dark-mode `border` below adds the extra edge definition.
-    // nanoMuse: pure canvas like the drawer and chat — black in dark, white in
+    // nanoMuse: pure canvas like the drawer and chat, black in dark and white in
     // light. The hairline border carries the definition.
     containerColor: Color = ChatColors.background,
     tonalElevation: Dp = 3.dp,
