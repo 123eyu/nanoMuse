@@ -379,24 +379,35 @@ struct NanoMuseHomeView: View {
     }
 
     var body: some View {
-        // The bottom bar is a row under the rooms, as on Android — not a `safeAreaInset`.
-        // 0.1.36–0.1.39 had it as one, and an inset on the NavigationStack's ancestor reaches
-        // the chat inside it through UIKit's safe area. What the device showed (iPad, 0.1.39;
-        // the maintainer's iPhone, 0.1.36–0.1.38): the chat respected the bar's 56 pt at
-        // launch, and once the bar had left for the keyboard and come back it no longer did —
-        // the chat ran under the bar and its composer, bottom-aligned, sat behind it ("the
-        // input field shows until I dismiss the keyboard, then never again"; the sliver of a
-        // composer's top edge above the bar in the 0.1.36 screenshot). A VStack row is plain
-        // layout: the stack above is as tall as what is left over the bar — and over the
-        // keyboard, which shortens the whole VStack — whether the bar is there or not.
-        VStack(spacing: 0) {
+        // The chat never gets the bottom bar as a `safeAreaInset`. 0.1.36 to 0.1.39 had it as
+        // one, and an inset on the NavigationStack's ancestor reaches the chat inside it through
+        // UIKit's safe area. What the device showed (iPad, 0.1.39; the maintainer's iPhone,
+        // 0.1.36 to 0.1.38): the chat respected the bar's 56 pt at launch, and once the bar had
+        // left for the keyboard and come back it no longer did: the chat ran under the bar and
+        // its composer, bottom-aligned, sat behind it ("the input field shows until I dismiss
+        // the keyboard, then never again"; the sliver of a composer's top edge above the bar in
+        // the 0.1.36 screenshot). 0.1.40 made the bar a VStack row under the rooms, plain layout:
+        // the chat is as tall as what is left over the bar, and over the keyboard, whether the
+        // bar is there or not. The floating pill keeps that for the chat as bottom padding of
+        // the bar's height, the same layout by another name. The rooms are plain SwiftUI
+        // scroll views with no NavigationStack, so they take the bar's height as a safe-area
+        // inset instead: their content scrolls under the pill and the glass has something to
+        // blur. The pill itself lies over both, aligned to the bottom, inside the safe area.
+        ZStack(alignment: .bottom) {
             ZStack {
                 chatLayer
+                    .padding(.bottom, bottomBarHidden ? 0 : NanoMuseBottomBar.height)
+                    .background(ChatColors.background.ignoresSafeArea())
                     .opacity(tab == .chat ? 1 : 0)
                     .allowsHitTesting(tab == .chat)
                     .accessibilityHidden(tab != .chat)
                 if tab != .chat {
                     roomLayer
+                        .safeAreaInset(edge: .bottom, spacing: 0) {
+                            Color.clear
+                                .frame(height: bottomBarHidden ? 0 : NanoMuseBottomBar.height)
+                                .allowsHitTesting(false)
+                        }
                         .transition(.opacity)
                 }
             }
@@ -796,31 +807,60 @@ private struct NanoMuseClassicCover: View {
 
 // MARK: - Bottom bar
 
+/// Android's MuseBottomBar: a floating frosted-glass pill a little above the bottom edge, five
+/// glyphs and no labels. The pill is `.ultraThinMaterial` under the shell's surface tone at 55
+/// percent, with a 1 pt hairline; the current tab shows its filled glyph on a soft indicator
+/// capsule that springs across to the tab tapped next, the others stay outlined and muted.
 struct NanoMuseBottomBar: View {
     @Binding var selected: NanoMuseTab
     var onPick: (NanoMuseTab) -> Void
+    @Namespace private var indicator
+
+    /// A tab's tap box.
+    static let tabSize = CGSize(width: 60, height: 46)
+    /// The pill's padding around the tap boxes.
+    static let pillPadding: CGFloat = 8
+    /// Between the pill and the bottom safe area.
+    static let bottomGap: CGFloat = 12
+    /// How much of the screen the bar takes above the safe area: what the rooms and the chat
+    /// leave free under their content so nothing lies behind the pill.
+    static var height: CGFloat { tabSize.height + pillPadding * 2 + bottomGap }
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 2) {
             ForEach(NanoMuseTab.allCases) { tab in
+                let isSelected = selected == tab
                 Button {
                     onPick(tab)
                 } label: {
-                    Image(systemName: selected == tab ? tab.selectedSymbol : tab.symbol)
-                        .font(.system(size: 22, weight: selected == tab ? .semibold : .regular))
-                        .foregroundStyle(selected == tab ? Color.primary : Color.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 56)
-                        .contentShape(Rectangle())
+                    Image(systemName: isSelected ? tab.selectedSymbol : tab.symbol)
+                        .font(.system(size: 22, weight: isSelected ? .semibold : .regular))
+                        .foregroundStyle(isSelected ? NanoMuseTones.tabIndicatorGlyph : Color.secondary)
+                        .frame(width: Self.tabSize.width, height: Self.tabSize.height)
+                        .background {
+                            if isSelected {
+                                Capsule()
+                                    .fill(NanoMuseTones.tabIndicator)
+                                    .matchedGeometryEffect(id: "indicator", in: indicator)
+                            }
+                        }
+                        .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(Text(tab.title))
-                .accessibilityAddTraits(selected == tab ? .isSelected : [])
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
             }
         }
-        .background(.bar)
-        .overlay(alignment: .top) {
-            NanoMuseTones.hairline.frame(height: 0.5)
+        .padding(.horizontal, 14)
+        .padding(.vertical, Self.pillPadding)
+        .background {
+            Capsule().fill(.ultraThinMaterial)
+            Capsule().fill(NanoMuseTones.surface.opacity(0.55))
         }
+        .overlay(Capsule().strokeBorder(NanoMuseTones.hairline, lineWidth: 1))
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: selected)
+        .frame(maxWidth: .infinity)
+        .padding(.bottom, Self.bottomGap)
     }
 }
 
