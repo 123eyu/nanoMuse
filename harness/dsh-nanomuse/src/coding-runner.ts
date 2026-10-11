@@ -5,6 +5,7 @@
  *     cursor-agent -p --output-format stream-json --stream-partial-output --force [--resume <id>] [--workspace <dir>] <text>
  *     codex exec [resume <id>] --json --skip-git-repo-check -c sandbox_mode="workspace-write" [-C <dir>] <text>
  *     claude -p --output-format stream-json --verbose --permission-mode acceptEdits [--resume <id>] <text>
+ *     dsh --profile headless --json [--session-id <id>] <text>
  *
  * Each prints one JSON object a line; the shapes differ, so `normalise` turns them into
  * the few kinds the apps show: `started`, `text` (the agent's words), `tool` (something it
@@ -151,6 +152,7 @@ const AGENT_ENV_PREFIXES: Record<AgentId, string[]> = {
   cursor: ['CURSOR_'],
   codex: ['OPENAI_', 'CODEX_'],
   claude: ['ANTHROPIC_', 'CLAUDE_'],
+  dsh: ['DSH_', 'DEEPSEEK_'],
 }
 const CLAUDE_CLOUD: Record<string, string[]> = {
   CLAUDE_CODE_USE_BEDROCK: ['AWS_'],
@@ -203,6 +205,15 @@ export function commandFor(agent: AgentId, cli: string, sessionId: string, works
     // edits inside the workspace without asking; `exec` never prompts anyway
     cmd.push('--json', '--skip-git-repo-check', '-c', 'sandbox_mode="workspace-write"')
     if (workspace && !(resume && sessionId)) cmd.push('-C', workspace)
+    cmd.push(text)
+    return cmd
+  }
+  if (agent === 'dsh') {
+    // the harness's own one-shot runner: `dsh headless "<task>" --json` prints one projected
+    // JSON object a line; `--session-id` adopts an existing session (the runner's cwd is the
+    // workspace, so the spawn's cwd is what makes a resumed session match its recorded one)
+    const cmd = [cli, '--profile', 'headless', '--json']
+    if (resume && sessionId) cmd.push('--session-id', sessionId)
     cmd.push(text)
     return cmd
   }
@@ -333,6 +344,37 @@ export function normalise(agent: AgentId, obj: Obj, run: Run): RunEvent[] {
       let msg: unknown = obj.error ?? obj.message ?? ''
       if (isObj(msg)) msg = msg.message ?? ''
       out.push({ kind: 'error', text: String(msg) })
+    }
+  } else if (agent === 'dsh') {
+    // `dsh headless --json`: `session` opens, `status` marks the turns and steps, `text` and
+    // `thinking` come from committed messages, `tool_call`/`tool_result` are the tools, and
+    // the terminal `final` carries the answer (the last line, never bounded).
+    if (t === 'session') {
+      const sid = String(obj.sessionId ?? '')
+      if (sid) run.result_session_id = sid
+      out.push({ kind: 'started', text: '', session_id: sid, cwd: obj.cwd ?? '' })
+    } else if (t === 'text') {
+      const text = String(obj.text ?? '')
+      if (text) {
+        run.output = append(run.output, (run.output ? '\n' : '') + text)
+        out.push({ kind: 'text', text })
+      }
+    } else if (t === 'tool_call') {
+      run.tools += 1
+      out.push({ kind: 'tool', text: briefTool(String(obj.tool ?? ''), obj.input ?? {}), phase: 'started' })
+    } else if (t === 'tool_result') {
+      out.push({ kind: 'tool', text: String(obj.status ?? 'completed'), phase: 'completed' })
+    } else if (t === 'final') {
+      run.commit()
+      const final = String(obj.text ?? '')
+      if (final && !run.output.includes(final)) run.output = append(run.output, (run.output ? '\n' : '') + final)
+      out.push({ kind: 'done', text: final || run.output, session_id: run.result_session_id })
+    } else if (t === 'status' && isObj(obj.reason)) {
+      const reason = obj.reason
+      if (String(reason.kind ?? '') === 'error') {
+        const err = isObj(reason.error) ? reason.error : {}
+        out.push({ kind: 'error', text: String(err.message ?? '') })
+      }
     }
   } else {
     if (t === 'system' && obj.subtype === 'init') {

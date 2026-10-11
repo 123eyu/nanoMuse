@@ -1,7 +1,7 @@
 # Coding agents
 
-The Cursor, Codex and Claude Code sessions on your computer, seen and steered from
-any device of your account (the phone on the way home, the browser, another
+The Cursor, Codex, Claude Code and dsh sessions on your computer, seen and steered
+from any device of your account (the phone on the way home, the browser, another
 computer) and from the Muse itself.
 
 Nothing is installed into the agents and nothing is proxied through anyone's
@@ -23,7 +23,7 @@ the frames.
   agent with its version, how many of its processes run right now and its
   chats), then the account's other computers; an agent's chats, a chat's
   transcript, a composer, the run as it streams (text and tools) and a *Stop*
-  button. A computer with none of the three installed says so.
+  button. A computer with none of them installed says so.
 - **The Muse**: ask it ("what did I ask Cursor to do last?", "tell Codex in the
   api repo to add a test for the parser"), and it uses the `coding_agents` tool
   with the same read-only readers and the same runner, on this computer or,
@@ -40,6 +40,7 @@ phone never does.
 | Cursor | `~/.cursor/projects/<workspace-slug>/agent-transcripts/<id>/<id>.jsonl`; CLI chats also `~/.cursor/chats/<hash>/<id>/meta.json` (the `cwd`) | `cursor-agent -p --output-format stream-json --stream-partial-output --force [--resume <id>] [--workspace <dir>] "<text>"` |
 | Codex | `~/.codex/sessions/YYYY/MM/DD/rollout-<time>-<id>.jsonl` | `codex exec [resume <id>] --json --skip-git-repo-check -c sandbox_mode="workspace-write" [-C <dir>] "<text>"` |
 | Claude Code | `~/.claude/projects/<workspace-slug>/<id>.jsonl` | `claude -p --output-format stream-json --verbose --permission-mode acceptEdits [--resume <id>] "<text>"` |
+| dsh (DeepSeek Harness) | `~/.dsh/sessions/<workspace-slug>/<id>/session.v4.jsonl.zstd` | `dsh --profile headless --json [--session-id <id>] "<text>"` |
 
 Reading is best effort: a line that does not parse is skipped, a missing
 directory is an agent with no sessions. The `~` is the user's home unless
@@ -52,6 +53,15 @@ goes straight out as a fresh CLI chat in the same workspace, with the old chat's
 title and last exchange quoted, and the run says `resumed: false`; the apps say
 so above the composer. The same fallback runs when a chat the store called
 resumable turns out unknown to the CLI.
+
+dsh's store needs two things said: it is **zstd**, and it is **many zstd frames**
+appended as the session is written, so decompressing it once stops at the end of
+the first frame and a long chat loses everything after its opening lines — the
+frames are cut at the magic and decompressed one by one. Two kinds of session are
+also not chats the person had and are left out: a `user/message` whose
+`source.kind` is not `user` (runtime context, the skill catalog, background-job
+notices all arrive that way), and a session whose header says `origin:
+"subagent"` or names a `parentSession`.
 
 `running` on an agent is the number of its processes alive right now, read from
 `/proc` on Linux, `ps` on macOS and `tasklist` (plus the command lines of
@@ -66,11 +76,12 @@ after a grace period.
 ## Where it runs
 
 Every agent runs with the permissions it has on that computer (Codex in
-`workspace-write`, Claude Code with `acceptEdits`, Cursor with `--force`) and
-edits files there. Sending a message is therefore treated like running a
-command on that computer: the request travels only between devices of one
-account, over the account's own hub session, and the computer can refuse remote
-control altogether (*Remote control* off keeps `coding.*` local). On the desktop
+`workspace-write`, Claude Code with `acceptEdits`, Cursor with `--force`, dsh
+headless under its own sandbox policy) and edits files there. Sending a message
+is therefore treated like running a command on that computer: the request travels
+only between devices of one account, over the account's own hub session, and the
+computer can refuse remote control altogether (*Remote control* off keeps
+`coding.*` local). On the desktop
 app `coding.send` and `coding.stop` pass the same gate as `shell` and `files`:
 with *Remote control* off, a device that is not yet trusted raises a card on the
 screen, and the answer (once, always, no, or none in time) decides; the

@@ -1,6 +1,6 @@
 # 编程助手
 
-你电脑上的 Cursor、Codex 和 Claude Code 会话，从你账号下的任何一台设备都能看、能指挥（回家路上的手机、浏览器、另一台电脑），也能由 Muse 自己来做。
+你电脑上的 Cursor、Codex、Claude Code 和 dsh 会话，从你账号下的任何一台设备都能看、能指挥（回家路上的手机、浏览器、另一台电脑），也能由 Muse 自己来做。
 
 什么都不装进这些助手里，什么都不经过谁的服务器中转。电脑上的运行时或桌面版读取助手留在磁盘上的东西，有新消息时启动它们自己的命令行界面，再把返回的内容流式传回来。另一台设备通过 hub（设备互联）发出请求；hub 只负责传帧。
 
@@ -8,7 +8,7 @@
 
 - **手机**：抽屉里的「编程助手」一行（或「设置 → 编程助手」，或 `nanomuse://coding` 链接）。选一台电脑、一个助手、一个会话；读记录；输入一条消息，看着它跑（文字一边生成一边显示，工具一个个被调用），跑偏了就停掉。
 - **网页版**：「编程助手」页面。这台电脑上的助手在最上面，账号下其他电脑的排在后面。
-- **桌面版**：「设置 → 编程助手」，也可以从「设置 → 设备」里设备卡片上的「编程助手」标签打开。先是这台电脑（每个助手的版本、此刻在跑的进程数和它的聊天），再是账号下的其他电脑；一个助手的聊天列表、一个聊天的记录、输入框、边跑边显示的运行（文字和工具）和一个「停止」按钮。三个都没装的电脑会如实说明。
+- **桌面版**：「设置 → 编程助手」，也可以从「设置 → 设备」里设备卡片上的「编程助手」标签打开。先是这台电脑（每个助手的版本、此刻在跑的进程数和它的聊天），再是账号下的其他电脑；一个助手的聊天列表、一个聊天的记录、输入框、边跑边显示的运行（文字和工具）和一个「停止」按钮。一个都没装的电脑会如实说明。
 - **Muse**：直接问它（「我上次让 Cursor 做了什么？」「让 api 仓库里的 Codex 给解析器加一个测试」），它会用 `coding_agents` 工具，读的是同一套只读读取器，跑的是同一个运行器，在这台电脑上，或者带上 `device`，在另一台上。
 
 只有在 hub 上声明了 `coding.*` 动作的电脑才会出现：跑着运行时的，或装了桌面版的（桌面版同样声明这些动作）；手机永远不会。
@@ -20,8 +20,11 @@
 | Cursor | `~/.cursor/projects/<workspace-slug>/agent-transcripts/<id>/<id>.jsonl`；CLI 聊天另有 `~/.cursor/chats/<hash>/<id>/meta.json`（里面的 `cwd`） | `cursor-agent -p --output-format stream-json --stream-partial-output --force [--resume <id>] [--workspace <dir>] "<text>"` |
 | Codex | `~/.codex/sessions/YYYY/MM/DD/rollout-<time>-<id>.jsonl` | `codex exec [resume <id>] --json --skip-git-repo-check -c sandbox_mode="workspace-write" [-C <dir>] "<text>"` |
 | Claude Code | `~/.claude/projects/<workspace-slug>/<id>.jsonl` | `claude -p --output-format stream-json --verbose --permission-mode acceptEdits [--resume <id>] "<text>"` |
+| dsh（DeepSeek Harness） | `~/.dsh/sessions/<workspace-slug>/<id>/session.v4.jsonl.zstd` | `dsh --profile headless --json [--session-id <id>] "<text>"` |
 
 读取是尽力而为：解析不了的一行跳过，目录不存在就当这个助手没有会话。`~` 是用户的主目录，除非 `NANOMUSE_CODING_HOME` 指向了别的目录（比如一个把宿主机的 CLI 主目录挂到别处的容器，或者一个测试）。一个会话列出它的助手、id、标题（第一条用户消息）、工作区、时间戳、消息数、最后一轮对话，以及是否 `resumable`。Cursor 的 IDE 聊天能读但不能从 CLI 续上（`resumable: false`，`source: "ide"`）：发给它的消息会直接作为一个新的 CLI 聊天在同一个工作区里发出，引用旧聊天的标题和最后一轮对话，运行结果写明 `resumed: false`；App 会在输入框上方说明这一点。当一个被存储标为可续的聊天在 CLI 那里查无此号时，走的也是同样的回退。
+
+dsh 的存储有两点要说明：它是 **zstd** 压缩的，而且是随着会话写入**一帧帧追加**的，所以只解压一次会在第一帧结束处停下，长聊天会丢掉开头几行之后的所有内容——帧按魔数切开，逐帧解压。另有两种会话不是人聊过的对话，会被排除：`source.kind` 不是 `user` 的 `user/message`（运行时上下文、技能目录、后台任务通知都是以这种方式到达的），以及 header 里写着 `origin: "subagent"` 或带有 `parentSession` 的会话。
 
 助手的 `running` 是它此刻还活着的进程数，Linux 上读 `/proc`，macOS 上用 `ps`，Windows 上用 `tasklist`（外加 `node.exe` 的命令行，因为 Cursor CLI 是随 node 打包的）；从不使用 `pgrep -f`，而且每两秒最多读一次。
 
@@ -29,7 +32,7 @@
 
 ## 在哪里跑 {#where-it-runs}
 
-每个助手都以它在那台电脑上拥有的权限运行（Codex 在 `workspace-write` 下，Claude Code 带 `acceptEdits`，Cursor 带 `--force`），并且在那里改文件。所以发一条消息被当作在那台电脑上运行一条命令来对待：请求只在同一个账号的设备之间传递，走该账号自己的 hub 会话，而且那台电脑可以完全拒绝远程控制（「远程控制」关掉后，`coding.*` 只在本机可用）。在桌面版上，`coding.send` 和 `coding.stop` 过的是和 `shell`、`files` 同一道关：「远程控制」关着时，尚未信任的设备会在屏幕上弹出一张卡片，由回答（这一次、总是、不行，或没人及时回答）决定；只读动作直接应答，不问。
+每个助手都以它在那台电脑上拥有的权限运行（Codex 在 `workspace-write` 下，Claude Code 带 `acceptEdits`，Cursor 带 `--force`，dsh headless 按它自己的沙箱策略），并且在那里改文件。所以发一条消息被当作在那台电脑上运行一条命令来对待：请求只在同一个账号的设备之间传递，走该账号自己的 hub 会话，而且那台电脑可以完全拒绝远程控制（「远程控制」关掉后，`coding.*` 只在本机可用）。在桌面版上，`coding.send` 和 `coding.stop` 过的是和 `shell`、`files` 同一道关：「远程控制」关着时，尚未信任的设备会在屏幕上弹出一张卡片，由回答（这一次、总是、不行，或没人及时回答）决定；只读动作直接应答，不问。
 
 助手自己的 API key 和登录状态是它们自己的；nanoMuse 从不接触。记录是从磁盘读出来给你看的；除了发起请求的那台设备，不会发给任何地方。
 

@@ -185,7 +185,7 @@ export class CodingService {
     return this.detected
   }
 
-  /** Whether any of the three is on this computer (CLI or store). */
+  /** Whether any of them is on this computer (CLI or store). */
   async anyInstalled(): Promise<boolean> {
     return (await this.agents()).some((a) => a.installed)
   }
