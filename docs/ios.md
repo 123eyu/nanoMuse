@@ -321,8 +321,10 @@ Ours, in `NanoMuse/`:
   bottom bar was a `safeAreaInset` on the `NavigationStack`'s ancestor, hidden while the keyboard is
   up; the chat respected that inset at launch and no longer after the bar had left and come back,
   so the whole chat ran under the bar and the composer, bottom-aligned, laid out, healthy by every
-  measure the watchdog had, sat behind it. Since 0.1.40 the **bar is a row under the rooms** (a
-  `VStack`, as on Android), and the composer column (the cards, the tool strip, the input bar) is
+  measure the watchdog had, sat behind it. Since 0.1.40 the **bar is laid out under the chat by
+  plain layout, never as an inset of the chat's ancestor** (a `VStack` row in 0.1.40; since the
+  floating pill bar, below, bottom padding of the bar's height on the chat layer, which is the same
+  layout), and the composer column (the cards, the tool strip, the input bar) is
   likewise **a row under the message list**: `NanoMuseComposerHost` is a plain `VStack`, the list is
   passed a bottom inset of 0, the `/` and `@` popup is an overlay of the list's bottom edge and so
   stands on the column's top edge by layout. Nothing lies over the UIKit list and there is no
@@ -522,6 +524,26 @@ Ours, in `NanoMuse/`:
   *Not set* state is no longer reachable through this switch. A provider of your own switched off
   on its page keeps upstream's path: the chat re-resolves through the default group and, when
   nothing is left, says *No model configured. Add a provider in Settings.*
+- **The bottom bar is a floating pill** (`NanoMuseShell.swift` → `NanoMuseBottomBar`,
+  `NanoMuseTones.tabIndicator` / `tabIndicatorGlyph` in `NanoMuseFaces.swift`; Android's
+  `MuseBottomBar`, #329 by @Ichiro786): the five tabs sit in a `Capsule` 12 pt above the bottom
+  safe area, as wide as the composer above it (the same 16 pt margins; 420 pt at most, centred on
+  a wider screen), icons only, with the same SF symbols, accessibility labels and selected trait as
+  before. The pill is `.ultraThinMaterial` under the shell's surface tone at 55 percent opacity (the
+  tint carries the contrast, the material carries the blur, as Android's 55 percent surface over its
+  backdrop blur) with a 1 pt `NanoMuseTones.hairline` edge; the old full-width strip and its hairline
+  on top are gone. The five tabs share the pill's width equally, each slot tappable across; the
+  current one shows the filled symbol in `tabIndicatorGlyph` on a 60 by 46 pt capsule of
+  `tabIndicator` (Android's primaryContainer and onPrimaryContainer: `#E5F0FF` with `#012F80` in
+  light, `#1A2B4A` with `#E5F0FF` in dark) that slides to the tab tapped next with a spring
+  (`matchedGeometryEffect`); the others show the outlined symbol in the secondary colour. The bar
+  still leaves while the keyboard or the chat's voice panel is up. Layout: the pill lies over the
+  rooms and the chat in a `ZStack` aligned to the bottom. The chat keeps the 0.1.40 rule above
+  (bottom padding of the bar's height, 70 pt: 46 plus 6 above and below plus the 12 pt gap, so the
+  composer sits above the pill and nothing is an inset of the `NavigationStack`'s ancestor); the
+  rooms, plain SwiftUI scroll views, take the same height as a `safeAreaInset`, so their content
+  scrolls under the pill and the glass has something to blur. Written on Linux without a Mac: the
+  iOS check compiles it, and no device has shown it yet.
 
 ## Voice prompts from the Action Button
 
