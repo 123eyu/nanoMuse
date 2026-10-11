@@ -18,9 +18,13 @@
  * failed to load or was not drawn, the error mood. Without a clip the face and
  * the emoji move as a whole instead: breathe when idle, sway while working, hop
  * while waiting. A clip pauses while the window is hidden.
+ *
+ * A clip of the person's own (`own-clip.ts`, #324) plays instead, for every mood, when one
+ * is set on this computer; the stills keep their place, and with no drawn face the clip's
+ * first frame is the still.
  */
 import { createElement as h, useEffect, useRef, useState, type CSSProperties, type ReactElement } from 'react'
-import { useLive, type Live, type LiveMotion, type LiveProfile } from './live.ts'
+import { useLive, type Live, type LiveMotion, type LiveOwnClip, type LiveProfile } from './live.ts'
 import type { Translate } from './api.ts'
 
 export type Mood = 'idle' | 'working' | 'waiting' | 'happy' | 'error'
@@ -31,10 +35,19 @@ const CLIP_MIN_PX = 44
 const noClip = new Set<string>()
 const reducedMotion = typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-/** Document-relative, so it resolves under whatever mount served the page. */
-export function stillUrl(profile: LiveProfile | undefined, mood: Mood = 'idle'): string {
+/**
+ * Document-relative, so it resolves under whatever mount served the page. With `ownClip`
+ * and no drawn face, the own clip's first frame stands in for the dragon.
+ */
+export function stillUrl(profile: LiveProfile | undefined, mood: Mood = 'idle', ownClip?: LiveOwnClip | null): string {
   if (profile?.avatar === 'face' && profile.faceId) return `nanomuse/assets/face/${profile.faceId}/${mood}.webp`
+  if (ownClip?.poster) return `nanomuse/avatar/own-clip.png?v=${ownClip.v}`
   return `nanomuse/assets/dragon-${mood}.webp`
+}
+
+/** The person's own clip, when one is set: the same for every mood, keyed by its mtime. */
+export function ownClipUrl(ownClip: LiveOwnClip | null | undefined): string | null {
+  return ownClip ? `nanomuse/avatar/own-clip.mp4?v=${ownClip.v}` : null
 }
 
 /**
@@ -92,8 +105,9 @@ export function Avatar({ size, profile, mood = 'idle', className, title, still =
   const live = useLive()
   const visible = useVisible()
   const video = useRef<HTMLVideoElement | null>(null)
-  const candidate = still || reducedMotion || size < CLIP_MIN_PX ? null : clipUrl(profile, mood, live.motion)
+  const candidate = still || reducedMotion || size < CLIP_MIN_PX ? null : ownClipUrl(live.ownClip) ?? clipUrl(profile, mood, live.motion)
   const clip = candidate && !noClip.has(candidate) ? candidate : null
+  const poster = stillUrl(profile, mood, live.ownClip)
   // the whole face moves when nothing inside it does
   const motion = still || clip || reducedMotion ? '' : mood === 'working' ? ' nm-avatar-working' : mood === 'waiting' ? ' nm-avatar-waiting' : mood === 'idle' ? ' nm-avatar-idle' : ''
 
@@ -106,26 +120,27 @@ export function Avatar({ size, profile, mood = 'idle', className, title, still =
 
   const box: CSSProperties = { width: size, height: size }
   const emoji = profile?.avatar === 'emoji'
-  const inner = emoji
-    ? h('span', { className: 'nm-avatar-emoji', style: { background: profile.color || '#0064d4', fontSize: Math.round(size * 0.58), lineHeight: `${size}px` } }, profile.emoji || '✨')
-    : clip
-      ? h('video', {
-          key: clip,
-          ref: video,
-          src: clip,
-          poster: stillUrl(profile, mood),
-          autoPlay: visible,
-          loop: true,
-          muted: true,
-          playsInline: true,
-          disablePictureInPicture: true,
-          'aria-hidden': true,
-          onError: () => {
-            noClip.add(clip)
-            bump((n) => n + 1)
-          },
-        })
-      : h('img', { src: stillUrl(profile, mood), alt: '', width: size, height: size, draggable: false })
+  // the own clip plays over any look; without it an emoji is drawn, not loaded
+  const inner = clip
+    ? h('video', {
+        key: clip,
+        ref: video,
+        src: clip,
+        poster,
+        autoPlay: visible,
+        loop: true,
+        muted: true,
+        playsInline: true,
+        disablePictureInPicture: true,
+        'aria-hidden': true,
+        onError: () => {
+          noClip.add(clip)
+          bump((n) => n + 1)
+        },
+      })
+    : emoji
+      ? h('span', { className: 'nm-avatar-emoji', style: { background: profile.color || '#0064d4', fontSize: Math.round(size * 0.58), lineHeight: `${size}px` } }, profile.emoji || '✨')
+      : h('img', { src: poster, alt: '', width: size, height: size, draggable: false })
 
   return h(
     'span',

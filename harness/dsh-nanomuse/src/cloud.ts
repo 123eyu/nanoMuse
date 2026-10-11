@@ -53,6 +53,7 @@ import { TaskRunner, textOf } from './task.ts'
 import { SCREEN_RUN_IDLE_MS, ScreenRuns, Trajectory, type ScreenRun, type StepAction, type TrajectoryView } from './trajectory.ts'
 import { RemoteStore, SyncEngine, SyncRelay, type RemoteLine, type SessionInfo, type SessionLine, type SyncState } from './sync.ts'
 import { AvatarMotion, ANIMATED, type MotionMood, type MotionView } from './motion.ts'
+import { OwnClip, type OwnClipView } from './own-clip.ts'
 import { DEFAULT_VIDEO_MODEL, hostOf, KNOWN_DASHSCOPE_MODELS, looksLikeVideoModel, probe as probeVideoModel, speaksDashScope, type VideoEndpoint } from './video.ts'
 import { editImage as ownEditImage, generateImage as ownGenerateImage, imageShapeOf, type ImageEndpoint } from './images.ts'
 import { checkMove, checkScreenshot, displayInfo, isBlack, runtimeInfo, screenHead, type MoveCheck, type RuntimeInfo, type ScreenshotCheck } from './hands-check.ts'
@@ -273,6 +274,8 @@ export interface LiveState {
   update: UpdateInfo | null
   /** The face's clips: which exist (with a cache key) and how the drawing goes (desk-b). */
   motion: MotionView
+  /** The person's own clip as the face (#324): its size, cache key and whether a first frame was kept; null for none. Absent on an older host. */
+  ownClip?: OwnClipView | null
   /** When the hands last saw an all-black screen (macOS: Screen Recording missing, or granted after the app started); 0 when they have not. */
   blackScreenAt: number
   /** Conversation sync (C8): `rev` moves with every change pulled or pushed; the session that is the account's main conversation. */
@@ -617,6 +620,8 @@ export default class NanomuseCloud extends Service {
   private lastSharedConnectors = ''
   /** The face's clips (desk-b). */
   readonly motion: AvatarMotion
+  /** The person's own clip as the face (#324), this computer's alone. */
+  readonly ownClip: OwnClip
   private blackScreenAt = 0
   private handsMount: HandsMount = { at: 0, ok: true, reason: '' }
   /** The own-key catalogue (C11), from `assets/providers.json`. */
@@ -648,6 +653,10 @@ export default class NanomuseCloud extends Service {
       still: (mood) => this.faceStill(mood),
       onChange: () => this.broadcast(),
       log: (level, text) => this.ctx.logger[level](text),
+    })
+    this.ownClip = new OwnClip({
+      dir: join(this.dir(), 'avatar'),
+      onChange: () => this.broadcast(),
     })
     this.hub = new HubClient({
       url: this.relay.hubURL,
@@ -684,6 +693,7 @@ export default class NanomuseCloud extends Service {
     // The face's clips follow the face (C3): a face drawn here or pulled from the account drops the
     // old clips and, with the Media setting on and a video model at hand, is animated again.
     await this.motion.init().catch((error: unknown) => this.ctx.logger.warn('nanomuse: avatar clips not read: %s', message(error)))
+    await this.ownClip.init().catch((error: unknown) => this.ctx.logger.warn('nanomuse: own clip not read: %s', message(error)))
     this.profile.onChange(() => void this.animateNewFace().catch((error: unknown) => this.ctx.logger.warn('nanomuse: avatar motion: %s', message(error))))
     this.hub.onState(() => this.broadcast())
     this.hub.onDevices(() => this.broadcast())
@@ -1942,6 +1952,7 @@ export default class NanomuseCloud extends Service {
       handsModel: this.handsModel(),
       update: this.state.update ?? null,
       motion: this.motion.view(),
+      ownClip: this.ownClip.view(),
       blackScreenAt: this.blackScreenAt,
       sync: this.sync ? { rev: this.sync.view().rev, mainSession: this.sync.state.mainSession } : { rev: 0, mainSession: '' },
       ownKeys: {
@@ -3468,6 +3479,28 @@ export default class NanomuseCloud extends Service {
       }
       if (req.method === 'POST' && route === '/media/dismiss') {
         this.motion.clearProgress()
+        return send(res, 204)
+      }
+      // A clip of the person's own as the face (#324): the picked file comes as the body, is looked at and
+      // kept as a pending copy for the preview; "Use" makes it the clip, "Cancel" drops it, "Default face" removes it.
+      if (req.method === 'POST' && route === '/own-clip/stage') {
+        const staged = await this.ownClip.stage(req)
+        if (staged.ok) return send(res, 200, staged)
+        const seconds = Math.floor((staged.probe.durationMs ?? 0) / 1000)
+        return send(res, staged.why === 'too_large' ? 413 : 415, { error: { code: `clip_${staged.why}`, message: `The clip was refused: ${staged.why}` }, seconds, bytes: staged.probe.bytes })
+      }
+      if (req.method === 'POST' && route === '/own-clip/use') {
+        const body = await json(req, 2 * 1024 * 1024)
+        const poster = typeof body.poster === 'string' && body.poster ? Buffer.from(body.poster, 'base64') : undefined
+        if (!(await this.ownClip.use(poster))) return send(res, 409, { error: { code: 'no_pending', message: 'No clip waiting to be used' } })
+        return send(res, 200, { ownClip: this.ownClip.view() })
+      }
+      if (req.method === 'POST' && route === '/own-clip/discard') {
+        await this.ownClip.discard()
+        return send(res, 204)
+      }
+      if (req.method === 'POST' && route === '/own-clip/clear') {
+        await this.ownClip.clear()
         return send(res, 204)
       }
       // Settings → Computer use: the runtime and the "try it" checks (desk-b)
