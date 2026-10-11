@@ -14,6 +14,14 @@
 # The gateway reaches Docker through `docker-proxy`, which lets through what starting and
 # stopping containers takes and nothing else of the daemon (no exec, images, volumes, build).
 
+# The three services' own logs (`docker compose logs`): the gateway writes a line per request
+# and per session, so a file that is rolled, not one that grows for as long as the box runs.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
 services:
   caddy:
     build:
@@ -26,6 +34,7 @@ services:
         GOPROXY: ${GOPROXY:-https://proxy.golang.org,direct}
     image: ghcr.io/nano-muse/showcase-caddy:${SHOWCASE_TAG:-latest}
     restart: unless-stopped
+    logging: *logging
     ports:
       - "80:80"
       - "443:443"
@@ -54,6 +63,7 @@ services:
     build: ./gateway
     image: ghcr.io/nano-muse/showcase-gateway:${SHOWCASE_TAG:-latest}
     restart: unless-stopped
+    logging: *logging
     env_file: .env
     environment:
       INTERNAL_URL: http://gateway:8000
@@ -77,6 +87,7 @@ services:
   docker-proxy:
     image: tecnativa/docker-socket-proxy:0.3
     restart: unless-stopped
+    logging: *logging
     environment:
       CONTAINERS: "1"
       POST: "1"

@@ -3,6 +3,7 @@ config/config.toml
 config/*.local.toml
 .env
 .env.*
+*.env
 !.env.example
 
 # runtime data
