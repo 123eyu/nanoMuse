@@ -129,7 +129,9 @@ header is not a bar but a scrim: the conversation scrolls under it and dissolves
 canvas, and a second fade appears at the top edge while you read older messages. The palette
 is `ui/theme/ChatColors.kt`, written by `scripts/rebrand.py`.
 
-The message composer stays above the floating navigation pill. While the agent uses tools,
+The message composer stays above the floating navigation pill, and the pill is as wide as the
+composer (the same 16 dp margins; 420 dp at most, centred on a wider screen), so the two
+capsules stack with one edge. While the agent uses tools,
 the step bar sits above the composer; the latest message and tool pills can scroll fully
 above both. The conversation still scrolls behind the navigation pill for its frosted blur.
 The spacing follows the actual footer height when the composer expands or a tool preview
