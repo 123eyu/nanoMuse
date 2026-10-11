@@ -72,7 +72,7 @@ cd website && npm ci && npm run docs:build       # also the dead-link check; `np
 - **Commits** follow Conventional Commits (`feat(android): …`, `fix(relay): …`), carry a DCO sign-off (`git commit -s`), and are merged by rebase or merge commit, never squash.
 - **No secrets, ever.** No keys, tokens, phone numbers, e-mail addresses or private hosts in code, docs, tests or fixtures; the one address allowed is the maintainer's contact in the READMEs' *Maintainers* table, there at his request. `config/config.toml` and `cloud/.env` are git-ignored; secrets reach the model as `{{vault:NAME}}` and nothing else.
 - **Some material stays out of the repository.** Muse's system prompt, Meta's brand screenshots, anything decompiled or intercepted from the Muse app, and internal planning (budgets, capacity estimates, promotion drafts). A screenshot we publish has order numbers, names, addresses, hostnames and keys masked.
-- **Issues and outside pull requests** are handled as [CONTRIBUTING.md](CONTRIBUTING.md#issues-and-pull-requests-maintainers) says: labels on every issue, a fix says `For #N` and the issue is closed by hand once the fix ships, a contributor's commit is never rewritten.
+- **Issues and outside pull requests** are handled as [CONTRIBUTING.md](CONTRIBUTING.md#issues-and-pull-requests-maintainers) says: labels on every issue and every pull request (the *Labels* workflow adds the platform and the kind), a fix says `For #N` and the issue is closed by hand once the fix ships, a contributor's commit is never rewritten.
 - **Everything that acts goes through the Sentinel** with an honest `risk`; tests use `MockLLM`; Ruff line length 100; type hints everywhere.
 
 ## Wire contracts

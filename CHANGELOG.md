@@ -38,6 +38,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 ### Project
 
 - **The Android test sources follow the code again, and CI keeps the on-device set compiling.** `ExecutionCoordinatorInstrumentedTest` still read a single `mountedSessionId` the coordinator dropped when it moved to one shell per session, so `compileDebugAndroidTestKotlin` failed with eight unresolved references and our own `ReachHubInstrumentedTest` could never run; its assertions now observe the per-session shells through one small test accessor, and the Android workflow compiles the instrumentation sources after the unit tests. `OpenAIProviderTest` fed `sendMessage` plain JSON bodies while the provider deliberately streams every request and folds the deltas, so 14 of its cases failed with the empty-response error; the fixtures are SSE streams now, the request assertions expect `stream: true` with `stream_options.include_usage`, and the empty-choices case expects the documented transient error (reported by @Mola-maker, #332, #335).
+- **Every pull request carries labels.** A *Labels* workflow adds the platforms from the files a pull request touches (`android`, `ios`, `desktop`, `web`, `runtime`, `cloud`) and its kind from the title (`enhancement`, `bug`, `documentation`, `ci`, `release`, `maintenance`); the pull requests merged so far were labelled the same way by hand.
 
 ## [1.0.2] - 2026-10-11 · Trim
 
