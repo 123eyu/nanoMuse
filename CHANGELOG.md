@@ -20,6 +20,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Android
 
+- **The bottom bar is a floating frosted-glass pill.** The five tabs sit in a rounded pill a little above the bottom edge, icons only and no labels; the pill blurs what is behind it and has a hairline edge. The current tab shows a filled glyph on a soft indicator that springs across, the others stay outlined. The menus take the chat's own canvas, black in dark and white in light, with a hairline edge instead of a tinted surface (thanks @Ichiro786, #329).
 - **OpenCode Go works on the phone.** Chat and Responses requests to OpenCode's host carry `x-opencode-session`, the chat's prompt cache key (a hash of its first message, the same on every turn), beside the app's own `nanoMuse/<version>` user agent; the ways-on card lists Go from the relay's new `session_providers`, and a provider set up on Go's address is told apart from Zen by the whole address (thanks @PovedaAqui).
 
 ### iOS
