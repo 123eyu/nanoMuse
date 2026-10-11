@@ -1,6 +1,6 @@
 # Coding agents
 
-The Cursor, Codex, Claude Code and dsh sessions on your computer, seen and steered
+The Cursor, Codex, Claude Code and DeepSeek Harness sessions on your computer, seen and steered
 from any device of your account (the phone on the way home, the browser, another
 computer) and from the Muse itself.
 

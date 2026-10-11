@@ -1,5 +1,5 @@
 /**
- * Settings → Coding agents: the Cursor, Codex, Claude Code and dsh chats on this computer and
+ * Settings → Coding agents: the Cursor, Codex, Claude Code and DeepSeek Harness chats on this computer and
  * on the account's other computers (`docs/coding-agents.md`). This computer's agents at
  * the top — name, version, how many are running — the other computers as chips after
  * them (each read over the hub by the host); pick an agent → its chats (title, workspace,
@@ -190,7 +190,7 @@ function StatusPill({ t, status }: { t: Translate; status: string }): ReactNode 
 }
 
 function agentName(agents: CodingAgent[] | undefined, id: string): string {
-  return agents?.find((a) => a.id === id)?.name ?? ({ cursor: 'Cursor', codex: 'Codex', claude: 'Claude Code', dsh: 'dsh' } as Record<string, string>)[id] ?? id
+  return agents?.find((a) => a.id === id)?.name ?? ({ cursor: 'Cursor', codex: 'Codex', claude: 'Claude Code', dsh: 'DeepSeek Harness' } as Record<string, string>)[id] ?? id
 }
 
 /** Live runs on one computer: the shadows carry the other computer's name; local ones none. */

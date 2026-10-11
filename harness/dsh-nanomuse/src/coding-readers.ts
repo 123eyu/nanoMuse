@@ -44,7 +44,7 @@ export const AGENTS: Record<AgentId, AgentSpec> = {
   cursor: { name: 'Cursor', bins: ['cursor-agent', 'agent'], process: ['cursor-agent', 'cursor'] },
   codex: { name: 'Codex', bins: ['codex'], process: ['codex'] },
   claude: { name: 'Claude Code', bins: ['claude'], process: ['claude'] },
-  dsh: { name: 'dsh', bins: ['dsh'], process: ['dsh'] },
+  dsh: { name: 'DeepSeek Harness', bins: ['dsh'], process: ['dsh'] },
 }
 
 export const AGENT_IDS = Object.keys(AGENTS) as AgentId[]
