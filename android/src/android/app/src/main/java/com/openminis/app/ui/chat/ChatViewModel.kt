@@ -6967,6 +6967,7 @@ class ChatViewModel(
         viewModelScope.launch {
             streamJob = coroutineContext[Job] // nanoMuse: Stop during the setup (session, attachments, the user row) cancels it too, not only the agent loop launched below (#340)
             var streamLaunched = false
+            var userRowShown = false // nanoMuse: set once the person's line is on screen; a Stop before that gives the composer its text back (#340)
             try {
             // Ensure session exists in DB (creates on first message for draft sessions)
             val activeSessionId = ensureSession()
@@ -7022,6 +7023,7 @@ class ChatViewModel(
                 attachmentUris = prepared.nonImageUris + (pasted?.uiUris ?: emptyList()),
             )
             _messages.value = _messages.value + userMsg
+            userRowShown = true // nanoMuse: (#340)
             val imageParts = prepared.imageParts
 
             // T132: build the user contentParts in iOS order — caption first
@@ -7175,6 +7177,14 @@ class ChatViewModel(
                 }
                 AppLogger.info(TAG_STREAM, "send streamJob EXIT")
             }
+            } catch (e: CancellationException) {
+                // nanoMuse: Stop before the user row is on screen means the message was not sent; the
+                // composer gets its text and attachments back instead of losing them (#340)
+                if (!streamLaunched && !userRowShown) {
+                    if (_inputText.value.isEmpty()) _inputText.value = text
+                    if (_attachments.value.isEmpty()) _attachments.value = currentAttachments
+                }
+                throw e
             } finally {
                 if (!streamLaunched) {
                     AppLogger.info(TAG_STREAM, "send _isStreaming=false (setup aborted)")
