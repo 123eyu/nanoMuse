@@ -257,7 +257,8 @@ test('POST /providers/remove: the row, its credential and the choices that point
     assert.equal((await out.state()).handsProvider, 'bailian')
     assert.equal((await out.api('POST', '/providers/remove', { id: 'nobody' })).status, 404)
     const removed = await out.api('POST', '/providers/remove', { id: 'bailian' })
-    assert.equal(removed.status, 204)
+    assert.equal(removed.status, 200)
+    assert.deepEqual(removed.body, { cloudModelsOn: false }, 'the account was never switched off, so nothing to say')
     const state = await out.state()
     assert.equal(state.providers.bailian, undefined)
     assert.equal(state.handsProvider, undefined)
@@ -350,7 +351,7 @@ test('a removed row never leaves the chat slot on its route (NO_ADAPTER): the sl
   try {
     await alone.api('POST', '/providers/save', { id: 'custom', apiKey: 'sk-secret', baseURL: server.url, label: 'Gateway', capabilities: ['chat'] })
     assert.deepEqual(alone.selection.current, { provider: 'custom', model: 'my-model' }, 'the first own key is adopted')
-    assert.equal((await alone.api('POST', '/providers/remove', { id: 'custom' })).status, 204)
+    assert.equal((await alone.api('POST', '/providers/remove', { id: 'custom' })).status, 200)
     assert.deepEqual(alone.selection.current, STOCK_DEFAULT_MODEL)
   } finally {
     await alone.done()
@@ -417,6 +418,39 @@ test('an endpoint that lists no models: `no_models` with the key not stored, or 
     assert.equal(spaced.body.error.code, 'key_shape')
   } finally {
     await silent.close()
+    await out.done()
+  }
+})
+
+test('OpenCode Go is written as the adapter’s catalog route (no api, no base URL), with the models the adapter lists, and stays that route after a restart', async () => {
+  const out = await cloud()
+  // the adapter's catalog knows two Go models; a typed id it does not list is left out
+  out.ctx.get = ((inner) => (name) => name === 'llm' ? { ...inner('llm'), discoverModels: async (ns, { provider }) => (ns === LLM_ROW && provider === 'opencode-go' ? [{ id: 'deepseek-v4.1-flash' }, { id: 'grok-4.7' }] : []) } : inner(name))(out.ctx.get)
+  try {
+    const saved = await out.api('POST', '/providers/save', { id: 'opencode-go', apiKey: 'sk-go-secret', models: 'grok-4.7, gpt-6-luna' })
+    assert.equal(saved.status, 200)
+    assert.equal(saved.body.catalogRoute, true)
+    assert.deepEqual(saved.body.models.map((m) => m.id), ['grok-4.7', 'deepseek-v4.1-flash'])
+    const written = out.settings[LLM_ROW].providers['opencode-go']
+    assert.deepEqual(written, {
+      displayName: 'OpenCode Go',
+      apiKeyEnv: 'NANOMUSE_KEY_OPENCODE_GO',
+      models: [{ id: 'grok-4.7', displayName: 'grok-4.7', input: ['text'] }, { id: 'deepseek-v4.1-flash', displayName: 'deepseek-v4.1-flash', input: ['text'] }],
+    })
+    assert.equal((await out.state()).providers['opencode-go'].catalogRoute, true)
+    // a host restart reads the row back from cloud.json and compares it with the adapter's:
+    // the catalog route must be what it reads, or the refresh would write a hand-declared route
+    // (api + baseURL), which sends no session id
+    const fake = fakeContext()
+    fake.settings[LLM_ROW].providers = JSON.parse(JSON.stringify(out.settings[LLM_ROW].providers))
+    const again = new NanomuseCloud(fake.ctx, { baseURL: 'https://relay.invalid', deviceName: 'test-desktop', statePath: out.statePath })
+    again.hub.start = () => undefined
+    again.refresh = async () => again.status()
+    await again[Service.init]()
+    await new Promise((r) => setTimeout(r, 20))
+    assert.deepEqual(fake.settings[LLM_ROW].providers['opencode-go'], written)
+    assert.equal((await again.providersView('en')).configured[0].catalogRoute, true)
+  } finally {
     await out.done()
   }
 })

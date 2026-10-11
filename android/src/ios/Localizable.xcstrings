@@ -2966,6 +2966,238 @@
         }
       }
     },
+    "Existing session to continue. Leave empty for the chat that is open." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestehende Sitzung fortsetzen. Leer lassen für den geöffneten Chat."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Existing session to continue. Leave empty for the chat that is open."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesión existente que se va a continuar. Déjalo vacío para el chat abierto."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Session existante à continuer. Laissez vide pour la conversation ouverte."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "続行する既存のセッション。空にすると開いているチャットが使われます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "계속할 기존 세션. 비워두면 열려 있는 채팅이 사용됩니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Существующая сессия для продолжения. Оставьте пустым для открытого чата."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "继续现有会话。留空则使用当前打开的聊天。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "繼續現有會話。留空則使用目前開啟的聊天。"
+          }
+        }
+      }
+    },
+    "Opens nanoMuse and starts listening. What you say lands in the composer; you send it with a tap." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnet nanoMuse und beginnt zuzuhören. Was du sagst, landet im Eingabefeld; gesendet wird mit einem Tipp."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opens nanoMuse and starts listening. What you say lands in the composer; you send it with a tap."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abre nanoMuse y empieza a escuchar. Lo que dices aparece en el cuadro de entrada; lo envías con un toque."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvre nanoMuse et se met à écouter. Ce que vous dites arrive dans le champ de saisie ; vous l'envoyez d'un toucher."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nanoMuse を開いて聞き取りを始めます。話した内容は入力欄に入り、送信はタップで行います。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nanoMuse를 열고 듣기를 시작합니다. 말한 내용은 입력창에 들어가고, 보내기는 탭으로 합니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открывает nanoMuse и начинает слушать. Сказанное попадает в поле ввода; отправка по нажатию."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开 nanoMuse 并开始聆听。你说的话会进入输入框，点一下才发送。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟 nanoMuse 並開始聆聽。你說的話會進入輸入框，點一下才發送。"
+          }
+        }
+      }
+    },
+    "Voice Prompt" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprach-Prompt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voice Prompt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompt por voz"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Requête vocale"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声プロンプト"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "음성 프롬프트"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Голосовой запрос"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "语音提示"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "語音提示"
+          }
+        }
+      }
+    },
+    "Voice prompt to nanoMuse" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprach-Prompt an nanoMuse"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voice prompt to nanoMuse"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompt por voz a nanoMuse"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Requête vocale à nanoMuse"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nanoMuse への音声プロンプト"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nanoMuse에 음성 프롬프트"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Голосовой запрос nanoMuse"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "语音提示给 nanoMuse"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "語音提示給 nanoMuse"
+          }
+        }
+      }
+    },
     "chat" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3411,13 +3643,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已在%@上连接。在这台手机上登录一次，这里也能用。"
+            "value" : "已在 %@ 上连接。在这台手机上登录一次，这里也能用。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已在%@上連接。在這臺手機上登錄一次，這裡也能用。"
+            "value" : "已在 %@ 上連接。在這臺手機上登錄一次，這裡也能用。"
           }
         }
       }
@@ -4174,13 +4406,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "换好了，我的新形象是%@。"
+            "value" : "换好了，我的新形象是 %@。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "換好了，我的新形象是%@。"
+            "value" : "換好了，我的新形象是 %@。"
           }
         }
       }
@@ -5276,13 +5508,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你好，我是你的个人 AI 智能体%@。nanoMuse：开源、在手机上本地运行。"
+            "value" : "你好，我是你的个人 AI 智能体 %@。nanoMuse：开源、在手机上本地运行。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你好，我是你的個人 AI 智能體%@。nanoMuse：開源、在手機上本地運行。"
+            "value" : "你好，我是你的個人 AI 智能體 %@。nanoMuse：開源、在手機上本地運行。"
           }
         }
       }
@@ -11085,6 +11317,65 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "模型服務商現在很忙，稍後再試。"
+          }
+        }
+      }
+    },
+    "The model provider's content check declined this request. Try different words, or start a new chat if it keeps happening: the words it objects to can be earlier in the conversation." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Inhaltsprüfung des Modellanbieters hat diese Anfrage abgelehnt. Formuliere es anders oder beginne einen neuen Chat, wenn es sich wiederholt: Die beanstandeten Wörter können weiter vorn im Gespräch stehen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The model provider's content check declined this request. Try different words, or start a new chat if it keeps happening: the words it objects to can be earlier in the conversation."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La revisión de contenido del proveedor del modelo rechazó esta solicitud. Prueba con otras palabras o, si se repite, empieza un chat nuevo: las palabras que objeta pueden estar antes en la conversación."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le contrôle de contenu du fournisseur du modèle a refusé cette demande. Essayez d'autres mots ou, si cela se répète, ouvrez une nouvelle discussion : les mots en cause peuvent se trouver plus haut dans la conversation."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル提供元のコンテンツ審査がこのリクエストを通しませんでした。言い方を変えてみてください。続くようなら新しいチャットを始めてください。問題とされた言葉は会話のもっと前にあることもあります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모델 제공자의 콘텐츠 검사가 이 요청을 거부했습니다. 다른 표현으로 시도해 보세요. 계속 반복되면 새 대화를 시작하세요. 문제가 된 표현이 대화의 앞부분에 있을 수 있습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверка содержимого у поставщика модели отклонила этот запрос. Попробуйте другие слова, а если это повторяется, начните новый чат: слова, к которым есть претензии, могут быть раньше в разговоре."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模型服务商的内容审核没有放行这次请求。换个说法试试；如果反复出现，就新开一个对话，被拦下的可能是对话里更早的内容。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模型服務商的內容審核沒有放行這次請求。換個說法試試；如果反覆出現，就新開一個對話，被攔下的可能是對話裡更早的內容。"
           }
         }
       }
@@ -112726,10 +113017,46 @@
     },
     "Signed in as" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Angemeldet als"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Signed in as"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesión iniciada como"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecté en tant que"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログイン中のアカウント"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로그인 계정"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вы вошли как"
           }
         },
         "zh-Hans" : {
@@ -112806,10 +113133,46 @@
     },
     "Today: %@ of %@" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heute: %1$@ von %2$@"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Today: %@ of %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoy: %1$@ de %2$@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aujourd'hui : %1$@ sur %2$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今日：%1$@ / %2$@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오늘: %1$@ / %2$@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сегодня: %1$@ из %2$@"
           }
         },
         "zh-Hans" : {
@@ -112828,10 +113191,46 @@
     },
     "Checked %@" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geprüft %@"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Checked %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprobado %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vérifié %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ に確認"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 확인"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверено %@"
           }
         },
         "zh-Hans" : {
@@ -112850,10 +113249,46 @@
     },
     "Signed in. Pull the balance with Refresh." : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Angemeldet. Den Kontostand holt „Aktualisieren“."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Signed in. Pull the balance with Refresh."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesión iniciada. Obtén el saldo con Actualizar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecté. Récupérez le solde avec Actualiser."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログインしました。「更新」で残高を取得します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로그인했습니다. 새로고침으로 잔액을 가져오세요."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вы вошли. Баланс подтянется по кнопке «Обновить»."
           }
         },
         "zh-Hans" : {
@@ -112930,10 +113365,46 @@
     },
     "The relay is an ordinary provider named \"nanoMuse Cloud\": its models can join any model group, and a key of your own can sit next to it." : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Relay ist ein gewöhnlicher Anbieter namens „nanoMuse Cloud“: seine Modelle können in jede Modellgruppe, und ein eigener Schlüssel kann daneben stehen."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "The relay is an ordinary provider named \"nanoMuse Cloud\": its models can join any model group, and a key of your own can sit next to it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El relé es un proveedor corriente llamado «nanoMuse Cloud»: sus modelos pueden entrar en cualquier grupo de modelos, y una clave propia puede convivir con él."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le relais est un fournisseur ordinaire nommé « nanoMuse Cloud » : ses modèles peuvent rejoindre n'importe quel groupe de modèles, et une clé à vous peut cohabiter avec lui."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中継は「nanoMuse Cloud」という名前の普通のプロバイダーです。そのモデルはどのモデルグループにも入れられ、自分のキーを並べて使うこともできます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "릴레이는 \"nanoMuse Cloud\"라는 이름의 일반 공급자입니다. 그 모델은 어느 모델 그룹에도 넣을 수 있고, 자신의 키를 나란히 둘 수도 있습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Реле выступает как обычный провайдер с именем «nanoMuse Cloud»: его модели можно добавить в любую группу моделей, а рядом может стоять ваш собственный ключ."
           }
         },
         "zh-Hans" : {
@@ -113010,10 +113481,46 @@
     },
     "Sign out of nanoMuse Cloud?" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Von nanoMuse Cloud abmelden?"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sign out of nanoMuse Cloud?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Cerrar sesión en nanoMuse Cloud?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se déconnecter de nanoMuse Cloud ?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nanoMuse Cloud からサインアウトしますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nanoMuse Cloud에서 로그아웃할까요?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выйти из nanoMuse Cloud?"
           }
         },
         "zh-Hans" : {
@@ -113032,10 +113539,46 @@
     },
     "This phone's key is revoked and the provider is removed. What is left of the allowance stays with the account." : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Schlüssel dieses Telefons wird widerrufen und der Anbieter entfernt. Was vom Guthaben übrig ist, bleibt beim Konto."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "This phone's key is revoked and the provider is removed. What is left of the allowance stays with the account."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La clave de este teléfono se revoca y el proveedor se elimina. Lo que quede del cupo se queda en la cuenta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La clé de ce téléphone est révoquée et le fournisseur retiré. Ce qui reste de l'allocation reste sur le compte."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この iPhone のキーは失効し、プロバイダーは削除されます。残っている利用枠はアカウントに残ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 휴대폰의 키는 폐기되고 공급자는 제거됩니다. 남은 한도는 계정에 그대로 남습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ключ этого телефона отзывается, провайдер удаляется. Остаток лимита остаётся у аккаунта."
           }
         },
         "zh-Hans" : {
@@ -113692,10 +114235,46 @@
     },
     "Credits" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Danksagungen"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Credits"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Créditos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crédits"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クレジット"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "크레딧"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Благодарности"
           }
         },
         "zh-Hans" : {
@@ -113714,10 +114293,46 @@
     },
     "Based on OpenMinis 1.13" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Basiert auf OpenMinis 1.13"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Based on OpenMinis 1.13"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Basado en OpenMinis 1.13"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Basé sur OpenMinis 1.13"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenMinis 1.13 をもとにしています"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenMinis 1.13 기반"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "На основе OpenMinis 1.13"
           }
         },
         "zh-Hans" : {
@@ -113736,10 +114351,46 @@
     },
     "GPL-3.0 · modified · source on GitHub" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GPL-3.0 · verändert · Quellcode auf GitHub"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "GPL-3.0 · modified · source on GitHub"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GPL-3.0 · modificado · código en GitHub"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GPL-3.0 · modifié · code source sur GitHub"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GPL-3.0 · 改変あり · ソースは GitHub"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GPL-3.0 · 수정됨 · 소스는 GitHub에"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GPL-3.0 · с изменениями · исходники на GitHub"
           }
         },
         "zh-Hans" : {
@@ -113758,10 +114409,46 @@
     },
     "Not affiliated with Meta" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht mit Meta verbunden"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Not affiliated with Meta"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin relación con Meta"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sans lien avec Meta"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meta とは無関係です"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meta와 관련 없음"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не связано с Meta"
           }
         },
         "zh-Hans" : {
@@ -113780,10 +114467,46 @@
     },
     "Muse is a trademark of Meta Platforms, Inc. nanoMuse is an independent free-software project." : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muse ist eine Marke von Meta Platforms, Inc. nanoMuse ist ein unabhängiges Freie-Software-Projekt."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Muse is a trademark of Meta Platforms, Inc. nanoMuse is an independent free-software project."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muse es una marca de Meta Platforms, Inc. nanoMuse es un proyecto independiente de software libre."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muse est une marque de Meta Platforms, Inc. nanoMuse est un projet indépendant de logiciel libre."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muse は Meta Platforms, Inc. の商標です。nanoMuse は独立した自由ソフトウェアのプロジェクトです。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muse는 Meta Platforms, Inc.의 상표입니다. nanoMuse는 독립된 자유 소프트웨어 프로젝트입니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muse является товарным знаком Meta Platforms, Inc. nanoMuse является независимым проектом свободного ПО."
           }
         },
         "zh-Hans" : {
@@ -114730,10 +115453,46 @@
     },
     "%@ tokens used so far, %@ today" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bisher %1$@ Tokens, heute %2$@"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ tokens used so far, %@ today"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ tokens hasta ahora, %2$@ hoy"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ jetons jusqu'ici, %2$@ aujourd'hui"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "これまで %1$@ トークン、今日は %2$@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지금까지 %1$@ 토큰, 오늘 %2$@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Всего %1$@ токенов, сегодня %2$@"
           }
         },
         "zh-Hans" : {
@@ -114753,10 +115512,46 @@
     "%@ is on it" : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ist dran"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ is on it"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ está en ello"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ s'en occupe"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ が対応中"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 처리 중"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ занимается этим"
           }
         },
         "zh-Hans" : {
@@ -115071,10 +115866,46 @@
     "A key from DeepSeek, OpenAI or another provider goes under Providers; the Cloud account then only carries your name, face and memory." : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Schlüssel von DeepSeek, OpenAI oder einem anderen Anbieter kommt unter „KI-Anbieter“; das Cloud-Konto trägt dann nur noch Namen, Gesicht und Gedächtnis."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "A key from DeepSeek, OpenAI or another provider goes under Providers; the Cloud account then only carries your name, face and memory."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una clave de DeepSeek, OpenAI u otro proveedor va en Proveedores; la cuenta de Cloud entonces solo lleva tu nombre, tu cara y tu memoria."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une clé de DeepSeek, OpenAI ou d'un autre fournisseur va dans Fournisseurs AI ; le compte Cloud ne porte plus alors que votre nom, votre visage et votre mémoire."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DeepSeek、OpenAI などのキーは「AIプロバイダー」に入れます。すると Cloud アカウントが受け持つのは名前、顔、記憶だけになります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DeepSeek, OpenAI 등 다른 공급자의 키는 AI 공급자 항목에 넣습니다. 그러면 Cloud 계정은 이름, 얼굴, 기억만 맡습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ключ от DeepSeek, OpenAI или другого провайдера добавляется в разделе «Провайдеры»; за аккаунтом Cloud тогда остаются только имя, лицо и память."
           }
         },
         "zh-Hans" : {
@@ -115507,10 +116338,46 @@
     "Delete account" : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konto löschen"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete account"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar cuenta"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer le compte"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントを削除"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "계정 삭제"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить аккаунт"
           }
         },
         "zh-Hans" : {
@@ -115530,10 +116397,46 @@
     "Delete this account?" : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Konto löschen?"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete this account?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Eliminar esta cuenta?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer ce compte ?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアカウントを削除しますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 계정을 삭제할까요?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить этот аккаунт?"
           }
         },
         "zh-Hans" : {
@@ -115553,10 +116456,46 @@
     "Every device, this one included, will need to sign in again." : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jedes Gerät, dieses eingeschlossen, muss sich neu anmelden."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Every device, this one included, will need to sign in again."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todos los dispositivos, este incluido, tendrán que iniciar sesión de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaque appareil, celui-ci compris, devra se reconnecter."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この iPhone を含むすべてのデバイスで、もう一度サインインが必要になります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 기기를 포함한 모든 기기에서 다시 로그인해야 합니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Каждому устройству, включая это, придётся войти заново."
           }
         },
         "zh-Hans" : {
@@ -115753,10 +116692,46 @@
     "How-to" : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anleitung"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "How-to"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cómo hacerlo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mode d'emploi"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使い方"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사용법"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Как это сделать"
           }
         },
         "zh-Hans" : {
@@ -116602,10 +117577,46 @@
     "Removes the account, its allowance, usage and samples from nanoMuse Cloud. Cannot be undone." : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entfernt das Konto, sein Guthaben, seine Nutzung und seine Proben aus nanoMuse Cloud. Lässt sich nicht rückgängig machen."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Removes the account, its allowance, usage and samples from nanoMuse Cloud. Cannot be undone."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina la cuenta, su cupo, su uso y sus muestras de nanoMuse Cloud. No se puede deshacer."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprime le compte, son allocation, son usage et ses échantillons de nanoMuse Cloud. Irréversible."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントとその利用枠、使用量、サンプルを nanoMuse Cloud から削除します。元に戻せません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "계정과 한도, 사용량, 샘플을 nanoMuse Cloud에서 삭제합니다. 되돌릴 수 없습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удаляет аккаунт, его лимит, статистику использования и образцы из nanoMuse Cloud. Отменить нельзя."
           }
         },
         "zh-Hans" : {
@@ -116625,10 +117636,46 @@
     "Removes the account, its allowance, usage and samples from nanoMuse Cloud. Cannot be undone. The chats on this phone stay." : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entfernt das Konto, sein Guthaben, seine Nutzung und seine Proben aus nanoMuse Cloud. Lässt sich nicht rückgängig machen. Die Chats auf diesem Telefon bleiben."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Removes the account, its allowance, usage and samples from nanoMuse Cloud. Cannot be undone. The chats on this phone stay."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina la cuenta, su cupo, su uso y sus muestras de nanoMuse Cloud. No se puede deshacer. Los chats de este teléfono se conservan."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprime le compte, son allocation, son usage et ses échantillons de nanoMuse Cloud. Irréversible. Les discussions sur ce téléphone restent."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントとその利用枠、使用量、サンプルを nanoMuse Cloud から削除します。元に戻せません。この iPhone 上のチャットは残ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "계정과 한도, 사용량, 샘플을 nanoMuse Cloud에서 삭제합니다. 되돌릴 수 없습니다. 이 휴대폰의 대화는 남습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удаляет аккаунт, его лимит, статистику использования и образцы из nanoMuse Cloud. Отменить нельзя. Чаты на этом телефоне останутся."
           }
         },
         "zh-Hans" : {
@@ -116884,10 +117931,46 @@
     "Sign out everywhere?" : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Überall abmelden?"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sign out everywhere?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Cerrar sesión en todas partes?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se déconnecter partout ?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてのデバイスからサインアウトしますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모든 기기에서 로그아웃할까요?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выйти везде?"
           }
         },
         "zh-Hans" : {
@@ -116907,10 +117990,46 @@
     "Sign out of every device" : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Von jedem Gerät abmelden"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sign out of every device"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerrar sesión en todos los dispositivos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se déconnecter de tous les appareils"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてのデバイスからサインアウト"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모든 기기에서 로그아웃"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выйти на всех устройствах"
           }
         },
         "zh-Hans" : {
@@ -117107,10 +118226,46 @@
     "Signed-in devices" : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Angemeldete Geräte"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Signed-in devices"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dispositivos con sesión iniciada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appareils connectés"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サインイン中のデバイス"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로그인된 기기"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Устройства, где выполнен вход"
           }
         },
         "zh-Hans" : {
@@ -117661,10 +118816,46 @@
     "Use your own API key" : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eigenen API-Schlüssel verwenden"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Use your own API key"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar tu propia clave de API"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utiliser votre propre clé API"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自分の API キーを使う"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "자신의 API 키 사용"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Использовать свой ключ API"
           }
         },
         "zh-Hans" : {
@@ -118038,10 +119229,46 @@
     "Your support is what keeps us going" : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ihre Unterstützung hält uns am Laufen"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your support is what keeps us going"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu apoyo es lo que nos mantiene en marcha"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre soutien est ce qui nous fait avancer"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "皆さんの支えが、私たちを動かしています"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "여러분의 응원이 저희를 계속 나아가게 합니다"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваша поддержка помогает нам продолжать"
           }
         },
         "zh-Hans" : {
@@ -123843,10 +125070,46 @@
     "Your feed isn't ready yet" : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Feed ist noch nicht bereit"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your feed isn't ready yet"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu feed aún no está listo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre fil n'est pas encore prêt"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フィードはまだ準備中です"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "피드가 아직 준비되지 않았습니다"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Лента ещё не готова"
           }
         },
         "zh-Hans" : {
@@ -124161,10 +125424,46 @@
     "Change the look" : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aussehen ändern"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Change the look"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar el aspecto"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changer l'apparence"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "見た目を変える"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모습 바꾸기"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сменить облик"
           }
         },
         "zh-Hans" : {
@@ -124302,10 +125601,46 @@
     "I want to set a goal. Ask me what it is and what success looks like, then shape a plan with me." : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ich möchte ein Ziel setzen. Frag mich, was es ist und woran man den Erfolg erkennt, und entwirf dann mit mir einen Plan."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "I want to set a goal. Ask me what it is and what success looks like, then shape a plan with me."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quiero fijar una meta. Pregúntame cuál es y cómo se ve el éxito, y luego arma un plan conmigo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je veux me fixer un objectif. Demande-moi lequel et à quoi ressemble la réussite, puis bâtis un plan avec moi."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目標を立てたい。何を目指すのか、何をもって達成とするのかを聞いてから、一緒に計画を組み立てて。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "목표를 세우고 싶어. 무엇을 목표로 하는지, 어떤 상태가 성공인지 물어본 다음, 나와 함께 계획을 짜 줘."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Хочу поставить цель. Спроси меня, какая она и как выглядит успех, а потом составь план вместе со мной."
           }
         },
         "zh-Hans" : {
@@ -124325,10 +125660,46 @@
     "No chats yet" : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch keine Chats"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "No chats yet"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aún no hay chats"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pas encore de discussions"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだチャットはありません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "아직 대화가 없습니다"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чатов пока нет"
           }
         },
         "zh-Hans" : {
@@ -124761,10 +126132,46 @@
     "Pin as the main chat" : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Als Haupt-Chat anheften"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pin as the main chat"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fijar como chat principal"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Épingler comme discussion principale"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メインのチャットに固定"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "주 대화로 고정"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закрепить как основной чат"
           }
         },
         "zh-Hans" : {
@@ -124843,10 +126250,46 @@
     "Routines and goals are not scheduled on iPhone yet; the chat can still do it once." : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Routinen und Ziele laufen auf dem iPhone noch nicht nach Zeitplan; der Chat kann es trotzdem einmal erledigen."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Routines and goals are not scheduled on iPhone yet; the chat can still do it once."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las rutinas y las metas aún no se programan en el iPhone; el chat puede hacerlo una vez de todos modos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les routines et les objectifs ne sont pas encore planifiés sur iPhone ; la discussion peut quand même le faire une fois."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone ではルーティンと目標の定時実行はまだできません。チャットで一度だけ実行することはできます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone에서는 루틴과 목표의 예약 실행이 아직 안 됩니다. 대화에서 한 번 실행할 수는 있습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рутины и цели на iPhone пока не выполняются по расписанию; в чате это всё же можно сделать один раз."
           }
         },
         "zh-Hans" : {
@@ -124984,10 +126427,46 @@
     "Search chats" : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chats durchsuchen"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Search chats"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar en los chats"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher dans les discussions"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "チャットを検索"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "대화 검색"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск по чатам"
           }
         },
         "zh-Hans" : {
@@ -125361,10 +126840,46 @@
     "Tell me in the chat what you want more of; the feed will follow once it can be written on a schedule." : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sag mir im Chat, wovon du mehr willst; der Feed zieht nach, sobald er nach Zeitplan geschrieben werden kann."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tell me in the chat what you want more of; the feed will follow once it can be written on a schedule."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dime en el chat de qué quieres más; el feed seguirá cuando pueda escribirse de forma programada."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dites-moi dans la discussion ce dont vous voulez plus ; le fil suivra dès qu'il pourra être écrit selon un planning."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もっと見たいものをチャットで教えてください。定時に書けるようになったら、フィードも追いつきます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "더 보고 싶은 것을 대화에서 알려 주세요. 예약 작성이 가능해지면 피드도 뒤따릅니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Напишите в чате, чего хотите больше; лента подтянется, как только её можно будет писать по расписанию."
           }
         },
         "zh-Hans" : {
@@ -128438,13 +129953,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已在%@上连接。不在这台手机的目录里；需要的话到「你自己的服务器」里添加。"
+            "value" : "已在 %@ 上连接。不在这台手机的目录里；需要的话到「你自己的服务器」里添加。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已在%@上連接。不在這臺手機的目錄裡；需要的話到「你自己的伺服器」裡添加。"
+            "value" : "已在 %@ 上連接。不在這臺手機的目錄裡；需要的話到「你自己的伺服器」裡添加。"
           }
         }
       }
@@ -131697,10 +133212,46 @@
     "Muse home is the chat with Feed, Ideas, Goals and Library beside it, on iPhone and iPad. Off, the app opens on the OpenMinis layout; the drawer still has it." : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Muse-Zuhause ist der Chat mit Feed, Ideen, Zielen und Bibliothek daneben, auf iPhone und iPad. Ausgeschaltet öffnet die App im OpenMinis-Layout; die Seitenleiste hat es weiterhin."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Muse home is the chat with Feed, Ideas, Goals and Library beside it, on iPhone and iPad. Off, the app opens on the OpenMinis layout; the drawer still has it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El inicio de Muse es el chat con el Feed, las Ideas, las Metas y la Biblioteca al lado, en iPhone y iPad. Desactivado, la app abre con la disposición de OpenMinis; el panel lateral sigue teniéndolo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'accueil Muse, c'est la discussion avec le Fil, les Idées, les Objectifs et la Bibliothèque à côté, sur iPhone et iPad. Désactivé, l'app s'ouvre sur la disposition OpenMinis ; le panneau latéral le garde."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muse ホームは、フィード、アイデア、目標、ライブラリを横に並べたチャットです。iPhone でも iPad でも使えます。オフにするとアプリは OpenMinis のレイアウトで開きます。サイドバーからは引き続き入れます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muse 홈은 피드, 아이디어, 목표, 보관함이 옆에 있는 대화 화면이며 iPhone과 iPad 모두에서 쓸 수 있습니다. 끄면 앱이 OpenMinis 레이아웃으로 열립니다. 서랍에서는 계속 들어갈 수 있습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дом Muse: чат, а рядом с ним Лента, Идеи, Цели и Библиотека, на iPhone и iPad. Если выключить, приложение откроется в раскладке OpenMinis; в боковой панели он останется."
           }
         },
         "zh-Hans" : {
@@ -138328,10 +139879,46 @@
     "Your feed is driven by the instruction below. Any edit you make here applies to every post from now on." : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Feed folgt der Anweisung unten. Jede Änderung hier gilt ab jetzt für jeden Beitrag."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your feed is driven by the instruction below. Any edit you make here applies to every post from now on."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu feed sigue la instrucción de abajo. Cualquier cambio que hagas aquí se aplica a todas las publicaciones a partir de ahora."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre fil suit l'instruction ci-dessous. Toute modification faite ici s'applique à chaque publication à partir de maintenant."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フィードは下の指示に従って書かれます。ここでの変更は、これ以降のすべての投稿に反映されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "피드는 아래 지시에 따라 작성됩니다. 여기서 바꾼 내용은 앞으로의 모든 게시물에 적용됩니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Лента пишется по инструкции ниже. Любая правка здесь действует на все записи с этого момента."
           }
         },
         "zh-Hans" : {
@@ -138823,10 +140410,46 @@
     "Browse chat files" : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chat-Dateien durchsuchen"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Browse chat files"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Explorar los archivos del chat"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parcourir les fichiers de la discussion"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "チャットのファイルを見る"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "대화 파일 보기"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Файлы чата"
           }
         },
         "zh-Hans" : {
@@ -144097,10 +145720,46 @@
     "Back to typing" : {
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurück zur Tastatur"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Back to typing"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volver a escribir"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revenir au clavier"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キーボード入力に戻る"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "키보드 입력으로 돌아가기"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вернуться к набору текста"
           }
         },
         "zh-Hans" : {

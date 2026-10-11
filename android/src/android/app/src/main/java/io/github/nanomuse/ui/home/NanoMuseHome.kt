@@ -331,7 +331,7 @@ fun NanoMuseHome(
 
     // The drawer + tab shell, as a local composable so it can share every piece of state above
     // and still be one branch of the phase switch below.
-    // nanoMuse: the frosted pill bar blurs this shell's content — the shell is the haze source.
+    // nanoMuse: the frosted pill bar blurs this shell's content; the shell is the haze source.
     val hazeState = rememberHazeState()
     val homeShell: @Composable () -> Unit = {
     ModalNavigationDrawer(

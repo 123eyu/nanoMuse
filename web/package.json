@@ -1,9 +1,13 @@
 {
   "name": "nanomuse-web",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "nanoMuse mobile-first web app (chat, goals, ideas, memory, approvals)",
+  "license": "GPL-3.0-or-later",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -25,14 +29,14 @@
     "@tailwindcss/vite": "^4.0.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
-    "@vitejs/plugin-react": "^6.1.1",
-    "eslint": "^10.11.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "eslint": "^10.12.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.12.0",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.6.3",
-    "typescript-eslint": "^8.70.1",
-    "vite": "^8.3.2",
+    "typescript-eslint": "^8.71.1",
+    "vite": "^8.3.3",
     "vitest": "^4.1.11"
   }
 }

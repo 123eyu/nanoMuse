@@ -44,7 +44,7 @@ nanomuse daemon [--interval 3600] [--once]
 ## 目标 {#goals}
 
 ```bash
-nanomuse goals list [--status active|paused|done] [--category health|finance|career|learning|…]
+nanomuse goals list [--status active|paused|done|cancelled] [--category health|finance|career|learning|…]
 nanomuse goals show g_1a2b3c
 nanomuse goals add "Learn Rust" -s "Read the book, ch. 1–4" -s "Build a CLI" -s "Publish a crate" \
     --category learning --due 2026-12-31 --check-in "weekly sun 19:00"
@@ -62,7 +62,7 @@ nanomuse reminders add "Summarise unread email" --repeat "weekdays 07:30" --task
 nanomuse reminders cancel r_1a2b3c
 ```
 
-提醒是在你指定的时间说一句话；例程（`--task`）是智能体在那个时间用它的工具去做的事。两者都由运行中的 `nanomuse serve` 触发——在终端里设的落在主要聊天，在旁聊里设的留在那个旁聊。周期的写法和目标检查一样：`daily HH:MM`、`weekdays HH:MM`、`weekly <mon…sun> HH:MM`、`monthly <day> HH:MM`。
+提醒是在你指定的时间说一句话；例程（`--task`）是智能体在那个时间用它的工具去做的事。两者都由运行中的 `nanomuse serve` 触发：在终端里设的落在主要聊天，在旁聊里设的留在那个旁聊。周期的写法和目标检查一样：`daily HH:MM`、`weekdays HH:MM`、`weekly <mon…sun> HH:MM`、`monthly <day> HH:MM`。
 
 ## 触发器 {#triggers}
 
@@ -74,7 +74,7 @@ nanomuse triggers add hook  "Check that the site is up"      --match "deploy"   
 nanomuse triggers cancel t_1a2b3c
 ```
 
-触发器在事情发生时触发，而不是到点触发：`mail` 需要邮件连接器（运行中的服务器每隔 `triggers.mail_poll_minutes` 查看一次收件箱，按 IMAP UID 记录，所以不会重放，也不会触发两次）；`event` 需要一个日历订阅；`hook` 是一个带密钥的 URL，任何程序都可以向它 `POST`——请求体成为智能体的上下文。每次触发都是在设置它的那个聊天里的一次后台运行，在动态里显示为 *New mail: …*、*Coming up: …* 或 *Webhook: …*。邮件或请求是作为数据交给模型的，并附带一句说明：只有你预先写下的那段话才决定做什么。
+触发器在事情发生时触发，而不是到点触发：`mail` 需要邮件连接器（运行中的服务器每隔 `triggers.mail_poll_minutes` 查看一次收件箱，按 IMAP UID 记录，所以不会重放，也不会触发两次）；`event` 需要一个日历订阅；`hook` 是一个带密钥的 URL，任何程序都可以向它 `POST`；请求体成为智能体的上下文。每次触发都是在设置它的那个聊天里的一次后台运行，在动态里显示为 *New mail: …*、*Coming up: …* 或 *Webhook: …*。邮件或请求是作为数据交给模型的，并附带一句说明：只有你预先写下的那段话才决定做什么。
 
 ## 日历 {#calendar}
 
@@ -87,7 +87,7 @@ nanomuse calendar feeds                                                         
 nanomuse calendar remove Family
 ```
 
-运行中的服务器每隔 `refresh_minutes` 重新读一次订阅；`agenda --refresh` 立刻抓取。智能体通过它的 `calendar` 工具看到同样的内容，另外还有 `draft`：它写出一个 `.ics` 文件，App 显示为「添加到日历」卡片——它从不直接写你的日历。
+运行中的服务器每隔 `refresh_minutes` 重新读一次订阅；`agenda --refresh` 立刻抓取。智能体通过它的 `calendar` 工具看到同样的内容，另外还有 `draft`：它写出一个 `.ics` 文件，App 显示为「添加到日历」卡片；它从不直接写你的日历。
 
 ## 联系人 {#contacts}
 
@@ -131,7 +131,7 @@ nanomuse memory changes                # the log, newest first
 nanomuse memory restore c_1a2b3c4d     # undo one change
 ```
 
-`memory recall` 显示智能体对一条消息会得到的排序：关键词命中，以及在配置了嵌入端点时（[配置 → 记忆](configuration.md#memory)）融合进来的按语义命中，每条带余弦相近度——用它看看「写邮件给房东」能不能找到「房东是 Bob Li」，再去依赖它。`doctor` 会说明按语义回忆有没有开、用的哪个模型、索引了多少条记忆。
+`memory recall` 显示智能体对一条消息会得到的排序：关键词命中，以及在配置了嵌入端点时（[配置 → 记忆](configuration.md#memory)）融合进来的按语义命中，每条带余弦相近度；用它看看「写邮件给房东」能不能找到「房东是 Bob Li」，再去依赖它。`doctor` 会说明按语义回忆有没有开、用的哪个模型、索引了多少条记忆。
 
 ## 保险库 {#vault}
 
@@ -142,6 +142,31 @@ nanomuse vault delete EMAIL_PASSWORD
 ```
 
 在配置里用 `{{vault:EMAIL_PASSWORD}}` 引用机密（只限连接器；命令永远拿不到机密）。见 [sentinel.md](sentinel.md#credential-vault)。
+
+## 聊天入口 {#chat-apps}
+
+```bash
+nanomuse channels status [--json]              # 哪些入口已开启、已连接，谁已配对
+nanomuse channels pending                      # 已经展示给人、等待批准的配对码
+nanomuse channels approve 482913               # 让拿到这个配对码的人和 Muse 对话
+nanomuse channels deny 482913
+nanomuse channels login feishu [--lark]        # 扫码创建飞书机器人
+nanomuse channels test feishu [--chat <id>]    # 发一条测试消息（默认发到第一个已配对的会话）
+```
+
+`nanomuse serve` 在运行时，这些命令走它的 API；否则直接改数据目录下的文件，服务器启动时读取。各个应用、配对和各自需要什么：[channels.md](channels.md)。
+
+## ChatGPT 登录 {#chatgpt-sign-in}
+
+```bash
+nanomuse chatgpt login [--no-browser] [--port 1455] [--timeout 600]   # 浏览器打开 OpenAI 的登录页
+nanomuse chatgpt status                        # 谁已登录、有效期到何时；不访问网络
+nanomuse chatgpt usage                         # 套餐用量窗口还剩多少
+nanomuse chatgpt logout                        # 忘掉这次登录；上游不会撤销
+nanomuse chatgpt proxy [--port 0] [--token …]  # 回环地址上的一个 OpenAI 兼容服务
+```
+
+每个子命令都接受 `--json`（每行一个 JSON 对象）；需要访问 chatgpt.com 的子命令还接受 `--proxy`（默认取配置里的 `[llm] proxy`）。登录覆盖什么、令牌存在哪里：[own-key.md](own-key.md#sign-in-with-a-plan-you-already-pay-for)。
 
 ## 手机 {#phone}
 
@@ -165,6 +190,6 @@ nanomuse version                       # also: nanomuse --version / -V
 nanomuse mcp                           # this computer's screen and hands as an MCP server on stdio, for another host
 ```
 
-`nanomuse mcp` 是给不是我们运行时的宿主用的——[跑在 DeepSeek Harness 上的 nanoMuse](harness.md)——它以运行时自己的描述提供 `computer_screen` 和 `computer_act`；哨兵会停下来问的那一步（回车、提交、重的快捷键、点到敏感词）会被拒绝并给出原因，直到调用带上 `confirmed: true`，而模型只有在对话里得到人的同意后才可以设置它。
+`nanomuse mcp` 是给不是我们运行时的宿主用的（[跑在 DeepSeek Harness 上的 nanoMuse](harness.md)），它以运行时自己的描述提供 `computer_screen` 和 `computer_act`；哨兵会停下来问的那一步（回车、提交、重的快捷键、点到敏感词）会被拒绝并给出原因，直到调用带上 `confirmed: true`，而模型只有在对话里得到人的同意后才可以设置它。
 
-`nanomuse doctor` 是出问题时第一个该跑的命令，也是该贴进 bug 报告的内容：用的是哪个配置文件、数据放在哪、配置了哪个模型和端点、key 有没有设、按语义回忆有没有开、索引了多少条记忆、哪个网页搜索服务商在应答、它的 key 或 URL 有没有、命令是否跑在沙箱里（如果没有，为什么）、智能体有哪些工具、连接器状态（邮箱、日历订阅、通讯录），以及对模型的一次单行调用及其延迟（`--no-model` 跳过这一项）。有东西需要修时它以非零码退出，并说明是什么。
+`nanomuse doctor` 是出问题时第一个该跑的命令，也是该贴进 bug 报告的内容：用的是哪个配置文件（以及里面有没有没人读的键）、数据放在哪、配置了哪个模型和端点、key 有没有设、按语义回忆有没有开、索引了多少条记忆、哪个网页搜索服务商在应答、它的 key 或 URL 有没有、命令是否跑在沙箱里（如果没有，为什么）、智能体有哪些工具、连接器状态（邮箱、日历订阅、通讯录），以及对模型的一次单行调用及其延迟（`--no-model` 跳过这一项）。有东西需要修时它以非零码退出，并说明是什么。
