@@ -57,6 +57,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
@@ -84,6 +85,7 @@ fun LibraryTab(
     chatRepository: ChatRepository,
     onPreview: (FileItem) -> Unit,
     onOpenSession: (String) -> Unit,
+    bottomInset: Dp = 0.dp,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -105,7 +107,8 @@ fun LibraryTab(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(ChatColors.background),
-        contentPadding = PaddingValues(bottom = 24.dp),
+        // The last row ends above the floating pill, which overlays the page.
+        contentPadding = PaddingValues(bottom = 24.dp + bottomInset),
     ) {
         item(key = "header") { header() }
         item(key = "segments") {

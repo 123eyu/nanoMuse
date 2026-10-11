@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.openminis.app.ui.settings.KEY_NM_HEADER_MODEL
 import com.openminis.app.ui.settings.KEY_NM_SHOW_STEPS
 import com.openminis.app.ui.settings.getAppearancePrefs
+import com.openminis.app.ui.theme.ChatColors
 import com.openminis.app.ui.settings.headerModelEnabled
 import com.openminis.app.ui.settings.showStepsEnabled
 import io.github.nanomuse.ui.home.MuseTones
@@ -95,7 +96,8 @@ fun NmAssistantBubble(
             modifier = Modifier
                 .widthIn(max = 340.dp)
                 .clip(RoundedCornerShape(20.dp))
-                .background(MuseTones.bubble)
+                // The assistant's pill: a touch off the canvas, both themes.
+                .background(ChatColors.assistantBubble)
                 .padding(horizontal = 14.dp, vertical = 10.dp),
         ) {
             content()
