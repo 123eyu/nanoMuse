@@ -15,8 +15,8 @@ agent ◄── redact(result)   ◄── taint bookkeeping ◄─────�
 
 | 级别 | 含义 | 例子 |
 |---|---|---|
-| `safe` | 可逆、本地 | `files`（工作区之内）、`web_search`、`remember`、`goals`、`contacts`、`skills`（列出、使用）、`phone_screen` |
-| `moderate` | 触及外部或改变状态 | `web_fetch`、`python_execute`、`read_emails`、`browser`、`forget`、`phone_act` |
+| `safe` | 可逆、本地 | `files`（工作区之内）、`web_search`、`remember`、`goals`、`reminders` 和 `triggers`（列出、取消、记账类动作）、`contacts`、`skills`（列出、使用）、`phone_screen` |
+| `moderate` | 触及外部或改变状态 | `web_fetch`、`python_execute`、`read_emails`、`browser`、`forget`、`phone_act`、`goals`、`reminders` 和 `triggers`（创建：这是模型以后会自己接着做的长期工作，所以 `strict` 模式在设立之前会问） |
 | `sensitive` | 难以撤销或外部可见 | `shell`、`send_email`、`skills`（保存、删除；技能是模型以后会照着做的长期指令，所以写一个技能总是会问） |
 
 工具可以在 `assess()` 里为某一次调用提高级别：`shell` 遇到 `rm -rf`、`sudo`、`curl | sh` 这类模式会附上一条警告；`python_execute` 对纯计算和工作区内的文件是 `moderate`（前提是沙箱在工作；没有沙箱时，在 macOS、Windows 或没装 bubblewrap 的 Linux 机器上，每个脚本都是 `sensitive`，因为静态检查是仅剩的一道墙），而当代码访问网络、启动其他程序、读环境变量、删文件或触及工作区之外的路径时是 `sensitive`，原因写在卡片上；`web_fetch` 直接拒绝私有地址和回环地址，每一跳重定向都查；`phone_act` 在一次点击的 `label`（操作器对手指下面是什么的描述）含有 确认支付、转账、提交订单、发送、删除 或 `[gui] sensitive_words` 里的另一个词时，或者一步同时输入并提交时，是带警告的 `sensitive`；没有 label 的点击自带一条警告（[gui.md](gui.md)）。工具还声明 `reads_private_data`（污染这段对话）和 `egress`，可选带 `egress_target`（这次调用把数据发往的主机；`shell` 和 `python_execute` 未知；手机上是 App 的 id），供污点追踪使用。
@@ -99,7 +99,7 @@ nanomuse vault list                      # names only
 nanomuse vault delete EMAIL_PASSWORD
 ```
 
-配置值（模型的 key、邮件、日历和联系人的链接、搜索的 key）用 `{{vault:NAME}}` 引用机密；模型看到的是占位符，连接器用真实值构建。工具参数**不**携带机密：没有任何正式工具选择接受（`accepts_secrets`），所以 `shell` 或 `python_execute` 调用里的 `{{vault:NAME}}` 会被拒绝并说明原因，而不是拿字面文本去跑（你自己的工具可以选择接受；哨兵会在执行前一刻替换）。如果某个机密出现在任何工具的输出里，模型读到之前它就被换回 `{{vault:NAME}}`。密钥是 `<data_dir>/vault.key`（首次使用时创建，权限 600）或 `NANOMUSE_VAULT_KEY`。
+配置值（模型的 key、邮件、日历和联系人的链接、搜索的 key）用 `{{vault:NAME}}` 引用机密；模型看到的是占位符，连接器用真实值构建。工具参数**不**携带机密：没有任何正式工具选择接受（`accepts_secrets`），所以 `shell` 或 `python_execute` 调用里的 `{{vault:NAME}}` 会被拒绝并说明原因，而不是拿字面文本去跑（你自己的工具可以选择接受；哨兵会在执行前一刻替换）。如果某个机密出现在任何工具的输出里，模型读到之前它就被换成 `[REDACTED:NAME]`。密钥是 `<data_dir>/vault.key`（首次使用时创建，权限 600）或 `NANOMUSE_VAULT_KEY`。
 
 ## 审计日志 {#audit-log}
 
@@ -119,7 +119,7 @@ Meta Muse 把每个用户的智能体跑在各自的云端 VM 里，哨兵在 VM
 **覆盖到的**
 
 - *模型做了你没要求的事。* 每个工具调用都过策略；敏感和危险的调用停下来等决定；许可限定在一个工具和一个目标上，可以撤销。
-- *试图外泄数据的提示注入。* 私密数据一旦被读取，外发到白名单之外的任何主机都先询问，目的地写在卡片上。`web_fetch` 不能被指向回环、链路本地、私有或云元数据地址，经重定向也不行。
+- *试图外泄数据的提示注入。* 私密数据一旦被读取，外发到白名单之外的任何主机都先询问，目的地写在卡片上。`web_fetch` 不能被指向回环、链路本地、私有、运营商级 NAT（100.64.0.0/10，例如 Tailscale 网络）或云元数据地址，IPv4 和 IPv6 都一样，经重定向也不行。
 - *模型看到你的机密。* key 和密码放在加密的保险库里，以占位符进入工具调用；审批之后才替换，结果里再抹掉。子进程不继承看起来像凭据的环境变量，在沙箱里也读不到保险库、数据目录或你家目录下的任何其他东西。模型永远看不到 App 的访问令牌。
 - *不知道发生了什么。* 一切都在 `audit.jsonl` 和「活动」视图里。
 

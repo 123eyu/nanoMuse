@@ -59,6 +59,9 @@ class Reminders(BaseTool):
         a = super().assess(args)
         action = str(args.get("action") or "?")
         if action == "create":
+            # a reminder, a routine above all, is work the model does later on its own:
+            # creating one changes state (strict mode asks); listing and cancelling stay safe
+            a.risk = RiskLevel.MODERATE
             when = args.get("repeat") or args.get("at") or "?"
             detail = f"{when}: {str(args.get('text') or '')[:60]}"
         elif action == "cancel":

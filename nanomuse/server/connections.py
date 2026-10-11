@@ -1,10 +1,10 @@
 """Connections: the model, email, the browser and MCP servers, set up from the app.
 
-Muse's Connections screen is where you plug things in and take them out again. Here that
-means: non-secret settings go to ``<data_dir>/app-settings.json`` (layered over
+The Connections screen is where a person plugs things in and takes them out again. Here
+that means: non-secret settings go to ``<data_dir>/app-settings.json`` (layered over
 ``config.toml`` on every start, for the app and the CLI alike); secrets go straight into
 the encrypted vault and are referred to as ``{{vault:NAME}}``. Nothing here is ever shown
-to the model — it only gets the tools that result.
+to the model; it only gets the tools that result.
 """
 
 from __future__ import annotations

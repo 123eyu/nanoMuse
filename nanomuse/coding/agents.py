@@ -420,7 +420,7 @@ def _cursor_cli_meta() -> dict[str, dict[str, Any]]:
             meta = c / "meta.json"
             if meta.is_file():
                 try:
-                    out[c.name] = json.loads(meta.read_text())
+                    out[c.name] = json.loads(meta.read_text("utf-8"))
                 except (OSError, ValueError):
                     continue
     return out

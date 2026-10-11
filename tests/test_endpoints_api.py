@@ -8,6 +8,7 @@ address, a key in the vault and a model list; a slot is set from one by id. The 
 from __future__ import annotations
 
 import json
+import sys
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -288,6 +289,78 @@ def test_the_single_custom_slot_is_migrated_once(settings: Settings, listed):
     client2, _ = _make(settings)
     with client2:
         assert [e["id"] for e in _endpoints(client2)] == [one["id"]]
+
+
+def test_migration_keeps_a_dangling_key_reference_and_takes_a_slot_without_a_key(
+    settings: Settings, listed
+):
+    """Two edges of the first start: a chat slot whose key names a vault entry nothing
+    answers (the vault was lost, or the key never set) becomes an endpoint that says
+    ``missing`` just as the slot does, and a key set on the endpoint later mends both; a slot
+    with no key at all becomes an endpoint with none."""
+    _app_settings(
+        settings,
+        {
+            "provider": "openai",
+            "model": "my-model",
+            "base_url": GATEWAY,
+            "api_key": "{{vault:LLM_API_KEY}}",
+        },
+    )
+    client, service = _make(settings)
+    with client:
+        (one,) = _endpoints(client)
+        assert one["key_source"] == "missing" and one["slots"] == ["chat"]
+        assert client.get("/api/connections").json()["llm"]["key_source"] == "missing"
+        assert service.app.vault.get(key_name(one["id"])) is None
+        saved = load_app_settings(settings.data_dir)
+        assert saved["endpoints"][0]["api_key"] == "{{vault:LLM_API_KEY}}"
+        assert saved["llm"]["api_key"] == "{{vault:LLM_API_KEY}}"
+        # a key typed on the endpoint goes to its own entry and the chat slot follows
+        mended = client.put(
+            f"/api/connections/endpoints/{one['id']}", json={"api_key": "sk-found-again"}
+        )
+        assert mended.status_code == 200 and mended.json()["key_source"] == "vault"
+        assert service.app.vault.get(key_name(one["id"])) == "sk-found-again"
+        assert settings.llm.api_key == "{{vault:" + key_name(one["id"]) + "}}"
+        assert client.get("/api/connections").json()["llm"]["key_source"] == "vault"
+        # taking the key away again: the endpoint and the slot both have none
+        cleared = client.put(f"/api/connections/endpoints/{one['id']}", json={"api_key": ""})
+        assert cleared.status_code == 200 and cleared.json()["key_source"] == "none"
+        assert service.app.vault.get(key_name(one["id"])) is None
+        assert settings.llm.api_key == ""
+        assert client.get("/api/connections").json()["llm"]["key_source"] == "none"
+
+    other = Settings()
+    other.data_dir = settings.data_dir.parent / "no-key"
+    other.agent.workspace = settings.data_dir.parent / "no-key-ws"
+    other.llm.stream = False
+    other.ensure_dirs()
+    _app_settings(other, {"provider": "openai", "model": "local-model", "base_url": SECOND})
+    client2, service2 = _make(other)
+    with client2:
+        (row,) = _endpoints(client2)
+        assert row["base_url"] == SECOND and row["key_source"] == "none"
+        assert row["models"] == ["local-model"] and row["slots"] == ["chat"]
+        assert [n for n in service2.app.vault.names() if n.startswith("ENDPOINT_")] == []
+
+
+def test_app_settings_are_written_whole_and_private(settings: Settings, listed):
+    """``app-settings.json`` is written whole or not at all: after a save the file parses,
+    no temporary file is left next to it, and it is readable by its owner only (where the
+    platform keeps modes)."""
+    client, _ = _make(settings)
+    with client:
+        added = client.post(
+            "/api/connections/endpoints",
+            json={"base_url": GATEWAY, "api_key": "sk-gateway-1"},
+        )
+        assert added.status_code == 200
+    path = settings.data_dir / "app-settings.json"
+    assert json.loads(path.read_text("utf-8"))["endpoints"][0]["base_url"] == GATEWAY
+    assert not path.with_suffix(".tmp").exists()
+    if sys.platform != "win32":
+        assert path.stat().st_mode & 0o777 == 0o600
 
 
 def test_a_catalogue_slot_or_a_config_slot_is_not_migrated(settings: Settings, tmp_path: Path):
