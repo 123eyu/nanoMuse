@@ -15,7 +15,11 @@ import { after, test } from "node:test";
 import { MacHelper, MacHelperError, HELPER_NAME, HELPER_SCREEN_PERMISSION_TEXT, QUARANTINE_KEPT_TEXT, clearQuarantine, defaultHelperPath, describeAction, translocated } from "../out/mac-helper.js";
 
 const roots = [];
+// every fake helper's server, so a failed assertion between launch and stop() cannot leave
+// one listening: an open server keeps the test process alive and the run hangs instead of failing
+const servers = [];
 after(() => {
+  for (const server of servers) server.close();
   for (const dir of roots) rmSync(dir, { recursive: true, force: true });
 });
 
@@ -148,6 +152,7 @@ function fakeHelper(mode = "ok") {
       });
     });
     state.servers.push(server);
+    servers.push(server);
     await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
     state.port = server.address().port;
     // the real helper writes it atomically; a short delay stands for its start-up
@@ -186,9 +191,12 @@ test("start: token file 0600 before the launch, open's arguments, port discovery
   assert.ok(fake.args.includes("--port-file"));
   assert.equal(fake.parentPid, process.pid);
   assert.equal(fake.token.length, 48);
-  // the token file is the person's alone while the helper runs
-  assert.equal(statSync(fake.args[1]).mode & 0o777, 0o600);
-  assert.equal(statSync(join(dir, "data")).mode & 0o777, 0o700);
+  // the token file is the person's alone while the helper runs (Windows has no POSIX mode
+  // bits to read back; the helper itself only ever runs on a Mac)
+  if (process.platform !== "win32") {
+    assert.equal(statSync(fake.args[1]).mode & 0o777, 0o600);
+    assert.equal(statSync(join(dir, "data")).mode & 0o777, 0o700);
+  }
   // the token the fake read is the one the client sends: /status was answered 200
   const status = helper.cachedStatus();
   assert.equal(status.screen, "granted");
