@@ -69,7 +69,7 @@ class CredentialVault:
             raw = self.fernet.decrypt(self.path.read_bytes())
         except InvalidToken as exc:
             raise VaultError(
-                f"cannot decrypt {self.path} – wrong key? (key file: {self.key_path})"
+                f"cannot decrypt {self.path}: wrong key? (key file: {self.key_path})"
             ) from exc
         data = json.loads(raw.decode("utf-8"))
         self._cache = {str(k): str(v) for k, v in data.items()}

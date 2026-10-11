@@ -1781,6 +1781,21 @@ def test_database_from_before_0_4_migrates(tmp_path):
     assert db._conn.execute("SELECT invite_code, contribute FROM accounts WHERE id='a1'").fetchone()[0] == ""
 
 
+def test_the_three_tables_read_by_address_are_indexed_on_it():
+    """The operator's "accounts seen from this address" reads ledger, api_keys and events by
+    ip (db.accounts_at_address); each has the partial index, events included, which is the
+    largest of the three. Opening the database twice creates nothing twice."""
+    db = Database(":memory:")
+
+    def indexes() -> list[str]:
+        return sorted(r["name"] for r in db._conn.execute("SELECT name FROM sqlite_master WHERE type='index'").fetchall())
+
+    before = indexes()
+    assert {"ledger_ip", "api_keys_ip", "events_ip"} <= set(before)
+    db._migrate()
+    assert indexes() == before  # a second run neither fails nor adds anything
+
+
 def test_database_from_0_4_moves_to_the_lifetime_allowance(tmp_path):
     """0.4 kept a daily cap and credit beyond it; 0.5 has one pool. On the first open the
     service seeds every account with what it had spent plus the allowance, plus any 0.4

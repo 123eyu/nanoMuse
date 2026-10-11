@@ -173,6 +173,10 @@ jobs:
         if: env.RUN == 'true'
         run: uv run ruff check .
 
+      - name: Ruff format
+        if: env.RUN == 'true'
+        run: uv run ruff format --check .
+
       - name: Tests
         if: env.RUN == 'true'
         run: uv run python -m pytest -q

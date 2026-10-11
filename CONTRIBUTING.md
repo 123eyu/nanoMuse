@@ -64,7 +64,7 @@ ruff check nanomuse tests scripts && ruff format nanomuse tests scripts
 mypy                                           # types; config in pyproject.toml
 python -m pytest -q                            # MockLLM only, no network
 cd web && npm run check && npm run build       # if you touched web/; commit the build
-cd cloud && pip install -e ".[dev]" && ruff check . && pytest   # if you touched the relay
+cd cloud && pip install -e ".[dev]" && ruff check . && ruff format --check . && pytest   # if you touched the relay
 ```
 
 The desktop app, the Electron shell and the docs site have their own lines in [AGENTS.md](AGENTS.md). Guidelines that apply everywhere: everything that acts goes through the Sentinel with an honest `risk`; secrets never reach the model (`{{vault:NAME}}`); test with `MockLLM`; no internal endpoints or keys in the repo; Ruff, line length 100, type hints; docs are part of the change.

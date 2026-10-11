@@ -59,6 +59,23 @@ class NmStringsParityTest {
         }
     }
 
+    /**
+     * aapt strips a bare `"` from a string (it reads it as quoting, to keep whitespace), so
+     * *answer "always allow"* reaches the screen as *answer always allow*. A quote inside a
+     * string is written `\"`, or as the language's own marks (“” 「」 „“ «»); a string wrapped
+     * whole in quotes, to keep a trailing space, is the one allowed use.
+     */
+    @Test fun `no bare double quote inside a string`() {
+        for (f in localeFiles() + File(res, "values/nm_strings.xml")) {
+            val bare = stringRx.findAll(f.readText()).filter { m ->
+                val body = m.groupValues[2]
+                val wrapped = body.length >= 2 && body.startsWith("\"") && body.endsWith("\"") && body.count { it == '"' } == 2
+                !wrapped && Regex("""(?<!\\)"""").containsMatchIn(body)
+            }.map { it.groupValues[1] }.toList()
+            assertEquals("${f.locale}: a bare \" in ${bare.take(8)}", emptyList<String>(), bare)
+        }
+    }
+
     /** The house style: no em dashes in copy; a comma, colon or full stop instead. 非营利 is the word, not 非盈利. */
     @Test fun `no em dashes and no 非盈利 in the strings`() {
         val commentRx = Regex("""<!--.*?-->""", RegexOption.DOT_MATCHES_ALL)

@@ -29,7 +29,7 @@ while [ $# -gt 0 ]; do
     --bind) BIND="$2"; shift ;;
     --port) PORT="$2"; shift ;;
     --no-start) START=0 ;;
-    -h|--help) sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "unknown option: $1 (try --help)" >&2; exit 2 ;;
   esac
   shift

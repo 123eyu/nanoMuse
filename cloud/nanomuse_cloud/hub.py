@@ -319,6 +319,22 @@ class Hub:
             c.stop()
             await c._close(4001, "account_gone")
 
+    async def drop_signed_out(self, account_id: str) -> int:
+        """After a sign-out (this device, every other device, one session revoked on the
+        account page): every socket of the account whose key no longer opens is closed with
+        4001 bad_key, so a device signed out from elsewhere, a lost phone say, loses its live
+        line now and not at its next reconnect. Returns how many were closed."""
+        n = 0
+        for c in list(self.online.get(account_id, {}).values()):
+            if self.cloud.key_live(c.key_hash):
+                continue
+            await c._close(4001, "bad_key")
+            # off the account's list now, not when its receive loop notices the close: the
+            # other devices hear it left and a call it was carrying out fails as offline
+            await self._detach(c)
+            n += 1
+        return n
+
     async def drop_all(self, reason: str = "hub_paused") -> int:
         """0.22: the operator turned the hub (or the whole service) off — every socket is
         closed with 4003 and the reason; the apps reconnect with backoff and are refused

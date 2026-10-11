@@ -11,7 +11,8 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 const here = new URL("..", import.meta.url);
-const config = readFileSync(new URL("electron-builder.yml", here), "utf8");
+// read with LF line ends whatever the checkout wrote (a Windows runner with autocrlf writes CRLF)
+const config = readFileSync(new URL("electron-builder.yml", here), "utf8").replace(/\r\n/g, "\n");
 
 /** The lines of one top-level block of the YAML, by its key. */
 function block(key) {

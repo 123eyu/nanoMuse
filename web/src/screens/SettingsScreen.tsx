@@ -28,7 +28,7 @@ import {
   TerminalSquare,
   Zap,
 } from "lucide-react";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useState, type ReactNode } from "react";
 import { androidApp, keepRunningStatus, type KeepRunningStatus } from "../android";
 import { api, setToken } from "../api";
 import { DRAGON } from "../avatars";
@@ -86,6 +86,12 @@ export function SettingsScreen() {
   const themeSetting = useThemeSetting();
   const [release, setRelease] = useState<UpdateView | null>(null);
   const [checking, setChecking] = useState(false);
+  // the four selects and the label beside each: one id per pair, so the label names the control
+  const ids = useId();
+  const intervalId = `${ids}-interval`;
+  const themeId = `${ids}-theme`;
+  const appLangId = `${ids}-app-language`;
+  const replyLangId = `${ids}-reply-language`;
 
   useEffect(() => {
     if (!s) void refreshSettings();
@@ -245,7 +251,7 @@ export function SettingsScreen() {
           </div>
           {s && (
             <div className="text-[12.5px] text-muted leading-relaxed">
-              {t("Always asks before: {tools}.", { tools: s.sentinel.always_ask_tools.map((tool) => t(tool)).join(", ") || "—" })}{" "}
+              {t("Always asks before: {tools}.", { tools: s.sentinel.always_ask_tools.map((tool) => t(tool)).join(", ") || t("none") })}{" "}
               {s.sentinel.taint_tracking && t("After reading private data, new network destinations need approval.")}
             </div>
           )}
@@ -275,7 +281,7 @@ export function SettingsScreen() {
         <Section title={t("Proactivity")} id="proactivity" plain={!wide}>
           <ProactivityDial value={state.profile?.proactivity ?? "default"} onChange={(v) => void update({ profile: { proactivity: v } })} />
           <div className="flex items-center gap-3">
-            <label className="text-[13.5px] flex-1">
+            <label htmlFor={intervalId} className="text-[13.5px] flex-1">
               {t("Check-in interval")}
               {state.profile && state.profile.proactivity !== "default" && state.profile.proactivity !== "off" && (
                 <span className="block text-[12px] text-muted">
@@ -284,6 +290,7 @@ export function SettingsScreen() {
               )}
             </label>
             <select
+              id={intervalId}
               value={state.profile?.goal_interval_minutes ?? 60}
               onChange={(e) => void update({ profile: { goal_interval_minutes: Number(e.target.value) } })}
               className="rounded-2xl bg-surface-2 px-3 py-2 text-[13.5px] outline-none"
@@ -359,11 +366,12 @@ export function SettingsScreen() {
             onChange={(v) => void update({ show_thinking: v })}
           />
           <div className="flex items-center gap-3">
-            <label className="text-[13.5px] flex-1">
+            <label htmlFor={themeId} className="text-[13.5px] flex-1">
               {t("Appearance")}
               <span className="block text-[12px] text-muted">{t("This device only")}</span>
             </label>
             <select
+              id={themeId}
               value={themeSetting}
               onChange={(e) => setThemeSetting(e.target.value as typeof themeSetting)}
               className="rounded-2xl bg-surface-2 px-3 py-2 text-[13.5px] outline-none"
@@ -374,11 +382,12 @@ export function SettingsScreen() {
             </select>
           </div>
           <div className="flex items-center gap-3">
-            <label className="text-[13.5px] flex-1">
+            <label htmlFor={appLangId} className="text-[13.5px] flex-1">
               {t("App language")}
               <span className="block text-[12px] text-muted">{t("This device only")}</span>
             </label>
             <select
+              id={appLangId}
               value={localeSetting}
               onChange={(e) => setLocaleSetting(e.target.value as typeof localeSetting)}
               className="rounded-2xl bg-surface-2 px-3 py-2 text-[13.5px] outline-none"
@@ -391,11 +400,12 @@ export function SettingsScreen() {
             </select>
           </div>
           <div className="flex items-center gap-3">
-            <label className="text-[13.5px] flex-1">
+            <label htmlFor={replyLangId} className="text-[13.5px] flex-1">
               {t("Reply language")}
               <span className="block text-[12px] text-muted">{t("What {name} writes in", { name: state.profile?.name ?? "nanoMuse" })}</span>
             </label>
             <select
+              id={replyLangId}
               value={s?.agent.language ?? "auto"}
               onChange={(e) => void update({ language: e.target.value })}
               className="rounded-2xl bg-surface-2 px-3 py-2 text-[13.5px] outline-none"
@@ -945,9 +955,9 @@ export function QuietHours({ value, onChange }: { value: string; onChange: (v: s
       {on && (
         <div className="mt-2 flex items-center gap-2 text-[13.5px]">
           <span className="text-muted">{t("From")}</span>
-          <input type="time" value={start} onChange={(e) => set(e.target.value, end)} className="rounded-xl bg-surface-2 px-2.5 py-1.5 outline-none" />
+          <input type="time" value={start} onChange={(e) => set(e.target.value, end)} aria-label={t("Quiet hours start")} className="rounded-xl bg-surface-2 px-2.5 py-1.5 outline-none" />
           <span className="text-muted">{t("to")}</span>
-          <input type="time" value={end} onChange={(e) => set(start, e.target.value)} className="rounded-xl bg-surface-2 px-2.5 py-1.5 outline-none" />
+          <input type="time" value={end} onChange={(e) => set(start, e.target.value)} aria-label={t("Quiet hours end")} className="rounded-xl bg-surface-2 px-2.5 py-1.5 outline-none" />
         </div>
       )}
     </div>

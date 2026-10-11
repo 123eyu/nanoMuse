@@ -48,7 +48,12 @@ data class Device(
 
 class HubException(val code: String, message: String) : IOException(message)
 
-/** A call another device made to this phone; answer it exactly once. */
+/**
+ * A call another device made to this phone; answer it exactly once. A frame that cannot be
+ * sent because the socket dropped meanwhile is logged and lost, never thrown: the handlers run
+ * on worker threads and in their own coroutines, where an exception would end the process, and
+ * the relay fails the call to its caller on its own when no answer arrives.
+ */
 class IncomingCall internal constructor(
     val id: String,
     val from: JSONObject,
@@ -63,19 +68,27 @@ class IncomingCall internal constructor(
     val senderKind: String get() = from.optString("kind")
 
     fun event(body: JSONObject) {
-        if (!answered) client.send(JSONObject().put("type", "event").put("id", id).put("body", body))
+        if (!answered) trySend(JSONObject().put("type", "event").put("id", id).put("body", body))
     }
 
     fun result(body: JSONObject) {
         if (answered) return
         answered = true
-        client.send(JSONObject().put("type", "result").put("id", id).put("ok", true).put("body", body))
+        trySend(JSONObject().put("type", "result").put("id", id).put("ok", true).put("body", body))
     }
 
     fun fail(code: String, message: String) {
         if (answered) return
         answered = true
-        client.send(JSONObject().put("type", "result").put("id", id).put("ok", false).put("error", code).put("message", message))
+        trySend(JSONObject().put("type", "result").put("id", id).put("ok", false).put("error", code).put("message", message))
+    }
+
+    private fun trySend(frame: JSONObject) {
+        try {
+            client.send(frame)
+        } catch (e: HubException) {
+            AppLogger.info("HubClient", "$action for $senderName: ${frame.optString("type")} not sent, ${e.message}")
+        }
     }
 }
 
@@ -160,8 +173,10 @@ class HubClient(
         connected = false
         ws = null
         failAll("disconnected", "the hub connection dropped")
-        onState(false, reason)
+        // A stopped client says nothing more: its own close arrives here a moment after
+        // stop(), when Hub may already run a new client whose state this would overwrite.
         if (stopped) return
+        onState(false, reason)
         retry?.cancel(false)
         val wait = maxOf(delayMs, atLeastMs)
         retry = timer.schedule({ connect() }, wait, TimeUnit.MILLISECONDS)
@@ -185,6 +200,7 @@ class HubClient(
         }
 
         override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+            if (stopped) return // our own close after stop(); see scheduleReconnect
             if (code == 4001 || code == 4002) {
                 // Bad key or bad device: the relay will say the same thing next time. Stop here
                 // and say why; a new sign-in makes a new client.

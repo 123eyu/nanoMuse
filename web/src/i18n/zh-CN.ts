@@ -273,6 +273,7 @@ const zhCN: Record<string, string> = {
   pending: "待处理",
   blocked: "受阻",
   "{done}/{total} done": "已完成 {done}/{total}",
+  "No next step": "没有下一步",
   "Next: {step}": "下一步：{step}",
   "Next check-in {when}": "下次跟进 {when}",
   "Due today": "今天到期",
@@ -549,6 +550,8 @@ const zhCN: Record<string, string> = {
   "Halved at this level": "此级别下减半",
   "Doubled at this level": "此级别下加倍",
   "Quiet hours": "免打扰时段",
+  "Quiet hours start": "免打扰时段开始",
+  "Quiet hours end": "免打扰时段结束",
   From: "从",
   to: "到",
   Notifications: "通知",
@@ -604,6 +607,7 @@ const zhCN: Record<string, string> = {
   "Workspace:": "工作区：",
   "Forget this device's access token": "忘掉这台设备的访问令牌",
   "does the work": "负责干活",
+  "Not scheduled": "未安排时间",
 
   // ── Calendar ──────────────────────────────────────────────────────────────────────
   Calendar: "日历",
@@ -659,6 +663,8 @@ const zhCN: Record<string, string> = {
   "Find someone, as the agent would": "像 Agent 那样查一个人",
   "No one matches.": "没有匹配的人。",
   "Working hours": "工作时间",
+  "Working hours start": "工作时间开始",
+  "Working hours end": "工作时间结束",
   "Free time is looked for inside these hours.": "空闲时间只在这个时段内查找。",
   "Read again": "重新读取",
   Event: "日程",
@@ -1499,7 +1505,7 @@ const zhCN: Record<string, string> = {
   "Could not load.": "没能加载出来。",
   "Use /{name}": "使用 /{name}",
   "Retry": "重试",
-  "Could not load the conversation. Pull to retry.": "对话没能加载出来，下拉重试。",
+  "Could not load the conversation. Open the chat again to retry.": "对话没能加载出来，重新打开这个对话再试。",
   "Could not load the connections.": "连接信息没能加载出来。",
 
   // -- nanoMuse Cloud as the provider --
@@ -1532,6 +1538,8 @@ const zhCN: Record<string, string> = {
   "Drawing…": "正在画…",
   "Draw four more": "再画四张",
   "Drawn by {provider} · {model}": "由 {provider} · {model} 绘制",
+  "default model": "默认模型",
+  "your provider": "你的服务商",
   "Pick one": "挑一张",
   "Draw four more any time; the old ones stay until you do.": "随时可以再画四张；没重画之前旧的会留着。",
   "Use this one": "就用这个",

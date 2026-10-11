@@ -267,7 +267,8 @@ Ollama, LM Studio and vLLM on your own computer work too: pick the preset
 (`http://127.0.0.1:11434/v1`, `:1234`, `:8000`) and no key is needed. They
 count as *chat*; the hands need a model that sees, so run a multimodal one
 locally (Ollama's `qwen3-vl`, say) and pick it under *Operating the screen*
-(web console: type its id on the *Hands model* row). Pictures and clips need
+(web console: the *Hands model* row under *Chat model* lists what the endpoint
+serves; pick it there). Pictures and clips need
 one of the providers in the table.
 
 ## Any other OpenAI-compatible endpoint

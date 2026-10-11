@@ -376,6 +376,8 @@ class Database:
         add("devices", "ip", "TEXT NOT NULL DEFAULT ''")
         self._conn.execute("CREATE INDEX IF NOT EXISTS ledger_ip ON ledger(ip) WHERE ip<>''")
         self._conn.execute("CREATE INDEX IF NOT EXISTS api_keys_ip ON api_keys(ip) WHERE ip<>''")
+        # events is the largest of the three and accounts_at_address reads it by ip as well
+        self._conn.execute("CREATE INDEX IF NOT EXISTS events_ip ON events(ip) WHERE ip<>''")
         # 0.15: the allowance each account was given (the part of grant_uy that is neither
         # an invite nor the operator's credit), so a raised allowance can be applied to the
         # accounts that got less. -1 = from before the column; the service fills it with
@@ -777,8 +779,7 @@ class Database:
             ts = now()
             c.execute("DELETE FROM deleted_keys WHERE deleted_at < ?", (ts - DELETED_KEYS_TTL_S,))
             c.execute(
-                "INSERT OR REPLACE INTO deleted_keys(key_hash, deleted_at) "
-                "SELECT key_hash, ? FROM api_keys WHERE account_id=?",
+                "INSERT OR REPLACE INTO deleted_keys(key_hash, deleted_at) SELECT key_hash, ? FROM api_keys WHERE account_id=?",
                 (ts, account_id),
             )
             c.execute("DELETE FROM api_keys WHERE account_id=?", (account_id,))
@@ -1064,9 +1065,7 @@ class Database:
             for i in range(0, len(wanted), 500):
                 chunk = wanted[i : i + 500]
                 marks = ",".join("?" * len(chunk))
-                out.extend(
-                    self._conn.execute(f"SELECT id, hint, identifier_enc FROM accounts WHERE id IN ({marks})", chunk).fetchall()
-                )
+                out.extend(self._conn.execute(f"SELECT id, hint, identifier_enc FROM accounts WHERE id IN ({marks})", chunk).fetchall())
         return out
 
     def allowance_rows(self) -> list[sqlite3.Row]:

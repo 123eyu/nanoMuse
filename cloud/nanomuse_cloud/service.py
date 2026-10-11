@@ -1028,6 +1028,11 @@ class Cloud:
         self.db.daily_add("active", caller.account_id)
         return caller
 
+    def key_live(self, key_hash: str) -> bool:
+        """Whether a key still opens: not revoked, not past its time. What the hub asks after
+        a sign-out to find the sockets whose key just stopped working."""
+        return self._caller(key_hash) is not None
+
     def sign_out(self, caller: Caller) -> None:
         self.db.revoke_key(caller.key_hash)
         self.db.add_event(caller.account_id, "sign_out")
@@ -1163,7 +1168,13 @@ class Cloud:
         p = catalogue_provider(pid)
         if p is None:
             return {}
-        return {"name": p["name"], "name_zh": p["name_zh"], "key_url": p["key_url"], "covers": list(p["capabilities"]), "auth": list(p["auth"])}
+        return {
+            "name": p["name"],
+            "name_zh": p["name_zh"],
+            "key_url": p["key_url"],
+            "covers": list(p["capabilities"]),
+            "auth": list(p["auth"]),
+        }
 
     def guidance(self, region: str) -> dict:
         """The own-key guidance for this person (0.21, contract C11): the providers for the
@@ -2174,9 +2185,7 @@ class Cloud:
         # 0.22: the console shows accounts in full (decrypted for the admin token only);
         # the hint stays beside it for anything that leaves the console. Only the accounts
         # on this page are read and decrypted, not every account the relay has.
-        hints, idents = self._labels(
-            [r["account_id"] for r in top_rows] + [r["account_id"] for r in event_rows if r["account_id"]]
-        )
+        hints, idents = self._labels([r["account_id"] for r in top_rows] + [r["account_id"] for r in event_rows if r["account_id"]])
         top = []
         for r in top_rows:
             top.append(

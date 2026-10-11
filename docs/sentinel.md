@@ -15,8 +15,8 @@ Every tool declares a static `risk`:
 
 | Level | Meaning | Examples |
 |---|---|---|
-| `safe` | reversible, local | `files` (inside the workspace), `web_search`, `remember`, `goals`, `contacts`, `skills` (list, use), `phone_screen` |
-| `moderate` | reaches outside or changes state | `web_fetch`, `python_execute`, `read_emails`, `browser`, `forget`, `phone_act` |
+| `safe` | reversible, local | `files` (inside the workspace), `web_search`, `remember`, `goals`, `reminders` and `triggers` (list, cancel, bookkeeping), `contacts`, `skills` (list, use), `phone_screen` |
+| `moderate` | reaches outside or changes state | `web_fetch`, `python_execute`, `read_emails`, `browser`, `forget`, `phone_act`, `goals`, `reminders` and `triggers` (create: standing work the model takes up later on its own, so `strict` mode asks before it is set up) |
 | `sensitive` | hard to undo or externally visible | `shell`, `send_email`, `skills` (save, remove; a skill is standing instructions the model will follow later, so writing one always asks) |
 
 A tool can raise the level for a particular call in `assess()`: `shell` attaches a warning on patterns such as `rm -rf`, `sudo`, `curl | sh`; `python_execute` is `moderate` for plain computation and files in the workspace (inside a working sandbox; without one, on macOS, Windows or a Linux box without bubblewrap, every script is `sensitive`, since the static check is then the only wall) and `sensitive` with the reason on the card when the code reaches the network, starts other programs, reads environment variables, deletes files or touches paths outside the workspace; `web_fetch` refuses private and loopback addresses outright, on every redirect hop; `phone_act` is `sensitive` with a warning when the `label` of a tap (the operator's words for what is under the finger) contains 确认支付, 转账, 提交订单, 发送, 删除 or another of `[gui] sensitive_words`, or when a step types and submits at once; a tap with no label carries a warning of its own ([gui.md](gui.md)). Tools also declare `reads_private_data` (taints the conversation) and `egress` with an optional `egress_target` (the host a call sends data to; unknown for `shell` and `python_execute`; the app's id for the phone), used by taint tracking.
@@ -99,7 +99,7 @@ nanomuse vault list                      # names only
 nanomuse vault delete EMAIL_PASSWORD
 ```
 
-Config values (the model's key, mail, calendar and contact links, the search key) reference secrets as `{{vault:NAME}}`; the placeholder is what the model sees, and the connector is built with the real value. Tool arguments do **not** carry secrets: no production tool opts in (`accepts_secrets`), so a `{{vault:NAME}}` in a `shell` or `python_execute` call is refused with the reason rather than run with the literal text (a tool of your own may opt in; Sentinel then substitutes immediately before execution). If a secret shows up in any tool's output it is replaced with `{{vault:NAME}}` before the model reads it. The key is `<data_dir>/vault.key` (created on first use, mode 600) or `NANOMUSE_VAULT_KEY`.
+Config values (the model's key, mail, calendar and contact links, the search key) reference secrets as `{{vault:NAME}}`; the placeholder is what the model sees, and the connector is built with the real value. Tool arguments do **not** carry secrets: no production tool opts in (`accepts_secrets`), so a `{{vault:NAME}}` in a `shell` or `python_execute` call is refused with the reason rather than run with the literal text (a tool of your own may opt in; Sentinel then substitutes immediately before execution). If a secret shows up in any tool's output it is replaced with `[REDACTED:NAME]` before the model reads it. The key is `<data_dir>/vault.key` (created on first use, mode 600) or `NANOMUSE_VAULT_KEY`.
 
 ## Audit log
 
@@ -119,7 +119,7 @@ Meta Muse runs each user's agent in its own cloud VM with the Sentinel outside i
 **Covered**
 
 - *The model acting beyond what you asked.* Every tool call goes through the policy; sensitive and dangerous calls stop for a decision; permissions are scoped to a tool and a target and can be revoked.
-- *Prompt injection that tries to exfiltrate.* Once private data has been read, egress to any host not on the allowlist asks first, with the destination on the card. `web_fetch` cannot be pointed at loopback, link-local, private or cloud-metadata addresses, including through redirects.
+- *Prompt injection that tries to exfiltrate.* Once private data has been read, egress to any host not on the allowlist asks first, with the destination on the card. `web_fetch` cannot be pointed at loopback, link-local, private, carrier-grade NAT (100.64.0.0/10, a Tailscale network) or cloud-metadata addresses, in IPv4 or IPv6, including through redirects.
 - *The model seeing your secrets.* Keys and passwords live in the encrypted vault and enter tool calls as placeholders; they are substituted after approval and redacted from results. Subprocesses do not inherit credential-looking environment variables, and in the sandbox cannot read the vault, the data directory or anything else under your home. The model never sees the access token of the app.
 - *Not knowing what happened.* Everything is in `audit.jsonl` and the Activity view.
 

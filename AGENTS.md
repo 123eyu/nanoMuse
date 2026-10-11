@@ -32,7 +32,7 @@ mypy
 python -m pytest -q -m "not live"
 
 # Relay (cloud/)
-cd cloud && pip install -e ".[dev]" && ruff check . && pytest
+cd cloud && pip install -e ".[dev]" && ruff check . && ruff format --check . && pytest
 
 # Web console (web/); the built app under nanomuse/server/static/ is committed; rebuild and commit it
 cd web && npm ci && npm run check && npm run build

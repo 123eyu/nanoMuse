@@ -520,10 +520,10 @@ export function ModelCard({
       title={t("Chat model")}
       summary={
         data.llm.cloud
-          ? `nanoMuse Cloud · ${data.llm.model || "—"}`
+          ? `nanoMuse Cloud · ${data.llm.model || t("No model yet")}`
           : currentEndpoint
-            ? `${data.llm.model || "—"} · ${endpointLabel(currentEndpoint)}`
-            : `${data.llm.model || "—"}${data.llm.base_url ? ` · ${hostOf(data.llm.base_url)}` : ""}`
+            ? `${data.llm.model || t("No model yet")} · ${endpointLabel(currentEndpoint)}`
+            : `${data.llm.model || t("No model yet")}${data.llm.base_url ? ` · ${hostOf(data.llm.base_url)}` : ""}`
       }
       status={status}
       open={open}
@@ -764,9 +764,9 @@ export function ModelCard({
         label={t("Hands model")}
         hint={
           p?.cloud
-            ? t("The model that looks at screens when the hands run: the phone, this computer, a page the browser cannot read. Your account's hands model is {model}; the chat model above is a different pick.", { model: handsDefault || "—" })
+            ? t("The model that looks at screens when the hands run: the phone, this computer, a page the browser cannot read. Your account's hands model is {model}; the chat model above is a different pick.", { model: handsDefault || t("none") })
             : handsOnCloud
-              ? t("The model that looks at screens when the hands run. This provider has no model that sees, so the hands use your account's, {model}, unless you pick one here.", { model: handsDefault || "—" })
+              ? t("The model that looks at screens when the hands run. This provider has no model that sees, so the hands use your account's, {model}, unless you pick one here.", { model: handsDefault || t("none") })
               : endpoints.length > (ep ? 1 : 0)
                 ? t("The model that looks at screens when the hands run: a small, fast one that takes pictures. Pick one of this provider's, or one from another endpoint of your list, which then lends its address and key.")
                 : t("The model that looks at screens when the hands run: a small, fast one that takes pictures, on the same endpoint and key. Default: this provider's own hands model.")
@@ -818,6 +818,7 @@ export function ModelCard({
               value={key}
               onChange={(e) => setKey(e.target.value)}
               disabled={noKey && !!p?.key_optional}
+              aria-label={t("API key")}
               className={cx(inputCls, "pr-10 disabled:opacity-50")}
               placeholder={
                 data.llm.key_source === "vault" && preset === currentPreset
@@ -1023,6 +1024,7 @@ function AddEndpointForm({ onAdded }: { onAdded: (e: CustomEndpoint) => void }) 
             value={key}
             onChange={(e) => setKey(e.target.value)}
             disabled={noKey}
+            aria-label={t("API key")}
             className={cx(inputCls, "pr-10 disabled:opacity-50")}
             placeholder="sk-…"
             autoComplete="off"
@@ -1471,6 +1473,7 @@ export function MediaSlotCard({
               type={showKey ? "text" : "password"}
               value={key}
               onChange={(e) => setKey(e.target.value)}
+              aria-label={t("API key")}
               className={cx(inputCls, "pr-10")}
               placeholder={keySaved ? "••••••••" : (entry?.key_hint || "sk-…")}
               autoComplete="off"
@@ -1884,6 +1887,7 @@ export function SearchCard({
             type="password"
             value={key}
             onChange={(ev) => setKey(ev.target.value)}
+            aria-label={t("API key")}
             className={inputCls}
             placeholder={
               s.key_source === "vault" && s.provider === provider
@@ -2560,13 +2564,15 @@ export function CalendarCard({
                 type="time"
                 value={dayStart}
                 onChange={(e) => setDayStart(e.target.value)}
+                aria-label={t("Working hours start")}
                 className={cx(inputCls, "w-auto")}
               />
-              <span className="text-muted">–</span>
+              <span className="text-muted">{t("to")}</span>
               <input
                 type="time"
                 value={dayEnd}
                 onChange={(e) => setDayEnd(e.target.value)}
+                aria-label={t("Working hours end")}
                 className={cx(inputCls, "w-auto")}
               />
               {(dayStart !== c.day_start || dayEnd !== c.day_end) && (
@@ -2921,6 +2927,7 @@ export function ContactsCard({
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              aria-label={t("Find someone, as the agent would")}
               className={cx(inputCls, "pl-9")}
               placeholder={t("Find someone, as the agent would")}
               autoComplete="off"
@@ -3504,11 +3511,13 @@ function MCPCard({
             hint={t("Decides when the Sentinel asks you before a call.")}
           >
             <div className="flex gap-1.5">
-              {["safe", "moderate", "high"].map((r) => (
+              {/* the runtime's three risk levels (nanomuse/schema.py RiskLevel); any other word is a 400 */}
+              {["safe", "moderate", "sensitive"].map((r) => (
                 <button
                   key={r}
                   type="button"
                   onClick={() => setRisk(r)}
+                  aria-pressed={risk === r}
                   className={cx(
                     "rounded-full px-3 py-1.5 text-[13px] border",
                     risk === r

@@ -1421,7 +1421,7 @@ def config_init(
             'api_key = "${DEEPSEEK_API_KEY}"\n\n[sentinel]\nmode = "ask"\n',
             "utf-8",
         )
-    console.print(f"wrote [cyan]{path}[/cyan] – edit llm.api_key / model, then run `nanomuse chat`")
+    console.print(f"wrote [cyan]{path}[/cyan]; edit llm.api_key / model, then run `nanomuse chat`")
 
 
 @config_app.command("show")
@@ -1433,19 +1433,28 @@ def config_show(config: ConfigOpt = None) -> None:
     )
 
 
-_SECRET_KEY_RE = re.compile(r"(api_key|password|secret|token|app_key|passwd)$", re.IGNORECASE)
+_SECRET_KEY_RE = re.compile(
+    r"(api_key|password|passwd|secret|token|app_key|authorization|cookie|(^|_)key)$",
+    re.IGNORECASE,
+)
 
 
 def mask_secrets(data: Any) -> Any:
     """The same structure with every value under a key that names a credential
-    (``api_key``, ``password``, ``secret``, ``token`` and the like) shortened to its first
-    and last characters, in every section: the image and video slots, the mail account,
-    the search connector and the chat channels hold keys too, not only ``[llm]``."""
+    (``api_key``, ``password``, ``secret``, ``token``, any ``*_KEY`` an MCP server's ``env``
+    carries, an ``Authorization`` header and the like) shortened to its first and last
+    characters, in every section: the image and video slots, the mail account, the search
+    connector and the chat channels hold keys too, not only ``[llm]``. A proxy URL keeps
+    its host and loses its password."""
+    from nanomuse.server.connections import mask_proxy
+
     if isinstance(data, dict):
         out: dict[str, Any] = {}
         for k, v in data.items():
             if isinstance(v, str) and v and _SECRET_KEY_RE.search(str(k)):
                 out[k] = v if v.startswith("{{vault:") else _masked(v)
+            elif isinstance(v, str) and str(k) == "proxy":
+                out[k] = mask_proxy(v)
             else:
                 out[k] = mask_secrets(v)
         return out
