@@ -27,6 +27,8 @@
     PUT  /api/connections/gui             the hands' model (a protocol or a catalogue id, as for llm)   POST /api/connections/gui/test
     GET|PUT /api/connections/image|video  where pictures and clips come from: provider (a catalogue id), model, base_url, api_key
     POST /api/llm/models                 the models an endpoint offers (live /models, else the catalogue)
+    POST /api/connections/endpoints {label,base_url,api_key,models}  PUT|DELETE /api/connections/endpoints/{id}
+    POST /api/connections/endpoints/{id}/models   custom OpenAI-compatible endpoints, several at once (#294)
     GET  /api/providers (?lang=en|zh&region=cn|global)  the provider catalogue, which slots use which, what that covers
     POST /api/chatgpt/login  GET /api/chatgpt/status  GET /api/chatgpt/usage
     POST /api/chatgpt/callback {url}  POST /api/chatgpt/logout
@@ -195,24 +197,43 @@ class LLMBody(BaseModel):
     api_key: str | None = None
     # `[llm] proxy`: http(s):// or socks5(h):// for this slot's requests only; "" clears it
     proxy: str | None = None
+    # one of the endpoint list (#294): the slot takes its address and its key; provider,
+    # base_url and api_key in the body are then ignored
+    endpoint: str | None = None
 
 
 class MediaBody(BaseModel):
     """One of the ``image`` / ``video`` slots. ``provider`` is a catalogue id, or ``openai``
     / ``openai_responses`` with a ``base_url``; ``model`` empty means the catalogue's default;
     ``api_key`` goes into the vault, "" removes it, None keeps it. All four "" clears the
-    slot: pictures (clips) come from the chat provider again, or the account."""
+    slot: pictures (clips) come from the chat provider again, or the account. ``endpoint``
+    names one of the endpoint list instead of a provider (#294)."""
 
     provider: str | None = None
     model: str | None = None
     base_url: str | None = None
     api_key: str | None = None
+    endpoint: str | None = None
 
 
 class LLMModelsBody(BaseModel):
     preset: str = ""
     base_url: str = ""
     api_key: str = ""
+    # one of the endpoint list (#294): its address and its own key
+    endpoint: str = ""
+
+
+class EndpointBody(BaseModel):
+    """A custom OpenAI-compatible endpoint of the list (#294). ``base_url`` is required to
+    add one; ``label`` empty means the host name; ``api_key`` goes into the vault, "" means
+    no key (a local server), None keeps it; ``models`` are the ids the person typed, for an
+    endpoint that does not list its own (a string with commas, or a list)."""
+
+    label: str | None = Field(default=None, max_length=200)
+    base_url: str | None = Field(default=None, max_length=2000)
+    api_key: str | None = Field(default=None, max_length=4000)
+    models: str | list[str] | None = None
 
 
 class ChatGptCallbackBody(BaseModel):
@@ -927,6 +948,45 @@ def create_app(settings: Settings, service: MuseService | None = None) -> FastAP
     async def llm_models(body: LLMModelsBody) -> dict[str, Any]:
         """The models an endpoint offers (its /models, else the preset's catalogue); saves nothing."""
         return await conn.llm_models(body.model_dump())
+
+    # ------------------------------------------------------------------ endpoints (#294)
+    @app.post("/api/connections/endpoints", dependencies=dep)
+    async def add_endpoint(body: EndpointBody) -> dict[str, Any]:
+        """A custom OpenAI-compatible endpoint added to the list: its models are asked for
+        (``GET /models``) unless typed; 400 when there is neither."""
+        try:
+            return await conn.endpoints.add(body.model_dump(exclude_none=True))
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+
+    @app.put("/api/connections/endpoints/{endpoint_id}", dependencies=dep)
+    async def update_endpoint(endpoint_id: str, body: EndpointBody) -> dict[str, Any]:
+        """Rename, change the key or the address, retype the models; the slots that use the
+        endpoint follow a new address or key."""
+        try:
+            return await conn.endpoints.update(endpoint_id, body.model_dump(exclude_none=True))
+        except ValueError as exc:
+            status = 404 if str(exc).startswith("no endpoint") else 400
+            raise HTTPException(status, str(exc)) from exc
+
+    @app.delete("/api/connections/endpoints/{endpoint_id}", dependencies=dep)
+    async def remove_endpoint(endpoint_id: str) -> dict[str, Any]:
+        """The endpoint, its key and the hands, picture and clip slots that used it (back to
+        automatic); 409 while the chat model answers through it."""
+        try:
+            if not conn.endpoints.remove(endpoint_id):
+                raise HTTPException(404, "no such endpoint")
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from exc
+        return {"ok": True}
+
+    @app.post("/api/connections/endpoints/{endpoint_id}/models", dependencies=dep)
+    async def refresh_endpoint_models(endpoint_id: str) -> dict[str, Any]:
+        """Ask the endpoint for its models again; the saved list stays when it does not answer."""
+        try:
+            return await conn.endpoints.refresh_models(endpoint_id)
+        except ValueError as exc:
+            raise HTTPException(404, str(exc)) from exc
 
     # ------------------------------------------------------------------ providers (contract C11)
     @app.get("/api/providers", dependencies=dep)
