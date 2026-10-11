@@ -92,7 +92,8 @@ Ours, in `NanoMuse/`:
   then *On it: 〈brief〉*, and the model's name when idle; while a new face is being drawn it
   reads the avatar flow's line. The face (`NanoMuseFaces.swift`, the drawn face from Application
   Support or the dragon from the bundle, five moods with the breath, bob, tilt, pop and shake of
-  the other clients) is tapped into **the agent's page**. A short clip of your own can play as the
+  the other clients; with Reduce Motion on the still keeps still and only the mood's crossfade
+  remains) is tapped into **the agent's page**. A short clip of your own can play as the
   face instead (`NanoMuseOwnClip.swift`: *Your own clip…* under the pen on the agent's page and in
   the avatar studio; MP4 or MOV with H.264 or HEVC video, up to 15 seconds and 30 MB, previewed
   before it is used, kept on that phone only under `Application Support/nanomuse/avatar/own-clip.mp4`,
@@ -536,7 +537,8 @@ Ours, in `NanoMuse/`:
   current one shows the filled symbol in `tabIndicatorGlyph` on a 60 by 46 pt capsule of
   `tabIndicator` (the chat's ink: black with a white symbol in light, white with a black symbol
   in dark, as Android's `MuseBottomBar`) that slides to the tab tapped next with a spring
-  (`matchedGeometryEffect`); the others show the outlined symbol in the secondary colour. The bar
+  (`matchedGeometryEffect`; with Reduce Motion on it moves without the spring); the others show
+  the outlined symbol in the secondary colour. The bar
   still leaves while the keyboard or the chat's voice panel is up. Layout: the pill lies over the
   rooms and the chat in a `ZStack` aligned to the bottom. The chat keeps the 0.1.40 rule above
   (bottom padding of the bar's height, 70 pt: 46 plus 6 above and below plus the 12 pt gap, so the

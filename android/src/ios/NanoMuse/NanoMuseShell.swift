@@ -816,6 +816,8 @@ struct NanoMuseBottomBar: View {
     @Binding var selected: NanoMuseTab
     var onPick: (NanoMuseTab) -> Void
     @Namespace private var indicator
+    /// Reduce Motion on: the indicator moves to the tapped tab without the spring.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// The indicator capsule behind the selected glyph, centred in its slot; the five slots share
     /// the pill's width equally.
@@ -869,7 +871,7 @@ struct NanoMuseBottomBar: View {
             Capsule().fill(NanoMuseTones.surface.opacity(0.55))
         }
         .overlay(Capsule().strokeBorder(NanoMuseTones.hairline, lineWidth: 1))
-        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: selected)
+        .animation(reduceMotion ? nil : Animation.spring(response: 0.35, dampingFraction: 0.8), value: selected)
         .frame(maxWidth: Self.maxWidth)
         .frame(maxWidth: .infinity)
         .padding(.horizontal, Self.inset)
