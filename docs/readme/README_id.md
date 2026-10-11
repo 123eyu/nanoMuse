@@ -177,6 +177,6 @@ nanoMuse adalah proyek komunitas independen, tidak berafiliasi dengan atau diduk
 [GPL-3.0-or-later](../../LICENSE). Aplikasi ponsel berbasis OpenMinis 1.13 (GPL-3.0), dimodifikasi sejak 2026-09-24; lihat [NOTICE](../../NOTICE). Versi lebih awal dari jalur Python berlisensi MIT (tag `pre-openminis`).
 
 <p align="center">
-  <em>Terima kasih sudah berkunjung ✨ nanoMuse!</em><br><br>
+  <em>Terima kasih sudah berkunjung ✨ nanoMuse.</em><br><br>
   <img src="https://komarev.com/ghpvc/?username=nano-muse-nanomuse&label=visitors&color=0a66e4&base=13835" alt="Visitors">
 </p>

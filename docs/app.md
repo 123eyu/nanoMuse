@@ -24,7 +24,7 @@ nanomuse serve --port 9000 --no-qr
   <img src="screenshots/web/library.png" width="24%" alt="Library: pages with live previews">
 </p>
 
-The look follows Meta Muse: near-white and near-black surfaces, one blue accent, grey bubbles for the agent and light blue for you (on the phone, white on the black canvas and black on the white one, see [android.md](android.md)), a small dragon at the top of the chat that changes pose with what the agent is doing, and a floating frosted-glass pill with five icons. The font is [Figtree](https://github.com/erikdkennedy/figtree) (OFL), bundled. The study behind these choices is in [design.md](design.md).
+The look is monochrome: near-white and near-black surfaces, blue for links only, a light grey pill for the agent's messages and, for yours, a pill in the chat's own ink (white on the black canvas, black on the white one, see [android.md](android.md)), a small dragon at the top of the chat that changes pose with what the agent is doing, and a floating frosted-glass pill with five icons. The font is [Figtree](https://github.com/erikdkennedy/figtree) (OFL), bundled. The study behind these choices is in [design.md](design.md).
 
 ## Getting it onto your phone
 
