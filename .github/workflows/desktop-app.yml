@@ -8,8 +8,8 @@
 # Each platform builds the bundle (harness/dsh-nanomuse: pnpm build, test, pack), stages dsh
 # next to it with npm (scripts/prepare-dsh.mjs, the platform's own native prebuilds), builds
 # the runtime (scripts/desktop-app/build-runtime.py --target harness/desktop/runtime, a
-# PyInstaller build), wraps it all with electron-builder, and
-# then boots the unpacked app's harness once in Node mode (scripts/smoke.mjs) to see the Host
+# PyInstaller build), runs the shell's own tests (harness/desktop: npm test), wraps it all
+# with electron-builder, and then boots the unpacked app's harness once in Node mode (scripts/smoke.mjs) to see the Host
 # come up with the bundle's rows. On macOS the Swift helper that holds the hands' permissions
 # (harness/desktop/mac/computer-use/build.sh → "nanoMuse Computer Use.app") is built first and
 # electron-builder lays out the .app with it inside;
@@ -144,6 +144,7 @@ jobs:
         run: |
           npm ci
           npm run typecheck
+          npm test
           npm run dist
       - name: The helper that holds the hands' permissions (macOS, nanoMuse Computer Use.app, Swift)
         if: runner.os == 'macOS'
@@ -167,6 +168,7 @@ jobs:
         run: |
           npm ci
           npm run typecheck
+          npm test
           npm run dist:dir
           ../../scripts/desktop-app/package-mac.sh "${{ matrix.label == 'macos-arm64' && 'arm64' || 'x64' }}"
       - name: Boot the packaged harness once
