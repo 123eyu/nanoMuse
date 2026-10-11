@@ -23,6 +23,10 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Android
 
+- **A clip of your own stops copying at 30 MB.** The import copied the whole file into the avatar folder and only then checked its size, so a picker that gave no size up front could have a long video copied in full before it was refused; the copy now stops the moment the limit is passed, deletes the partial file and refuses with the usual sentence. The preview's refusal line reads *> 30 MB* when the true size is unknown (#362).
+- **Quoted words show their quotes again.** aapt reads a bare `"` inside a string as quoting and drops it, so the empty Permissions and Routines pages read *answer always allow* and *something every morning*, and the avatar studio's lines lost the quotes around the description, in English and in 简体中文; the English strings now escape them and the Chinese ones use “ ”. A unit test refuses a bare quote in any of the seventeen locale files from now on.
+- **The hub no longer takes the app down when the socket drops mid-task.** A task another device had running on the phone sent its progress and its answer through the hub socket; if the connection had dropped meanwhile the send threw on a worker thread, which Android treats as a crash. Such frames are now logged and lost (the relay fails the call to its caller on its own), and a client that was stopped for a sign-out or a key change no longer reports its own closing as the state of the new connection.
+
 ### iOS
 
 ### Project

@@ -33,9 +33,23 @@ class OwnClipTest {
 
     @Test fun `a clip that rounds down to 15 seconds is taken and 16 seconds is not`() {
         assertNull(OwnClip.check(ok(durationMs = 15_000L)))
+        assertNull(OwnClip.check(ok(durationMs = 15_500L)))
         assertNull(OwnClip.check(ok(durationMs = 15_999L)))
         assertEquals(Refusal.TOO_LONG, OwnClip.check(ok(durationMs = 16_000L)))
         assertEquals(Refusal.TOO_LONG, OwnClip.check(ok(durationMs = 60_000L)))
+    }
+
+    @Test fun `a picture or a text file has no video track and is a format refusal`() {
+        // what probe() returns for a JPEG: the retriever gives a container and no length, the extractor no video track
+        assertEquals(Refusal.FORMAT, OwnClip.check(Probe("image/jpeg", null, null, 300_000L)))
+        // a text file: nothing can be read of it but its size
+        assertEquals(Refusal.FORMAT, OwnClip.check(Probe(null, null, null, 12L)))
+        // an audio-only MP4: a container and a length, but no video track
+        assertEquals(Refusal.FORMAT, OwnClip.check(Probe("video/mp4", null, 8_000L, 300_000L)))
+    }
+
+    @Test fun `a HEVC MOV is refused for its codec, not its container`() {
+        assertEquals(Refusal.FORMAT, OwnClip.check(ok(container = "video/quicktime", codec = "video/hevc")))
     }
 
     @Test fun `30 MB is the largest file taken`() {
@@ -67,6 +81,48 @@ class OwnClipTest {
     @Test fun `the format is checked before the length and the length before the size`() {
         assertEquals(Refusal.FORMAT, OwnClip.check(ok(codec = "video/hevc", durationMs = 60_000L, bytes = OwnClip.MAX_BYTES * 2)))
         assertEquals(Refusal.TOO_LONG, OwnClip.check(ok(durationMs = 60_000L, bytes = OwnClip.MAX_BYTES * 2)))
+    }
+
+    // -- the copy -----------------------------------------------------------------------------
+
+    @Test fun `a file within the limit is copied whole and its size reported`() {
+        val dst = File(tmp.newFolder(), "pending.mp4")
+        val bytes = ByteArray(200_000) { (it % 251).toByte() }
+        assertEquals(200_000L, OwnClip.copyBounded(bytes.inputStream(), dst, limit = 1_000_000L))
+        assertTrue(dst.readBytes().contentEquals(bytes))
+    }
+
+    @Test fun `a file exactly at the limit is taken`() {
+        val dst = File(tmp.newFolder(), "pending.mp4")
+        val bytes = ByteArray(70_000)
+        assertEquals(70_000L, OwnClip.copyBounded(bytes.inputStream(), dst, limit = 70_000L))
+        assertEquals(70_000L, dst.length())
+    }
+
+    @Test fun `the copy stops at the limit, deletes the partial file and reads no further`() {
+        val dst = File(tmp.newFolder(), "pending.mp4")
+        var served = 0L
+        val endless = object : java.io.InputStream() {
+            override fun read(): Int { served++; return 7 }
+            override fun read(b: ByteArray, off: Int, len: Int): Int { served += len; return len }
+        }
+        assertNull(OwnClip.copyBounded(endless, dst, limit = 1_000_000L))
+        assertFalse("the partial copy is gone", dst.exists())
+        assertTrue("stopped soon after the limit, not at the end of the stream (read $served bytes)", served <= 1_000_000L + 2 * 64 * 1024)
+    }
+
+    @Test fun `the default limit is the 30 MB rule`() {
+        val dst = File(tmp.newFolder(), "pending.mp4")
+        val overLimit = object : java.io.InputStream() {
+            var left = OwnClip.MAX_BYTES + 1
+            override fun read(): Int = if (left-- > 0) 0 else -1
+            override fun read(b: ByteArray, off: Int, len: Int): Int {
+                if (left <= 0) return -1
+                val n = minOf(len.toLong(), left).toInt(); left -= n; return n
+            }
+        }
+        assertNull(OwnClip.copyBounded(overLimit, dst))
+        assertFalse(dst.exists())
     }
 
     // -- the files ----------------------------------------------------------------------------
