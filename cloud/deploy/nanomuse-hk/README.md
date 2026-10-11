@@ -132,9 +132,15 @@ the *Free allowance* switch says it better to the apps.
 
 ```bash
 ssh nanomuse-hk 'cd /opt/nanomuse/relay && docker compose stop \
-  && gunzip -c /opt/nanomuse/backups/cloud-YYYYMMDD-HHMMSS.db.gz > data/cloud.db \
-  && rm -f data/cloud.db-wal data/cloud.db-shm && docker compose start'
+  && sudo sh -c "gunzip -c /opt/nanomuse/backups/cloud-YYYYMMDD-HHMMSS.db.gz > data/cloud.db \
+     && rm -f data/cloud.db-wal data/cloud.db-shm && chown 10001:10001 data/cloud.db" \
+  && docker compose start'
 ```
+
+`data/` belongs to uid 10001, the user the relay runs as, so the restored file
+is written with `sudo` and handed to that uid; a `cloud.db` left to the
+deploying user would stop the relay at start with the sentence about the
+directory not being writable.
 
 A backup is only readable with the `CLOUD_SECRET` it was written under;
 `backup.sh` keeps a copy of `.env` next to the database copies for that

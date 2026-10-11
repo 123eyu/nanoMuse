@@ -65,7 +65,8 @@ class SmtpSender:
     def send(self, ident: Identifier, code: str) -> None:
         if ident.channel != "email":
             raise SendError("this deployment sends codes by e-mail only")
-        msg = compose_code_mail(self.s.smtp_from, ident.value, code, self.s.code_ttl_s // 60)
+        # the same rounding as the SMS template: a lifetime under a minute still reads as one
+        msg = compose_code_mail(self.s.smtp_from, ident.value, code, max(1, self.s.code_ttl_s // 60))
         smtp_send(self.s, msg)
 
 
