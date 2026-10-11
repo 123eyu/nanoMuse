@@ -192,6 +192,7 @@ for the full list. The ones that matter:
 | `GITHUB_COLLECT` | `1` | `0` turns the collector off (a relay without a way out, tests) |
 | `GITHUB_API` | `https://api.github.com` | where the collector reads; a mirror for a relay that cannot reach GitHub |
 | `ADMIN_EMAIL` | empty | where a threshold rule's *notify* goes (0.22, *Controls*), through the `SMTP_*` settings; empty = the rule writes its audit line and the log says there was nobody to tell |
+| `NANOMUSE_CLOUD_BASE` | `PUBLIC_BASE`, else `http://127.0.0.1:8787` | read by the admin CLI only (`nanomuse-cloud admin …`, below): the address of the relay it talks to when `--base` is not given; the relay itself does not read it |
 
 The default menu (0.17): `deepseek-v4.1-flash` (the chat model — text and
 images in, ¥2 / ¥8 per million tokens, charged at 0.7×; it thinks before it
@@ -710,8 +711,8 @@ curl -X PUT -H "X-Admin-Token: $CLOUD_ADMIN_TOKEN" -H 'Content-Type: application
   -d '{"star":{"moments":{"tasks":[5,20]},"cooldown_days":14,"text":"A star on GitHub helps others find nanoMuse.","text_zh":"在 GitHub 点个 star，让更多人找到 nanoMuse。"}}' \
   https://$CLOUD_DOMAIN/v1/admin/nudges
 # the switches (0.22): what is on, flip one with a note for the audit log, read the log —
-# from the relay's own shell (the CLI reads CLOUD_ADMIN_TOKEN and PUBLIC_BASE from the
-# environment, or --token / --base; --actor names you in the log, else cli:<user>)
+# from the relay's own shell (the CLI reads CLOUD_ADMIN_TOKEN and NANOMUSE_CLOUD_BASE, else
+# PUBLIC_BASE, from the environment, or --token / --base; --actor names you in the log, else cli:<user>)
 nanomuse-cloud admin controls list
 nanomuse-cloud admin controls set free_allowance off --note "upstream bill" --actor lgy
 nanomuse-cloud admin controls set free_allowance on
