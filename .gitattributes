@@ -15,3 +15,7 @@ harness/**/*.png binary
 harness/**/*.webp binary
 harness/**/*.icns binary
 harness/**/*.ico binary
+# The phones' copies of the desktop's catalogues and Ideas lists: the desktop's tests compare
+# them with its own byte for byte (tests/fences.test.mjs), so they keep LF the same way.
+android/src/android/app/src/main/assets/nanomuse/*.json text eol=lf
+android/src/ios/NanoMuse/Resources/*.json text eol=lf
