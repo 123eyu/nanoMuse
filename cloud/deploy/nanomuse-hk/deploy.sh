@@ -7,7 +7,8 @@
 #   SKIP_CADDY=1 cloud/deploy/nanomuse-hk/deploy.sh # everything but the Caddy site
 #
 # What it does, idempotently:
-#   1. rsync cloud/ → /opt/nanomuse/relay/src (tests, caches and .env left out)
+#   1. rsync cloud/ → /opt/nanomuse/relay/src (tests, caches and .env left out); the data
+#      directory is given to uid 10001, the user the relay runs as in its container
 #   2. put this directory's compose file, backup and self-check scripts and systemd
 #      units in place; enable the backup and self-check timers
 #   3. drop cloud.nanomuse.cn.caddy into the showcase's sites.d/ and reload Caddy
@@ -28,6 +29,9 @@ build=1
 [ "${1:-}" = "--no-build" ] && build=
 
 ssh "$host" "sudo mkdir -p $remote/src $remote/data /opt/nanomuse/backups && sudo chown -R \$(id -u):\$(id -g) $remote /opt/nanomuse/backups"
+# The relay runs as uid 10001 inside its container (cloud/Dockerfile), so the bind-mounted
+# data directory, cloud.db and its WAL files included, must belong to that uid on the host.
+ssh "$host" "sudo chown -R 10001:10001 $remote/data"
 
 rsync -az --delete \
 	--exclude '.env' --exclude 'data/' --exclude 'tests/' --exclude '__pycache__/' \

@@ -82,7 +82,7 @@ Two CLIs, two approvals, no app opened. **Trace:** *pending*: 腾讯会议 and �
 
 ## 6. Clipboard → calendar + alarm
 
-> （copies a message: 「周五上午10点，海淀区中关村大街1号3层会议室，带上合同」）把剪贴板里的这个安排加到日历，提前一小时给我设个闹钟。
+> （copies a message: 「周五上午 10 点，海淀区中关村大街 1 号 3 层会议室，带上合同」）把剪贴板里的这个安排加到日历，提前一小时给我设个闹钟。
 
 | Hand | What it does |
 |---|---|
