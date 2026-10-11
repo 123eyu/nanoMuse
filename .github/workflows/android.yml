@@ -88,12 +88,24 @@ jobs:
           ./gradlew :app:assembleDebug --console=plain --no-daemon
 
       # Our unit tests (io.github.nanomuse.*: the guards, the hub client, the sandbox paths, the
-      # strings' parity). Same Gradle invocation as AGENTS.md; the compiled classes are warm.
+      # strings' parity), plus the upstream provider and sandbox tests, the two OpenMinis packages
+      # our edits touch (#333, #334, #335). Same Gradle invocation as AGENTS.md; the compiled
+      # classes are warm.
       - name: Unit tests
         working-directory: android/src/android
         run: |
           export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/$NDK_VERSION"
-          ./gradlew :app:testDebugUnitTest --tests 'io.github.nanomuse.*' --console=plain --no-daemon
+          ./gradlew :app:testDebugUnitTest --tests 'io.github.nanomuse.*' \
+            --tests 'com.openminis.app.provider.*' --tests 'com.openminis.app.sandbox.*' \
+            --console=plain --no-daemon
+
+      # The on-device tests cannot run here (no emulator), but the source set must keep
+      # compiling or io.github.nanomuse.reach.ReachHubInstrumentedTest never runs anywhere (#332).
+      - name: androidTest compiles
+        working-directory: android/src/android
+        run: |
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/$NDK_VERSION"
+          ./gradlew :app:compileDebugAndroidTestKotlin --console=plain --no-daemon
 
       - name: Badging
         run: |

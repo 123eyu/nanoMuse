@@ -1111,4 +1111,19 @@
     <string name="nm_models_search">Caută modele</string>
     <string name="nm_models_search_clear">Șterge căutarea</string>
     <string name="nm_models_no_match">Niciun model nu se potrivește</string>
+    <!-- Names for icon-only controls, read by screen readers (#338) -->
+    <string name="nm_a11y_show_password">Afișează parola</string>
+    <string name="nm_a11y_hide_password">Ascunde parola</string>
+    <string name="nm_a11y_avatar_candidate">Candidatul %1$d</string>
+    <string name="nm_a11y_share_card">Cardul %1$d</string>
+    <string name="nm_a11y_add">Adaugă</string>
+    <string name="nm_a11y_mark_done">Marchează ca finalizat</string>
+    <string name="nm_a11y_mark_not_done">Marchează ca nefinalizat</string>
+    <string name="nm_a11y_done">Finalizat</string>
+    <string name="nm_a11y_not_done">Nefinalizat</string>
+    <string name="nm_a11y_like">Apreciază</string>
+    <string name="nm_a11y_unlike">Retrage aprecierea</string>
+    <string name="nm_a11y_liked">Apreciat</string>
+    <string name="nm_a11y_not_liked">Neapreciat</string>
+    <string name="nm_a11y_post_details">Detaliile postării</string>
 </resources>

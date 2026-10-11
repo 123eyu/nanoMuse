@@ -64,6 +64,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -305,7 +307,7 @@ private fun SectionHeader(
         Text(label, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = labelColor, modifier = Modifier.weight(1f))
         trailing?.invoke()
         IconButton(onClick = onAdd) {
-            Icon(Icons.Filled.Add, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.nm_a11y_add), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -343,13 +345,15 @@ private fun GoalRow(goal: Goal, onOpenSession: (String) -> Unit) {
             )
             .padding(start = 18.dp, end = 4.dp, top = 8.dp, bottom = 10.dp),
     ) {
+        // The name says what a tap does, the state says where the goal stands; the look is the same box.
+        val doneState = stringResource(if (done) R.string.nm_a11y_done else R.string.nm_a11y_not_done)
         IconButton(
             onClick = { GoalFlow.markDone(context, goal, !done) },
-            modifier = Modifier.size(28.dp),
+            modifier = Modifier.size(28.dp).semantics { stateDescription = doneState },
         ) {
             Icon(
                 if (done) Icons.Outlined.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
-                contentDescription = null,
+                contentDescription = stringResource(if (done) R.string.nm_a11y_mark_not_done else R.string.nm_a11y_mark_done),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(22.dp),
             )
@@ -540,7 +544,7 @@ private fun CategoryRow(category: GoalCategory, onClick: () -> Unit) {
             modifier = Modifier.weight(1f),
         )
         IconButton(onClick = onClick) {
-            Icon(Icons.Filled.Add, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.nm_a11y_add), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

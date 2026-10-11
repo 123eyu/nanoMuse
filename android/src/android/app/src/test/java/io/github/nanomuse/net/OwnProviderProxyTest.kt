@@ -1,5 +1,8 @@
 package io.github.nanomuse.net
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.Response
@@ -12,6 +15,7 @@ import org.junit.Test
 import java.net.Proxy
 import java.net.ProxySelector
 import java.net.URI
+import java.util.concurrent.TimeUnit
 
 class OwnProviderProxyTest {
     private val routed = setOf("chatgpt.com", "auth.openai.com", "api.openai.com", "dashscope.aliyuncs.com")
@@ -82,6 +86,19 @@ class OwnProviderProxyTest {
         assertEquals(okhttp3.Credentials.basic("me", "secret"), answered!!.header("Proxy-Authorization"))
         // the same challenge again, already answered: give up rather than loop
         assertNull(OwnProviderProxy.authenticator.authenticate(null, challenge(answered)))
+    }
+
+    @Test fun `cancelling the probe hangs up on the proxy at once`() = runBlocking {
+        HoldingServer().use { server ->
+            val cfg = OwnProviderProxy.Config(enabled = true, host = "127.0.0.1", port = server.port)
+            // on another thread: the latch waits below block this one
+            val job = launch(Dispatchers.Default) { OwnProviderProxy.probe(cfg, "http://provider.invalid/") }
+            assertTrue("the probe never reached the proxy", server.accepted.await(5, TimeUnit.SECONDS))
+            job.cancel()
+            // Before #336 the socket stayed open until the 10 s read timeout.
+            assertTrue("the proxy connection stayed open after the cancel", server.closedByClient.await(1, TimeUnit.SECONDS))
+            job.join()
+        }
     }
 
     @Test fun `the host of a URL`() {
