@@ -26,6 +26,8 @@ Interactive session in the terminal with approvals inline. Slash commands:
 | `/tainted` | whether the conversation has read private data |
 | `/permissions` | standing permissions you granted (key and lifetime) |
 | `/revoke <key>` | take one back, e.g. `/revoke shell:git` |
+| `/forget-approvals` | clear every granted permission |
+| `/exit` | quit (also `/quit`, `/q`) |
 
 `--resume` continues the most recent session (`<data_dir>/sessions/`).
 

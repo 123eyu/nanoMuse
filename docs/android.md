@@ -102,7 +102,7 @@ you run yourself ([cloud.md](cloud.md), `cloud/docker-compose.yml`), *Check* ask
 across launches. `https://` is required for anything outside your own network; plain
 `http://` is accepted for an address on your own network, judged by the same rule as a
 model server's (below: the private ranges as parsed addresses, `localhost`, a name without
-a dot, a `.local`, `.lan`, `.home`, `.internal`, `.home.arpa` or `.ts.net` name). Settings → Account shows *Server: `<host>`* with *Change*, which signs the phone out first: the key it holds belongs to the
+a dot, a `.local`, `.lan`, `.home`, `.internal`, `.home.arpa`, `.localdomain` or `.ts.net` name). Settings → Account shows *Server: `<host>`* with *Change*, which signs the phone out first: the key it holds belongs to the
 server that issued it. Everything the app does with the account (sign-in, the hub, sync,
 usage, the model menu) goes to that address.
 
@@ -127,7 +127,7 @@ pills with white text in light), the agent's replies sit in a pill a shade off t
 black arrow (inverted in light); there is no blue in the conversation apart from links. The
 header is not a bar but a scrim: the conversation scrolls under it and dissolves into the
 canvas, and a second fade appears at the top edge while you read older messages. The palette
-is `ui/theme/ChatColors.kt`, written by `scripts/rebrand.py`.
+is upstream's `com/openminis/app/ui/theme/ChatColors.kt`, written by `scripts/rebrand.py`.
 
 The message composer stays above the floating navigation pill, and the pill is as wide as the
 composer (the same 16 dp margins; 420 dp at most, centred on a wider screen), so the two

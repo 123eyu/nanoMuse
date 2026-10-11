@@ -177,6 +177,6 @@ nanoMuse — независимый проект сообщества, не св
 [GPL-3.0-or-later](../../LICENSE). Приложение для телефона основано на OpenMinis 1.13 (GPL-3.0) и изменяется с 2026-09-24; см. [NOTICE](../../NOTICE). Более ранние версии линии Python были под MIT (тег `pre-openminis`).
 
 <p align="center">
-  <em>Спасибо, что заглянули ✨ nanoMuse!</em><br><br>
+  <em>Спасибо, что заглянули ✨ nanoMuse.</em><br><br>
   <img src="https://hits.sh/github.com/nano-muse/nanoMuse.svg?label=visitors&color=0a66e4&extraCount=16719" alt="Visitors">
 </p>

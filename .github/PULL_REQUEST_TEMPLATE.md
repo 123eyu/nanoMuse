@@ -2,7 +2,7 @@
 
 ## What
 
-<!-- One or two sentences. Link the issue if there is one: Fixes #123 -->
+<!-- One or two sentences. Link the issue if there is one: For #123 (not Fixes or Closes; an issue stays open until the fix has shipped) -->
 
 ## Why
 
