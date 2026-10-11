@@ -331,7 +331,7 @@ fun NanoMuseHome(
 
     // The drawer + tab shell, as a local composable so it can share every piece of state above
     // and still be one branch of the phase switch below.
-    // nanoMuse: the frosted pill bar blurs this shell's content — the shell is the haze source.
+    // nanoMuse: the frosted pill bar blurs this shell's content; the shell is the haze source.
     val hazeState = rememberHazeState()
     val homeShell: @Composable () -> Unit = {
     ModalNavigationDrawer(
@@ -339,7 +339,8 @@ fun NanoMuseHome(
         gesturesEnabled = drawerState.isOpen || tab == HomeTab.CHAT,
         drawerContent = {
             ModalDrawerSheet(
-                drawerContainerColor = MuseTones.surface,
+                // nanoMuse: pure canvas like Muse's drawer, not the grey sheet.
+                drawerContainerColor = com.openminis.app.ui.theme.ChatColors.background,
                 drawerShape = androidx.compose.foundation.shape.RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
             ) {
                 SideChatDrawer(

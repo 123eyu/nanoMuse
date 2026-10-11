@@ -1,6 +1,6 @@
 {
   "name": "dsh-nanomuse",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "nanoMuse as a DeepSeek Harness bundle: the account, the face, the persona, Hands and Reach of a Muse-style personal agent, as plugins.",
   "license": "GPL-3.0-or-later",
   "repository": {
@@ -9,6 +9,9 @@
     "directory": "harness/dsh-nanomuse"
   },
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
   "exports": {
@@ -116,10 +119,10 @@
     "@deepseek-ai/dsh-user-approval": "0.2.0-rc.2",
     "@deepseek-ai/dsh-util-values": "0.2.0-rc.2",
     "@deepseek-ai/schemastery": "~3.18.4",
-    "@types/node": "^24.0.0",
+    "@types/node": "^24.19.1",
     "@types/react": "~18.3.1",
     "@types/react-dom": "18.3.1",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.28.2",
     "react": "^18.2.0",
     "react-dom": "18.3.1",
     "typescript": "^5.9.0"

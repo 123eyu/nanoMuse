@@ -648,8 +648,8 @@
     <string name="nm_cloud_server_now">เซิร์ฟเวอร์: %1$s</string>
     <string name="nm_cloud_server_ok">%1$s ตอบกลับแล้ว: รีเลย์ %2$s</string>
     <string name="nm_cloud_server_bad_url">กรอกที่อยู่ของรีเลย์ เช่น https://relay.example.org</string>
-    <string name="nm_cloud_server_https">ใช้ https สำหรับเซิร์ฟเวอร์นอกเครือข่ายของคุณเอง ส่วนที่อยู่ส่วนตัว (10.x, 192.168.x, 172.16–31.x, localhost, ชื่อ .local หรือ .ts.net) ใช้ http ได้</string>
-    <string name="nm_lan_only_https">http:// แบบไม่เข้ารหัสใช้ได้เฉพาะที่อยู่ในเครือข่ายของคุณเอง (10.x, 172.16–31.x, 192.168.x, ชื่อ .local) สำหรับ %1$s ให้ใช้ https://</string>
+    <string name="nm_cloud_server_https">ใช้ https สำหรับเซิร์ฟเวอร์นอกเครือข่ายของคุณเอง ส่วนที่อยู่ส่วนตัว (10.x, 192.168.x, 172.16-31.x, localhost, ชื่อ .local หรือ .ts.net) ใช้ http ได้</string>
+    <string name="nm_lan_only_https">http:// แบบไม่เข้ารหัสใช้ได้เฉพาะที่อยู่ในเครือข่ายของคุณเอง (10.x, 172.16-31.x, 192.168.x, ชื่อ .local) สำหรับ %1$s ให้ใช้ https://</string>
     <string name="nm_cloud_server_unreachable">ไม่มีรีเลย์ตอบกลับที่ %1$s ตรวจสอบที่อยู่และดูว่ารีเลย์กำลังทำงานอยู่</string>
     <string name="nm_cloud_server_default">กลับไปใช้ nanoMuse Cloud</string>
     <string name="nm_cloud_server_row">เซิร์ฟเวอร์</string>
@@ -705,6 +705,7 @@
     <string name="nm_cloud_err_password_weak">รหัสผ่านนั้นเดาง่ายเกินไป</string>
     <string name="nm_cloud_err_signup_closed">รีเลย์นี้หยุดรับสมัครชั่วคราว บัญชีที่มีอยู่แล้วยังลงชื่อเข้าใช้ได้</string>
     <string name="nm_cloud_err_too_large">ข้อความนี้ใหญ่เกินไปสำหรับโมเดล ย่อให้สั้นลง ตัดไฟล์แนบบางส่วนออก หรือเริ่มแชตใหม่</string>
+    <string name="nm_cloud_err_content_rejected">การตรวจสอบเนื้อหาของผู้ให้บริการโมเดลปฏิเสธคำขอนี้ ลองใช้คำอื่น หรือถ้าเกิดซ้ำ ให้เริ่มแชทใหม่ เพราะคำที่ถูกปฏิเสธอาจอยู่ในช่วงต้นของบทสนทนา</string>
     <string name="nm_cloud_err_provider_busy">ผู้ให้บริการโมเดลกำลังยุ่งอยู่ ลองอีกครั้งในอีกสักครู่</string>
     <string name="nm_cloud_err_provider_busy_wait">ผู้ให้บริการโมเดลกำลังยุ่งอยู่ ลองอีกครั้งในอีก %1$s</string>
     <string name="nm_cloud_err_model_not_offered">nanoMuse Cloud ไม่ให้บริการโมเดลนี้แล้ว เลือกโมเดลอื่นได้ที่ การตั้งค่า → nanoMuse Cloud</string>
@@ -1102,4 +1103,19 @@
     <string name="nm_models_search">ค้นหาโมเดล</string>
     <string name="nm_models_search_clear">ล้างการค้นหา</string>
     <string name="nm_models_no_match">ไม่มีโมเดลที่ตรงกัน</string>
+    <!-- Names for icon-only controls, read by screen readers (#338) -->
+    <string name="nm_a11y_show_password">แสดงรหัสผ่าน</string>
+    <string name="nm_a11y_hide_password">ซ่อนรหัสผ่าน</string>
+    <string name="nm_a11y_avatar_candidate">ตัวเลือกที่ %1$d</string>
+    <string name="nm_a11y_share_card">การ์ดที่ %1$d</string>
+    <string name="nm_a11y_add">เพิ่ม</string>
+    <string name="nm_a11y_mark_done">ทำเครื่องหมายว่าเสร็จแล้ว</string>
+    <string name="nm_a11y_mark_not_done">ทำเครื่องหมายว่ายังไม่เสร็จ</string>
+    <string name="nm_a11y_done">เสร็จแล้ว</string>
+    <string name="nm_a11y_not_done">ยังไม่เสร็จ</string>
+    <string name="nm_a11y_like">ถูกใจ</string>
+    <string name="nm_a11y_unlike">เลิกถูกใจ</string>
+    <string name="nm_a11y_liked">ถูกใจแล้ว</string>
+    <string name="nm_a11y_not_liked">ยังไม่ถูกใจ</string>
+    <string name="nm_a11y_post_details">รายละเอียดโพสต์</string>
 </resources>

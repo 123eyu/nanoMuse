@@ -657,8 +657,8 @@
     <string name="nm_cloud_server_now">Сервер: %1$s</string>
     <string name="nm_cloud_server_ok">%1$s ответил: релей %2$s.</string>
     <string name="nm_cloud_server_bad_url">Введите адрес релея, например https://relay.example.org.</string>
-    <string name="nm_cloud_server_https">Для сервера вне вашей собственной сети используйте https. Для частного адреса (10.x, 192.168.x, 172.16–31.x, localhost, имя .local или .ts.net) подойдёт и http.</string>
-    <string name="nm_lan_only_https">Незашифрованный http:// работает только для адресов в вашей собственной сети (10.x, 172.16–31.x, 192.168.x, имена .local); для %1$s используйте https://.</string>
+    <string name="nm_cloud_server_https">Для сервера вне вашей собственной сети используйте https. Для частного адреса (10.x, 192.168.x, 172.16-31.x, localhost, имя .local или .ts.net) подойдёт и http.</string>
+    <string name="nm_lan_only_https">Незашифрованный http:// работает только для адресов в вашей собственной сети (10.x, 172.16-31.x, 192.168.x, имена .local); для %1$s используйте https://.</string>
     <string name="nm_cloud_server_unreachable">По адресу %1$s релей не ответил. Проверьте адрес и что релей запущен.</string>
     <string name="nm_cloud_server_default">Вернуться к nanoMuse Cloud</string>
     <string name="nm_cloud_server_row">Сервер</string>
@@ -714,6 +714,7 @@
     <string name="nm_cloud_err_password_weak">Этот пароль слишком легко угадать.</string>
     <string name="nm_cloud_err_signup_closed">Регистрация на этом релее пока приостановлена. Уже существующий аккаунт может войти как прежде.</string>
     <string name="nm_cloud_err_too_large">Это сообщение слишком велико для модели. Сократите его, уберите часть вложений или начните новый чат.</string>
+    <string name="nm_cloud_err_content_rejected">Проверка содержимого у поставщика модели отклонила этот запрос. Попробуйте другие слова, а если это повторяется, начните новый чат: слова, к которым есть претензии, могут быть раньше в разговоре.</string>
     <string name="nm_cloud_err_provider_busy">Провайдер модели сейчас перегружен. Повторите через минуту.</string>
     <string name="nm_cloud_err_provider_busy_wait">Провайдер модели сейчас перегружен. Повторите через %1$s.</string>
     <string name="nm_cloud_err_model_not_offered">nanoMuse Cloud больше не предлагает эту модель. Выберите другую в Настройки → nanoMuse Cloud.</string>
@@ -1114,4 +1115,19 @@
     <string name="nm_models_search">Поиск моделей</string>
     <string name="nm_models_search_clear">Очистить поиск</string>
     <string name="nm_models_no_match">Ни одна модель не подходит</string>
+    <!-- Names for icon-only controls, read by screen readers (#338) -->
+    <string name="nm_a11y_show_password">Показать пароль</string>
+    <string name="nm_a11y_hide_password">Скрыть пароль</string>
+    <string name="nm_a11y_avatar_candidate">Кандидат %1$d</string>
+    <string name="nm_a11y_share_card">Карточка %1$d</string>
+    <string name="nm_a11y_add">Добавить</string>
+    <string name="nm_a11y_mark_done">Отметить как выполненное</string>
+    <string name="nm_a11y_mark_not_done">Отметить как невыполненное</string>
+    <string name="nm_a11y_done">Выполнено</string>
+    <string name="nm_a11y_not_done">Не выполнено</string>
+    <string name="nm_a11y_like">Нравится</string>
+    <string name="nm_a11y_unlike">Убрать отметку «Нравится»</string>
+    <string name="nm_a11y_liked">Отмечено как понравившееся</string>
+    <string name="nm_a11y_not_liked">Не отмечено</string>
+    <string name="nm_a11y_post_details">Сведения о записи</string>
 </resources>

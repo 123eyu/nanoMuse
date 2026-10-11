@@ -171,7 +171,7 @@ object OwnProviderProxy {
     /**
      * Fetches [url] through [config] (not through whatever is installed) and says what came
      * back; a 2xx–4xx from the host counts as reached, since the point is the path, not the
-     * page. Runs on IO.
+     * page. Runs on IO; cancelling the caller (the page was left) hangs up at once.
      */
     suspend fun probe(config: Config, url: String): Probe = withContext(Dispatchers.IO) {
         val host = hostOf(url)
@@ -186,7 +186,7 @@ object OwnProviderProxy {
                 .callTimeout(15, TimeUnit.SECONDS)
                 .followRedirects(false)
                 .build()
-            client.newCall(Request.Builder().url(url).header("User-Agent", "nanoMuse").build()).execute().use { r ->
+            client.newCall(Request.Builder().url(url).header("User-Agent", "nanoMuse").build()).await().use { r ->
                 val body = if (r.code == 403) r.peekBody(4096).string() else ""
                 val reach = ProviderReach.fromHttp(r.code, body, host, oauth = false)
                 Probe(reach == null && r.code < 500, r.code, System.currentTimeMillis() - started, host, reach)

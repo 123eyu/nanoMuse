@@ -648,8 +648,8 @@
     <string name="nm_cloud_server_now">Server: %1$s</string>
     <string name="nm_cloud_server_ok">%1$s menjawab: relay %2$s.</string>
     <string name="nm_cloud_server_bad_url">Masukkan alamat relay, misalnya https://relay.example.org.</string>
-    <string name="nm_cloud_server_https">Gunakan https untuk server di luar jaringanmu sendiri. http cukup untuk alamat privat (10.x, 192.168.x, 172.16–31.x, localhost, nama .local atau .ts.net).</string>
-    <string name="nm_lan_only_https">http:// polos hanya berfungsi untuk alamat di jaringanmu sendiri (10.x, 172.16–31.x, 192.168.x, nama .local); gunakan https:// untuk %1$s.</string>
+    <string name="nm_cloud_server_https">Gunakan https untuk server di luar jaringanmu sendiri. http cukup untuk alamat privat (10.x, 192.168.x, 172.16-31.x, localhost, nama .local atau .ts.net).</string>
+    <string name="nm_lan_only_https">http:// polos hanya berfungsi untuk alamat di jaringanmu sendiri (10.x, 172.16-31.x, 192.168.x, nama .local); gunakan https:// untuk %1$s.</string>
     <string name="nm_cloud_server_unreachable">Tidak ada relay yang menjawab di %1$s. Periksa alamatnya dan pastikan relay berjalan.</string>
     <string name="nm_cloud_server_default">Kembali ke nanoMuse Cloud</string>
     <string name="nm_cloud_server_row">Server</string>
@@ -705,6 +705,7 @@
     <string name="nm_cloud_err_password_weak">Kata sandi itu terlalu mudah ditebak.</string>
     <string name="nm_cloud_err_signup_closed">Pendaftaran di relay ini dijeda untuk sementara. Akun yang sudah ada tetap bisa masuk.</string>
     <string name="nm_cloud_err_too_large">Pesan itu terlalu besar untuk model. Persingkat, hilangkan beberapa lampiran, atau mulai obrolan baru.</string>
+    <string name="nm_cloud_err_content_rejected">Pemeriksaan konten penyedia model menolak permintaan ini. Coba kata-kata lain, atau mulai obrolan baru jika terus terjadi: kata-kata yang ditolaknya bisa berada lebih awal dalam percakapan.</string>
     <string name="nm_cloud_err_provider_busy">Penyedia model sedang sibuk. Coba lagi sebentar lagi.</string>
     <string name="nm_cloud_err_provider_busy_wait">Penyedia model sedang sibuk. Coba lagi dalam %1$s.</string>
     <string name="nm_cloud_err_model_not_offered">nanoMuse Cloud tidak lagi menyediakan model itu. Pilih yang lain di Pengaturan → nanoMuse Cloud.</string>
@@ -1102,4 +1103,19 @@
     <string name="nm_models_search">Cari model</string>
     <string name="nm_models_search_clear">Hapus pencarian</string>
     <string name="nm_models_no_match">Tidak ada model yang cocok</string>
+    <!-- Names for icon-only controls, read by screen readers (#338) -->
+    <string name="nm_a11y_show_password">Tampilkan kata sandi</string>
+    <string name="nm_a11y_hide_password">Sembunyikan kata sandi</string>
+    <string name="nm_a11y_avatar_candidate">Kandidat %1$d</string>
+    <string name="nm_a11y_share_card">Kartu %1$d</string>
+    <string name="nm_a11y_add">Tambah</string>
+    <string name="nm_a11y_mark_done">Tandai selesai</string>
+    <string name="nm_a11y_mark_not_done">Tandai belum selesai</string>
+    <string name="nm_a11y_done">Selesai</string>
+    <string name="nm_a11y_not_done">Belum selesai</string>
+    <string name="nm_a11y_like">Suka</string>
+    <string name="nm_a11y_unlike">Batal suka</string>
+    <string name="nm_a11y_liked">Disukai</string>
+    <string name="nm_a11y_not_liked">Belum disukai</string>
+    <string name="nm_a11y_post_details">Detail kiriman</string>
 </resources>

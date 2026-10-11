@@ -167,6 +167,10 @@ class ChatViewModel(
          */
         internal fun shouldSplitOnError(error: Throwable): Boolean {
             if (error is CancellationException) return false
+            // nanoMuse: a content check saying no (the relay's `content_rejected`, a provider's
+            // `DataInspectionFailed`) is about the words, not the size; halving sends the same
+            // words twice, and one long chat was refused two hundred times in an hour that way.
+            if (error is LLMError.ProviderError && io.github.nanomuse.cloud.RelayRefusal.contentCheck(error.detail)) return false
             if (error is LLMError) {
                 return when (error) {
                     // Never worth a smaller payload:
@@ -6961,7 +6965,9 @@ class ChatViewModel(
         if (editingId != null) _editingMessageId.value = null
 
         viewModelScope.launch {
+            streamJob = coroutineContext[Job] // nanoMuse: Stop during the setup (session, attachments, the user row) cancels it too, not only the agent loop launched below (#340)
             var streamLaunched = false
+            var userRowShown = false // nanoMuse: set once the person's line is on screen; a Stop before that gives the composer its text back (#340)
             try {
             // Ensure session exists in DB (creates on first message for draft sessions)
             val activeSessionId = ensureSession()
@@ -7017,6 +7023,7 @@ class ChatViewModel(
                 attachmentUris = prepared.nonImageUris + (pasted?.uiUris ?: emptyList()),
             )
             _messages.value = _messages.value + userMsg
+            userRowShown = true // nanoMuse: (#340)
             val imageParts = prepared.imageParts
 
             // T132: build the user contentParts in iOS order — caption first
@@ -7170,6 +7177,14 @@ class ChatViewModel(
                 }
                 AppLogger.info(TAG_STREAM, "send streamJob EXIT")
             }
+            } catch (e: CancellationException) {
+                // nanoMuse: Stop before the user row is on screen means the message was not sent; the
+                // composer gets its text and attachments back instead of losing them (#340)
+                if (!streamLaunched && !userRowShown) {
+                    if (_inputText.value.isEmpty()) _inputText.value = text
+                    if (_attachments.value.isEmpty()) _attachments.value = currentAttachments
+                }
+                throw e
             } finally {
                 if (!streamLaunched) {
                     AppLogger.info(TAG_STREAM, "send _isStreaming=false (setup aborted)")
@@ -12132,7 +12147,7 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
      */
     private fun handleUserCancelledCleanup() {
         val msgs = _messages.value.toMutableList()
-        val lastIdx = msgs.indexOfLast { it.role == "assistant" }
+        val lastIdx = io.github.nanomuse.chat.InterruptedReply.lastRealAssistantIndex(msgs) // nanoMuse: never the on-screen-only intro (#340)
         if (lastIdx < 0) return
         var last = msgs[lastIdx]
 
@@ -12232,7 +12247,9 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
             )
             viewModelScope.launch(Dispatchers.IO) {
                 val partsJson = buildAssistantPartsJson(parts)
-                chatRepository.appendMessage(activeSessionId, "assistant", partsJson)
+                // nanoMuse: a session id the database does not know yet (Stop inside the session insert) must not take the process down (#340)
+                runCatching { chatRepository.appendMessage(activeSessionId, "assistant", partsJson) }
+                    .onFailure { AppLogger.warning(TAG_STREAM, "cancel: interrupted reply not persisted: ${it.message}") }
             }
             // [T-android-group-pause-badge-restamp] A LIVE interruption just
             // happened: this is a real entry into the paused state, so the

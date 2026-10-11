@@ -27,7 +27,7 @@
  */
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { ApprovalDesk, appOf, checkForUpdate, DEVICE_GRANT_PREFIX, HoldDesk, modelFor, pickChatModel, pickHandsModel, REMOTE_CONTROL_GRANT_ID, sharedConnectors, standingGrants, takesImages, type Grant, type Hold, type HoldTool, type PendingApproval, type StandingGrant, type UpdateInfo } from './desk.ts'
+import { ApprovalDesk, appOf, checkForUpdate, compareVersions, DEVICE_GRANT_PREFIX, HoldDesk, modelFor, pickChatModel, pickHandsModel, REMOTE_CONTROL_GRANT_ID, sharedConnectors, standingGrants, takesImages, type Grant, type Hold, type HoldTool, type PendingApproval, type StandingGrant, type UpdateInfo } from './desk.ts'
 import { arch, homedir, hostname, release, type, userInfo } from 'node:os'
 import { dirname, join } from 'node:path'
 import { createHmac, randomBytes, randomUUID } from 'node:crypto'
@@ -441,6 +441,21 @@ export interface MediaView {
 /** One check a day, at most, by itself; the About row may ask any time. */
 const UPDATE_EVERY_MS = 24 * 60 * 60_000
 
+/**
+ * A cached check, read against the bundle that runs now. The state file outlives an
+ * update: right after 1.0.2 was installed over 1.0.1, the check 1.0.1 made within the day
+ * still said `{ current: '1.0.1', latest: '1.0.2', newer: true }`, and the sidebar offered
+ * "Update to 1.0.2" to the 1.0.2 that was running until the next daily check (#341). So
+ * `current` becomes this bundle's version and `newer` is compared again against the cached
+ * `latest`; the time of the check is kept, so no extra request is made. A cache made by
+ * this very version is returned as it is.
+ */
+export function updateForThisVersion(cached: UpdateInfo, current: string = BUNDLE_VERSION): UpdateInfo {
+  if (cached.current === current) return cached
+  const latest = typeof cached.latest === 'string' ? cached.latest : ''
+  return { ...cached, current, latest, newer: Boolean(latest) && compareVersions(latest, current) > 0 }
+}
+
 /** Tool names whose calls the capsule follows. */
 export function isHandsTool(name: string): boolean {
   return name.startsWith('mcp__nanomuse__') || name === 'devices' || name.startsWith('device_') || name === 'delegate'
@@ -476,6 +491,8 @@ function ownProvidersOf(raw: Record<string, unknown>): Record<string, OwnProvide
         return { id: m.id, name: typeof m.name === 'string' && m.name ? m.name : m.id, vision: m.vision === true, kind: m.kind === 'image' || m.kind === 'video' ? m.kind : 'chat', ...(reasoning ? { reasoning } : {}) }
       }) : [],
       at: Number(p.at) || 0,
+      // kept, or the next start's refresh would write the row as a hand-declared route
+      ...(p.catalogRoute === true ? { catalogRoute: true } : {}),
     }
   }
   return out
@@ -503,7 +520,15 @@ function canonical(value: unknown): string {
   return JSON.stringify(value)
 }
 
-/** The runtime's "Not done — …" refusal in an MCP error result, or `undefined` for any other failure. */
+/**
+ * The runtime's refusal in an MCP error result, or `undefined` for any other failure.
+ * The mark it is recognised by: `nanomuse mcp` said "Not done — " until 1.0 and has said
+ * "Not done: " since (the runtime's sentences carry no dashes, `tests/test_voice.py`); this
+ * plugin's own declines say "Not done: " too. Both marks are the same refusal, and the old
+ * one stays recognised for a runtime that predates 1.0.
+ */
+const REFUSAL_MARKS = ['Not done: ', 'Not done — '] as const
+
 export function refusalOf(result: ToolExecutionResult): string | undefined {
   const texts: string[] = []
   for (const block of result.content ?? []) {
@@ -512,10 +537,13 @@ export function refusalOf(result: ToolExecutionResult): string | undefined {
   }
   const message = (result.error as { message?: unknown } | undefined)?.message
   if (typeof message === 'string') texts.push(message)
-  const hit = texts.find((t) => t.includes('Not done — '))
-  if (!hit) return undefined
-  const start = hit.indexOf('Not done — ')
-  return hit.slice(start + 'Not done — '.length).trim()
+  for (const text of texts) {
+    const hit = REFUSAL_MARKS.map((mark) => ({ mark, at: text.indexOf(mark) }))
+      .filter(({ at }) => at >= 0)
+      .sort((a, b) => a.at - b.at)[0]
+    if (hit) return text.slice(hit.at + hit.mark.length).trim()
+  }
+  return undefined
 }
 
 /** Every text of a tool result's error, joined: what the runtime said went wrong. */
@@ -530,8 +558,9 @@ function errorText(result: ToolExecutionResult): string {
   return texts.join('\n')
 }
 
-function declined(step: string, why: string): ToolExecutionResult {
-  const text = `Not done — ${step}. The person did not approve this step on their permission card (${why}); do not retry it. Ask them what to do instead, or carry on without it.`
+/** The plugin's own refusal of a step the person declined on the card: the same mark as the runtime's. */
+export function declined(step: string, why: string): ToolExecutionResult {
+  const text = `Not done: ${step}. The person did not approve this step on their permission card (${why}); do not retry it. Ask them what to do instead, or carry on without it.`
   return { isError: true, error: { message: text, info: { name: 'HandsDeclined', code: 'REJECTED' } }, content: [{ type: 'text', text }] }
 }
 
@@ -941,7 +970,9 @@ export default class NanomuseCloud extends Service {
   /** The newest release against what runs here; cached a day unless `force`. */
   update(force: boolean): Promise<UpdateInfo> {
     const cached = this.state.update
-    if (!force && cached && Date.now() - cached.checkedAt < UPDATE_EVERY_MS) return Promise.resolve(cached)
+    // a cache made by another version of this bundle (the one that ran before an update was
+    // installed) compared the wrong `current`; it is not an answer for this one (#341)
+    if (!force && cached && cached.current === BUNDLE_VERSION && Date.now() - cached.checkedAt < UPDATE_EVERY_MS) return Promise.resolve(cached)
     if (this.updateCheck) return this.updateCheck
     // the bare number: 0.1.40 compared the labelled `VERSION` ("dsh-nanomuse 0.1.40"), which
     // parsed as 0, so every release read as newer and the installed one was offered again
@@ -1429,11 +1460,16 @@ export default class NanomuseCloud extends Service {
       const said = (input.capabilities ?? []).filter((c): c is Capability => (CAPABILITIES as readonly string[]).includes(c))
       capabilities = CAPABILITIES.filter((c) => c === 'chat' || said.includes(c))
     }
-    const listed = await listModelRows(entry.protocol, baseURL, apiKey)
+    // A vendor that wants a session id per conversation (OpenCode Go) is reached through the
+    // model adapter's catalog route of the same id, which sends it: the models are the ones that
+    // route serves, and a typed id it does not know is left out (the adapter would refuse the row).
+    const catalogRoute = Boolean(entry.session_header)
+    const served = catalogRoute ? await this.catalogRouteModels(id) : []
+    const listed = catalogRoute ? served.map((m) => ({ id: m })) : await listModelRows(entry.protocol, baseURL, apiKey)
     // The ids the person typed (a gateway that does not answer `GET /models`, or one model
     // wanted out of hundreds): first in the list, the endpoint's own after them; a typed id the
     // list also has keeps what the list said about it (OpenRouter's thinking levels).
-    const typed = typedModelIds(input.models)
+    const typed = typedModelIds(input.models).filter((m) => !catalogRoute || served.includes(m))
     let models = modelsOf({ ...entry, capabilities }, [...typed.map((id) => listed.find((m) => m.id === id) ?? { id }), ...listed.filter((m) => !typed.includes(m.id))])
     if (entry.user_capabilities) models = models.map((m) => ({ ...m, vision: capabilities.includes('vision') }))
     // A row with no chat model cannot be served (the model adapter refuses a route that resolves
@@ -1442,7 +1478,7 @@ export default class NanomuseCloud extends Service {
     const keyRef = apiKey ? keyRefFor(id) : ''
     if (keyRef) await this.ctx.credentials.set(credentialRef(keyRef), apiKey)
     const label = (input.label ?? '').trim() || (input.lang?.toLowerCase().startsWith('zh') ? entry.name_zh : entry.name)
-    const row: OwnProvider = { provider: id, label, protocol: entry.protocol, baseURL, keyRef, capabilities, models, at: Date.now() }
+    const row: OwnProvider = { provider: id, label, protocol: entry.protocol, baseURL, keyRef, capabilities, models, at: Date.now(), ...(catalogRoute ? { catalogRoute } : {}) }
     await this.ctx.settings.update(LLM_ROW, { providers: { [id]: ownProviderRow(row, entry.reasoning) } })
     this.state = { ...this.state, providers: { ...this.state.providers, [id]: row } }
     await this.writeState()
@@ -1538,16 +1574,25 @@ export default class NanomuseCloud extends Service {
     }
   }
 
-  /** `POST /providers/remove`: the row, the credential and the choices that pointed at it. */
-  async removeProvider(id: string): Promise<void> {
-    if (id === CHATGPT_PROVIDER) return this.chatGptLogout()
+  /**
+   * `POST /providers/remove`: the row, the credential and the choices that pointed at it.
+   * `cloudModelsOn` is true when the row was the last chat source while the account's models
+   * were off, so they are on again (the person reads one sentence under the row).
+   */
+  async removeProvider(id: string): Promise<{ cloudModelsOn: boolean }> {
+    if (id === CHATGPT_PROVIDER) {
+      await this.chatGptLogout()
+      return { cloudModelsOn: false }
+    }
     const row = this.state.providers?.[id]
     if (!row) throw new RelayError(404, 'not_found', 'No such row')
-    await this.dropOwnRow(id, row)
+    const cloudModelsOn = await this.dropOwnRow(id, row)
     this.broadcast()
+    return { cloudModelsOn }
   }
 
-  private async dropOwnRow(id: string, row: OwnProvider): Promise<void> {
+  /** Removes the row and what pointed at it; true when the account's models had to come back on. */
+  private async dropOwnRow(id: string, row: OwnProvider): Promise<boolean> {
     try {
       await this.ctx.settings.mutate(LLM_ROW, [{ op: 'unset', path: ['providers', id] }])
     } catch (error: unknown) {
@@ -1573,9 +1618,10 @@ export default class NanomuseCloud extends Service {
       }
       this.state = { ...this.state, media }
     }
-    await this.releaseChatRoute(id)
+    const cloudModelsOn = await this.releaseChatRoute(id)
     await this.writeState()
     await this.writeHands()
+    return cloudModelsOn
   }
 
   /**
@@ -1583,16 +1629,28 @@ export default class NanomuseCloud extends Service {
    * or the main chat still naming it would send every turn to a route no adapter serves, and
    * the person would read `no adapter registered for provider "custom"` (NO_ADAPTER) with
    * nothing to do about it. The slot moves to the first chat model left (the account's, then
-   * the own rows'), else back to dsh's stock DeepSeek default, which the next key or sign-in
-   * adopts again as it does on a fresh profile; the main chat follows when it sat on that route.
+   * the own rows'). When nothing is left because the account's models are switched off, they
+   * come back on and the slot takes the account's chat model (the same rule as the switch
+   * itself, which refuses to go off while nothing else could answer); only with no account at
+   * all does the slot fall back to dsh's stock DeepSeek default, which the next key or sign-in
+   * adopts again as it does on a fresh profile. The main chat follows when it sat on that
+   * route. Returns true when the account's models came back on.
    */
-  private async releaseChatRoute(id: string): Promise<void> {
+  private async releaseChatRoute(id: string): Promise<boolean> {
     const svc = this.defaultModelService()
-    if (!svc) return
+    if (!svc) return false
+    let cloudModelsOn = false
     try {
       let to: { provider: string; model: string } | undefined
       if (svc.currentSelection().provider === id) {
-        const next = this.chatOptions().find((o) => o.provider !== id)
+        let next = this.chatOptions().find((o) => o.provider !== id)
+        if (!next && this.state.cloudModelsOff && this.signedInCache && this.state.account) {
+          const { cloudModelsOff: _off, ...rest } = this.state
+          this.state = rest
+          next = this.chatOptions().find((o) => o.provider !== id)
+          cloudModelsOn = true
+          this.ctx.logger.info('nanomuse: %s was the last chat source; the account\'s models are on again', id)
+        }
         to = next ? { provider: next.provider, model: next.id } : { ...STOCK_DEFAULT_MODEL }
         await svc.saveSelection(to)
         this.ctx.logger.info('nanomuse: %s is gone; new chats answer through %s/%s', id, to.provider, to.model)
@@ -1609,6 +1667,7 @@ export default class NanomuseCloud extends Service {
     } catch (error: unknown) {
       this.ctx.logger.warn('nanomuse: the chat slot could not leave %s: %s', id, message(error))
     }
+    return cloudModelsOn
   }
 
   /** `POST /chatgpt/login`: starts the runtime's sign-in and returns the page to open; `done` follows in the live state. */
@@ -2674,6 +2733,22 @@ export default class NanomuseCloud extends Service {
     this.broadcast()
   }
 
+  /**
+   * The model ids the model adapter's catalog route `id` serves, as its catalog lists them (no
+   * network call: the adapter answers a route it describes from its own registry). Empty when
+   * the harness cannot say; the catalogue's default model is then the row's one model.
+   */
+  private async catalogRouteModels(id: string): Promise<string[]> {
+    const llm = (this.ctx as unknown as { get(name: string): unknown }).get('llm') as { discoverModels?: (ns: string, request: { provider: string }) => Promise<{ id: string }[]> } | undefined
+    try {
+      const found = (await llm?.discoverModels?.(LLM_ROW, { provider: id })) ?? []
+      return found.map((m) => m.id).filter((m) => typeof m === 'string' && m.length > 0)
+    } catch (error) {
+      this.ctx.logger.warn('nanomuse: the models of the %s route are not known: %s', id, message(error))
+      return []
+    }
+  }
+
   /** The providers the model layer knows right now. */
   private providers(): { id: string }[] {
     const llm = (this.ctx as unknown as { get(name: string): unknown }).get('llm') as { listProviders?: () => { id: string }[] } | undefined
@@ -2925,7 +3000,7 @@ export default class NanomuseCloud extends Service {
         ...(typeof raw.handsModel === 'string' && raw.handsModel ? { handsModel: raw.handsModel } : {}),
         // a grant 0.1.37 kept for the "app" "Done. Screen now:" (the mis-read head line) names nothing — dropped
         ...(Array.isArray(raw.grants) ? { grants: (raw.grants as Grant[]).filter((g) => g && typeof g.id === 'string' && typeof g.target === 'string' && !MISREAD_GRANT.test(g.target)).map((g) => ({ id: g.id, target: g.target, at: Number(g.at) || 0 })) } : {}),
-        ...(raw.update && typeof raw.update === 'object' && typeof (raw.update as UpdateInfo).checkedAt === 'number' ? { update: raw.update as UpdateInfo } : {}),
+        ...(raw.update && typeof raw.update === 'object' && typeof (raw.update as UpdateInfo).checkedAt === 'number' ? { update: updateForThisVersion(raw.update as UpdateInfo) } : {}),
         ...(raw.remoteControl === true ? { remoteControl: true } : {}),
         ...(raw.trusted && typeof raw.trusted === 'object' ? { trusted: trustedOf(raw.trusted) } : {}),
         ...(raw.taskSessions && typeof raw.taskSessions === 'object' ? { taskSessions: raw.taskSessions } : {}),
@@ -3352,8 +3427,7 @@ export default class NanomuseCloud extends Service {
       }
       if (req.method === 'POST' && route === '/providers/remove') {
         const body = await json(req)
-        await this.serialize(() => this.removeProvider(String(body.id ?? '')))
-        return send(res, 204)
+        return send(res, 200, await this.serialize(() => this.removeProvider(String(body.id ?? ''))))
       }
       if (req.method === 'POST' && route === '/chatgpt/login') return send(res, 200, { url: await this.chatGptLogin() })
       if (req.method === 'POST' && route === '/chatgpt/cancel') {

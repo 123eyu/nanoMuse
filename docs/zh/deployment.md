@@ -2,7 +2,7 @@
 
 Meta 把每个 Muse 跑在一台按用户隔离的安全虚拟机里。在本地，最接近的做法是一个容器：智能体只看得到它的数据目录和工作区。
 
-这一页讲的是 Python 运行时——网页版背后的智能体——怎么在 Docker 里跑。自己运行中继（你自己的登录、hub 和同步）并把各个 App 指向它，见[自己部署](self-hosting.md)，那一页也把自己运行 nanoMuse 的三条路按顺序排好了。
+这一页讲的是 Python 运行时（网页版背后的智能体）怎么在 Docker 里跑。自己运行中继（你自己的登录、hub 和同步）并把各个 App 指向它，见[自己部署](self-hosting.md)，那一页也把自己运行 nanoMuse 的三条路按顺序排好了。
 
 ## Docker {#docker}
 
@@ -90,9 +90,9 @@ muse.example.com {
 ## 更新 {#updating}
 
 ```bash
-uv tool upgrade nanomuse                               # PyPI install (or: pip install -U nanomuse)
-git pull --ff-only && uv pip install -e ".[dev]"      # source install
-docker compose build && docker compose up -d app       # Docker
+git pull --ff-only && uv pip install -e ".[dev]"      # 源码安装
+docker compose build && docker compose up -d app       # Docker，本机构建
+docker pull ghcr.io/nano-muse/nanomuse:latest          # Docker，发布的镜像；拉完重新启动
 ```
 
 数据格式（SQLite、JSONL、JSON）在同一个次版本号内保持向后兼容。

@@ -609,6 +609,12 @@ final class OpenAIProvider: LLMProvider {
                               let event = try? JSONSerialization.jsonObject(with: eventData) as? [String: Any] else { continue }
 
                         if self.usesChatCompletionsAPI {
+                            // nanoMuse: an error inside the stream (nanoMuse Cloud answers 200 and puts the
+                            // provider's refusal in a data: line, as OpenRouter does) ends the turn with that
+                            // error and its card, not with an empty reply; the status is unknown here (0)
+                            if let inline = event["error"] as? [String: Any], !inline.isEmpty {
+                                throw self.mapHTTPError(statusCode: 0, body: payload)
+                            }
                             if let choices = event["choices"] as? [[String: Any]],
                                let delta = choices.first?["delta"] as? [String: Any],
                                let text = delta["content"] as? String {
@@ -795,7 +801,8 @@ final class OpenAIProvider: LLMProvider {
     /// Build and execute a streaming request, returning raw SSE lines for the agent provider to parse.
     func streamRaw(
         body: [String: Any],
-        isResponsesAPI: Bool
+        isResponsesAPI: Bool,
+        opencodeSession: String? = nil // nanoMuse: the conversation's id for OpenCode (NanoMuseOpenCodeSession)
     ) async throws -> (AsyncThrowingStream<String, Error>, Int) {
         let url: URL
         var request: URLRequest
@@ -865,6 +872,8 @@ final class OpenAIProvider: LLMProvider {
         for (key, value) in extraHeaders {
             request.setValue(value, forHTTPHeaderField: key)
         }
+        // nanoMuse: OpenCode Go wants one stable id per conversation
+        if let opencodeSession { request.setValue(opencodeSession, forHTTPHeaderField: NanoMuseOpenCodeSession.header) }
         // [T-ios-openai-body-oom] Must run BEFORE serializing: an out-of-memory
         // inside JSONSerialization aborts the process and cannot be caught. This
         // is the agent loop's request path, where the body grows with every turn.

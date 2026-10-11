@@ -651,8 +651,8 @@
     <string name="nm_cloud_server_now">Serveur : %1$s</string>
     <string name="nm_cloud_server_ok">%1$s a répondu : relais %2$s.</string>
     <string name="nm_cloud_server_bad_url">Saisis l’adresse du relais, par exemple https://relay.example.org.</string>
-    <string name="nm_cloud_server_https">Utilise https pour un serveur hors de ton propre réseau. http convient pour une adresse privée (10.x, 192.168.x, 172.16–31.x, localhost, un nom .local ou .ts.net).</string>
-    <string name="nm_lan_only_https">Le http:// en clair ne fonctionne que pour les adresses de votre propre réseau (10.x, 172.16–31.x, 192.168.x, noms .local) ; utilisez https:// pour %1$s.</string>
+    <string name="nm_cloud_server_https">Utilise https pour un serveur hors de ton propre réseau. http convient pour une adresse privée (10.x, 192.168.x, 172.16-31.x, localhost, un nom .local ou .ts.net).</string>
+    <string name="nm_lan_only_https">Le http:// en clair ne fonctionne que pour les adresses de votre propre réseau (10.x, 172.16-31.x, 192.168.x, noms .local) ; utilisez https:// pour %1$s.</string>
     <string name="nm_cloud_server_unreachable">Aucun relais n’a répondu à %1$s. Vérifie l’adresse et que le relais tourne.</string>
     <string name="nm_cloud_server_default">Revenir à nanoMuse Cloud</string>
     <string name="nm_cloud_server_row">Serveur</string>
@@ -708,6 +708,7 @@
     <string name="nm_cloud_err_password_weak">Ce mot de passe est trop facile à deviner.</string>
     <string name="nm_cloud_err_signup_closed">Les inscriptions sont suspendues sur ce relais pour le moment. Un compte déjà créé peut toujours se connecter.</string>
     <string name="nm_cloud_err_too_large">Ce message est trop volumineux pour le modèle. Raccourcissez-le, retirez quelques pièces jointes ou commencez une nouvelle discussion.</string>
+    <string name="nm_cloud_err_content_rejected">Le contrôle de contenu du fournisseur du modèle a refusé cette demande. Essayez d\'autres mots ou, si cela se répète, ouvrez une nouvelle discussion : les mots en cause peuvent se trouver plus haut dans la conversation.</string>
     <string name="nm_cloud_err_provider_busy">Le fournisseur du modèle est occupé en ce moment. Réessayez dans un instant.</string>
     <string name="nm_cloud_err_provider_busy_wait">Le fournisseur du modèle est occupé en ce moment. Réessayez dans %1$s.</string>
     <string name="nm_cloud_err_model_not_offered">nanoMuse Cloud ne propose plus ce modèle. Choisissez-en un autre dans Réglages → nanoMuse Cloud.</string>
@@ -1106,4 +1107,19 @@
     <string name="nm_models_search">Rechercher des modèles</string>
     <string name="nm_models_search_clear">Effacer la recherche</string>
     <string name="nm_models_no_match">Aucun modèle ne correspond</string>
+    <!-- Names for icon-only controls, read by screen readers (#338) -->
+    <string name="nm_a11y_show_password">Afficher le mot de passe</string>
+    <string name="nm_a11y_hide_password">Masquer le mot de passe</string>
+    <string name="nm_a11y_avatar_candidate">Candidat %1$d</string>
+    <string name="nm_a11y_share_card">Carte %1$d</string>
+    <string name="nm_a11y_add">Ajouter</string>
+    <string name="nm_a11y_mark_done">Marquer comme terminé</string>
+    <string name="nm_a11y_mark_not_done">Marquer comme non terminé</string>
+    <string name="nm_a11y_done">Terminé</string>
+    <string name="nm_a11y_not_done">Non terminé</string>
+    <string name="nm_a11y_like">J\'aime</string>
+    <string name="nm_a11y_unlike">Je n\'aime plus</string>
+    <string name="nm_a11y_liked">Aimé</string>
+    <string name="nm_a11y_not_liked">Non aimé</string>
+    <string name="nm_a11y_post_details">Détails de la publication</string>
 </resources>

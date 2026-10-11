@@ -1,8 +1,8 @@
 # 换成自己的 key
 
-nanoMuse 免费、非营利。它背后的模型要花钱，每个账号的起始额度由开发者出（应用里显示的是中继当前的数字）。额度用完以后，有两条路可以继续走，都不需要 nanoMuse 再提供什么：在某家模型服务商申请一把自己的 key，或者用你已经在付费的套餐——ChatGPT、Claude、Kimi——在应用里登录。
+nanoMuse 免费、非营利。它背后的模型要花钱，每个账号的起始额度由开发者出（应用里显示的是中继当前的数字）。额度用完以后，有两条路可以继续走，都不需要 nanoMuse 再提供什么：在某家模型服务商申请一把自己的 key，或者用你已经在付费的套餐（ChatGPT、Claude、Kimi）在应用里登录。
 
-每个客户端读的都是同一份服务商清单，每家能做什么也写在里面：**对话**、**动手**（一个能看截图的模型）、**画图**（形象工作室）和**视频**（形象的短视频）。没有任何已配置的服务商能做的功能，就干脆不提供，只用一句话说明哪些服务商可以——什么都不会坏。
+每个客户端读的都是同一份服务商清单，每家能做什么也写在里面：**对话**、**动手**（一个能看截图的模型）、**画图**（形象工作室）和**视频**（形象的短视频）。没有任何已配置的服务商能做的功能，就干脆不提供，只用一句话说明哪些服务商可以；什么都不会坏。
 
 你的登录、邀请码和设备都不受影响：账号还是那个账号，换的只是模型服务商。用上自己的 key 或套餐之后，你说的话不再经过 nanoMuse Cloud。
 
@@ -10,10 +10,10 @@ nanoMuse 免费、非营利。它背后的模型要花钱，每个账号的起�
 
 | | 首选 | 一把 key 能做什么 |
 |---|---|---|
-| 中国大陆 | **阿里云百炼** | 对话、动手、画图、生成视频——四样都在一把 key 下 |
+| 中国大陆 | **阿里云百炼** | 对话、动手、画图、生成视频，四样都在一把 key 下 |
 | 海外 | **OpenRouter**，其次 **OpenAI** | 对话、动手、画图；生成视频目前只有百炼 |
 
-百炼只给中国大陆身份注册；海外用户一个 OpenRouter 账号就能用到几百个模型，按量付费。首选之外，下面的每一家都可以单独用，或者和另一家搭配——比如对话用 DeepSeek、画图用智谱。
+百炼只给中国大陆身份注册；海外用户一个 OpenRouter 账号就能用到几百个模型，按量付费。首选之外，下面的每一家都可以单独用，或者和另一家搭配，比如对话用 DeepSeek、画图用智谱。
 
 四件事、四个设置、一个页面：Android、iPhone 和桌面版都是 **设置 › 模型**，网页控制台是「连接」页。四行分别是「对话」「操作屏幕」「生成图片」「生成视频」；每行显示 `服务商 · 模型`，点开是一个只列能做这件事的模型的选择器（操作屏幕需要能看图的模型）。iPhone 上「操作屏幕」这一行是灰的（「不在 iPhone 上」）：手机不能操作自己的屏幕，电脑用它自己的设置。细节见下面的[哪个模型做哪件事](#which-model-does-what)。
 
@@ -37,11 +37,13 @@ nanoMuse 免费、非营利。它背后的模型要花钱，每个账号的起�
 | xAI Grok | ● | ● | ● | | 海外 | [console.x.ai](https://console.x.ai) |
 | Groq | ● | ● | | | 海外 | [console.groq.com](https://console.groq.com/keys) |
 | Mistral AI | ● | ● | | | 海外 | [console.mistral.ai](https://console.mistral.ai/api-keys) |
+| OpenCode Zen | ● | | | | 海外 | [opencode.ai/auth](https://opencode.ai/auth) |
+| OpenCode Go | ● | | | | 海外 | [opencode.ai/auth](https://opencode.ai/auth) |
 | Ollama / LM Studio / vLLM（本机） | ● | | | | 都可以 | 不需要 key |
 
 「视频」一栏只有百炼，是因为 nanoMuse 的视频生成走的是百炼的接口；其他家的视频模型用的是各自的任务接口，这一轮还没有接。「画图」一栏里，OpenRouter 走的是它的 Image API，模型例如 `openai/gpt-image-2`；Gemini 用 `gemini-2.5-flash-image`。
 
-这张表来自仓库里的目录文件 [`nanomuse/llm/providers.json`](../../nanomuse/llm/providers.json)——每个客户端、中继都读它，地址、默认模型和「能做什么」都在里面；表里的事实在 2026 年 10 月对照各家文档核过。
+这张表来自仓库里的目录文件 [`nanomuse/llm/providers.json`](../../nanomuse/llm/providers.json)：每个客户端、中继都读它，地址、默认模型和「能做什么」都在里面；表里的事实在 2026 年 10 月对照各家文档核过。
 
 ## 怎么申请 key {#making-a-key}
 
@@ -59,6 +61,8 @@ nanoMuse 免费、非营利。它背后的模型要花钱，每个账号的起�
 - **Anthropic。** [platform.claude.com](https://platform.claude.com/settings/keys)。nanoMuse 直接用 Anthropic 的接口，不需要兼容层。
 - **Google Gemini。** [aistudio.google.com/apikey](https://aistudio.google.com/apikey)，地址 `https://generativelanguage.googleapis.com/v1beta/openai`。
 - **xAI、Groq、Mistral。** 各自的控制台创建 key；地址分别是 `https://api.x.ai/v1`、`https://api.groq.com/openai/v1`、`https://api.mistral.ai/v1`。
+- **OpenCode Zen。** 在 [opencode.ai/auth](https://opencode.ai/auth) 申请 key；按请求从余额里扣费，有几个模型免费。地址 `https://opencode.ai/zen/v1`。只有 OpenAI 格式的那些模型到得了，所以只有对话、没有动手：OpenCode 列出的视觉模型 `deepseek-v4-flash-vision-exp` 在 DeepSeek 自家平台上已经退役。OpenCode 没有套餐登录，只有 key，所以这里没有可以登录的东西。
+- **OpenCode Go。** 同一域名上的订阅：在 OpenCode 控制台订阅 Go（每月 10 美元）或 Go Plus（每月 40 美元），再到 [opencode.ai/auth](https://opencode.ai/auth) 申请 key。地址 `https://opencode.ai/zen/go/v1`。用量按模型计，分每月、每周和每 5 小时三档上限。OpenCode 把 Go 定位给编程智能体，要求客户端说明自己是谁，并在 `x-opencode-session` 里为每个对话带上一个固定的 id（[它的文档](https://opencode.ai/docs/go/#where-can-i-use-it)）。运行时（也就是网页控制台）每次请求 Go 都把 `nanoMuse/<版本>` 作为 user agent，并在这个请求头里带上对话的 id；不属于任何对话的调用（比如连接测试）带的是它自己的 id。桌面版把 Go 写成模型适配器自带的 OpenCode Go 路由，这条路由同样会带上这个请求头，并按每个模型自己的格式访问：桌面版提供这条路由的目录里列出的模型，走 Responses 和 Messages 格式的也在内；其他地方只走 OpenAI 格式。手机端也会发：对 OpenCode 域名的对话和 Responses 请求都带上这个请求头，id 是这个聊天的提示缓存键，由第一条消息算出，每一轮都一样（开头一字不差的两个聊天会共用一个）。和 Zen 一样只有对话。
 
 **贴到 nanoMuse 里。**
 
@@ -115,7 +119,7 @@ ChatGPT 登录走的是 OpenAI 自家 Codex 的授权流程（网页控制台：
 
 有些网络到不了 `chatgpt.com`（DNS 不解析、连接超时、TLS 失败、返回的是一张 HTML 拦截页），有些地区 OpenAI 直接拒绝（HTTP 403 `unsupported_country_region_territory`）。这时手机上的对话不再显示 socket 原文，而是一张卡片：发生了什么（「这个网络连不上 chatgpt.com」或「OpenAI 不向这个地区提供服务」）、能帮上忙的（这台手机上的 VPN；应用自己的代理，设置 → 网络；换一个服务商、用自己的 key）、一个「重试」按钮，原始错误收在「详情」里供提 issue 用。登录失效（401）显示「ChatGPT 登录已失效」和「重新登录」；套餐这几个小时的余量用完（429 且写明 usage limit）显示「ChatGPT 套餐暂时没有余量了」、OpenAI 自己的那句话和多久后恢复；其他 429 是「同时发出的请求太多」。自己的 key 遇到同样的网络问题，卡片一样出现，只是主机名换成那家服务商的。
 
-**设置 → 网络 → 自有服务商的 HTTP 代理**（Android 和 iPhone 都有）：主机、端口、可选的用户名和密码，默认关闭，只存在这台手机上。只有发往你用自己 key 添加的服务商和 ChatGPT 套餐的请求走它；nanoMuse Cloud、你的电脑和局域网从不经过它。页面上有一行「测试」，通过这个代理抓一次 `https://chatgpt.com/`，告诉你通没通、多少毫秒。同一个设置在每个应用里都放在存 key 的地方：手机在服务商表单里；桌面版在**设置 → nanoMuse Cloud → 网络**，一个地址（`http://host:port` 或 `socks5://host:port`），应用在下次启动时写进它的 Host 进程——这一行下面有「立即重启」——于是每把自己的 key、ChatGPT 登录、手的运行时和这个应用对外发出的其他请求都走它，nanoMuse 云端永远不走（[desktop.md](desktop.md)）；网页版在自有 key 表单里有「代理」一栏；运行时是 `config.toml` 里的 `[llm] proxy`（[configuration.md](configuration.md#llm)）。
+**设置 → 网络 → 自有服务商的 HTTP 代理**（Android 和 iPhone 都有）：主机、端口、可选的用户名和密码，默认关闭，只存在这台手机上。只有发往你用自己 key 添加的服务商和 ChatGPT 套餐的请求走它；nanoMuse Cloud、你的电脑和局域网从不经过它。页面上有一行「测试」，通过这个代理抓一次 `https://chatgpt.com/`，告诉你通没通、多少毫秒。同一个设置在每个应用里都放在存 key 的地方：手机在服务商表单里；桌面版在**设置 → nanoMuse Cloud → 网络**，一个地址（`http://host:port` 或 `socks5://host:port`），应用在下次启动时写进它的 Host 进程（这一行下面有「立即重启」），于是每把自己的 key、ChatGPT 登录、手的运行时和这个应用对外发出的其他请求都走它，nanoMuse Cloud 永远不走（[desktop.md](desktop.md)）；网页版在自有 key 表单里有「代理」一栏；运行时是 `config.toml` 里的 `[llm] proxy`（[configuration.md](configuration.md#llm)）。
 
 ## 本机模型 {#local-models}
 

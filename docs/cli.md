@@ -44,7 +44,7 @@ Advance every active goal, sleep, repeat. Runs in Sentinel `auto` mode, so pair 
 ## Goals
 
 ```bash
-nanomuse goals list [--status active|paused|done] [--category health|finance|career|learning|…]
+nanomuse goals list [--status active|paused|done|cancelled] [--category health|finance|career|learning|…]
 nanomuse goals show g_1a2b3c
 nanomuse goals add "Learn Rust" -s "Read the book, ch. 1–4" -s "Build a CLI" -s "Publish a crate" \
     --category learning --due 2026-12-31 --check-in "weekly sun 19:00"
@@ -62,7 +62,7 @@ nanomuse reminders add "Summarise unread email" --repeat "weekdays 07:30" --task
 nanomuse reminders cancel r_1a2b3c
 ```
 
-A reminder says one thing at the time you named; a routine (`--task`) is work the agent does at that time with its tools. Both fire from the running `nanomuse serve` — those set from the terminal land in the main chat, those set in a side chat stay there. Cadence grammar as for goal check-ins: `daily HH:MM`, `weekdays HH:MM`, `weekly <mon…sun> HH:MM`, `monthly <day> HH:MM`.
+A reminder says one thing at the time you named; a routine (`--task`) is work the agent does at that time with its tools. Both fire from the running `nanomuse serve`: those set from the terminal land in the main chat, those set in a side chat stay there. Cadence grammar as for goal check-ins: `daily HH:MM`, `weekdays HH:MM`, `weekly <mon…sun> HH:MM`, `monthly <day> HH:MM`.
 
 ## Triggers
 
@@ -74,7 +74,7 @@ nanomuse triggers add hook  "Check that the site is up"      --match "deploy"   
 nanomuse triggers cancel t_1a2b3c
 ```
 
-A trigger fires when something happens rather than at a time: `mail` needs the email connector (the running server looks at the inbox every `triggers.mail_poll_minutes`, by IMAP UID, so nothing is replayed and nothing fires twice), `event` needs a calendar feed, `hook` is a URL with a key that any program can `POST` to — the body becomes the agent's context. Each firing is a background run in the chat the trigger was set from, shown in the Feed as *New mail: …*, *Coming up: …* or *Webhook: …*. The mail or the request is handed to the model as data, with the instruction that only your standing text says what to do.
+A trigger fires when something happens rather than at a time: `mail` needs the email connector (the running server looks at the inbox every `triggers.mail_poll_minutes`, by IMAP UID, so nothing is replayed and nothing fires twice), `event` needs a calendar feed, `hook` is a URL with a key that any program can `POST` to; the body becomes the agent's context. Each firing is a background run in the chat the trigger was set from, shown in the Feed as *New mail: …*, *Coming up: …* or *Webhook: …*. The mail or the request is handed to the model as data, with the instruction that only your standing text says what to do.
 
 ## Calendar
 
@@ -87,7 +87,7 @@ nanomuse calendar feeds                                                         
 nanomuse calendar remove Family
 ```
 
-Feeds are re-read every `refresh_minutes` by the running server; `agenda --refresh` fetches now. The agent has the same view through its `calendar` tool, plus `draft`, which writes an `.ics` the app shows as an *Add to calendar* card — it never writes to your calendar directly.
+Feeds are re-read every `refresh_minutes` by the running server; `agenda --refresh` fetches now. The agent has the same view through its `calendar` tool, plus `draft`, which writes an `.ics` the app shows as an *Add to calendar* card; it never writes to your calendar directly.
 
 ## Contacts
 
@@ -131,7 +131,7 @@ nanomuse memory changes                # the log, newest first
 nanomuse memory restore c_1a2b3c4d     # undo one change
 ```
 
-`memory recall` shows the ranking the agent would get for a message: keyword hits and, when an embedding endpoint is set up ([configuration → memory](configuration.md#memory)), hits by meaning fused in, each with its cosine closeness — the way to see whether "写邮件给房东" finds "the landlord is Bob Li" before relying on it. `doctor` says whether recall by meaning is on, with which model, and how many memories are indexed.
+`memory recall` shows the ranking the agent would get for a message: keyword hits and, when an embedding endpoint is set up ([configuration → memory](configuration.md#memory)), hits by meaning fused in, each with its cosine closeness, the way to see whether "写邮件给房东" finds "the landlord is Bob Li" before relying on it. `doctor` says whether recall by meaning is on, with which model, and how many memories are indexed.
 
 ## Vault
 
@@ -142,6 +142,31 @@ nanomuse vault delete EMAIL_PASSWORD
 ```
 
 Reference secrets as `{{vault:EMAIL_PASSWORD}}` in the config (connectors only; a command never receives a secret). See [sentinel.md](sentinel.md#credential-vault).
+
+## Chat apps
+
+```bash
+nanomuse channels status [--json]              # what is switched on, connected, and who is paired
+nanomuse channels pending                      # pairing codes people were shown and that wait for a yes
+nanomuse channels approve 482913               # let the person who got this code talk to the Muse
+nanomuse channels deny 482913
+nanomuse channels login feishu [--lark]        # create the Feishu bot by scanning a QR code
+nanomuse channels test feishu [--chat <id>]    # send a test message (default: the first paired chat)
+```
+
+With `nanomuse serve` running, these commands go through its API; otherwise they edit the files under the data directory and the server picks them up when it starts. The apps, pairing and what each one needs: [channels.md](channels.md).
+
+## ChatGPT sign-in
+
+```bash
+nanomuse chatgpt login [--no-browser] [--port 1455] [--timeout 600]   # the browser opens OpenAI's sign-in page
+nanomuse chatgpt status                        # who is signed in and until when; never touches the network
+nanomuse chatgpt usage                         # what is left of the plan's usage windows
+nanomuse chatgpt logout                        # forget the sign-in; nothing is revoked upstream
+nanomuse chatgpt proxy [--port 0] [--token …]  # an OpenAI-compatible server on the loopback interface
+```
+
+Every subcommand takes `--json` (one JSON object per line) and, where it reaches chatgpt.com, `--proxy` (default: `[llm] proxy` from the config). What the sign-in covers and where the tokens live: [own-key.md](own-key.md#sign-in-with-a-plan-you-already-pay-for).
 
 ## Phone
 
@@ -165,6 +190,6 @@ nanomuse version                       # also: nanomuse --version / -V
 nanomuse mcp                           # this computer's screen and hands as an MCP server on stdio, for another host
 ```
 
-`nanomuse mcp` is for a host that is not our runtime — [nanoMuse on DeepSeek Harness](harness.md) — and serves `computer_screen` and `computer_act` with the runtime's descriptions; a step the Sentinel would ask about (Enter, a submit, a heavy shortcut, a click on a sensitive word) is refused with the reason until the call carries `confirmed: true`, which the model may set only after the person agreed in the conversation.
+`nanomuse mcp` is for a host that is not our runtime ([nanoMuse on DeepSeek Harness](harness.md)) and serves `computer_screen` and `computer_act` with the runtime's descriptions; a step the Sentinel would ask about (Enter, a submit, a heavy shortcut, a click on a sensitive word) is refused with the reason until the call carries `confirmed: true`, which the model may set only after the person agreed in the conversation.
 
-`nanomuse doctor` is the first thing to run when something is off, and what to paste into a bug report: which config file is in use, where the data lives, which model and endpoint are configured and whether a key is set, whether recall by meaning is on and how many memories are indexed, which web search provider answers and whether it has its key or URL, whether commands run in the sandbox (and why not, if not), the tools the agent has, connector state (mailbox, calendar feeds, address books), and a one-line call to the model with its latency (`--no-model` skips that). It exits non-zero when something needs fixing and says what.
+`nanomuse doctor` is the first thing to run when something is off, and what to paste into a bug report: which config file is in use (and any key in it nothing reads), where the data lives, which model and endpoint are configured and whether a key is set, whether recall by meaning is on and how many memories are indexed, which web search provider answers and whether it has its key or URL, whether commands run in the sandbox (and why not, if not), the tools the agent has, connector state (mailbox, calendar feeds, address books), and a one-line call to the model with its latency (`--no-model` skips that). It exits non-zero when something needs fixing and says what.
