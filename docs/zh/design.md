@@ -27,7 +27,7 @@
 | 灰色 / 浅蓝色气泡，工具用小标签，审批用卡片 | 一样；小标签点开是工具调用，卡片上是哨兵（Sentinel）写的摘要和范围按钮（一次、本次对话、总是；手机上是一次、本聊天、总是） | `web/src/screens/ChatScreen.tsx`、`web/src/components/` |
 | 会换姿势的毛绒玩偶 | **小熊猫**，一个实时绘制的 SVG，每种状态一个姿势；六只毛绒玩偶（Sunny、Moss、Sky、Fox、Bolt、Plum）和一个 emoji 作为备选 | `web/src/components/RedPanda.tsx`、`web/public/avatars/` |
 | 形象下面是名字和状态；点开面板 | 同样的头部；面板里是大图的形象、状态、*停止*、四个按钮（审批、活动、权限、日程）以及记忆、技能、连接、设置几行 | `web/src/components/MuseSheet.tsx` |
-| 五图标悬浮栏 | 同样的五个：聊天、动态、点子、目标、资源库 | `web/src/App.tsx` |
+| 五图标悬浮栏 | 同样的五个：聊天、动态、点子、目标、资源库，放在底边上方 12 px 的一枚毛玻璃药丸里，半透明、带模糊和一圈细线边；当前标签页的填充图形垫在一块淡蓝色指示块上（`accent-soft`），其余的用 `muted` 描边。宽窗口下由侧栏代替 | `web/src/App.tsx` |
 | 很少的动效 | 玩偶和 emoji 的呼吸 / 摇摆 / 蹦跳；小熊猫自己的姿势；`prefers-reduced-motion` 下全部关闭 | `web/src/index.css`、`RedPanda.css` |
 
 ## 小熊猫 {#the-red-panda}

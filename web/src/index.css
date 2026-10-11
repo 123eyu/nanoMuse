@@ -41,6 +41,8 @@
   --color-muted: var(--om-muted);
   --color-accent: var(--om-accent);
   --color-accent-fg: #ffffff;
+  --color-accent-soft: var(--om-accent-soft);
+  --color-accent-soft-fg: var(--om-accent-soft-fg);
   --color-bubble-user: var(--om-bubble-user);
   --color-bubble-user-fg: var(--om-bubble-user-fg);
   --font-sans:
@@ -53,7 +55,8 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /* The palette is Muse's: near-white and near-black surfaces, one blue, grey for the agent's
-   bubbles and light blue for yours. */
+   bubbles and light blue for yours. `accent-soft` is the pale blue the selected tab sits on,
+   with the ink that reads on it: the Android app's primaryContainer and onPrimaryContainer. */
 :root {
   --om-bg: #fcfcfc;
   --om-surface: #ffffff;
@@ -62,6 +65,8 @@
   --om-fg: #111112;
   --om-muted: #6b6b71;
   --om-accent: #0064d4;
+  --om-accent-soft: #e5f0ff;
+  --om-accent-soft-fg: #012f80;
   --om-bubble-user: #d8e9ff;
   --om-bubble-user-fg: #111112;
   color-scheme: light;
@@ -75,6 +80,8 @@ html[data-theme="dark"] {
   --om-fg: #ffffff;
   --om-muted: #9d9da4;
   --om-accent: #1793ff;
+  --om-accent-soft: #1a2b4a;
+  --om-accent-soft-fg: #e5f0ff;
   --om-bubble-user: #1c3d66;
   --om-bubble-user-fg: #ffffff;
   color-scheme: dark;
@@ -112,6 +119,16 @@ html.desktop[data-platform="darwin"] .titlebar-room {
 }
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
+}
+/* The floating tab bar (App.tsx). The pill is 62px tall (46px tap boxes inside 8px of padding)
+   and floats 12px above the bottom edge, over the safe area; `tabbar-room` is the same 74px as
+   padding under the screens, so nothing scrolls under the pill and the chat's composer stays
+   above it. Both are `@utility`, not plain classes, so `wide:pb-0` on the same element wins. */
+@utility tabbar-float {
+  bottom: calc(12px + env(safe-area-inset-bottom));
+}
+@utility tabbar-room {
+  padding-bottom: calc(74px + env(safe-area-inset-bottom));
 }
 
 /* Scrollbars: thin and quiet on a desktop, none at all at phone widths or on touch screens —
