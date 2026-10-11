@@ -92,7 +92,12 @@ Ours, in `NanoMuse/`:
   then *On it: 〈brief〉*, and the model's name when idle; while a new face is being drawn it
   reads the avatar flow's line. The face (`NanoMuseFaces.swift`, the drawn face from Application
   Support or the dragon from the bundle, five moods with the breath, bob, tilt, pop and shake of
-  the other clients) is tapped into **the agent's page**. The drawer holds the sessions, search,
+  the other clients) is tapped into **the agent's page**. A short clip of your own can play as the
+  face instead (`NanoMuseOwnClip.swift`: *Your own clip…* under the pen on the agent's page and in
+  the avatar studio; MP4 or MOV with H.264 or HEVC video, up to 15 seconds and 30 MB, previewed
+  before it is used, kept on that phone only under `Application Support/nanomuse/avatar/own-clip.mp4`,
+  and *Default face* removes it; the section in [avatar.md](avatar.md) has the fallback rule).
+  The drawer holds the sessions, search,
   a new side chat, *Pin as the main chat*, *All chats* and the nanoMuse settings; it opens from
   the round button and, on the main chat, from a swipe in at the left edge
   (`NanoMuseEdgeSwipe.swift`, a screen-edge pan on the window, as Android's drawer on the Chat

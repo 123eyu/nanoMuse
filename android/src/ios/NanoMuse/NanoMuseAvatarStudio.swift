@@ -363,6 +363,8 @@ struct NanoMuseAvatarStudioView: View {
     @ObservedObject private var studio = NanoMuseAvatarStudioModel.shared
     @ObservedObject private var faces = NanoMuseFaceStore.shared
     @ObservedObject private var motion = NanoMuseAvatarMotion.shared // nanoMuse: clips
+    @ObservedObject private var own = NanoMuseOwnClip.shared
+    @StateObject private var clipPicker = NanoMuseOwnClipPicker()
     @Environment(\.dismiss) private var dismiss
     @State private var askCost = false
     @State private var confirmReset = false
@@ -385,6 +387,7 @@ struct NanoMuseAvatarStudioView: View {
     private var content: some View {
             Form {
                 currentSection
+                ownClipSection
                 switch studio.phase {
                 case .describe:
                     describeSection
@@ -443,6 +446,28 @@ struct NanoMuseAvatarStudioView: View {
                 Button(AppLocalized("Back to the built-in face"), role: .destructive) { studio.reset() }
                 Button(AppLocalized("Cancel"), role: .cancel) {}
             }
+            .nanoMuseOwnClipHost(clipPicker)
+    }
+
+    /// A clip of the person's own as the face (#324): choose, replace, or back to the default.
+    private var ownClipSection: some View {
+        Section {
+            Button(own.clip == nil ? AppLocalized("Choose a clip") : AppLocalized("Replace the clip")) {
+                clipPicker.choose()
+            }
+            if own.clip != nil {
+                Button(AppLocalized("Default face")) { own.clear() }
+            }
+        } header: {
+            Text(AppLocalized("Your own clip"))
+        } footer: {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(own.clip != nil
+                     ? AppLocalized("Your clip is on and plays for every mood; the drawn stills still show where a still is used. Default face removes it.")
+                     : AppLocalized("A short video of yours plays as the face at rest, and the other moods fall back to it. MP4 or MOV with H.264 or HEVC video, up to 15 seconds and 30 MB; it plays muted in a loop."))
+                Text(AppLocalized("The clip stays on this phone. It is not uploaded to nanoMuse Cloud or synced to your other devices."))
+            }
+        }
     }
 
     private var currentSection: some View {

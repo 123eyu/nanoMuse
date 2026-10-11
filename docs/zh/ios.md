@@ -84,6 +84,10 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   *正在处理：〈简述〉*，空闲时是模型的名字；正在画新形象时，显示的是形象流程那边的那行字。
   形象（`NanoMuseFaces.swift`：Application Support 里画出来的脸，或者 bundle 里的小龙，五种
   状态，带着其他客户端那样的呼吸、浮动、歪头、弹出和抖动）点一下进入**智能体的页面**。
+  也可以换成一段你自己的短视频来当形象（`NanoMuseOwnClip.swift`：智能体页面钢笔菜单和形象
+  工作室里的 *你自己的视频…*；MP4 或 MOV，H.264 或 HEVC 视频，最长 15 秒、最大 30 MB，用之前
+  先预览，只保存在这台手机的 `Application Support/nanomuse/avatar/own-clip.mp4`，*默认形象*
+  可移除；回退规则见 [avatar.md](avatar.md) 里的那一节）。
   抽屉里放着会话、搜索、新建旁聊、*设为主要聊天*、*全部对话* 和 nanoMuse 设置；点圆形按钮
   打开，在主要聊天里从左边缘向右滑也打开（`NanoMuseEdgeSwipe.swift`，挂在窗口上的屏幕边缘
   手势，和 Android 聊天页上的抽屉一样；推出来的旁聊仍然用系统的返回手势）。
