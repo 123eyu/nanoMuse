@@ -114,7 +114,7 @@ fun SideChatDrawer(
             .statusBarsPadding()
             .navigationBarsPadding(),
     ) {
-        // nanoMuse: Muse's drawer voice — the agent name big and plain, rows in
+        // nanoMuse: Muse's drawer voice: the agent name big and plain, rows in
         // quiet pills, everything monochrome.
         val nmDark = ChatColors.isDark
         val nmRowSelected = if (nmDark) Color.White.copy(alpha = 0.09f) else Color.Black.copy(alpha = 0.06f)
@@ -275,7 +275,7 @@ fun SideChatDrawer(
             }
         }
 
-        // Bottom strip: settings · search · new — Muse's circular buttons round a search pill.
+        // Bottom strip: settings · search · new, Muse's circular buttons round a search pill.
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier

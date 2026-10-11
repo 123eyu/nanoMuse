@@ -376,16 +376,11 @@ fun NanoMuseHome(
             },
         ) { padding ->
             val bottom = padding.calculateBottomPadding()
-            // Scaffold measures the entire bar, including its floating gap and
-            // navigation inset, before laying out this content. Use that same
-            // inset for placement and IME consumption, without a frame-late callback.
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .hazeSource(hazeState)
-                    // nanoMuse: no bottom inset — the pill bar is an overlay and the
-                    // content slides behind it for the frosted blur. Each tab pads
-                    // its own scrollable content above the pill.
+                    .padding(bottom = bottom)
                     .consumeWindowInsets(PaddingValues(bottom = bottom)),
             ) {
                 // Chat tab — always composed, hidden while another tab is on top.
@@ -426,9 +421,6 @@ fun NanoMuseHome(
                             },
                             onModelGroupsClick = { navController.safeNavigate(Routes.MODEL_GROUPS) },
                             nmHome = NmHomeChrome(isMainChat = isMainChat, onOpenDrawer = { openDrawer() }),
-                            // nanoMuse: preserve the full-size blur source, but keep
-                            // the chat footer above the bar measured by Scaffold.
-                            nmBottomOverlay = bottom,
                         )
                     }
                 }
@@ -446,9 +438,6 @@ fun NanoMuseHome(
                 ) {
                     Surface(
                         color = ChatColors.background,
-                        // nanoMuse: no bottom padding — tab content flows behind
-                        // the pill overlay like the chat does. Tabs handle their
-                        // own bottom contentPadding internally.
                         modifier = Modifier.fillMaxSize(),
                     ) {
                         // Pages cross-fade; the header sits at the same spot on every page,
