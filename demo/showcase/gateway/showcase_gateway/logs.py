@@ -22,8 +22,10 @@ REDACTED = "[redacted]"
 
 # where a request line with its query is written: uvicorn's access log for HTTP, its error
 # logger for the WebSocket handshake ("WebSocket /ws" [accepted] / 403 / <code>), and httpx
-# (with httpcore underneath) for what the gateway itself asks of a container
-REQUEST_LOGGERS = ("uvicorn.access", "uvicorn.error", "httpx", "httpcore")
+# (with httpcore underneath) for what the gateway itself asks of a container; httpx 2 ships as
+# the httpx2 package and logs under that name (Starlette's test client prefers it when it is
+# installed), so it is covered too
+REQUEST_LOGGERS = ("uvicorn.access", "uvicorn.error", "httpx", "httpx2", "httpcore")
 
 
 def redact(text: str) -> str:

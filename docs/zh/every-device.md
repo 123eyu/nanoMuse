@@ -114,7 +114,7 @@ Muse 的名字和外观照旧跟着账号走。从 0.1.40 起，手机走得更�
 
 ## 浏览器：一台模拟手机上的演示 {#the-browser-a-demo-on-a-simulated-phone}
 
-[nanomuse.cn/web](https://nanomuse.cn/web/) 通向展示站：浏览器里的一台模拟手机（MobileGym，nanoMuse App 放在前台：`demo/mobilegym/apps/nanoMuse`），背后是展示站网关为这次访问启动的、访客自己的一份私有 nanoMuse，`ghcr.io/nano-muse/nanomuse` 镜像，跑在一个除了网关没有任何出口的网络里，和展示站的模型对话，访问结束就消失。访客先登录 nanoMuse Cloud（验证码发到手机或邮箱，或用账号密码；`demo/showcase/gateway/showcase_gateway/visitors.py`），这样项目知道是谁在试，而且到安装 App 那天，同一个账号就在那里等着。页面上直说：这是一个演示，离 Android App 还差得远，并告诉你 App 在哪里。首页 [nanomuse.cn](https://nanomuse.cn/) 把同一个页面放在一个框架里显示（`?embed=1`：没有自己的页头，手机等你点一下才开机，而不是自己亮起来，所以打开首页什么都不会启动）。
+[nanomuse.cn/web](https://nanomuse.cn/web/) 通向展示站：浏览器里的一台模拟手机（MobileGym，nanoMuse App 放在前台：`demo/mobilegym/apps/nanoMuse`），背后是展示站网关为这次访问启动的、访客自己的一份私有 nanoMuse，`ghcr.io/nano-muse/nanomuse` 镜像，跑在一个除了网关没有任何出口的网络里，和展示站的模型对话，访问结束就消失。访客先登录 nanoMuse Cloud（验证码发到手机或邮箱，或用账号密码；`demo/showcase/gateway/showcase_gateway/visitors.py`），这样项目知道是谁在试，而且到安装 App 那天，同一个账号就在那里等着。页面上直说：这是一个演示，离 Android App 还差得远，并告诉你 App 在哪里。首页 [nanomuse.cn](https://nanomuse.cn/) 把同一个页面放在一个框架里显示（`?embed=1`，没有自己的页头）。手机会自己开机；背后的 Muse 要等页面有理由认为有人在看（在视野里停留几秒，或者有指针、按键、滚轮的动作）才启动，脚本化的浏览器不会触发，展示站要求的登录之前也不会启动。
 
 网页版早先的形状（每个 Cloud 账号一份常驻的 Muse，带命名卷，在 hub 上和其他设备一样占一个位置；`accounts.py`，`WEB_ENABLED=1`）仍然留在网关里，给自己跑网关的人用；项目自己的服务器上从 0.1.26 起关掉了。细节和设置项在 [demo/showcase/README.md](../../demo/showcase/README.md)。
 
