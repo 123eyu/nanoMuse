@@ -124,6 +124,17 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
 RELAY_BIND=0.0.0.0 docker compose -f docker-compose.yml -f docker-compose.local.yml up -d   # reachable from the LAN
 ```
 
+The image runs the relay as `relay`, uid 10001, not as root. Both compose files
+bind-mount `./data` as the data directory (`CLOUD_DB`, the GeoIP file beside it),
+and Docker creates a missing bind-mount source owned by root, which uid 10001
+cannot write; so `data/` must belong to that uid on the host before the first
+start, and once more when upgrading from an image that ran as root, whose
+`cloud.db` is root's: `sudo chown -R 10001:10001 data` (or, without sudo,
+`docker compose run --rm --no-deps --user 0 relay chown -R 10001:10001
+/srv/nanomuse-cloud/data`). `scripts/self-host.sh` and the production
+`deploy.sh` do this themselves; a relay that cannot write its data directory
+stops at start with a sentence saying so instead of a traceback.
+
 Back up `data/cloud.db` together with `CLOUD_SECRET`: the hashes are useless
 without the secret, and the secret alone is useless without the database.
 

@@ -31,6 +31,7 @@ def _serve(args: argparse.Namespace) -> None:
     if settings.dev_mode and settings.sender != "log":
         # identifiers would be hashed with a public fixed key while real codes go out
         raise SystemExit("CLOUD_SECRET is not set; a relay that sends codes (CODE_SENDER != log) must have one")
+    check_data_dir(settings.database)
     app = create_app(settings)
     uvicorn.run(
         app,
@@ -45,6 +46,33 @@ def _serve(args: argparse.Namespace) -> None:
         ws_max_size=settings.hub_frame_limit,
         ws_ping_interval=25.0,
         ws_ping_timeout=60.0,
+    )
+
+
+def check_data_dir(database: str) -> None:
+    """Stop with a plain sentence when the database's directory cannot be written.
+
+    The Docker image runs the relay as uid 10001, and a bind-mounted data directory that
+    Docker or an earlier root-running image created belongs to root, so the first start
+    would otherwise die on sqlite's "unable to open database file".
+    """
+    if database == ":memory:":
+        return
+    folder = os.path.dirname(os.path.abspath(database))
+    try:
+        os.makedirs(folder, exist_ok=True)
+    except OSError:
+        pass
+    writable = os.path.isdir(folder) and os.access(folder, os.W_OK | os.X_OK)
+    if writable and os.path.exists(database):
+        writable = os.access(database, os.W_OK)
+    if writable:
+        return
+    uid = os.getuid() if hasattr(os, "getuid") else "?"
+    raise SystemExit(
+        f"the data directory {folder} is not writable by uid {uid}; the Docker image runs the relay "
+        f"as uid 10001, so a bind-mounted data directory must belong to it: on the host, "
+        f"sudo chown -R 10001:10001 <that directory>, then start the relay again"
     )
 
 

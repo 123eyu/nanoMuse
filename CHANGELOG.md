@@ -7,6 +7,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 ### Cloud
 
 - **The "ways on" guidance lists OpenCode Go apart.** An entry whose vendor wants a session id per conversation (`session_header`) goes under a new `session_providers` key instead of `providers`, so the phone apps of 1.0.1 and before, which do not send the id, never offer it; the apps that do send it append the list (thanks @PovedaAqui).
+- **The relay's Docker image runs as an unprivileged user.** The container runs the relay as `relay`, uid 10001, instead of root, so a bind-mounted data directory must belong to that uid on the host (`sudo chown -R 10001:10001 data`, once; `scripts/self-host.sh` and the production `deploy.sh` do it themselves), and a relay that cannot write its data directory now stops at start with a sentence that says so and names the chown, not with sqlite's traceback. `cloud/README.md` and the self-hosting guide say what a bind-mounted directory must be owned by.
 
 ### Runtime
 
