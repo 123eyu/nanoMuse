@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { test } from 'node:test'
 import { zstdCompressSync } from 'node:zlib'
-import { clean, countProcesses, detect, parsePs, parseTasklist, readSession, sessions, sessionsRoot, slugToPath, title, which } from '../lib/coding-readers.js'
+import { clean, countProcesses, detect, ownDshEntry, parsePs, parseTasklist, readSession, sessions, sessionsRoot, slugToPath, title, which } from '../lib/coding-readers.js'
 import { agentEnv, commandFor, continuation, normalise, Run, runFromView, startRun } from '../lib/coding-runner.js'
 import { CODING_ACTIONS, CodingService, codingBrief, GATED_CODING_ACTIONS } from '../lib/coding.js'
 
@@ -290,6 +290,29 @@ test('runner: the command lines the docs give', () => {
   // dsh has no `-C`: it runs in the spawn's cwd, and adopting a session requires that cwd to match
   assert.deepEqual(commandFor('dsh', '/u/dsh', 'session-1', '/w', 'go', true), ['/u/dsh', '--profile', 'headless', '--json', '--session-id', 'session-1', 'go'])
   assert.deepEqual(commandFor('dsh', '/u/dsh', '', '/w', 'go', false), ['/u/dsh', '--profile', 'headless', '--json', 'go'])
+  // the harness this plugin runs inside is a `bin.js` (its own `dsh` ships in the app
+  // bundle, not on PATH), so node is what starts it
+  assert.deepEqual(commandFor('dsh', '/app/dsh/lib/bin.js', '', '/w', 'go', false), [process.execPath, '/app/dsh/lib/bin.js', '--profile', 'headless', '--json', 'go'])
+})
+
+test('readers: the harness finds its own dsh entry, and dsh falls back to it', async () => {
+  // the desktop app starts `node …/dsh/lib/bin.js <profile>`, so the entry is in argv
+  assert.equal(ownDshEntry(['/usr/bin/node', '/app/other/lib/bin.js']), undefined, 'not a dsh entry')
+  assert.equal(ownDshEntry(['/usr/bin/node', '--expose-internals', '/nope/dsh/lib/bin.js']), undefined, 'a path that is not there')
+  assert.equal(ownDshEntry([]), undefined)
+  await scratch(async (dir) => {
+    const entry = join(dir, 'dsh', 'lib', 'bin.js')
+    await mkdir(dirname(entry), { recursive: true })
+    await writeFile(entry, '// the harness\n')
+    assert.equal(ownDshEntry(['/usr/bin/node', '--expose-internals', entry, 'web']), entry)
+    // no dsh on PATH: this harness's own entry is the fallback, and only for dsh
+    const env = { ...process.env, PATH: join(dir, 'emptybin') }
+    const before = which('dsh', env)
+    assert.equal(which('codex', env), undefined, 'another agent never falls back')
+    assert.equal(which('cursor', env), undefined)
+    // whatever the fallback found, it is this harness's entry rather than a PATH lookup
+    assert.equal(before === undefined || before.endsWith(join('dsh', 'lib', 'bin.js')), true)
+  })
 })
 
 test('runner: the CLI environment is scrubbed and keeps the agent’s own variables', () => {

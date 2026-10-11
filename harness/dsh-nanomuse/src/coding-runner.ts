@@ -212,7 +212,10 @@ export function commandFor(agent: AgentId, cli: string, sessionId: string, works
     // the harness's own one-shot runner: `dsh headless "<task>" --json` prints one projected
     // JSON object a line; `--session-id` adopts an existing session (the runner's cwd is the
     // workspace, so the spawn's cwd is what makes a resumed session match its recorded one)
-    const cmd = [cli, '--profile', 'headless', '--json']
+    // a `dsh` on PATH runs itself; the harness this plugin runs inside is a `bin.js`, started
+    // through node (Electron, with ELECTRON_RUN_AS_NODE, which the environment already carries)
+    const cmd = cli.endsWith('.js') ? [process.execPath, cli] : [cli]
+    cmd.push('--profile', 'headless', '--json')
     if (resume && sessionId) cmd.push('--session-id', sessionId)
     cmd.push(text)
     return cmd

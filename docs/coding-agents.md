@@ -63,6 +63,13 @@ also not chats the person had and are left out: a `user/message` whose
 notices all arrive that way), and a session whose header says `origin:
 "subagent"` or names a `parentSession`.
 
+dsh is also the one agent whose command line is not looked for on `PATH` alone:
+the desktop app ships the harness inside itself (`…/Resources/dsh/`) and starts it
+as `node …/dsh/lib/bin.js <profile>`, so a computer with the app has dsh sessions
+but no `dsh` on `PATH`. The desktop plugin therefore falls back to the harness it
+is running inside (the entry in its own command line) and starts that through
+node. A `dsh` installed on `PATH` is still used first, as for the other three.
+
 `running` on an agent is the number of its processes alive right now, read from
 `/proc` on Linux, `ps` on macOS and `tasklist` (plus the command lines of
 `node.exe`, for the node-bundled Cursor CLI) on Windows; never `pgrep -f`, and

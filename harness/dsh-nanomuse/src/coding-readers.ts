@@ -121,6 +121,23 @@ export function sessionsRoot(agent: AgentId, env: NodeJS.ProcessEnv = process.en
   }
 }
 
+/**
+ * The harness's own entry script, when this plugin is running inside one: the desktop app
+ * starts `node …/dsh/lib/bin.js <profile>`, and that copy is not on PATH, so a dsh session
+ * could otherwise be read but never sent to. `process.argv` carries it.
+ */
+export function ownDshEntry(argv: readonly string[] = process.argv): string | undefined {
+  for (const arg of argv.slice(1)) {
+    if (!/[\\/]dsh[\\/]lib[\\/]bin\.js$/.test(arg)) continue
+    try {
+      if (statSync(arg).isFile()) return arg
+    } catch {
+      continue
+    }
+  }
+  return undefined
+}
+
 /** The first of the agent's executables on PATH (PATHEXT on Windows), or undefined. */
 export function which(agent: AgentId, env: NodeJS.ProcessEnv = process.env, platform: NodeJS.Platform = process.platform): string | undefined {
   const dirs = (env.PATH ?? env.Path ?? '').split(delimiter).filter(Boolean)
@@ -137,6 +154,9 @@ export function which(agent: AgentId, env: NodeJS.ProcessEnv = process.env, plat
       }
     }
   }
+  // dsh is the one agent whose CLI ships inside an app rather than onto PATH: fall back to
+  // the harness this plugin is running in, which `commandFor` then starts through node
+  if (agent === 'dsh') return ownDshEntry()
   return undefined
 }
 

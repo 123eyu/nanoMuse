@@ -26,6 +26,8 @@
 
 dsh 的存储有两点要说明：它是 **zstd** 压缩的，而且是随着会话写入**一帧帧追加**的，所以只解压一次会在第一帧结束处停下，长聊天会丢掉开头几行之后的所有内容。因此帧按魔数切开，逐帧解压。另有两种会话不是人聊过的对话，会被排除：`source.kind` 不是 `user` 的 `user/message`（运行时上下文、技能目录、后台任务通知都是以这种方式到达的），以及 header 里写着 `origin: "subagent"` 或带有 `parentSession` 的会话。
 
+dsh 也是唯一不只从 `PATH` 上找命令行的助手：桌面版把 harness 打包在自己里面（`…/Resources/dsh/`），以 `node …/dsh/lib/bin.js <profile>` 启动，所以装了桌面版的电脑有 dsh 会话，`PATH` 上却没有 `dsh`。因此桌面版插件会回退到它自己正运行在其中的那个 harness（用它自己命令行里的入口），并通过 node 启动它。`PATH` 上装好的 `dsh` 仍然优先使用，和其他三个一样。
+
 助手的 `running` 是它此刻还活着的进程数，Linux 上读 `/proc`，macOS 上用 `ps`，Windows 上用 `tasklist`（外加 `node.exe` 的命令行，因为 Cursor CLI 是随 node 打包的）；从不使用 `pgrep -f`，而且每两秒最多读一次。
 
 运行器在助手的终止事件到达时就停止读取，而不是等到管道 EOF：`cursor-agent` 回答完之后会留一个 worker 服务器跑着，否则这次运行会被永远挂住。随后等待该进程，宽限期过后将其杀掉。
