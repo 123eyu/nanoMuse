@@ -240,6 +240,13 @@ Provider clients carry `OwnProviderProxy.authenticator` for a proxy that asks fo
 *Test* fetches `https://chatgpt.com/` through the proxy as entered and reports the status and the
 milliseconds. Unit tests: `ProviderReachTest`, `OwnProviderProxyTest`.
 
+## Voice input
+
+System voice input can prefer on-device recognition. If the phone has no usable on-device
+service, it falls back to the default recognition service. A language error from that
+default service is shown in the voice panel. A running on-device recognizer whose language
+pack is unavailable still falls back once to the default service.
+
 ## Privacy and permissions
 
 The relay keeps an account id, a masked identifier, usage counts and the agent's name and
