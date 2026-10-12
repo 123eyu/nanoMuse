@@ -76,6 +76,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 - **A routine's switch says which routine it is.** VoiceOver read the switches in *Scheduled tasks* and in the Goals room as nameless toggles; each now carries the routine's label.
 - **Reduce Motion crossfades the slides, the drawer and the bottom bar.** With Reduce Motion on, the welcome slides, the side drawer and the pill bar no longer slide in and out; they fade.
 - **The composer check reads the bar's height from the shell.** The developer check that reports where the chat's column ends assumed a 56 pt bar; it now uses the 70 pt the shell gives the bottom bar, so its verdict about a column hidden behind the bar matches the 1.0.4 layout. Its sibling's header comment describes the 1.0.4 layout too.
+- **Spanish and Russian call the Health category health.** The goal category *Health* was *Estado* in Spanish and *Состояние* in Russian, both meaning *state*; they are *Salud* and *Здоровье*.
 
 ### Project
 

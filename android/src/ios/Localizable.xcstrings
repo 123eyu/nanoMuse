@@ -52786,7 +52786,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Estado"
+            "value" : "Salud"
           }
         },
         "fr" : {
@@ -52810,7 +52810,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Состояние"
+            "value" : "Здоровье"
           }
         },
         "zh-Hans" : {
