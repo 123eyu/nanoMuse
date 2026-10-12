@@ -42,8 +42,11 @@ its base URL.
   the agent's name and face for the account — the dragon, an emoji on a colour,
   or a face drawn in the avatar studio with its five small stills (WebP, 200 KB
   each at most) — last writer wins, with a `rev` that grows on every write.
-  Devices on the hub hear `{"type": "profile", "rev", "device"}` and fetch it;
-  `?face=false` leaves the pictures out. Never a key or a message.
+  From 0.25 a write is partial: a field left out (or a blank name) keeps its
+  stored value, so a rename sends the name alone and the face stays; an
+  `avatar` other than `face` drops the stored pictures. Devices on the hub
+  hear `{"type": "profile", "rev", "device"}` and fetch it; `?face=false`
+  leaves the pictures out. Never a key or a message.
 - **Which device connected what (0.17).** The same profile carries
   `connectors`: one entry per service a device connected — `id`, `label`,
   `url`, `auth` (`oauth` / `key` / `open`), `device`, `device_id`, `enabled`,
