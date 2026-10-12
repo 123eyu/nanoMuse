@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, CornerDownLeft, Globe, Hand, Loader2, RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { androidApp, nativeTakeOver } from "../android";
 import { api, frameUrl } from "../api";
 import { useT } from "../i18n";
@@ -36,6 +36,7 @@ export function BrowserViewer({ thread, eventId, onClose }: { thread: string; ev
   const [url, setUrl] = useState("");
   const [gone, setGone] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
+  const hintId = useId();
   const control = pending ? pending === "on" : !!hold;
 
   useEffect(() => setGone(false), [event?.frame]);
@@ -107,6 +108,21 @@ export function BrowserViewer({ thread, eventId, onClose }: { thread: string; ev
   const onWheel = (e: React.WheelEvent<HTMLImageElement>) => {
     if (!control || busy || Math.abs(e.deltaY) < 8) return;
     void act({ action: "scroll", dy: Math.max(-2000, Math.min(2000, Math.round(e.deltaY * 2))) });
+  };
+
+  // the keyboard's share of the frame while you have the page: arrows and Page keys scroll
+  // it, Enter presses Enter on the page (clicks need a pointer; the buttons under the frame
+  // cover the rest)
+  const onKey = (e: React.KeyboardEvent<HTMLImageElement>) => {
+    if (!control || busy) return;
+    const dy = { ArrowUp: -300, ArrowDown: 300, PageUp: -600, PageDown: 600 }[e.key];
+    if (dy !== undefined) {
+      e.preventDefault();
+      void act({ action: "scroll", dy });
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      void act({ action: "key", key: "Enter" });
+    }
   };
 
   if (!event) return null;
@@ -221,7 +237,9 @@ export function BrowserViewer({ thread, eventId, onClose }: { thread: string; ev
               </button>
             </form>
             <div className="flex items-center justify-between gap-2">
-              <span className="min-w-0 truncate text-[12px] text-muted">{t("Tap the page to click. If the browser was closed, open a URL first.")}</span>
+              <span id={hintId} className="min-w-0 truncate text-[12px] text-muted">
+                {t("Tap the page to click; with the frame focused, arrow keys scroll it and Enter presses Enter. If the browser was closed, open a URL first.")}
+              </span>
               <button
                 type="button"
                 onClick={done}
@@ -283,6 +301,9 @@ export function BrowserViewer({ thread, eventId, onClose }: { thread: string; ev
             onError={() => setGone(true)}
             onClick={onTap}
             onWheel={onWheel}
+            onKeyDown={onKey}
+            tabIndex={control ? 0 : undefined}
+            aria-describedby={control ? hintId : undefined}
             draggable={false}
             className={cx("block w-full select-none", control ? "cursor-crosshair" : "")}
           />

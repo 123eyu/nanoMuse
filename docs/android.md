@@ -333,7 +333,8 @@ and put its four values in `android/keystore.properties` (git-ignored: `storeFil
 Gradle, builds `:app:assembleRelease` with the release key, writes
 `dist/nanoMuse-<version>-arm64.apk` and its `.sha256`, and with `--publish` tags
 `v<version>` and attaches both to the GitHub release with the notes from
-`docs/releases/v<version>.md`. A debug-signed APK never goes on a release, because it
+`docs/releases/v<version>.md`. Publishing refuses a working tree with uncommitted changes
+and a commit that is not on `main`. A debug-signed APK never goes on a release, because it
 could not be updated by a properly signed one. The `versionName` must match the tag,
 like the Python package's version does.
 

@@ -133,6 +133,7 @@ export function MuseRoundButton({
       type="button"
       onClick={onClick}
       aria-label={label}
+      aria-haspopup={expanded === undefined ? undefined : "menu"}
       aria-expanded={expanded}
       disabled={disabled}
       className={cx(

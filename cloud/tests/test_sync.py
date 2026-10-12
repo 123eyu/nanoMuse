@@ -741,10 +741,14 @@ async def test_deleting_the_account_purges_everything_and_the_next_sign_in_start
         ("sync_cursors", "account_id"),
         ("samples", "account_id"),
         ("video_tasks", "account_id"),
+        ("daily", "key"),  # the `active` counter is keyed by the account id
     ):
         n = cloud.db._conn.execute(f"SELECT COUNT(*) FROM {table} WHERE {column}=?", (account_id,)).fetchone()[0]
         assert n == 0, f"{table} still holds {n} row(s) of the deleted account"
     assert app.state.sync.presence.working(account_id) == []
+    # the one line left says a deletion happened, across accounts, and names nobody
+    deleted = [dict(r) for r in cloud.db.events_recent(50) if r["kind"] == "account.deleted"]
+    assert len(deleted) == 1 and deleted[0]["account_id"] == "" and deleted[0]["detail"] == f"{account_id[:8]} by the person"
 
     # the same number again: a new account, a new id, nothing to pull
     again = await sign_up(client, sender, "13800138000", "pixel")
