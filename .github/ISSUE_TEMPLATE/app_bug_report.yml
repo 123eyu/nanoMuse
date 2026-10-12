@@ -34,7 +34,7 @@ body:
     id: version
     attributes:
       label: nanoMuse version / nanoMuse 版本
-      description: "Settings → About, e.g. 1.0.3 (46) / 设置 → 关于，例如 1.0.3 (46)"
+      description: "Settings → About, e.g. 1.0.4 (47) / 设置 → 关于，例如 1.0.4 (47)"
     validations:
       required: true
   - type: input

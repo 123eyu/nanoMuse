@@ -73,7 +73,7 @@ Legend: **✓** done · **◐** partial (what is missing is in the note) · **�
 | Connections shared across the account's devices (the profile's `connectors`; never a credential) | ✓ 0.1.34 | ✓ 0.1.34 | ✓ 0.1.34 | ✓ 0.1.34 *(18)* |
 | Chat apps: Feishu · DingTalk · WeCom · Telegram answer as the agent (pairing codes, allowlists, deliver here) | — *(22)* | — *(22)* | ✓ 0.1.34 the web screen | ✓ 0.1.34 *Settings → Chat apps* |
 | Skills | ✓ upstream | ✓ upstream | — *(8)* | ✓ |
-| Coding agents (Cursor, Codex, Claude Code on the computers) | ✓ | ✓ 0.1.34 over the hub *(9)* | ✓ *Settings → Coding agents*, this computer first; announces and serves `coding.*` *(8)* | ✓ |
+| Coding agents (Cursor, Codex, Claude Code on the computers; DeepSeek Harness too since 1.0.4, read by the desktop app) | ✓ | ✓ 0.1.34 over the hub *(9)* | ✓ *Settings → Coding agents*, this computer first; announces and serves `coding.*` *(8)* | ✓ |
 | Devices of the account, remote control, rename, forget | ✓ | ◐ list, Reach sheet 0.1.33 | ✓ | ✓ |
 | Hub, outbound: the model reaches the account's other devices (`devices`, `device_*`, `delegate`, `@<device>`) | ✓ *Computers*, the reach offload | ◐ the Reach sheet by hand and `@device` to the hub; since round 9 also a tap on an online device in the account's Devices list, as on Android; no tool in the model's hands *(29)* | ✓ `reach.ts` | ✓ the runtime's `tools/devices.py` |
 | Hub, inbound: the device answers the others (shell · files · open · screen · notify · task) | ✓ `HubActions` | ◐ info · open · notify · task; shell, files and screen answer *not supported* *(10)* | ✓ `actions.ts` | ✓ the runtime; a browser tab is not a device |
