@@ -49,4 +49,14 @@ object MainChatFollow {
      */
     fun shouldMove(isMain: Boolean, activeEntryId: String?, selectedGroupId: String?, pick: Pick, isNew: Boolean = false): Boolean =
         (isMain || isNew) && !(activeEntryId == pick.entryId && selectedGroupId == pick.groupId)
+
+    /**
+     * Whether a group picked in a chat's picker becomes the default as it is: it is the
+     * person's own, named by them ([groupName] is not the pick's provider label,
+     * [providerLabel]) or holding more than one provider ([memberProviderIds], one per member;
+     * an unknown member counts as another provider). A group named after the provider is ours
+     * and may be led with the pick instead.
+     */
+    fun keepAsIs(groupName: String, providerLabel: String, memberProviderIds: List<String?>): Boolean =
+        groupName != providerLabel || memberProviderIds.toSet().size > 1
 }

@@ -7265,6 +7265,18 @@ fun ChatScreen(
                 } else {
                     viewModel.selectGroup(groupId)
                     showModelPicker = false
+                    // nanoMuse: a group picked here is the default for new chats too, and the
+                    // main chat follows it (ModelSlots.followPick, with the member the
+                    // view-model resolved); the same line as for a model says so.
+                    viewModel.activeEntryId.value?.let { resolved ->
+                        val sticks = io.github.nanomuse.models.ModelSlots.followPick(context, resolved, groupId)
+                        val name = group?.name?.takeIf { it.isNotBlank() } ?: entryById(resolved)?.model?.displayName ?: resolved
+                        android.widget.Toast.makeText(
+                            context,
+                            context.getString(if (sticks) R.string.nm_model_switched_sticky else R.string.nm_model_switched, name),
+                            android.widget.Toast.LENGTH_SHORT,
+                        ).show()
+                    }
                 }
             },
             onSelectGroupEntry = { groupId, entryId ->
@@ -7280,6 +7292,16 @@ fun ChatScreen(
                 } else {
                     viewModel.selectGroupEntry(groupId, entryId)
                     showModelPicker = false
+                    // nanoMuse: as for a group pick, the default for new chats and the main chat follow
+                    if (entry != null) {
+                        val name = entry.model.displayName.ifBlank { entry.model.id }
+                        val sticks = io.github.nanomuse.models.ModelSlots.followPick(context, entryId, groupId)
+                        android.widget.Toast.makeText(
+                            context,
+                            context.getString(if (sticks) R.string.nm_model_switched_sticky else R.string.nm_model_switched, name),
+                            android.widget.Toast.LENGTH_SHORT,
+                        ).show()
+                    }
                 }
             },
             onSelectEntry = { entryId ->

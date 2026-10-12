@@ -3735,7 +3735,16 @@ class ChatViewModel(
                 if (!io.github.nanomuse.models.MainChatFollow.shouldMove(isMain, _activeEntryId.value, _selectedGroupId.value, pick, isNew)) return@collect
                 if (resolveProviderFromGroup(pick.groupId, pick.entryId)) {
                     _selectedGroupId.value = pick.groupId
+                    val group = providerRepository.group(pick.groupId)
+                    _selectedGroupName.value = group?.name ?: ""
                     _activeEntryId.value?.let { persistBinding(io.github.nanomuse.models.MainChatFollow.binding(pick.copy(entryId = it))) }
+                    // the group's default thinking level comes along, as it does when the group is
+                    // picked in this chat's own picker (applyGroupSessionDefaults) and on the
+                    // iPhone; a draft has no row to write it to and keeps it in memory
+                    group?.defaultThinkingLevel?.takeIf { it != _thinkingLevel.value }?.let { level ->
+                        _thinkingLevel.value = level
+                        if (realSessionId.isNotEmpty()) chatRepository.dao.updateThinkingOverride(realSessionId, level.name)
+                    }
                     AppLogger.info(TAG, "🔀RESOLVE ${if (isMain) "main chat" else "draft"} follows the chat slot: group=${pick.groupId} entry=${_activeEntryId.value} model=${currentModel?.id}")
                 }
             }
