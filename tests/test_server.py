@@ -1307,6 +1307,67 @@ def test_connections_mcp_and_vault(server):
     assert client.get("/api/settings").json()["onboarded"] is True
 
 
+async def test_mcp_env_values_go_to_the_vault(settings: Settings):
+    """An MCP server added with an ``env`` block: the values are kept in the vault under
+    ``MCP_<SERVER>_<KEY>`` and app-settings.json holds references, as it does for every
+    other secret; the server still gets the real value at spawn. A value typed as a
+    reference stays as typed; the console sees the names and which ones are references;
+    removing the server removes the entries it made and no other.
+
+    Driven on the service directly: a stdio session opened inside a TestClient request
+    cannot be closed in another, so the echo server is connected and closed in one task."""
+    import sys
+
+    from nanomuse.config import MCPServerSettings
+    from nanomuse.server.connections import mcp_env_vault_name
+
+    assert mcp_env_vault_name("amap", "AMAP_MAPS_API_KEY") == "MCP_AMAP_AMAP_MAPS_API_KEY"
+    assert mcp_env_vault_name("my.server-2", "key") == "MCP_MY_SERVER_2_KEY"
+    service = MuseService(settings, llm=MockLLM([]))
+    conn = service.connections
+    echo = str(Path(__file__).with_name("mcp_echo_server.py"))
+    conn.vault.set("OWN_TOKEN", "mine")
+    view = await conn.add_mcp(
+        {
+            "name": "echo",
+            "command": sys.executable,
+            "args": [echo],
+            "env": {"ECHO_KEY": "k-123", "ECHO_REF": "{{vault:OWN_TOKEN}}", "ECHO_PLAIN": ""},
+        }
+    )
+    try:
+        stored = json.loads((settings.data_dir / "app-settings.json").read_text("utf-8"))
+        assert stored["mcp"]["servers"][0]["env"] == {
+            "ECHO_KEY": "{{vault:MCP_ECHO_ECHO_KEY}}",
+            "ECHO_REF": "{{vault:OWN_TOKEN}}",
+            "ECHO_PLAIN": "",
+        }
+        assert "k-123" not in json.dumps(stored)
+        assert conn.vault.get("MCP_ECHO_ECHO_KEY") == "k-123"
+        # the running server was spawned with the real value, and the config keeps the reference
+        manager = conn._mcp["echo"]
+        assert manager._resolved(manager.servers[0]).env["ECHO_KEY"] == "k-123"
+        assert settings.mcp.servers[-1].env["ECHO_KEY"] == "{{vault:MCP_ECHO_ECHO_KEY}}"
+        mine = [m for m in view["mcp"] if m["name"] == "echo"][0]
+        assert mine["env"] == [
+            {"name": "ECHO_KEY", "vault": True},
+            {"name": "ECHO_REF", "vault": True},
+            {"name": "ECHO_PLAIN", "vault": False},
+        ]
+        assert "k-123" not in json.dumps(view)
+        # a server from config.toml with a plain value: the console is told it is plain
+        settings.mcp.servers.append(
+            MCPServerSettings(name="toml", command="x", env={"TOKEN": "plain-text"})
+        )
+        toml = [m for m in conn.view()["mcp"] if m["name"] == "toml"]
+        assert toml[0]["env"] == [{"name": "TOKEN", "vault": False}]
+        assert "plain-text" not in json.dumps(toml)
+    finally:
+        assert await conn.remove_mcp("echo") is True
+    assert "MCP_ECHO_ECHO_KEY" not in conn.vault.names()
+    assert conn.vault.get("OWN_TOKEN") == "mine"
+
+
 def test_app_settings_are_layered_on_config(server, settings: Settings):
     from nanomuse.config import Settings as S
     from nanomuse.config import apply_app_settings, load_app_settings

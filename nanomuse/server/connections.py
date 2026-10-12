@@ -48,7 +48,7 @@ from nanomuse.tools import (
     WebSearch,
     playwright_available,
 )
-from nanomuse.vault.vault import VaultError
+from nanomuse.vault.vault import PLACEHOLDER_RE, VaultError
 
 if TYPE_CHECKING:
     from nanomuse.server.service import MuseService
@@ -352,6 +352,15 @@ def _vault_name(feed_name: str, prefix: str = "CALENDAR_") -> str:
     return prefix + (re.sub(r"[^A-Z0-9]+", "_", feed_name.upper()).strip("_") or "FEED")
 
 
+def mcp_env_vault_name(server: str, key: str) -> str:
+    """The vault entry an MCP server's ``env`` value is kept under when it is added from the
+    app: ``MCP_<SERVER>_<KEY>``, both parts upper-cased with anything that is not a letter
+    or a digit as ``_`` (``amap`` + ``AMAP_MAPS_API_KEY`` is ``MCP_AMAP_AMAP_MAPS_API_KEY``)."""
+    stem = re.sub(r"[^A-Z0-9]+", "_", server.upper()).strip("_") or "SERVER"
+    field = re.sub(r"[^A-Z0-9]+", "_", key.upper()).strip("_") or "VALUE"
+    return f"MCP_{stem}_{field}"
+
+
 def _link_or_path(url: str) -> bool:
     """An http(s)/file link, or a path: absolute, ``~``, or a Windows drive letter."""
     return url.startswith(("http://", "https://", "file://", "/", "~")) or bool(
@@ -528,6 +537,12 @@ class Connections:
                     "connected": m.name in live_tools,
                     "from_app": m.name in app_mcp,
                     "builtin": False,
+                    # the server's environment: the names, and whether each value is a
+                    # vault reference; never a value (a plain one is what the app warns about)
+                    "env": [
+                        {"name": k, "vault": self.vault.has_placeholders(v)}
+                        for k, v in m.env.items()
+                    ],
                 }
                 for m in s.mcp.servers
             ]
@@ -1271,6 +1286,7 @@ class Connections:
                 "connected": DEVICE_SERVER in live_tools,
                 "from_app": False,
                 "builtin": True,
+                "env": [],
             }
         ]
 
@@ -1546,6 +1562,10 @@ class Connections:
 
     # ------------------------------------------------------------------ mcp
     async def add_mcp(self, body: dict[str, Any]) -> dict[str, Any]:
+        """Connect a server and keep it. The values of its ``env`` go into the vault
+        (``MCP_<SERVER>_<KEY>``) and ``app-settings.json`` keeps ``{{vault:NAME}}``
+        references, as it does for every other secret; a value typed as a reference
+        already is kept as written."""
         cfg = MCPServerSettings.model_validate(
             {
                 k: v
@@ -1558,12 +1578,27 @@ class Connections:
             raise ValueError("the server needs a name")
         if not (cfg.command or cfg.url):
             raise ValueError("give either a command to run or a URL to connect to")
+        env: dict[str, str] = {}
+        for key, value in cfg.env.items():
+            if not key.strip():
+                raise ValueError("an environment variable needs a name")
+            if value and not self.vault.has_placeholders(value):
+                secret = mcp_env_vault_name(cfg.name, key)
+                self.vault.set(secret, value)
+                value = "{{vault:" + secret + "}}"
+            env[key] = value
+        cfg = cfg.model_copy(update={"env": env})
         await self.remove_mcp(cfg.name, save=False)
-        servers = [
-            m
-            for m in (self.data.get("mcp") or {}).get("servers") or []
-            if m.get("name") != cfg.name
-        ]
+        stored = (self.data.get("mcp") or {}).get("servers") or []
+        servers = [m for m in stored if m.get("name") != cfg.name]
+        # a server replaced under the same name: the vault entries its old `env` made
+        # and the new one does not name go with it
+        keep = set(self._mcp_env_secrets(cfg.name, env))
+        for old in stored:
+            if old.get("name") == cfg.name:
+                for secret in self._mcp_env_secrets(cfg.name, old.get("env") or {}):
+                    if secret not in keep:
+                        self.vault.delete(secret)
         servers.append(cfg.model_dump(mode="json"))
         self.data["mcp"] = {"servers": servers}
         self._save()
@@ -1596,11 +1631,29 @@ class Connections:
             await manager.close()
         self.settings.mcp.servers = [m for m in self.settings.mcp.servers if m.name != name]
         if save:
+            # the vault entries `add_mcp` made for this server's env go with it; one the
+            # person set themselves (any other name) stays
+            for m in servers:
+                if m.get("name") == name:
+                    for secret in self._mcp_env_secrets(name, m.get("env") or {}):
+                        self.vault.delete(secret)
             self.data["mcp"] = {"servers": [m for m in servers if m.get("name") != name]}
             self._save()
             self._publish()
             self._share_connectors()
         return True
+
+    @staticmethod
+    def _mcp_env_secrets(server: str, env: dict[str, Any]) -> list[str]:
+        """The vault entries an ``env`` block references under this server's own prefix
+        (``MCP_<SERVER>_``), the ones ``add_mcp`` created and ``remove_mcp`` may delete."""
+        prefix = mcp_env_vault_name(server, "x").rsplit("_", 1)[0] + "_"
+        out: list[str] = []
+        for value in env.values():
+            for match in PLACEHOLDER_RE.finditer(str(value)):
+                if match.group(1).startswith(prefix):
+                    out.append(match.group(1))
+        return out
 
     async def close(self) -> None:
         for manager in self._mcp.values():
