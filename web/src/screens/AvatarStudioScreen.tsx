@@ -7,6 +7,7 @@ import { PageBar } from "../components/BackBar";
 import { MuseRoundButton } from "../components/MuseHeader";
 import { primaryBtn, secondaryBtn } from "../components/Form";
 import { StarNudgeOnce } from "../components/StarNudge";
+import { useMenuKeys } from "../components/useMenuKeys";
 import { getLocale, useT } from "../i18n";
 import { regionOf, unavailableLine } from "../providers";
 import { useStore } from "../store";
@@ -39,6 +40,8 @@ export function AvatarStudioScreen() {
   const [selected, setSelected] = useState<number | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [menu, setMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useMenuKeys(menuRef, menu, () => setMenu(false));
   const [error, setError] = useState("");
 
   // the session: the socket's word, else what the first fetch found under way
@@ -115,12 +118,12 @@ export function AvatarStudioScreen() {
         title={t("Avatar studio")}
         description={t("Draw a look with your image model; it moves with what it is doing.")}
         actions={
-          <div className="relative">
+          <div ref={menuRef} className="relative">
             <MuseRoundButton small onClick={() => setMenu((v) => !v)} label={t("More")} expanded={menu}>
               <MoreHorizontal size={20} />
             </MuseRoundButton>
             {menu && (
-              <div className="absolute right-0 z-20 mt-1 w-56 overflow-hidden rounded-2xl border border-border/70 bg-surface py-1 text-[14px] shadow-lg">
+              <div role="menu" className="absolute right-0 z-20 mt-1 w-56 overflow-hidden rounded-2xl border border-border/70 bg-surface py-1 text-[14px] shadow-lg">
                 <MenuItem
                   label={t("Name & style")}
                   onClick={() => {
@@ -160,7 +163,7 @@ export function AvatarStudioScreen() {
         }
       />
 
-      <div className="flex-1 overflow-y-auto px-4 pb-8 space-y-5" onClick={() => menu && setMenu(false)}>
+      <div className="flex-1 overflow-y-auto px-4 pb-8 space-y-5">
         {/* the face as it is */}
         <div className="flex flex-col items-center pt-2 text-center">
           <FacePreview avatar={profile?.avatar} emoji={profile?.emoji} color={profile?.color} name={name} />
@@ -375,7 +378,7 @@ function providerName(host: string, t: (s: string) => string): string {
 
 function MenuItem({ label, onClick, danger = false }: { label: string; onClick: () => void; danger?: boolean }) {
   return (
-    <button type="button" onClick={onClick} className={cx("block w-full px-4 py-2.5 text-left hover:bg-surface-2", danger ? "text-rose-600 dark:text-rose-300" : "")}>
+    <button type="button" role="menuitem" onClick={onClick} className={cx("block w-full px-4 py-2.5 text-left hover:bg-surface-2", danger ? "text-rose-600 dark:text-rose-300" : "")}>
       {label}
     </button>
   );

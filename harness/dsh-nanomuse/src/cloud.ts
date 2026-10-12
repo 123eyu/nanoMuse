@@ -27,7 +27,7 @@
  */
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { ApprovalDesk, appOf, checkForUpdate, compareVersions, DEVICE_GRANT_PREFIX, HoldDesk, modelFor, pickChatModel, pickHandsModel, REMOTE_CONTROL_GRANT_ID, sharedConnectors, standingGrants, takesImages, type Grant, type Hold, type HoldTool, type PendingApproval, type StandingGrant, type UpdateInfo } from './desk.ts'
+import { ApprovalDesk, appOf, checkForUpdate, compareVersions, DEVICE_GRANT_PREFIX, HoldDesk, modelFor, pickChatModel, pickHandsModel, REMOTE_CONTROL_GRANT_ID, sharedConnectors, standingGrants, takesImages, UPDATE_RETRY_MS, updateCacheFresh, type Grant, type Hold, type HoldTool, type PendingApproval, type StandingGrant, type UpdateInfo } from './desk.ts'
 import { arch, homedir, hostname, release, type, userInfo } from 'node:os'
 import { dirname, join } from 'node:path'
 import { createHmac, randomBytes, randomUUID } from 'node:crypto'
@@ -441,9 +441,6 @@ export interface MediaView {
   motion: MotionView
 }
 
-/** One check a day, at most, by itself; the About row may ask any time. */
-const UPDATE_EVERY_MS = 24 * 60 * 60_000
-
 /**
  * A cached check, read against the bundle that runs now. The state file outlives an
  * update: right after 1.0.2 was installed over 1.0.1, the check 1.0.1 made within the day
@@ -628,6 +625,8 @@ export default class NanomuseCloud extends Service {
   private readonly approvalDesk = new ApprovalDesk(() => this.broadcast(), (req) => this.granted(req.toolName))
   private readonly holdDesk = new HoldDesk(() => this.broadcast())
   private updateCheck: Promise<UpdateInfo> | undefined
+  /** The hourly retry after a check that read nothing; one at a time, dropped at shutdown. */
+  private updateRetry: ReturnType<typeof setTimeout> | undefined
   private lastSharedConnectors = ''
   /** The face's clips (desk-b). */
   readonly motion: AvatarMotion
@@ -959,6 +958,8 @@ export default class NanomuseCloud extends Service {
       this.hub.stop('shutting down')
       this.coding.close()
       this.chatgpt.stop()
+      if (this.updateRetry) clearTimeout(this.updateRetry)
+      this.updateRetry = undefined
       for (const res of this.streams) res.end()
       this.streams.clear()
     }, 'nanomuse cloud: hub')
@@ -981,19 +982,24 @@ export default class NanomuseCloud extends Service {
       })
     }
     // Once a day, quietly: a newer release puts a badge on Settings and a row in the ••• menu.
-    if (!this.state.update || Date.now() - this.state.update.checkedAt > UPDATE_EVERY_MS) {
+    // A check that read nothing (the network down at start) counts for an hour, not a day.
+    if (!updateCacheFresh(this.state.update, BUNDLE_VERSION)) {
       setTimeout(() => void this.update(false).catch(() => undefined), 15_000).unref?.()
     }
   }
 
   // ---- the update check (B5) -------------------------------------------------------
 
-  /** The newest release against what runs here; cached a day unless `force`. */
+  /**
+   * The newest release against what runs here; cached a day unless `force`, an hour when
+   * the last check read nothing. The About row's own button is `force`: a failed check in
+   * the cache never stands in its way.
+   */
   update(force: boolean): Promise<UpdateInfo> {
     const cached = this.state.update
     // a cache made by another version of this bundle (the one that ran before an update was
     // installed) compared the wrong `current`; it is not an answer for this one (#341)
-    if (!force && cached && cached.current === BUNDLE_VERSION && Date.now() - cached.checkedAt < UPDATE_EVERY_MS) return Promise.resolve(cached)
+    if (!force && cached && updateCacheFresh(cached, BUNDLE_VERSION)) return Promise.resolve(cached)
     if (this.updateCheck) return this.updateCheck
     // the bare number: 0.1.40 compared the labelled `VERSION` ("dsh-nanomuse 0.1.40"), which
     // parsed as 0, so every release read as newer and the installed one was offered again
@@ -1002,12 +1008,25 @@ export default class NanomuseCloud extends Service {
         this.state = { ...this.state, update: info }
         await this.writeState().catch(() => undefined)
         this.broadcast()
+        this.scheduleUpdateRetry(info)
         return info
       })
       .finally(() => {
         this.updateCheck = undefined
       })
     return this.updateCheck
+  }
+
+  /** After a check that read neither source: one quiet try an hour later, replacing any retry still waiting. */
+  private scheduleUpdateRetry(info: UpdateInfo): void {
+    if (this.updateRetry) clearTimeout(this.updateRetry)
+    this.updateRetry = undefined
+    if (info.source !== 'none') return
+    this.updateRetry = setTimeout(() => {
+      this.updateRetry = undefined
+      void this.update(false).catch(() => undefined)
+    }, UPDATE_RETRY_MS)
+    this.updateRetry.unref?.()
   }
 
   // ---- the relay's refusals in the chat (C12) ---------------------------------------

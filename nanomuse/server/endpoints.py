@@ -215,9 +215,9 @@ class Endpoints:
 
     # ------------------------------------------------------------------ add / change / remove
     def _check_url(self, base_url: str) -> str:
-        from nanomuse.server.connections import normalize_base_url
+        from nanomuse.server.connections import check_base_url
 
-        url = normalize_base_url(base_url)
+        url = check_base_url(base_url)
         if not re.match(r"^https?://[^/\s]+", url):
             raise ValueError("the address must start with http:// or https://")
         if self._same(url, model_url(self.conn.settings.cloud.base_url)):

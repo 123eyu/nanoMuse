@@ -71,8 +71,10 @@ and with no studio face the clip's first frame is the still. Before anything cha
 preview plays the clip in the face's own round frame, with *Use* and *Cancel*; *Default face*
 removes the clip, and the studio face or the dragon shows again.
 
-The limits: MP4 or MOV with H.264 video (on iOS also HEVC, which the system decodes), at most
-15 seconds and 30 MB. A longer or larger clip, or another format, is refused with a sentence
+The limits, the same on every device ([every-device.md](every-device.md)): MP4 or MOV, at most
+15 seconds and 30 MB, with H.264 video; HEVC too where the device can play it (iOS always; the
+desktop where the system has the decoder, and its preview refuses a clip it cannot play; Android
+takes H.264 only today). A longer or larger clip, or another format, is refused with a sentence
 that states the limits; nothing is trimmed or re-encoded, and the sound is never played.
 
 The clip stays on the device that chose it. It is not uploaded to nanoMuse Cloud and does not

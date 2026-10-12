@@ -175,8 +175,10 @@ html[data-nm-platform='win32']:not([data-nm-fullscreen]) .nm-ob-pager { top: 48p
    giving up their width (that rule sets the bar's top padding outright; the harness's own is 0).
    The harness's bars are found by its data-* hooks; the two schedule rules also rely on its
    data-testid and a class-name stem (_pageHeading) as of dsh 0.2.0-rc.2, which
-   harness/desktop/scripts/prepare-dsh.mjs installs by exact version with no lock file: check them
-   when that version moves. */
+   harness/desktop/scripts/prepare-dsh.mjs installs by exact version with no lock file.
+   harness/desktop/scripts/check-hooks.mjs reads every data-* hook, test id and class stem out of
+   this file and looks for each in the staged dsh; the desktop and harness workflows run it, so a
+   version that renamed one fails the build instead of leaving a rule that matches nothing. */
 html[data-nm-platform='win32']:not([data-nm-fullscreen]) { --nm-caption-inset: max(0px, 100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw)); --nm-caption-height: env(titlebar-area-height, 0px); }
 html[data-nm-platform='win32']:not([data-nm-fullscreen]) .nm-room-head:not(.nm-split *) { padding-inline-end: calc(40px + var(--nm-caption-inset)); }
 html[data-nm-platform='win32']:not([data-nm-fullscreen]) .nm-lib-main .nm-room-head:not(.nm-split *) { padding-inline-end: calc(32px + var(--nm-caption-inset)); }

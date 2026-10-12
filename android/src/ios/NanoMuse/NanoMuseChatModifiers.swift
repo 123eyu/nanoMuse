@@ -42,6 +42,20 @@ extension EnvironmentValues {
     }
 }
 
+/// True for a side chat pushed from the shell: the system navigation bar stays, with the main
+/// chat's scrim behind it instead of a bar background (`NavBarStyleModifier` in AIChatView.swift
+/// reads it). The main chat has no system bar and draws its scrim behind the Muse header.
+private struct NanoMuseSystemBarScrimKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    var nmSystemBarScrim: Bool {
+        get { self[NanoMuseSystemBarScrimKey.self] }
+        set { self[NanoMuseSystemBarScrimKey.self] = newValue }
+    }
+}
+
 /// The composer's place in the chat: a layer over the message list's bottom edge, standing
 /// `overlay` points above it (the shell's bottom bar), the list as tall as the chat. The rows
 /// scroll under the column and under the bar, which is what gives the bar's glass something to

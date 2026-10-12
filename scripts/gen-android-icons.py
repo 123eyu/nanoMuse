@@ -240,12 +240,23 @@ def rasters(d: str) -> None:
     print(f"  {len(jobs)} legacy PNGs rendered")
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> int:
+    args = sys.argv[1:] if argv is None else argv
+    if args in (["-h"], ["--help"]):
+        print(__doc__.strip())
+        return 0
+    if args:
+        print(
+            f"usage: {sys.argv[0]}  (takes no arguments; unknown: {' '.join(args)})",
+            file=sys.stderr,
+        )
+        return 2
     d = mark_path()
     print("== launcher icons")
     vectors(d)
     rasters(d)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

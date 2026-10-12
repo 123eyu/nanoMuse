@@ -1,5 +1,5 @@
-name: Bug report
-description: Something in the runtime, the web console, the desktop app, the iPhone app, the relay or the showcase does not work the way the docs say it does. (The Android app has its own form.)
+name: Bug report / 问题报告
+description: Something in the runtime, the web console, the desktop app, the iPhone app, the relay or the showcase does not work the way the docs say it does. (The Android app has its own form.) / 运行时、网页控制台、桌面版、iPhone 应用、中继或展示站的某处和文档说的不一样。（Android 应用用另一张表单。）
 labels: ["bug"]
 body:
   - type: markdown
@@ -8,60 +8,65 @@ body:
         Thanks for taking the time. A bug report we can reproduce is usually fixed within days.
         **Security issues** (a way past the Sentinel, a leaked secret, an SSRF) go through GitHub's
         private reporting, see [SECURITY.md](../blob/main/SECURITY.md), not here.
+        You can write in English or 中文.
+
+        谢谢你花时间来报告。能复现的问题通常几天内就能修。
+        **安全问题**（绕过哨兵、泄露的密钥、SSRF）走 GitHub 的私密报告，见 [SECURITY.md](../blob/main/SECURITY.md)，不要发在这里。
+        英文或中文都可以。
   - type: textarea
     id: what
     attributes:
-      label: What happened
-      description: What you did, what you expected, what happened instead. Paste the exact error if there is one.
+      label: What happened / 发生了什么
+      description: "What you did, what you expected, what happened instead. Paste the exact error if there is one. / 你做了什么，期待什么，实际发生了什么。有报错就原样贴上。"
     validations:
       required: true
   - type: textarea
     id: steps
     attributes:
-      label: Steps to reproduce
+      label: Steps to reproduce / 复现步骤
       placeholder: |
         1. nanomuse serve
-        2. In the app, ask "…"
-        3. Approve the shell call
-        4. See …
+        2. In the app, ask "…" / 在应用里问「……」
+        3. Approve the shell call / 批准那条 shell 调用
+        4. See … / 看到……
     validations:
       required: true
   - type: input
     id: version
     attributes:
-      label: nanoMuse version
-      description: "`nanomuse --version`, or the commit hash if you run from source. The output of `nanomuse doctor --no-model` in the description helps."
+      label: nanoMuse version / nanoMuse 版本
+      description: "`nanomuse --version`, or the commit hash if you run from source. The output of `nanomuse doctor --no-model` in the description helps. / `nanomuse --version` 的输出，从源码运行就写提交哈希。把 `nanomuse doctor --no-model` 的输出贴在描述里会更好。"
     validations:
       required: true
   - type: dropdown
     id: surface
     attributes:
-      label: Where
+      label: Where / 在哪里
       options:
-        - Web console (nanomuse serve)
-        - Desktop app
-        - iPhone app
-        - nanoMuse Cloud (the relay)
-        - Terminal (nanomuse chat / run)
-        - Daemon (nanomuse daemon / goals run)
+        - Web console (nanomuse serve) / 网页控制台
+        - Desktop app / 桌面版
+        - iPhone app / iPhone 应用
+        - nanoMuse Cloud (the relay) / 中继
+        - Terminal (nanomuse chat / run) / 终端
+        - Daemon (nanomuse daemon / goals run) / 后台进程
         - Docker
         - Library / API
-        - The showcase (demo.nanomuse.dev)
+        - The showcase (demo.nanomuse.dev) / 展示站
     validations:
       required: true
   - type: input
     id: model
     attributes:
-      label: Model and provider
-      description: e.g. deepseek-chat via api.deepseek.com, tool mode native
+      label: Model and provider / 模型和服务商
+      description: "e.g. deepseek-flash via api.deepseek.com, tool mode auto / 例如 deepseek-v4.1-flash via 阿里云百炼"
   - type: input
     id: os
     attributes:
-      label: OS and runtime
-      description: e.g. macOS 15 / Python 3.12, Ubuntu 24.04 / Docker, Windows 11 / desktop 1.0.3, iOS 18 / iPhone 15
+      label: OS and runtime / 系统和运行环境
+      description: "e.g. macOS 15 / Python 3.12, Ubuntu 24.04 / Docker, Windows 11 / desktop 1.0.3, iOS 18 / iPhone 15 / 例如 macOS 15 / Python 3.12，Ubuntu 24.04 / Docker，Windows 11 / 桌面版 1.0.3，iOS 18 / iPhone 15"
   - type: textarea
     id: logs
     attributes:
-      label: Relevant log
-      description: "`<data_dir>/logs/` or the server's terminal output. Remove anything private: API keys, addresses, message contents you would not post publicly."
+      label: Relevant log / 相关日志
+      description: "`<data_dir>/logs/` or the server's terminal output. Remove anything private: API keys, addresses, message contents you would not post publicly. / `<data_dir>/logs/` 里的文件，或服务器的终端输出。去掉私密内容：API key、地址、不想公开的消息内容。"
       render: text

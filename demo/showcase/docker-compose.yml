@@ -28,7 +28,8 @@ services:
       context: ../..
       dockerfile: demo/showcase/caddy/Dockerfile
       args:
-        MOBILEGYM_REF: ${MOBILEGYM_REF:-main}
+        # empty = the commit pinned in mobilegym.ref (README, "Bumping MobileGym")
+        MOBILEGYM_REF: ${MOBILEGYM_REF:-}
         # the phone's media: /cdn here (./data/mobilegym-data), or https://cdn.mobilegym.dev without the dataset
         MOBILEGYM_CDN_BASE: ${MOBILEGYM_CDN_BASE:-/cdn}
         GOPROXY: ${GOPROXY:-https://proxy.golang.org,direct}
@@ -58,6 +59,15 @@ services:
       - edge
     depends_on:
       - gateway
+    # Caddy's admin endpoint answers on localhost inside the container as long as the server
+    # runs with its config loaded; `docker compose ps` shows the state, and a crash loop that
+    # keeps the process alive but not serving shows as unhealthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   gateway:
     build: ./gateway
@@ -69,6 +79,10 @@ services:
       INTERNAL_URL: http://gateway:8000
       SESSIONS_NETWORK: nanomuse-sessions
       TRUST_PROXY: "1"
+      # whose X-Forwarded-For is the visitor's address: Caddy's, by its service name (the
+      # gateway resolves it through Docker's DNS). The session containers reach the same port
+      # over the sessions network and are not believed (gateway/showcase_gateway/peers.py).
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-caddy}
       LISTEN_PORT: "8000"
       DOCKER_HOST: tcp://docker-proxy:2375
     volumes:
@@ -80,6 +94,17 @@ services:
       - control
     depends_on:
       - docker-proxy
+    # the image has Python and no curl; /api/demo/info is the cheapest answer the app gives
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/demo/info', timeout=5)"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   # the Docker API, narrowed: containers (list, inspect, create, start, stop, remove) and a look
   # at the networks — what the gateway does. Everything else answers 403: exec, images, volumes,

@@ -31,6 +31,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
@@ -122,6 +126,9 @@ fun MuseBottomBar(
                     modifier = Modifier
                         .weight(1f)
                         .height(TAB_HEIGHT)
+                        // a tab for TalkBack, with its state: the glyph alone would read as a
+                        // plain button and the current one as any other
+                        .semantics { role = Role.Tab; this.selected = isSelected }
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,

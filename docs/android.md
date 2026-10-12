@@ -237,7 +237,10 @@ now, not used up* and that what is left stays as it is. The sentences are
 
 **Settings → Network** (`net/OwnProviderProxy.kt`, `ui/net/NetworkScreen.kt`,
 `minis://settings/network`). The HTTP proxy for own providers: host, port, optional user name
-and password, off by default, in `SharedPreferences` on this phone only. It is installed in
+and password, off by default, on this phone only: the settings in `SharedPreferences`, the
+password in an `EncryptedSharedPreferences` file of its own (`nanomuse_proxy_secrets`, the way
+the provider keys are kept; a password a 1.0.3 phone saved in the plain file is moved over on
+the first read). It is installed in
 `MinisApp.onCreate` as the process's default `ProxySelector`, so every OkHttp client asks it per
 request; it answers the proxy for the catalogue's hosts, `chatgpt.com`, `auth.openai.com` and
 the custom base URLs of the provider instances (never the relay's, never a LAN address), and the
@@ -259,8 +262,8 @@ The relay keeps an account id, a masked identifier, usage counts and the agent's
 look (so your devices match), and message content only as conversation sync, on by default
 when signed in and switched off under *Data controls* ([privacy.md](privacy.md),
 [sync.md](sync.md)); the first conversation says so in its fourth line. On the phone, API keys and the account key
-are in `EncryptedSharedPreferences` (the proxy password of *Settings → Network* is in plain
-preferences, on this phone only); since 0.1.40 the app takes no part in
+are in `EncryptedSharedPreferences`, and so is the proxy password of *Settings → Network*
+(since 1.0.4; on this phone only); since 0.1.40 the app takes no part in
 the device backup at all (`allowBackup="false"`: chats, memory and keys never go to Google,
 a reinstall starts empty and the account's chats come back through sync; the two rule files
 under `res/xml/` are kept for the day the switch is turned on again). Hands needs the accessibility service
@@ -296,7 +299,13 @@ bash scripts/android/build-natives.sh   # once: proot, the Alpine rootfs and rcl
 cd android/src/android
 ./gradlew :app:assembleDebug        # app/build/outputs/apk/debug/app-debug.apk
 ./gradlew :app:assembleRelease      # signed with android/keystore.properties when present
+./gradlew :app:testDebugUnitTest --tests 'io.github.nanomuse.*'   # our unit tests
+./gradlew :app:lintDebug            # Android lint; the report is app/build/reports/lint-results-debug.html
 ```
+
+Lint runs on a newer lint than AGP 8.7.3 bundles (`android.experimental.lint.version` in
+`gradle.properties`): the Compose and lifecycle libraries ship checks the bundled one cannot
+load. The upstream tree carries lint findings of its own; read the report for `io.github.nanomuse`.
 
 `rclone.aar` is built with Go, which fetches its modules through Go's default proxy
 (`https://proxy.golang.org,direct`); on a mainland-China network set
@@ -324,7 +333,8 @@ and put its four values in `android/keystore.properties` (git-ignored: `storeFil
 Gradle, builds `:app:assembleRelease` with the release key, writes
 `dist/nanoMuse-<version>-arm64.apk` and its `.sha256`, and with `--publish` tags
 `v<version>` and attaches both to the GitHub release with the notes from
-`docs/releases/v<version>.md`. A debug-signed APK never goes on a release, because it
+`docs/releases/v<version>.md`. Publishing refuses a working tree with uncommitted changes
+and a commit that is not on `main`. A debug-signed APK never goes on a release, because it
 could not be updated by a properly signed one. The `versionName` must match the tag,
 like the Python package's version does.
 

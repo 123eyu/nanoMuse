@@ -26,13 +26,17 @@ _HOP = {
 }
 
 
-async def proxy_http(request: Request, client: httpx.AsyncClient, base: str) -> Response:
+async def proxy_http(
+    request: Request, client: httpx.AsyncClient, base: str, scheme: str = ""
+) -> Response:
+    """`scheme` is what the visitor's browser used (the gateway's public scheme): the
+    request's own is the hop from the edge proxy, plain HTTP on the Docker network."""
     url = f"{base}{request.url.path}"
     if request.url.query:
         url += f"?{request.url.query}"
     headers = {k: v for k, v in request.headers.items() if k.lower() not in _HOP | {"host"}}
     headers["x-forwarded-host"] = request.headers.get("host", "")
-    headers["x-forwarded-proto"] = request.url.scheme
+    headers["x-forwarded-proto"] = scheme or request.url.scheme
     body = await request.body()
     try:
         req = client.build_request(request.method, url, headers=headers, content=body)

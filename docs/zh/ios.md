@@ -87,8 +87,9 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   只剩状态切换时的淡入淡出）点一下进入**智能体的页面**。
   也可以换成一段你自己的短视频来当形象（`NanoMuseOwnClip.swift`：智能体页面钢笔菜单和形象
   工作室里的 *你自己的视频…*；MP4 或 MOV，H.264 或 HEVC 视频，最长 15 秒、最大 30 MB，用之前
-  先预览，只保存在这台手机的 `Application Support/nanomuse/avatar/own-clip.mp4`，*默认形象*
-  可移除；回退规则见 [avatar.md](avatar.md) 里的那一节）。
+  先预览，只保存在这台手机的 `Application Support/nanomuse/avatar/own-clip.mp4`，连同它的
+  静帧一起不进 iCloud 和电脑备份，*默认形象* 可移除；回退规则见 [avatar.md](avatar.md)
+  里的那一节）。
   抽屉里放着会话、搜索、新建旁聊、*设为主要聊天*、*全部对话* 和 nanoMuse 设置；点圆形按钮
   打开，在主要聊天里从左边缘向右滑也打开（`NanoMuseEdgeSwipe.swift`，挂在窗口上的屏幕边缘
   手势，和 Android 聊天页上的抽屉一样；推出来的旁聊仍然用系统的返回手势）。
@@ -107,9 +108,10 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   原生的图像端点）；工作室（`NanoMuseAvatarStudio.swift`）用同一条路，并且可以选图像模型。
 - **调度器（0.1.34）**（`NanoMuseScheduler.swift`）：例程（一个标签、一段提示词、一个时间，
   每天 / 工作日 / 一次或每 N 小时）在一个专属的对话里作为无头回合运行（`NanoMuseHeadless`）。
-  说实话：iPhone 在 App 打开时运行它们（变为活跃时把到期的全跑一遍），退到后台时向 iOS
-  申请一个 `BGAppRefreshTask`（`io.github.nanomuse.app.scheduler`），iOS 批了就跑到期的那些，
+  说实话：iPhone 只在 App 打开时运行它们（变为活跃时把到期的全跑一遍，之后每分钟查一次），
   并且在每个到期时刻发一条本地通知（*检查：〈目标〉，打开即运行*），点通知打开那个对话。
+  退到后台时申请的 `BGAppRefreshTask`（`io.github.nanomuse.app.scheduler`）从不运行例程：
+  iOS 批下来时，处理函数只给已到期的那些发提醒，再申请下一个时间片，仅此而已。
   所有关于例程的文案都这么写明了。*设置 → nanoMuse → 定时任务* 列出全部，目标检查和动态的
   那条也在内。
 - **目标（0.1.34）**（`NanoMuseGoals.swift`，对应 Android `goals/`）：*创建目标 › 类别* 把开场白
@@ -232,8 +234,10 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   （OpenCode，2026 年 1 月），要是停了，API key 照样能用（中继发过自己的措辞时用中继的）；
   *在自己的电脑上*（Ollama、LM Studio、vLLM）填地址。不推荐任何一家。
 - **网络**（`NanoMuseProxy.swift`、`NanoMuseNetworkView.swift`，*设置 → nanoMuse → 网络*）：
-  给自己的服务商用的 HTTP 代理：主机、端口、可选的用户名和密码，默认关闭，只存在这台手机的
-  `UserDefaults` 里。`URLSession` 没有按主机切换代理的开关，所以代理是以一段代理自动配置脚本
+  给自己的服务商用的 HTTP 代理：主机、端口、可选的用户名和密码，默认关闭，只存在这台手机上：
+  地址和用户名在 `UserDefaults` 里，密码在钥匙串里，是一条仅限本机的条目
+  （`io.github.nanomuse.app.proxy`，规则同中继密钥；1.0.3 版存在 `UserDefaults` 里的密码会在
+  第一次读取时搬过去）。`URLSession` 没有按主机切换代理的开关，所以代理是以一段代理自动配置脚本
   的形式进入会话的（`connectionProxyDictionary`）：对目录里的主机、`chatgpt.com`、
   `auth.openai.com` 和服务商实例的自定义主机返回代理（从不包括中继的主机，也从不包括局域网
   地址），其余返回 `DIRECT`；`NanoMuseProxy.apply(to:)` 在上游每个服务商会话里各占一行，
@@ -476,8 +480,13 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   画布，而不是停在一条线上；列表滚离最新消息时，再从顶边以 250 ms 淡入一层完整画布色的渐变
   （外壳 `safeAreaInset` 的背景，像标题栏绑定心情那样绑定主聊天的 `isNearBottom`）。排队中的消息
   保留上游的虚线边框和灰字，*来自 {设备}* 的说明和附件都在胶囊外面，长按预览还是原来那张不透明
-  的卡片。从抽屉推出的侧聊天保留系统栏和它的材质；房间保留它们的画布。在没有 Mac 的 Linux
-  上写的：iOS 检查能编译它，还没有设备显示过它。
+  的卡片。从抽屉推出的侧聊天保留系统栏，为了返回按钮和标题，但从 1.0.4 起栏自己的背景和
+  细线都藏起来，后面站着同一层遮罩（`AIChatView.swift` 里的 `NavBarStyleModifier`，由外壳
+  给推出的聊天设置的环境值 `nmSystemBarScrim` 打开；1.0.3 之前栏坐在 `.ultraThinMaterial`
+  上）。房间从 1.0.4 起站在聊天的画布上，白色和黑色，和 Android 的各个标签页及
+  [design.md](design.md) 一致：想法是每行下面一道细线的平铺行，目标的卡片描一道细线边，
+  资料库是平铺列表；只有动态还保留它白卡片所在的那页灰底，和 Android 的 FeedTab 一样。
+  在没有 Mac 的 Linux 上写的：iOS 检查能编译它，还没有设备显示过它。
 - **iPad 的聊天是一根列**（`NanoMuseShell.swift` 里的 `NanoMuseColumn`；`AIChatView.swift` 里的
   `maxContentWidth` 一行和输入框的 frame，`NanoMuseChatCards.swift` 里智能体的胶囊）。1.0.3 在竖屏的
   iPad 上显示出三种宽度：上游在 regular 宽度下把消息列表和输入框限到 900 pt，于是输入框横贯 768 pt

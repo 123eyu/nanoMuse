@@ -251,10 +251,10 @@ def test_config_show_masks_every_credential(tmp_path, monkeypatch):
     masked = mask_secrets(
         {
             "env": {"AMAP_KEY": "amap-0123456789", "HOME": "/home/me"},
-            "extra_headers": {"Authorization": "Bearer abcdefghijkl"},
+            "extra_headers": {"Authorization": "Bearer abcdefghijkl", "X-Api-Key": "xk-0123456789"},
             "proxy": "http://user:hunter2@proxy.example:3128",
         }
     )
     assert masked["env"] == {"AMAP_KEY": "amap…89", "HOME": "/home/me"}
-    assert masked["extra_headers"] == {"Authorization": "Bear…kl"}
+    assert masked["extra_headers"] == {"Authorization": "Bear…kl", "X-Api-Key": "xk-0…89"}
     assert "hunter2" not in masked["proxy"] and "proxy.example:3128" in masked["proxy"]

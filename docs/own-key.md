@@ -94,7 +94,7 @@ or paste it into a chat.**
 - **Google Gemini.** [aistudio.google.com/apikey](https://aistudio.google.com/apikey), base URL `https://generativelanguage.googleapis.com/v1beta/openai`.
 - **xAI, Groq, Mistral.** A key from each console; base URLs `https://api.x.ai/v1`, `https://api.groq.com/openai/v1`, `https://api.mistral.ai/v1`.
 - **OpenCode Zen.** A key from [opencode.ai/auth](https://opencode.ai/auth); pay per request from a balance, a few models are free. Base URL `https://opencode.ai/zen/v1`. Only the models on the OpenAI shape are reached, so chat and no hands: the vision model OpenCode lists, `deepseek-v4-flash-vision-exp`, is an id DeepSeek has retired on its own platform. OpenCode publishes no plan sign-in, only a key, so there is nothing to sign in with here.
-- **OpenCode Go.** The subscription on the same host: Go ($10 a month) or Go Plus ($40) in the OpenCode console, then a key from [opencode.ai/auth](https://opencode.ai/auth). Base URL `https://opencode.ai/zen/go/v1`. Usage is counted per model against monthly, weekly and five hour limits. OpenCode means Go for coding agents and asks a client to name itself and to send one stable id per conversation in `x-opencode-session` ([its docs](https://opencode.ai/docs/go/#where-can-i-use-it)). The runtime (and so the web console) sends `nanoMuse/<version>` as its user agent and the conversation's id in that header on every Go request; a call outside a conversation, such as the connection test, carries an id of its own. The desktop writes Go as its model adapter's own OpenCode Go route, which sends the same header and reaches each model on its own shape: the desktop offers the models that route's catalog lists, those on the Responses and Messages shapes included; elsewhere only the OpenAI shape is reached. The phone apps send it too, on chat and Responses requests to OpenCode's host: the id is the chat's prompt cache key, a hash of its first message that stays the same across its turns (two chats that open with the very same words share one). Chat only, for the same reason as Zen.
+- **OpenCode Go.** The subscription on the same host: Go ($10 a month) or Go Plus ($40) in the OpenCode console, then a key from [opencode.ai/auth](https://opencode.ai/auth). Base URL `https://opencode.ai/zen/go/v1`. Usage is counted per model against monthly, weekly and five hour limits. OpenCode means Go for coding agents and asks a client to name itself and to send one stable id per conversation in `x-opencode-session` ([its Go page](https://opencode.ai/go), under *Can I use Go with other coding agents?*). The runtime (and so the web console) sends `nanoMuse/<version>` as its user agent and the conversation's id in that header on every Go request; a call outside a conversation, such as the connection test, carries an id of its own. The desktop writes Go as its model adapter's own OpenCode Go route, which sends the same header and reaches each model on its own shape: the desktop offers the models that route's catalog lists, those on the Responses and Messages shapes included; elsewhere only the OpenAI shape is reached. The phone apps send it too, on chat and Responses requests to OpenCode's host: the id is the chat's prompt cache key, a hash of its first message that stays the same across its turns (two chats that open with the very same words share one). Chat only, for the same reason as Zen.
 
 **Paste it into nanoMuse.**
 
@@ -140,10 +140,15 @@ opened and left. So what the Chat row names is what answers the next message
 you send, in the main chat and in a new one, whichever source you came from:
 a plan you signed in with (ChatGPT, Claude, Kimi), a key of yours or nanoMuse
 Cloud; a sign-in never steps in front of a pick. The same
-on the phones and the desktop. On the iPhone, where a model group of yours can
-carry a default thinking level (*All settings › Model Groups*), the main chat
-takes that level along when it follows the pick, as a new chat and the chat's
-own picker do.
+on the phones and the desktop. A group of yours picked in a chat's own picker
+(a row of the `•••` menu, or a model under it) becomes the default as it is,
+never reordered, and the main chat follows it with the model the chat resolved;
+only a group named after a provider and holding that provider alone is led with
+the pick, as a pick on the Models page does. On the phones, where a model group
+of yours can carry a default thinking level (*All settings › Model Groups* on
+the iPhone, *Model Groups* from the chat's picker on Android), the main
+chat takes that level along when it follows the pick, as a new chat and the
+chat's own picker do.
 
 **Automatic.** The screen, pictures and clips rows open with an *Automatic*
 entry that says what it gives right now (*Currently nanoMuse Cloud ·
