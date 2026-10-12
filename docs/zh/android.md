@@ -254,7 +254,8 @@ keytool -genkeypair -keystore ~/.nanomuse-release/nanomuse.jks -alias nanomuse \
 这项检查）。版本由 `scripts/release-apk.sh <version>` 从一个标签做出来：它核对版本号与 `rebrand.py`
 和 Gradle 是否一致，用 release 密钥构建 `:app:assembleRelease`，写出
 `dist/nanoMuse-<version>-arm64.apk` 和它的 `.sha256`，加 `--publish` 时打上 `v<version>` 标签，
-并把两者连同 `docs/releases/v<version>.md` 里的说明一起附到 GitHub release 上。debug 签名的 APK
+并把两者连同 `docs/releases/v<version>.md` 里的说明一起附到 GitHub release 上。工作区有未提交的改动，
+或者提交不在 `main` 上，发布会被拒绝。debug 签名的 APK
 永远不进 release，因为正式签名的版本无法覆盖它。`versionName` 必须和标签一致，就像 Python 包的
 版本号那样。
 

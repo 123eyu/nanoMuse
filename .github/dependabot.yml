@@ -2,18 +2,13 @@
 # month, merged when the checks are green (CONTRIBUTING.md, "Commits and pull requests").
 version: 2
 updates:
-  # the runtime, the relay and the showcase gateway: one PR each
-  - package-ecosystem: pip
-    directories: ["/", "/cloud", "/demo/showcase/gateway"]
-    schedule:
-      interval: monthly
-    groups:
-      python:
-        patterns: ["*"]
-    labels: ["dependencies"]
-    commit-message:
-      prefix: chore
-      include: scope
+  # No pip entry. The three Python projects (the runtime, the relay under cloud/, the
+  # showcase gateway) declare lower bounds only (`httpx>=0.27`) and commit no lock file:
+  # CI, the Docker images and `uv pip install -e .` all resolve the newest release every
+  # time, so there is no pin for Dependabot to move, and the entry that was here never
+  # opened a pull request. A `uv` entry would need a committed uv.lock that every install
+  # path then honours (`uv sync --locked`); the project chose the ranges instead
+  # (.gitignore, uv.lock). Security advisories do not depend on this file.
 
   # the desktop app: minors and patches in one PR; Electron and electron-builder majors as
   # their own PRs, since an Electron line is supported for about eight months and the app
@@ -98,3 +93,14 @@ updates:
       # same deliberate change
       - dependency-name: node
         update-types: ["version-update:semver-major"]
+
+  # the images the compose files pull rather than build: the relay's Caddy, the showcase's
+  # Docker socket proxy (the showcase's own images carry a variable tag and are skipped)
+  - package-ecosystem: docker-compose
+    directories: ["/cloud", "/demo/showcase"]
+    schedule:
+      interval: monthly
+    labels: ["dependencies"]
+    commit-message:
+      prefix: chore
+      include: scope
