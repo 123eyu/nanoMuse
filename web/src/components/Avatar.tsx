@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { dragonClipUrl, dragonUrl, isDragon, studioClipUrl, studioUrl } from "../avatars";
+import { useT } from "../i18n";
 import { useMood } from "../mood";
 import type { Profile, Status } from "../types";
 import { cx } from "../util";
@@ -37,6 +38,7 @@ export function Avatar({
   still?: boolean;
   className?: string;
 }) {
+  const t = useT();
   const [wiggle, setWiggle] = useState(false);
   const [, bump] = useState(0);
   useEffect(() => {
@@ -67,7 +69,7 @@ export function Avatar({
           : "avatar-idle";
   const stillUrl = dragon ? dragonUrl(pose) : studio ? studioUrl(studio, pose) : "";
 
-  const label = `${profile?.name ?? "nanoMuse"} avatar`;
+  const label = t("{name}'s avatar", { name: profile?.name ?? "nanoMuse" });
   const box = cx("relative inline-block shrink-0 select-none rounded-full", className);
   const face = (
     <>

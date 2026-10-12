@@ -8,4 +8,4 @@ contact_links:
     about: Quick questions, show what you built, talk to other users, in English or 中文.
   - name: Security issue
     url: https://github.com/nano-muse/nanoMuse/blob/main/SECURITY.md
-    about: A way past the Sentinel, a leaked secret, an SSRF: report privately, see SECURITY.md.
+    about: "A way past the Sentinel, a leaked secret, an SSRF: report privately, see SECURITY.md."
