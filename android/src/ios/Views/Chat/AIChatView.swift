@@ -3847,7 +3847,7 @@ struct AIChatView: View {
                 }
             }
             .modifier(ComposerSurface(pill: nmPill)) // nanoMuse: the flat grey capsule in the shell
-            .frame(maxWidth: maxContentWidth)
+            .frame(maxWidth: nmPill ? NanoMuseColumn.pillWidth(for: hSizeClass, otherwise: nil) : maxContentWidth) // nanoMuse: in the shell the pill is the column less its margins on an iPad, so its edges meet the bubbles' and the bottom bar is its width
             .padding(.horizontal, nmPill ? 16 : 12) // nanoMuse: Muse's 16 pt margins
             .padding(.vertical, 8)
             // [T-ios-geometry-observer-crash] onGeometryChange replaces the
@@ -4762,7 +4762,7 @@ struct AIChatView: View {
     /// Max content width — unconstrained in compact (portrait iPhone),
     /// capped in regular (landscape / iPad) for readability.
     private var maxContentWidth: CGFloat? {
-        hSizeClass == .regular ? 900 : nil
+        hSizeClass == .regular ? NanoMuseColumn.width : nil // nanoMuse: 760, the column the composer and the bottom bar share on an iPad (was 900)
     }
 
 }

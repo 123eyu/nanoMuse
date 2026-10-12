@@ -56,6 +56,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 - **The Devices footer tells the truth about approvals.** A step a computer must ask about is approved on that computer, not on the phone; the footer said approvals would show here.
 - **The invite sentences say when the bonus arrives.** The account page's *Invite a friend* footer, the allowance card's *Invite a friend* row and the hint under the invite code on the sign-in form now say that both sides get the ¥5 (or the relay's figure) after the invited friend's first request to nanoMuse Cloud, not at sign-up. In all nine languages.
 - **The ••• menu's *New Chat* opens a chat again.** In the Muse layout the entry, ⌘N on a keyboard, *New Session* in the *Context Full* alert and *New chat* on a refusal card asked a view that was not on screen, so nothing happened; each now opens a fresh side chat, as the drawer's new chat button does ([#392](https://github.com/nano-muse/nanoMuse/issues/392)).
+- **The iPad's chat is one column.** On an iPad the messages, the composer and the pill bar share one centred column of 760 pt, the web console's width; the composer and the pill bar are exactly as wide as each other and the agent's replies grow from a 340 pt pill to 600 pt. In 1.0.3 the composer ran across the window, the pill bar sat 420 pt wide under it and the replies stayed in a narrow pill at the left edge. iPhones are unchanged.
 
 ### Project
 
