@@ -281,6 +281,7 @@ final class NanoMuseProfileSync: ObservableObject {
     private var applying = false
     private var namePush: Task<Void, Never>?
     private var soulObserver: NSObjectProtocol?
+    private var foregroundObserver: NSObjectProtocol?
 
     private init() {}
 
@@ -290,6 +291,14 @@ final class NanoMuseProfileSync: ObservableObject {
         if soulObserver == nil {
             soulObserver = NotificationCenter.default.addObserver(forName: .soulMdChanged, object: nil, queue: .main) { [weak self] _ in
                 Task { @MainActor in self?.nameChanged() }
+            }
+        }
+        if foregroundObserver == nil {
+            // The hub's `profile` frame is missed while the app is in the background; a pull on
+            // the way back to the front picks up a name or a face the other device wrote
+            // meanwhile, instead of waiting for the next cold start (Android does the same).
+            foregroundObserver = NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.pull() }
             }
         }
         pull()
@@ -356,9 +365,11 @@ final class NanoMuseProfileSync: ObservableObject {
                     return
                 }
                 if head.rev == 0, known == 0 {
-                    // the relay has nothing for this account yet: this phone's connections and its
-                    // name (when it has one) seed it, as Android does
-                    if !NanoMuseSharedConnectors.shared.mine().isEmpty {
+                    // the relay has nothing for this account yet: the face this phone wears, its
+                    // connections and its name (when it has one) seed it, as Android does
+                    if NanoMuseFaceStore.shared.hasCustomFace {
+                        faceChanged()
+                    } else if !NanoMuseSharedConnectors.shared.mine().isEmpty {
                         connectorsChanged()
                     } else if !Self.localName.isEmpty {
                         nameChanged(now: true)
@@ -477,10 +488,10 @@ final class NanoMuseProfileSync: ObservableObject {
                 body["avatar"] = "face"
                 body["description"] = store.meta.description
                 body["style"] = store.meta.style
-            } else {
-                body["avatar"] = "dragon"
-                body["face"] = NSNull()
             }
+            // Without a face of its own this phone says nothing about the look: the relay keeps
+            // what it has (relay 0.25). Sending the dragon here took the account's face off every
+            // other device whenever a phone renamed the muse before its first pull had landed.
             if !name.isEmpty { body["name"] = String(name.prefix(60)) }
             let rev = try await NanoMuseRelayMedia.putProfile(body)
             UserDefaults.standard.set(rev, forKey: Keys.rev)

@@ -401,6 +401,7 @@ enum NanoMuseCloud {
         }
         await MainActor.run { NanoMuseHub.shared.restart() } // the new key joins the hub
         NanoMuseSync.shared.accountChanged() // C10: another account's conversations are not this one's to show or push
+        NanoMuseProfileSync.shared.pull() // C8: the account's name and face land now, not at the next cold start
         return parsed
     }
 
