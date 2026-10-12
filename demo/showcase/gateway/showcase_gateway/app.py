@@ -36,7 +36,9 @@ from .accounts import AccountManager, AccountStore, Asleep
 from .clips import Clips, is_clip_path
 from .config import Settings
 from .images import Pictures, is_image_path
+from .lang import wants_zh
 from .logs import redact_tokens_in_logs
+from .peers import TrustedProxies
 from .proxy import proxy_http, proxy_ws
 from .runner import DockerRunner
 from .sessions import Provider, Refused, SessionManager, resolve_provider
@@ -49,14 +51,22 @@ log = logging.getLogger("showcase")
 
 _METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"]
 
-# what a browser sees at the address of a session that is over
-ENDED_PAGE = """<!doctype html><meta charset="utf-8"><title>nanoMuse</title>
+# what a browser sees at the address of a session that is over; both languages are in the
+# page and the html's lang (lang.py) picks the one shown, so no script is needed
+ENDED_PAGE = """<!doctype html><html lang="__LANG__"><meta charset="utf-8"><title>nanoMuse</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<style>i{font-style:normal}html[lang=en] .zh,html[lang=zh] .en{display:none}</style>
 <body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
 font:15px/1.5 system-ui,sans-serif;color:#1b1730;background:#f4f3fa;text-align:center;padding:24px">
-<div><div style="font-size:40px">🧸</div><p style="margin:12px 0 4px;font-weight:600">This Muse has ended.</p>
-<p style="margin:0;color:#6b6880">Demo sessions last a while, then go — with everything in them.<br>
-Open nanoMuse on the phone for a new one.</p></div></body>"""
+<div><div style="font-size:40px">🧸</div><p style="margin:12px 0 4px;font-weight:600">
+<i class="en">This Muse has ended.</i><i class="zh">这个 Muse 已经结束。</i></p>
+<p style="margin:0;color:#6b6880"><i class="en">Demo sessions last a while, then go, with everything in them.<br>
+Open nanoMuse on the phone for a new one.</i><i class="zh">体验会话只持续一段时间，之后连同里面的一切一起消失。<br>
+在手机上打开 nanoMuse 可以重新开始。</i></p></div></body></html>"""
+
+
+def ended_page(request: Request) -> str:
+    return ENDED_PAGE.replace("__LANG__", "zh" if wants_zh(request) else "en")
 
 
 class ProviderIn(BaseModel):
@@ -94,12 +104,17 @@ class WebLoginIn(BaseModel):
     password: str = Field(min_length=1, max_length=200)
 
 
-def client_ip(request: Request, trust_proxy: bool) -> str:
-    if trust_proxy:
-        forwarded = request.headers.get("x-forwarded-for")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "?"
+async def client_ip(request: Request, proxies: TrustedProxies) -> str:
+    """The visitor's address: ``X-Forwarded-For`` when the connection comes from the edge
+    proxy (peers.py), the peer's own address otherwise. A session container that calls the
+    API with a forged header is limited under its own address."""
+    peer = request.client.host if request.client else "?"
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded and await proxies.trusts(peer):
+        first = forwarded.split(",")[0].strip()
+        if first:
+            return first
+    return peer
 
 
 def _refused(exc: Refused) -> JSONResponse:
@@ -163,6 +178,8 @@ def create_app(
     pictures = Pictures(settings, http)
     clips = Clips(settings, http)
     manager.on_end = visitors.ended  # the visit row gets what the demo used
+    proxies = TrustedProxies(settings.trusted_proxies if settings.trust_proxy else ())
+    log.info("X-Forwarded-For is believed from: %s", proxies.describe())
 
     @contextlib.asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -232,7 +249,7 @@ def create_app(
             target, touch = await _behind(request.path_params["sid"], proof_from_http(request))
         except Asleep as exc:
             if "text/html" in request.headers.get("accept", ""):
-                return HTMLResponse(wake_page(signin_url))
+                return HTMLResponse(wake_page(signin_url, zh=wants_zh(request)))
             return JSONResponse(
                 {"error": exc.code, "message": exc.message},
                 status_code=exc.status,
@@ -246,13 +263,13 @@ def create_app(
             return response
         if target is None:
             if "text/html" in request.headers.get("accept", ""):
-                return HTMLResponse(ENDED_PAGE, status_code=404)
+                return HTMLResponse(ended_page(request), status_code=404)
             return JSONResponse(
                 {"error": "no_session", "message": "This demo session has ended."},
                 status_code=404,
                 headers=cors,
             )
-        response = await proxy_http(request, http, target.http_base)
+        response = await proxy_http(request, http, target.http_base, settings.public_scheme)
         for name, value in cors.items():
             response.headers[name] = value
         return response
@@ -350,9 +367,7 @@ def create_app(
     @app.post("/api/demo/signin/code", status_code=204)
     async def signin_code(body: WebCodeIn, request: Request) -> Response:
         try:
-            await visitors.request_code(
-                body.identifier.strip(), client_ip(request, settings.trust_proxy)
-            )
+            await visitors.request_code(body.identifier.strip(), await client_ip(request, proxies))
         except Refused as exc:
             return _refused(exc)
         return Response(status_code=204)
@@ -363,7 +378,7 @@ def create_app(
             ticket, visitor = await visitors.verify(
                 body.identifier.strip(),
                 body.code,
-                client_ip(request, settings.trust_proxy),
+                await client_ip(request, proxies),
                 invite=body.invite.strip(),
                 ua=request.headers.get("user-agent", ""),
             )
@@ -379,7 +394,7 @@ def create_app(
             ticket, visitor = await visitors.login(
                 body.identifier.strip(),
                 body.password,
-                client_ip(request, settings.trust_proxy),
+                await client_ip(request, proxies),
                 ua=request.headers.get("user-agent", ""),
             )
         except Refused as exc:
@@ -412,7 +427,14 @@ def create_app(
         # showcase site — wherever /web was reached (the project site proxies it here)
         if not settings.web_enabled:
             return RedirectResponse(settings.site_origin() + "/", status_code=302)
-        return HTMLResponse(WEB_PAGE, headers={"Cache-Control": "no-store"})
+        # a sign-in page is never shown inside another site's frame
+        return HTMLResponse(
+            WEB_PAGE,
+            headers={
+                "Cache-Control": "no-store",
+                "Content-Security-Policy": "frame-ancestors 'none'",
+            },
+        )
 
     @app.get("/api/web/info")
     async def web_info() -> dict[str, Any]:
@@ -421,9 +443,7 @@ def create_app(
     @app.post("/api/web/code", status_code=204)
     async def web_code(body: WebCodeIn, request: Request) -> Response:
         try:
-            await accounts.request_code(
-                body.identifier.strip(), client_ip(request, settings.trust_proxy)
-            )
+            await accounts.request_code(body.identifier.strip(), await client_ip(request, proxies))
         except Refused as exc:
             return _refused(exc)
         return Response(status_code=204)
@@ -434,7 +454,7 @@ def create_app(
             account = await accounts.verify(
                 body.identifier.strip(),
                 body.code,
-                client_ip(request, settings.trust_proxy),
+                await client_ip(request, proxies),
                 invite=body.invite.strip(),
             )
         except Refused as exc:
@@ -445,7 +465,7 @@ def create_app(
     async def web_login(body: WebLoginIn, request: Request) -> Response:
         try:
             account = await accounts.login(
-                body.identifier.strip(), body.password, client_ip(request, settings.trust_proxy)
+                body.identifier.strip(), body.password, await client_ip(request, proxies)
             )
         except Refused as exc:
             return _refused(exc)
@@ -459,8 +479,10 @@ def create_app(
             # not signed in is sent to the sign-in by the page
             visitor = visitors.check(llm.bearer(request)) if visitors.required else None
             if body.provider is not None:
-                base_url, host, addresses = resolve_provider(
-                    body.provider.base_url, settings.byok_hosts, manager.resolve
+                # the lookup is a blocking getaddrinfo; off the loop, so a slow resolver
+                # holds up this visitor's start and nobody else's requests
+                base_url, host, addresses = await asyncio.to_thread(
+                    resolve_provider, body.provider.base_url, settings.byok_hosts, manager.resolve
                 )
                 byok = Provider(
                     base_url,
@@ -470,7 +492,7 @@ def create_app(
                     addresses=addresses,
                 )
             sess = await manager.create(
-                client_ip(request, settings.trust_proxy),
+                await client_ip(request, proxies),
                 byok,
                 account=visitor.id if visitor else "",
                 hint=visitor.hint if visitor else "",
@@ -532,7 +554,7 @@ def create_app(
     @app.post("/api/trial", status_code=201)
     async def trial_issue(body: TrialIn, request: Request) -> Response:
         try:
-            trial, key = trials.issue(body.device, client_ip(request, settings.trust_proxy))
+            trial, key = trials.issue(body.device, await client_ip(request, proxies))
         except Refused as exc:
             return _refused(exc)
         return JSONResponse(trial.public(settings, key), status_code=201)
