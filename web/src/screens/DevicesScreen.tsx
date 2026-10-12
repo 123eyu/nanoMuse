@@ -4,6 +4,7 @@ import { api } from "../api";
 import { PageBar } from "../components/BackBar";
 import { CloudCard } from "../components/CloudCard";
 import { MuseCaption, MuseCard, MuseDivider, MuseRow, MuseSwitchRow } from "../components/MuseList";
+import { useMenuKeys } from "../components/useMenuKeys";
 import { useT, type t as T } from "../i18n";
 import { useStore } from "../store";
 import type { HandsStatus, HubDevice, HubView } from "../types";
@@ -343,21 +344,7 @@ function DeviceCard({ device: d, onAsk, onForget }: { device: HubDevice; onAsk: 
 function OverflowMenu({ label, items }: { label: string; items: Array<{ label: string; onClick: () => void; danger?: boolean }> }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: PointerEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    window.addEventListener("pointerdown", onDown);
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("pointerdown", onDown);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
+  useMenuKeys(ref, open, () => setOpen(false));
   return (
     <div ref={ref} className="relative -mr-1.5 -mt-1">
       <button type="button" onClick={() => setOpen((o) => !o)} aria-label={label} aria-haspopup="menu" aria-expanded={open} className="flex h-8 w-8 items-center justify-center rounded-full text-muted hover:bg-surface-2 hover:text-fg">

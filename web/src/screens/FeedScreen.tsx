@@ -459,6 +459,7 @@ function FeedSettingsSheet({
           onChange={(e) => setText(e.target.value)}
           rows={4}
           maxLength={2000}
+          aria-label={t("Feed instructions")}
           placeholder={t("Build me a feed about what I care about. Keep it short and direct, easy to skim, no clickbait.")}
           className="w-full resize-none rounded-2xl bg-surface-2 px-3.5 py-2.5 text-[15px] leading-snug outline-none focus:ring-2 focus:ring-accent/40"
         />

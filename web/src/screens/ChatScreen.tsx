@@ -15,7 +15,7 @@ import { stripNamingFence } from "../fences";
 import { localDetail, localLabel, useLocale, useT } from "../i18n";
 import { mentionSuggestions, mentionTarget } from "../mention";
 import { WORKING_TTL_MS } from "../presence";
-import { useStore } from "../store";
+import { useStore, type Stream } from "../store";
 import type { AttachmentInfo, HubDevice, SkillInfo, ThreadMeta, TimelineEvent, UserEvent, WorkingPresence } from "../types";
 import { cx, timeDivider, timeShort } from "../util";
 import { MuseSheet } from "./MuseSheet";
@@ -287,6 +287,7 @@ export function ChatScreen() {
           {stream && stream.text && (
             <AssistantBubble text={stream.text} streaming files={files} onOpenFile={openFile} />
           )}
+          <LiveReply stream={stream} name={name} />
           {(thread?.busy || status.state !== "idle") && !stream?.text && status.state !== "waiting" && (
             <TypingIndicator label={thread?.queued ? t("{n} queued", { n: thread.queued }) : undefined} />
           )}
@@ -584,14 +585,46 @@ function QuietLine({ text, about, ts }: { text: string; about?: string; ts?: str
 }
 
 function TypingIndicator({ label }: { label?: string }) {
+  const t = useT();
   return (
-    <div className="flex items-center gap-2">
-      <div className="rounded-[20px] rounded-bl-md bg-bubble-agent px-3.5 py-2.5 flex items-center gap-1">
+    <div className="flex items-center gap-2" role="status">
+      <div aria-hidden className="rounded-[20px] rounded-bl-md bg-bubble-agent px-3.5 py-2.5 flex items-center gap-1">
         <span className="typing-dot h-2 w-2 rounded-full bg-muted" />
         <span className="typing-dot h-2 w-2 rounded-full bg-muted" />
         <span className="typing-dot h-2 w-2 rounded-full bg-muted" />
       </div>
+      <span className="sr-only">{t("On it")}</span>
       {label && <span className="text-[12px] text-muted">{label}</span>}
+    </div>
+  );
+}
+
+/**
+ * What a screen reader hears of a streamed reply: one line when the agent starts writing,
+ * and the whole reply once it is complete. The tokens in between are not read out; a
+ * live region that changed on every token would talk over itself. Sighted readers see the
+ * bubble fill as before.
+ */
+function LiveReply({ stream, name }: { stream: Stream | undefined; name: string }) {
+  const t = useT();
+  const [said, setSaid] = useState("");
+  // which announcement was made last, so a delta does not repeat it
+  const last = useRef<string | null>(null);
+  useEffect(() => {
+    if (!stream) {
+      // a stream dropped without a reply (discarded or empty) leaves nothing to read
+      if (last.current?.endsWith(":start")) setSaid("");
+      last.current = null;
+      return;
+    }
+    const key = `${stream.id}:${stream.ended ? "end" : "start"}`;
+    if (last.current === key) return;
+    last.current = key;
+    setSaid(stream.ended ? stripNamingFence(stream.text) : t("{name} is writing a reply", { name }));
+  }, [stream, name, t]);
+  return (
+    <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+      {said}
     </div>
   );
 }

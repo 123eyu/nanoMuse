@@ -227,7 +227,7 @@ export function SignIn({
           )}
         </>
       )}
-      {error && <div className="rounded-2xl bg-rose-500/12 px-3 py-2 text-[12.5px] text-rose-700 dark:text-rose-300">{error}</div>}
+      {error && <div role="alert" className="rounded-2xl bg-rose-500/12 px-3 py-2 text-[12.5px] text-rose-700 dark:text-rose-300">{error}</div>}
       <div className="flex gap-2">
         {mode === "code" && sent ? (
           <>
