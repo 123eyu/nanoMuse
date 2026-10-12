@@ -368,6 +368,51 @@ NON_GLOBAL_NETWORKS: tuple[str, ...] = (
 )
 
 
+# Mail providers whose domains are never under the per-domain sign-up limit: anyone can
+# have an address there, so many sign-ups from one of them say nothing about one person.
+WELL_KNOWN_MAIL_DOMAINS: frozenset[str] = frozenset(
+    {
+        "gmail.com",
+        "googlemail.com",
+        "outlook.com",
+        "hotmail.com",
+        "live.com",
+        "msn.com",
+        "yahoo.com",
+        "yahoo.co.jp",
+        "ymail.com",
+        "icloud.com",
+        "me.com",
+        "mac.com",
+        "qq.com",
+        "foxmail.com",
+        "163.com",
+        "126.com",
+        "yeah.net",
+        "sina.com",
+        "sina.cn",
+        "sohu.com",
+        "aliyun.com",
+        "protonmail.com",
+        "proton.me",
+        "pm.me",
+        "zoho.com",
+        "gmx.com",
+        "gmx.de",
+        "gmx.net",
+        "web.de",
+        "mail.ru",
+        "yandex.ru",
+        "yandex.com",
+        "naver.com",
+        "daum.net",
+        "139.com",
+        "189.cn",
+        "wo.cn",
+    }
+)
+
+
 def _env(name: str, default: str = "") -> str:
     v = os.environ.get(name)
     return default if v is None or v == "" else v
@@ -534,6 +579,13 @@ class Settings:
     review_code: str = field(default_factory=lambda: _env("REVIEW_CODE"))
     code_per_ip_hour: int = field(default_factory=lambda: _int("CODE_PER_IP_HOUR", 10))
     code_max_attempts: int = field(default_factory=lambda: _int("CODE_MAX_ATTEMPTS", 5))
+    # New accounts per e-mail domain per rolling 24 hours, for domains that are not a well
+    # known mail provider (WELL_KNOWN_MAIL_DOMAINS) and not in SIGNUP_DOMAIN_ALLOW (comma
+    # separated): past the limit a code request for a new address of that domain is answered
+    # `429 domain_limited`; an existing account always gets its code. 0 = off. A catch-all
+    # domain of one's own, or a bought list of mailboxes, is how a pool is farmed.
+    signup_per_domain_day: int = field(default_factory=lambda: _int("SIGNUP_PER_DOMAIN_DAY", 20))
+    signup_domain_allow: str = field(default_factory=lambda: _env("SIGNUP_DOMAIN_ALLOW"))
     # One phone/e-mail = one grant; a second device signing in with the same
     # identifier shares the account and gets a second key, not a second grant.
 
@@ -609,6 +661,13 @@ class Settings:
         """TRUSTED_PROXIES as a list, else the non-global networks (client.py agrees)."""
         given = [x.strip() for x in self.trusted_proxies.split(",") if x.strip()]
         return given or list(NON_GLOBAL_NETWORKS)
+
+    @property
+    def signup_domain_allow_set(self) -> frozenset[str]:
+        """The domains never under the per-domain sign-up limit: the well known providers
+        plus SIGNUP_DOMAIN_ALLOW, lower-cased, without a leading ``@``."""
+        given = {x.strip().lower().lstrip("@") for x in self.signup_domain_allow.split(",") if x.strip()}
+        return WELL_KNOWN_MAIL_DOMAINS | frozenset(given)
 
     @property
     def github_repo_path(self) -> str:

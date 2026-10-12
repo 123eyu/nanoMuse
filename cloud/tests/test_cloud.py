@@ -1701,9 +1701,12 @@ async def test_improve_default_applies_to_new_accounts_only():
         "/v1/chat/completions", headers=headers, json={"model": "qwen3.8-27b", "messages": [{"role": "user", "content": "hi"}]}
     )
     assert r.status_code == 200 and cloud.db.sample_count() == 1
-    # +¥5 for each of them: the newcomer's pool is ¥15, the inviter's too
-    assert after["spend"]["grant"] == 15 and after["invite"]["invitee_bonus_cny"] == 5
-    credits = [r_["detail"] for r_ in after["recent"] if r_["kind"] == "credit"]
+    # +¥5 for each of them at the newcomer's first request (the one just made): the
+    # newcomer's pool is ¥15, the inviter's too; at sign-up it was the allowance alone
+    assert after["spend"]["grant"] == 10 and after["invite"]["invitee_bonus_cny"] == 5
+    me_after = (await client.get("/v1/me", headers=headers)).json()
+    assert me_after["spend"]["grant"] == 15
+    credits = [r_["detail"] for r_ in me_after["recent"] if r_["kind"] == "credit"]
     assert {"credit_uy": 5_000_000, "from": "invited", "friend": before["account"]["id"][:8]} in credits
     me = (await client.get("/v1/me", headers={"Authorization": f"Bearer {before['api_key']}"})).json()
     assert me["spend"]["grant"] == 15 and me["invite"]["invites"] == 1 and me["invite"]["earned_cny"] == 5
@@ -1775,9 +1778,9 @@ def test_database_from_before_0_4_migrates(tmp_path):
     conn.close()
     db = Database(path)
     cols = {r["name"] for r in db._conn.execute("PRAGMA table_info(accounts)").fetchall()}
-    assert {"invite_code", "invited_by", "credit_uy", "clips_bonus", "contribute"} <= cols
+    assert {"invite_code", "invited_by", "credit_uy", "clips_bonus", "contribute", "invite_settled_at"} <= cols
     names = {r["name"] for r in db._conn.execute("PRAGMA index_list(accounts)").fetchall()}
-    assert "accounts_invite_code" in names
+    assert {"accounts_invite_code", "accounts_invited_by", "accounts_created_at"} <= names
     assert db._conn.execute("SELECT invite_code, contribute FROM accounts WHERE id='a1'").fetchone()[0] == ""
 
 

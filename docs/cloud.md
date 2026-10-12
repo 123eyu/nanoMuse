@@ -274,7 +274,7 @@ to draw on, for its lifetime, not by the day (relay 0.5):
 |---|---|
 | sign-up | open to anyone with a mainland China mobile number or an e-mail address |
 | free allowance | **¥10 per account** at the time of writing, across chat, pictures and clips; it does not reset. The figure is the relay's to set (it can go up without an app update; the apps print what the relay says, `/v1/config`), and the account page always shows the current one |
-| invitations | each *new* person who signs up with your code adds **¥5** (again, the relay's figure) to your pool, and the same to theirs |
+| invitations | each *new* person who signs up with your code adds **¥5** (again, the relay's figure) to your pool, and the same to theirs; both sides get it after your friend's first request, not at sign-up |
 | when it is gone | bring your own key or a plan you already pay for: in mainland China, [Alibaba Cloud Bailian](own-key.md) first (one key covers chat, the hands, pictures and clips); elsewhere, [OpenRouter](https://openrouter.ai/keys) or OpenAI first (Bailian only signs up accounts from mainland China); a ChatGPT, Claude or Kimi plan signs in where the client has the flow; any OpenAI-compatible endpoint works; sign-in and your devices are unaffected |
 | members | the developer and the people they list have no limit, and may set any model the provider has (a chat model for chat, an image one for pictures, a video one for clips): the apps' model picker lists them after the menu as *More models on your account* (relay 0.10 reads the provider's list under the Cloud key), and an id can still be typed (*Other model…*) |
 | rate | 30 requests per minute |
@@ -338,9 +338,20 @@ Other relays may set other rules
 all three figures adjustable while the relay runs, relay 0.15; see
 [`cloud/README.md`](../cloud/README.md)). The operator can see who invited
 whom: the admin page's *Invites* view ranks the inviters by the accounts their
-code brought, with how many of those ever made a request and how many were
-seen from one of the inviter's own addresses, and an account's page names its
-inviter and lists the people it brought (`GET /v1/admin/invites`).
+code brought, with how many of those ever made a request, how many are still
+pending (no first request yet, so no bonus yet) and how many were seen from
+one of the inviter's own addresses, and an account's page names its inviter
+and lists the people it brought (`GET /v1/admin/invites`). Padding one's own
+pool is not worth the trouble: the bonus is paid at the invitee's first
+charged request, new accounts from a mail domain that is not a well-known
+provider are limited per day (`SIGNUP_PER_DOMAIN_DAY`, 20 by default; the
+refusal is `domain_limited`), and the health check raises two alerts, an
+inviter whose code brought more than ten accounts in a day and an inviter with
+twenty or more invitees of whom almost none ever made a request. Each unfolded
+inviter in the *Invites* view, and the *Brought* card of its account page, has
+one action that reclaims the invite credit (what was already spent stays),
+and may disable the account and delete the invited accounts that never made a
+request (`POST /v1/admin/invites/abuse`).
 
 nanoMuse asks for one thing in return: a star on
 [GitHub](https://github.com/nano-muse/nanoMuse), which is what helps the
