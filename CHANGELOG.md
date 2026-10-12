@@ -102,6 +102,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 - **Reduce Motion crossfades the slides, the drawer and the bottom bar.** With Reduce Motion on, the welcome slides, the side drawer and the pill bar no longer slide in and out; they fade.
 - **The composer check reads the bar's height from the shell.** The developer check that reports where the chat's column ends assumed a 56 pt bar; it now uses the 70 pt the shell gives the bottom bar, so its verdict about a column hidden behind the bar matches the 1.0.4 layout. Its sibling's header comment describes the 1.0.4 layout too.
 - **Spanish and Russian call the Health category health.** The goal category *Health* was *Estado* in Spanish and *Состояние* in Russian, both meaning *state*; they are *Salud* and *Здоровье*.
+- **A step another device's Muse asks about is answered on the phone.** A task sent with `@〈device〉` had every approval question from that device declined from the phone, with a line under the answer telling you to approve such steps over there. The phone now shows the card where the task was typed, with the Android phone's four answers: *Allow once*, *Allow for this chat*, *Always allow this on 〈device〉* (the same step on that device, listed with *Revoke* under *Approvals* on the agent's page) and *Deny*; a payment gets only once and deny. No answer within the time the other side allows counts as a no, and a question answered first at the other device closes the card without an answer from here.
 
 ### Project
 

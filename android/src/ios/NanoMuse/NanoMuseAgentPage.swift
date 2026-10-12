@@ -371,6 +371,8 @@ struct NanoMuseActivityPane: View {
 
 struct NanoMuseApprovalsPane: View {
     @ObservedObject private var manager = OffloadPermissionManager.shared
+    /// The "always" answers given to other devices' tasks (NanoMuseRemoteApproval.swift).
+    @ObservedObject private var remote = NanoMuseRemoteApprovals.shared
 
     private var always: [OffloadCommandInfo] {
         OffloadPermissionManager.allCommands.filter { $0.showInSettings && manager.permissionLevel(for: $0.name) == .bypass }
@@ -378,9 +380,32 @@ struct NanoMuseApprovalsPane: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if always.isEmpty {
+            if always.isEmpty && remote.grants.isEmpty {
                 NanoMuseEmptyNote(text: AppLocalized("No standing approvals. When you answer \"always allow\" to a risky step, it is listed here and can be revoked."))
-            } else {
+            }
+            if !remote.grants.isEmpty {
+                NanoMuseSectionLabel(text: AppLocalized("Always allowed on other devices"))
+                ForEach(remote.grants) { grant in
+                    HStack(spacing: 14) {
+                        Image(systemName: "checkmark.shield")
+                            .font(.system(size: 15))
+                            .foregroundStyle(NanoMuseTones.action)
+                            .frame(width: 36, height: 36)
+                            .background(NanoMuseTones.fill, in: Circle())
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(grant.deviceName).font(.body.weight(.medium))
+                            Text(grant.preview).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                        }
+                        Spacer()
+                        Button(AppLocalized("Revoke")) { remote.revoke(grant.id) }
+                            .font(.footnote.weight(.medium))
+                            .tint(NanoMuseTones.action)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                }
+            }
+            if !always.isEmpty {
                 NanoMuseSectionLabel(text: AppLocalized("Always allowed"))
                 ForEach(always, id: \.name) { cmd in
                     HStack(spacing: 14) {
