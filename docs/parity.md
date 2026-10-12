@@ -155,9 +155,10 @@ notes above; a settled item keeps its number and says how it went.
     (`NanoMuseScheduler.swift`: foreground catch-up, `BGAppRefreshTask`, a local notification at
     the set time), the iPad runs the shell too, the shell and header switches are in the nanoMuse
     settings page, and the studio draws through the relay or your own Bailian key. Left: a
-    routine runs in the background only when iOS gives the refresh task a slot; the copy says
-    so (*at the set time the phone reminds you to open it*); the hub route (a computer of the
-    account runs them) is still the sure one. The iPad's layout is the iPhone's, larger.
+    routine never runs in the background on iOS; the refresh task only posts the reminder, and
+    the copy says so (*at the set time the phone reminds you to open it*); the hub route (a
+    computer of the account runs them) is still the sure one. The iPad's layout is the iPhone's,
+    larger.
     Settled in 0.1.35: no split layout of its own.
 12. **Android and iOS · Emoji faces.** A face set to an emoji on the web or the desktop shows the
     dragon on the phones. Small.
