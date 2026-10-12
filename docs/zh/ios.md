@@ -108,9 +108,10 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   原生的图像端点）；工作室（`NanoMuseAvatarStudio.swift`）用同一条路，并且可以选图像模型。
 - **调度器（0.1.34）**（`NanoMuseScheduler.swift`）：例程（一个标签、一段提示词、一个时间，
   每天 / 工作日 / 一次或每 N 小时）在一个专属的对话里作为无头回合运行（`NanoMuseHeadless`）。
-  说实话：iPhone 在 App 打开时运行它们（变为活跃时把到期的全跑一遍），退到后台时向 iOS
-  申请一个 `BGAppRefreshTask`（`io.github.nanomuse.app.scheduler`），iOS 批了就跑到期的那些，
+  说实话：iPhone 只在 App 打开时运行它们（变为活跃时把到期的全跑一遍，之后每分钟查一次），
   并且在每个到期时刻发一条本地通知（*检查：〈目标〉，打开即运行*），点通知打开那个对话。
+  退到后台时申请的 `BGAppRefreshTask`（`io.github.nanomuse.app.scheduler`）从不运行例程：
+  iOS 批下来时，处理函数只给已到期的那些发提醒，再申请下一个时间片，仅此而已。
   所有关于例程的文案都这么写明了。*设置 → nanoMuse → 定时任务* 列出全部，目标检查和动态的
   那条也在内。
 - **目标（0.1.34）**（`NanoMuseGoals.swift`，对应 Android `goals/`）：*创建目标 › 类别* 把开场白

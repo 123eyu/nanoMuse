@@ -128903,61 +128903,61 @@
         }
       }
     },
-    "A routine is a message the agent sends itself at a set time, in its own conversation. On the iPhone it runs when the app is open: when it comes due while the app is asleep, the phone shows a reminder and the run happens as soon as you open it. iOS also wakes the app now and then in the background; when it does, the routine runs there." : {
+    "A routine is a message the agent sends itself at a set time, in its own conversation. On the iPhone it runs only while the app is open: when it comes due while the app is asleep, the phone shows a reminder, and the run happens as soon as you open the app. Nothing runs in the background." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eine Routine ist eine Nachricht, die sich der Agent zu einer festen Zeit selbst schickt, in einem eigenen Gespräch. Auf dem iPhone läuft sie, wenn die App offen ist: Wird sie fällig, während die App schläft, zeigt das Telefon eine Erinnerung, und der Lauf passiert, sobald du sie öffnest. iOS weckt die App außerdem ab und zu im Hintergrund; dann läuft die Routine dort."
+            "value" : "Eine Routine ist eine Nachricht, die sich der Agent zu einer festen Zeit selbst schickt, in einem eigenen Gespräch. Auf dem iPhone läuft sie nur, solange die App offen ist: Wird sie fällig, während die App schläft, zeigt das Telefon eine Erinnerung, und der Lauf passiert, sobald du die App öffnest. Im Hintergrund läuft nichts."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A routine is a message the agent sends itself at a set time, in its own conversation. On the iPhone it runs when the app is open: when it comes due while the app is asleep, the phone shows a reminder and the run happens as soon as you open it. iOS also wakes the app now and then in the background; when it does, the routine runs there."
+            "value" : "A routine is a message the agent sends itself at a set time, in its own conversation. On the iPhone it runs only while the app is open: when it comes due while the app is asleep, the phone shows a reminder, and the run happens as soon as you open the app. Nothing runs in the background."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Una rutina es un mensaje que el agente se envía a sí mismo a una hora fija, en su propia conversación. En el iPhone se ejecuta cuando la app está abierta: si llega su hora mientras la app está dormida, el teléfono muestra un recordatorio y la ejecución ocurre en cuanto la abres. iOS también despierta la app de vez en cuando en segundo plano; cuando lo hace, la rutina se ejecuta allí."
+            "value" : "Una rutina es un mensaje que el agente se envía a sí mismo a una hora fija, en su propia conversación. En el iPhone solo se ejecuta mientras la app está abierta: si llega su hora mientras la app está dormida, el teléfono muestra un recordatorio y la ejecución ocurre en cuanto abres la app. Nada se ejecuta en segundo plano."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Une routine est un message que l’agent s’envoie à lui-même à heure fixe, dans sa propre conversation. Sur l’iPhone, elle s’exécute quand l’app est ouverte : si l’échéance arrive pendant que l’app dort, le téléphone affiche un rappel et l’exécution a lieu dès que vous l’ouvrez. iOS réveille aussi l’app de temps en temps en arrière-plan ; quand c’est le cas, la routine s’y exécute."
+            "value" : "Une routine est un message que l’agent s’envoie à lui-même à heure fixe, dans sa propre conversation. Sur l’iPhone, elle ne s’exécute que lorsque l’app est ouverte : si l’échéance arrive pendant que l’app dort, le téléphone affiche un rappel et l’exécution a lieu dès que vous ouvrez l’app. Rien ne s’exécute en arrière-plan."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ルーティンとは、エージェントが決まった時刻に自分自身に送るメッセージで、専用の会話の中で動きます。iPhone ではアプリが開いているときに実行されます: アプリが休止中に時刻が来ると、リマインダーが表示され、開いたらすぐに実行されます。iOS は時々バックグラウンドでアプリを起こすこともあり、そのときはそこでルーティンが実行されます。"
+            "value" : "ルーティンとは、エージェントが決まった時刻に自分自身に送るメッセージで、専用の会話の中で動きます。iPhone ではアプリが開いている間だけ実行されます: アプリが休止中に時刻が来ると、リマインダーが表示され、アプリを開いたらすぐに実行されます。バックグラウンドでは何も実行されません。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "루틴은 에이전트가 정해진 시간에 자기 대화에서 스스로에게 보내는 메시지입니다. iPhone에서는 앱이 열려 있을 때 실행됩니다. 앱이 잠든 사이 시간이 되면 휴대전화가 알림을 띄우고, 앱을 여는 즉시 실행됩니다. iOS가 이따금 백그라운드에서 앱을 깨우기도 하는데, 그때는 루틴이 거기서 실행됩니다."
+            "value" : "루틴은 에이전트가 정해진 시간에 자기 대화에서 스스로에게 보내는 메시지입니다. iPhone에서는 앱이 열려 있는 동안에만 실행됩니다. 앱이 잠든 사이 시간이 되면 휴대전화가 알림을 띄우고, 앱을 여는 즉시 실행됩니다. 백그라운드에서는 아무것도 실행되지 않습니다."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Рутина представляет собой сообщение, которое агент отправляет сам себе в заданное время, в отдельном разговоре. На iPhone она выполняется, когда приложение открыто: если время подходит, пока приложение спит, телефон показывает напоминание, и запуск происходит, как только вы его откроете. iOS также время от времени будит приложение в фоне; тогда рутина выполняется там."
+            "value" : "Рутина представляет собой сообщение, которое агент отправляет сам себе в заданное время, в отдельном разговоре. На iPhone она выполняется только пока приложение открыто: если время подходит, пока приложение спит, телефон показывает напоминание, и запуск происходит, как только вы откроете приложение. В фоне ничего не выполняется."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "例程是智能体在设定的时间发给自己的一条消息，在它自己的对话里运行。在 iPhone 上，它在应用打开时运行：如果到点时应用在休眠，手机会弹出提醒，你一打开它就跑。iOS 偶尔也会在后台唤醒应用，那时例程会在后台运行。"
+            "value" : "例程是智能体在设定的时间发给自己的一条消息，在它自己的对话里运行。在 iPhone 上，它只在应用打开时运行：如果到点时应用在休眠，手机会弹出提醒，你一打开应用它就立刻运行。后台不会运行任何东西。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "例程是智慧體在設定的時間發給自己的一條消息，在它自己的對話裡運行。在 iPhone 上，它在應用打開時運行：如果到點時應用在休眠，手機會彈出提醒，你一打開它就跑。iOS 偶爾也會在後臺喚醒應用，那時例程會在後臺運行。"
+            "value" : "例程是智慧體在設定的時間發給自己的一條消息，在它自己的對話裡運行。在 iPhone 上，它只在應用打開時運行：如果到點時應用在休眠，手機會彈出提醒，你一打開應用它就立刻運行。後臺不會運行任何東西。"
           }
         }
       }
@@ -137281,61 +137281,61 @@
         }
       }
     },
-    "Reminders need notification permission; background runs need Background App Refresh for nanoMuse." : {
+    "Reminders need notification permission. With Background App Refresh on, iOS can wake the app for a moment around the due time to post the reminder; the routine itself still waits for you to open the app." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Erinnerungen brauchen die Berechtigung für Mitteilungen; Läufe im Hintergrund brauchen die Hintergrundaktualisierung für nanoMuse."
+            "value" : "Erinnerungen brauchen die Berechtigung für Mitteilungen. Mit eingeschalteter Hintergrundaktualisierung kann iOS die App um die fällige Zeit herum kurz wecken, um die Erinnerung zu zeigen; die Routine selbst wartet weiter, bis du die App öffnest."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Reminders need notification permission; background runs need Background App Refresh for nanoMuse."
+            "value" : "Reminders need notification permission. With Background App Refresh on, iOS can wake the app for a moment around the due time to post the reminder; the routine itself still waits for you to open the app."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Los recordatorios necesitan permiso de notificaciones; las ejecuciones en segundo plano necesitan la actualización en segundo plano para nanoMuse."
+            "value" : "Los recordatorios necesitan permiso de notificaciones. Con la actualización en segundo plano activada, iOS puede despertar la app un momento cerca de la hora prevista para mostrar el recordatorio; la rutina en sí sigue esperando a que abras la app."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les rappels demandent l’autorisation des notifications ; les exécutions en arrière-plan demandent l’actualisation en arrière-plan pour nanoMuse."
+            "value" : "Les rappels demandent l’autorisation des notifications. Avec l’actualisation en arrière-plan activée, iOS peut réveiller l’app un instant autour de l’heure prévue pour afficher le rappel ; la routine elle-même attend toujours que vous ouvriez l’app."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "リマインダーには通知の許可が必要です。バックグラウンドでの実行には nanoMuse の「Appのバックグラウンド更新」が必要です。"
+            "value" : "リマインダーには通知の許可が必要です。「Appのバックグラウンド更新」がオンだと、iOS は時刻の前後にアプリを少しだけ起こしてリマインダーを出せます。ルーティンそのものは、アプリを開くまで実行されません。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "알림에는 알림 권한이 필요하고, 백그라운드 실행에는 nanoMuse의 백그라운드 앱 새로 고침이 필요합니다."
+            "value" : "알림에는 알림 권한이 필요합니다. 백그라운드 앱 새로 고침이 켜져 있으면 iOS가 예정 시각 즈음에 앱을 잠깐 깨워 알림을 보낼 수 있습니다. 루틴 자체는 앱을 열 때까지 기다립니다."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Напоминаниям нужно разрешение на уведомления; фоновым запускам нужно «Обновление контента» для nanoMuse."
+            "value" : "Напоминаниям нужно разрешение на уведомления. При включённом «Обновлении контента» iOS может ненадолго разбудить приложение около назначенного времени, чтобы показать напоминание; сама рутина по-прежнему ждёт, пока вы откроете приложение."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "提醒需要通知权限；后台运行需要为 nanoMuse 打开「后台 App 刷新」。"
+            "value" : "提醒需要通知权限。打开「后台 App 刷新」后，iOS 可以在到点前后把应用唤醒片刻来发出提醒；例程本身仍要等你打开应用才运行。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "提醒需要通知權限；後臺運行需要為 nanoMuse 打開「後臺 App 刷新」。"
+            "value" : "提醒需要通知權限。打開「後臺 App 刷新」後，iOS 可以在到點前後把應用喚醒片刻來發出提醒；例程本身仍要等你打開應用才運行。"
           }
         }
       }

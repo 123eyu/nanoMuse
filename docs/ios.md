@@ -121,12 +121,14 @@ Ours, in `NanoMuse/`:
   (`NanoMuseAvatarStudio.swift`) uses the same path and lets the image model be picked.
 - **The scheduler (0.1.34)** (`NanoMuseScheduler.swift`): routines (a label, a prompt, a time,
   daily / weekdays / once or every N hours) run as a headless turn in a conversation of their own
-  (`NanoMuseHeadless`). Honestly: the iPhone runs them when the app is open (every due one on
-  becoming active), asks iOS for a `BGAppRefreshTask` (`io.github.nanomuse.app.scheduler`) when
-  it goes to the background and runs what is due if iOS grants it, and posts a local notification
-  at each due time (*Check-in: 〈goal〉. Open to run it*) whose tap opens the conversation. Every
-  piece of copy about routines says so. *Settings → nanoMuse → Scheduled tasks* lists them all,
-  the goal check-ins and the feed's included.
+  (`NanoMuseHeadless`). Honestly: the iPhone runs them only while the app is open (every due
+  one on becoming active, then a check every minute), and posts a local notification at each
+  due time (*Check-in: 〈goal〉. Open to run it*) whose tap opens the conversation. The
+  `BGAppRefreshTask` it asks for when it goes to the background
+  (`io.github.nanomuse.app.scheduler`) never runs a routine: when iOS grants it, the handler
+  posts the reminder for whatever came due and asks for the next slot, nothing more. Every piece
+  of copy about routines says so. *Settings → nanoMuse → Scheduled tasks* lists them all, the
+  goal check-ins and the feed's included.
 - **Goals (0.1.34)** (`NanoMuseGoals.swift`, Android `goals/`): *Create a goal › category* sends
   the opener to the main chat with a system addendum for a few turns; the model's
   ` ```nanomuse-goal ` block becomes the goal and its check-in routine, ` ```nanomuse-goal-update `
