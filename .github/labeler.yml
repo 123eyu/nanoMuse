@@ -10,11 +10,16 @@ android:
           - "android/scripts/**"
           - "scripts/android/**"
           - "scripts/release-apk.sh"
+          # the rebrand writes both phones' trees (android.yml rebuilds on it, too)
+          - "scripts/rebrand.py"
+          - "scripts/gen-android-icons.py"
+          - ".github/workflows/android.yml"
 
 ios:
   - changed-files:
       - any-glob-to-any-file:
           - "android/src/ios/**"
+          - "scripts/rebrand.py"
           - "scripts/gen-ios-icons.py"
           - ".github/workflows/ios-*.yml"
 

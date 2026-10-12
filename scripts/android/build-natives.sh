@@ -5,11 +5,19 @@
 #   rclone.aar (gomobile, deps/rclone-mobile)        -> app/libs/rclone.aar
 # All three are git-ignored build artifacts. Each step is skipped when its
 # output exists; pass --force to rebuild.
+#
+#   bash scripts/android/build-natives.sh [--force]
 set -euo pipefail
-source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 
 force=0
-[ "${1:-}" = "--force" ] && force=1
+for arg in "$@"; do
+  case "$arg" in
+    --force) force=1 ;;
+    -h|--help) sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) echo "unknown option $arg (try --help)" >&2; exit 2 ;;
+  esac
+done
+source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 ASSETS="$NM_APP_MAIN/assets"
 JNI="$NM_APP_MAIN/jniLibs/arm64-v8a"
 LIBS="$NM_GRADLE_DIR/app/libs"

@@ -138,6 +138,7 @@ export function ChatsDrawer() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t("Search")}
+              aria-label={t("Search chats")}
               className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted"
             />
             {query && (
