@@ -522,3 +522,76 @@ async def test_invite_earnings_are_what_the_ledger_says_not_todays_bonus_times_i
     inv = (await client.get("/v1/me/invite", headers=auth(a["api_key"]))).json()
     assert inv["invites"] == 2 and inv["bonus_cny"] == 1
     assert inv["earned_cny"] == 4, "3 for the first friend plus 1 for the second, as the ledger has it"
+
+
+async def test_operator_sees_who_invited_whom_and_the_ranking():
+    """`GET /v1/admin/invites` ranks the inviters by the accounts their code brought, says how
+    many of those ever made a request and how many came from one of the inviter's own
+    addresses (a pool being farmed looks like many of the second and none of the first),
+    and the account page names the inviter and lists the people brought."""
+    app, client, sender, up, cloud, settings = make(allowance_cny=5, invite_bonus_cny=2)
+    admin = {"X-Admin-Token": "admin"}
+    a = await sign_up(client, sender, "dev-a@example.com", "pixel", headers={"X-Forwarded-For": "203.0.113.7"})
+    b = await sign_up(client, sender, "dev-b@example.com", "mac", headers={"X-Forwarded-For": "198.51.100.2"})
+    # every request says where it comes from: a request without the header would be seen from
+    # the test client's own address and make two unrelated accounts share one
+    from_ip = lambda key, ip: {**auth(key), "X-Forwarded-For": ip}  # noqa: E731
+    code_a = (await client.get("/v1/me/invite", headers=from_ip(a["api_key"], "203.0.113.7"))).json()["code"]
+    code_b = (await client.get("/v1/me/invite", headers=from_ip(b["api_key"], "198.51.100.2"))).json()["code"]
+
+    async def join(identifier: str, code: str, ip: str) -> dict:
+        return await sign_up(client, sender, identifier, "mac", invite=code, headers={"X-Forwarded-For": ip})
+
+    # A's code brings three: two from A's own address that never use anything, one elsewhere who chats
+    await join("13900000001", code_a, "203.0.113.7")
+    await join("13900000002", code_a, "203.0.113.7")
+    c3 = await join("dev-c3@example.com", code_a, "192.0.2.9")
+    r = await client.post(
+        "/v1/chat/completions",
+        json={"model": "qwen3.8-flash", "messages": [{"role": "user", "content": "hi"}]},
+        headers=from_ip(c3["api_key"], "192.0.2.9"),
+    )
+    assert r.status_code == 200
+    # B's code brings one, from somewhere else
+    d = await join("dev-d@example.com", code_b, "192.0.2.10")
+
+    # nobody but the operator
+    assert (await client.get("/v1/admin/invites")).status_code == 401
+    view = (await client.get("/v1/admin/invites", headers=admin)).json()
+    # every account is given its code at sign-up, so six have one; two have brought someone
+    assert view["funnel"] == {"with_code": 6, "inviters": 2, "invited": 4, "contribute_bonuses": 0}
+    assert [x["identifier"] for x in view["leaders"]] == ["dev-a@example.com", "dev-b@example.com"]
+    top = view["leaders"][0]
+    assert top["invites"] == 3 and top["invited"] == 3 and top["invited_active"] == 1 and top["invited_same_ip"] == 2
+    assert top["earned_cny"] == 6 and top["invited_spent_cny"] > 0 and top["last_ip"] == "203.0.113.7"
+    assert top["first_invite_at"] <= top["last_invite_at"]
+    assert [i["hint"] for i in top["invitees"]][-1] == "139****0001", "newest first, with the hint and no identifier"
+    assert "identifier" not in top["invitees"][0] and top["invitees"][0]["requests"] == 1 and top["invitees"][0]["last_ip"] == "192.0.2.9"
+    second = view["leaders"][1]
+    assert second["invited"] == 1 and second["invited_same_ip"] == 0 and second["invitees"][0]["id"] == d["account"]["id"]
+    assert "places" in view
+    # the newest `per` of each inviter's people, and none when asked for none
+    few = (await client.get("/v1/admin/invites", params={"per": 1}, headers=admin)).json()
+    assert len(few["leaders"][0]["invitees"]) == 1 and few["leaders"][0]["invited"] == 3
+    assert (await client.get("/v1/admin/invites", params={"per": 0}, headers=admin)).json()["leaders"][0]["invitees"] == []
+    assert len((await client.get("/v1/admin/invites", params={"limit": 1}, headers=admin)).json()["leaders"]) == 1
+
+    # the account page: who brought this one, and whom this one brought
+    detail = (await client.get(f"/v1/admin/accounts/{c3['account']['id']}", headers=admin)).json()["account"]
+    assert detail["inviter"] == {"id": a["account"]["id"], "hint": "de***@example.com", "identifier": "dev-a@example.com"}
+    assert detail["invited"] == [] and detail["invited_total"] == 0 and detail["invite_earned_cny"] == 0
+    detail = (await client.get(f"/v1/admin/accounts/{a['account']['id']}", headers=admin)).json()["account"]
+    assert detail["inviter"] is None and detail["invited_total"] == 3 and detail["invite_earned_cny"] == 6
+    assert [i["hint"] for i in detail["invited"]] == ["de***@example.com", "139****0002", "139****0001"]
+    assert (
+        detail["invited"][0]["requests"] == 1
+        and detail["invited"][1]["requests"] == 0
+        and detail["invited"][1]["first_ip"] == "203.0.113.7"
+    )
+
+    # an inviter who deleted their account: the invitee still says who, by id, and the ranking lets them go
+    r = await client.post("/v1/admin/delete", headers=admin, json={"account_id": b["account"]["id"]})
+    assert r.status_code == 204, r.text
+    detail = (await client.get(f"/v1/admin/accounts/{d['account']['id']}", headers=admin)).json()["account"]
+    assert detail["invited_by"] == b["account"]["id"] and detail["inviter"] is None
+    assert [x["identifier"] for x in (await client.get("/v1/admin/invites", headers=admin)).json()["leaders"]] == ["dev-a@example.com"]

@@ -336,7 +336,11 @@ list to `providers`.
 Other relays may set other rules
 (`ALLOWANCE_CNY`, `INVITE_BONUS_CNY`, `SIGNUP_OPEN`, `ALLOWED_IDENTIFIERS`;
 all three figures adjustable while the relay runs, relay 0.15; see
-[`cloud/README.md`](../cloud/README.md)).
+[`cloud/README.md`](../cloud/README.md)). The operator can see who invited
+whom: the admin page's *Invites* view ranks the inviters by the accounts their
+code brought, with how many of those ever made a request and how many were
+seen from one of the inviter's own addresses, and an account's page names its
+inviter and lists the people it brought (`GET /v1/admin/invites`).
 
 nanoMuse asks for one thing in return: a star on
 [GitHub](https://github.com/nano-muse/nanoMuse), which is what helps the

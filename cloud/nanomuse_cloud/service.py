@@ -2369,7 +2369,12 @@ class Cloud:
         a["locked"] = bool(row["locked_until"] and int(row["locked_until"]) > t)
         spent_total = self.db.spent_since(account_id, 0)
         self._pool_fields(a, spent_cny=self.s.uy_to_cny(spent_total))
-        a["invited"] = [{"id": r["id"], "hint": r["hint"], "created_at": int(r["created_at"])} for r in self.db.invitees(account_id)]
+        # who this account brought (the newest 500, with the count of all of them), and who
+        # brought this account: the operator can follow an invite chain either way
+        a["invited"] = [self._invitee_fields(r) for r in self.db.invitees(account_id, limit=500)]
+        a["invited_total"] = self.db.invitee_count(account_id)
+        a["inviter"] = self._account_label(str(a.get("invited_by") or ""))
+        a["invite_earned_cny"] = self.s.uy_to_cny(self.db.invite_earned_uy(account_id))
         a["contribute"] = bool(a.get("contribute"))
         # turns kept while the switch was on stay until the person deletes them: count them
         # whether or not it is on now, so the operator sees what is there
@@ -2432,6 +2437,63 @@ class Cloud:
             "recent": ledger["rows"],
             "events": events["rows"],
         }
+
+    def _account_label(self, account_id: str) -> dict | None:
+        """`id`, `hint` and the identifier in clear for one account, or None when there is
+        no such account (an inviter who has since deleted theirs, say)."""
+        rows = self.db.accounts_brief([account_id]) if account_id else []
+        if not rows:
+            return None
+        r = rows[0]
+        return {"id": r["id"], "hint": r["hint"], "identifier": self.crypto.decrypt(r["id"], r["identifier_enc"] or "") or ""}
+
+    def _invitee_fields(self, r: sqlite3.Row) -> dict:
+        """One account that came through an invite, as the operator's page lists it."""
+        return {
+            "id": r["id"],
+            "hint": r["hint"],
+            "channel": r["channel"],
+            "created_at": int(r["created_at"]),
+            "disabled": bool(r["disabled"]),
+            "first_ip": r["first_ip"] or "",
+            "last_ip": r["last_ip"] or "",
+            "last_seen_at": int(r["last_seen_at"]) if r["last_seen_at"] else None,
+            "requests": int(r["requests"] or 0),
+            "spent_cny": self.s.uy_to_cny(int(r["spent_uy"] or 0)),
+        }
+
+    def admin_invites(self, limit: int = 200, per: int = 20) -> dict:
+        """Who invited whom, for the operator: the funnel as it stands and the inviters in
+        order of how many accounts their code brought, each with how many of those ever
+        made a request, how many were seen from one of the inviter's own addresses, what
+        they spent and what the inviter's pool got from them, and the newest `per` of the
+        accounts themselves (the account page lists up to 500). An inviter with many
+        sign-ups from one address and nobody using anything is a pool being farmed; one
+        whose invitees go on to make requests brought people."""
+        leaders = []
+        for r in self.db.invite_leaders(limit):
+            leaders.append(
+                {
+                    "invitees": [self._invitee_fields(i) for i in self.db.invitees(r["id"], limit=per)] if per > 0 else [],
+                    "id": r["id"],
+                    "hint": r["hint"],
+                    "identifier": self.crypto.decrypt(r["id"], r["identifier_enc"] or "") or "",
+                    "channel": r["channel"],
+                    "created_at": int(r["created_at"]),
+                    "disabled": bool(r["disabled"]),
+                    "first_ip": r["first_ip"] or "",
+                    "last_ip": r["last_ip"] or "",
+                    "invites": int(r["invites"] or 0),
+                    "invited": int(r["invited"] or 0),
+                    "invited_active": int(r["invited_active"] or 0),
+                    "invited_same_ip": int(r["invited_same_ip"] or 0),
+                    "invited_spent_cny": self.s.uy_to_cny(int(r["invited_spent_uy"] or 0)),
+                    "earned_cny": self.s.uy_to_cny(int(r["earned_uy"] or 0)),
+                    "first_invite_at": int(r["first_invite_at"] or 0),
+                    "last_invite_at": int(r["last_invite_at"] or 0),
+                }
+            )
+        return {"generated_at": now(), "funnel": self.db.invite_funnel(), "leaders": leaders}
 
     def ledger_page(self, account_id: str, limit: int = 100, before_id: int = 0) -> dict:
         """One page of an account's statement, newest first, with the count of the whole

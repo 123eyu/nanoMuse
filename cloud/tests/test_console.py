@@ -105,3 +105,52 @@ def test_admin_console_names_the_star_card_text_in_both_languages():
     assert "Empty: each app shows its own sentence. At most 200 characters." in source
     panel = source[source.index("function nudgesPanel()") : source.index("function settingsView()")]
     assert 'cardText("text")' in panel and 'cardText("text_zh"' in panel
+
+
+def test_admin_console_has_the_invites_view_in_both_languages():
+    """The Invites view (who brought whom, the inviters that brought most first) is in the
+    side navigation, reads `/v1/admin/invites`, and every string it draws is in the 简体中文
+    table and in the English one; the account drawer names the inviter and lists the people
+    brought."""
+    source = (CONSOLE / "admin" / "admin.js").read_text(encoding="utf-8")
+    assert '"invites"' in source[source.index("const VIEWS = ") : source.index("const PAGE = ")]
+    assert "invites: invitesView" in source and 'invites: () => "/v1/admin/invites?' in source
+    keys = (
+        "invNote",
+        "invSearch",
+        "invNone",
+        "invNoMatch",
+        "invKpiCode",
+        "invKpiInviters",
+        "invKpiInvited",
+        "invKpiActive",
+        "invKpiSameIp",
+        "invThWho",
+        "invThInvited",
+        "invThActive",
+        "invThSameIp",
+        "invThSpent",
+        "invThEarned",
+        "invThLast",
+        "invSort",
+        "invRecorded",
+        "invSameIp",
+        "invGone",
+        "invSeeRanking",
+        "invMore",
+        "invSameIpNote",
+        "invitedList",
+        "invEarnedLine",
+        "invNewest",
+        "invPill",
+    )
+    for key in keys:
+        assert source.count(f"{key}:") == 2, f"{key} is in one table only"
+    assert 'invites: "邀请"' in source and 'invites: "Invites"' in source
+    assert 'invThWho: "邀请人"' in source and 'invThWho: "Inviter"' in source
+    for key in keys:
+        assert f"T.{key}" in source, f"nothing draws {key}"
+    view = source[source.index("function invitesView()") : source.index("function placesView()")]
+    assert 'need("invites")' in view and "T.invSameIpNote" in view and "INV_OPEN" in view
+    drawer = source[source.index("function drawDrawer()") : source.index("function ledgerLine(")]
+    assert "a.inviter" in drawer and "T.invitedList(" in drawer and "inviteeRow(i, a)" in drawer

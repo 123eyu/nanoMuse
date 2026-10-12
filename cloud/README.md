@@ -537,6 +537,15 @@ Identifiers are kept AES-GCM-encrypted with a key derived from
 `CLOUD_SECRET`. A person can also remove themselves: `POST /v1/auth/delete`
 with their key deletes the account, its keys, ledger and devices.
 
+The *Invites* view (`/v1/admin/invites`) shows who invited whom: the
+inviters in order of the accounts their code brought, each with how many of
+those ever made a request, how many were seen from one of the inviter's own
+addresses (what one person padding their own pool looks like), what they
+spent, what the inviter's pool got from them and when the first and the last
+signed up; a row unfolds to the newest of the people it brought, and the
+account drawer names an account's inviter and lists everyone it brought. The
+accounts table marks an inviter with the count and sorts by it.
+
 Two more panels come from `/v1/admin/series` and `/v1/admin/traffic`: the
 relay's own numbers by day (sign-ins, new and active accounts, sign-ups
 through an invite, data switches turned on, calls, refusals, upstream errors, and the

@@ -96,7 +96,7 @@
     catalog: "模型目录", catalogNote: "key 下能用的模型（菜单之外）：relay 向每个模型各问一句话、再给一张品红色小图，确认它能回答、能不能看图；答案保存 7 天。客户端拿到的「能看图」就是这里的结果。", catalogOff: "模型目录未开启（CLOUD_CATALOG=0）。", catalogNames: "按名字推断，未逐个验证（CLOUD_CATALOG_PROBE=0）。", catalogProbing: "正在验证…", catalogPending: (n) => `${fmt(n)} 个待验证`, catalogFetched: (t) => `列表更新于 ${t}`, catalogError: (e) => `读取列表失败：${e}`,
     cModel: "模型", cKind: "类型", cSees: "看图", cVerified: "已验证", cYes: "是", cNo: "否", cUnusable: "服务商拒绝的模型（不出现在客户端）", cNoUnusable: "没有被拒绝的模型。", cCount: (n, v) => `${fmt(n)} 个对话模型 · ${fmt(v)} 个能看图`,
     // 0.14: the page in pages
-    nav: { overview: "总览", people: "用户", places: "地区", money: "花费", activity: "动态", demo: "在线体验", data: "数据控制", site: "官网", models: "模型", health: "服务状态", stats: "统计", controls: "控制", settings: "配置" },
+    nav: { overview: "总览", people: "用户", invites: "邀请", places: "地区", money: "花费", activity: "动态", demo: "在线体验", data: "数据控制", site: "官网", models: "模型", health: "服务状态", stats: "统计", controls: "控制", settings: "配置" },
     // 0.22: the Controls page, the Stats page, the GitHub series
     ctl: {
       title: "控制", note: "每个开关立刻生效、重启后保持；谁在何时改了什么记在下面的日志里。关闭前会先说明确切后果。",
@@ -135,7 +135,15 @@
     stat: { member: "成员", disabled: "已停用", locked: "已锁定", password: "设了密码", nopassword: "未设密码", contributes: "开启「帮助改进」", exhausted: "额度用光", online: "有设备在线", new: "本期新注册" },
     act: { today: "24 小时内", "7d": "7 天内", "30d": "30 天内", older: "更早", never: "从未使用" },
     bucket: { 0: "¥0", lt1: "<¥1", "1to5": "¥1–5", "5to10": "¥5–10", ge10: "≥¥10" },
-    sortBy: { active: "最近活跃", joined: "注册时间", spent: "累计花费", today: "今天花费", tokens: "tokens", requests: "请求数", left: "剩余额度", region: "地区" },
+    sortBy: { active: "最近活跃", joined: "注册时间", spent: "累计花费", today: "今天花费", tokens: "tokens", requests: "请求数", left: "剩余额度", region: "地区", invites: "邀请人数" },
+    // who invited whom: the Invites view and the account drawer's list
+    invNote: "谁邀请了谁。按邀请到的账号数排序；点一行展开被邀请的人，点名字打开账号页。", invSearch: "搜索邀请人…", invNone: "还没有人经邀请注册。", invNoMatch: "没有匹配的邀请人。",
+    invKpiCode: "生成过邀请码", invKpiInviters: "邀请成功的人", invKpiInvited: "经邀请注册", invKpiActive: "其中用过的", invKpiSameIp: "与邀请人同地址",
+    invThWho: "邀请人", invThInvited: "邀请到", invThActive: "其中用过", invThSameIp: "同一地址", invThSpent: "他们花了", invThEarned: "获得奖励", invThLast: "最近一次",
+    invSort: { invited: "邀请到", active: "其中用过", same_ip: "同一地址", spent: "他们花了", earned: "获得奖励", latest: "最近一次" },
+    invRecorded: (n) => `记录为 ${fmt(n)}`, invSameIp: "同地址", invGone: "已注销", invSeeRanking: "查看谁邀请了谁", invMore: (n) => `还有 ${fmt(n)} 个，打开账号页看全部`,
+    invSameIpNote: "「同一地址」指被邀请人的首次或最近地址与邀请人的相同，一个人给自己刷额度时常是这样；「记录为」是邀请计数器的值，被邀请人注销账号后计数不减。",
+    invitedList: (n) => `邀请的人 · ${fmt(n)}`, invPill: (n) => `邀请了 ${fmt(n)} 人`, invEarnedLine: (m) => `邀请奖励共 ${m}`, invNewest: (n, total) => `只列出最新 ${fmt(n)} 个，共 ${fmt(total)} 个`,
     cSignups: "注册", cRegions: "地区分布", cRegionsIn: (c) => `${c} · 分布`, cSpend: "花费分布", cActivity: "活跃度", cChannel: "渠道", cClients: "客户端", cClickNote: "图上的每一块都是筛选条件：点一下只看它，再点一下取消。", up: "上一级",
     thRegion: "地区", moreRows: (n) => `再显示 ${fmt(n)} 个`, exportCsv: "导出 CSV", csvNote: "导出的是当前筛选结果，和表格一样含完整的手机号 / 邮箱，文件只留在你手里。",
     byDayLabel: "按天", byWeekLabel: "按周",
@@ -213,7 +221,7 @@
     pCountry: "Country / region", pProvince: "Province / state", pAccounts: "Accounts", pNew: "New", pSignins: "Sign-ins", pRequests: "Requests", pDemo: "Demo visitors", pUnknown: "unknown", pLocal: "local network", pNone: "No visits recorded yet.", pAccountsNote: "accounts by their latest address",
     catalog: "Model catalog", catalogNote: "The models under the key beyond the menu: the relay asks each one a one-word question and then shows it a small magenta picture, to learn whether it answers and whether it sees; the answers stand for seven days. The “sees pictures” the apps show is what is here.", catalogOff: "The catalog is off (CLOUD_CATALOG=0).", catalogNames: "Guessed from names, not checked one by one (CLOUD_CATALOG_PROBE=0).", catalogProbing: "Checking…", catalogPending: (n) => `${fmt(n)} to check`, catalogFetched: (t) => `list read ${t}`, catalogError: (e) => `The list could not be read: ${e}`,
     cModel: "Model", cKind: "Kind", cSees: "Sees pictures", cVerified: "Checked", cYes: "yes", cNo: "no", cUnusable: "Models the provider refuses (not offered to the apps)", cNoUnusable: "None refused.", cCount: (n, v) => `${fmt(n)} chat models · ${fmt(v)} see pictures`,
-    nav: { overview: "Overview", people: "People", places: "Places", money: "Spend", activity: "Activity", demo: "Demo", data: "Data", site: "Site", models: "Models", health: "Health", stats: "Stats", controls: "Controls", settings: "Settings" },
+    nav: { overview: "Overview", people: "People", invites: "Invites", places: "Places", money: "Spend", activity: "Activity", demo: "Demo", data: "Data", site: "Site", models: "Models", health: "Health", stats: "Stats", controls: "Controls", settings: "Settings" },
     ctl: {
       title: "Controls", note: "Each switch applies at once and survives a restart; who changed what, and when, is in the log below. A switch says exactly what turning it off does before it flips.",
       names: { free_allowance: "Free allowance", signups: "Sign-ups", cloud_service: "Cloud service", sync: "Conversation sync", hub: "Device hub" },
@@ -251,7 +259,15 @@
     stat: { member: "members", disabled: "disabled", locked: "locked", password: "with a password", nopassword: "without a password", contributes: "“help improve” on", exhausted: "allowance used up", online: "a device online", new: "new this period" },
     act: { today: "last 24 h", "7d": "last 7 days", "30d": "last 30 days", older: "longer ago", never: "never used" },
     bucket: { 0: "¥0", lt1: "<¥1", "1to5": "¥1–5", "5to10": "¥5–10", ge10: "≥¥10" },
-    sortBy: { active: "last active", joined: "joined", spent: "spent", today: "spent today", tokens: "tokens", requests: "requests", left: "left", region: "region" },
+    sortBy: { active: "last active", joined: "joined", spent: "spent", today: "spent today", tokens: "tokens", requests: "requests", left: "left", region: "region", invites: "invites" },
+    // who invited whom: the Invites view and the account drawer's list
+    invNote: "Who brought whom. Inviters in order of the accounts their code brought; open a row for the people it brought, a name for the account page.", invSearch: "Search inviters…", invNone: "Nobody has come through an invite yet.", invNoMatch: "No inviter matches.",
+    invKpiCode: "made a code", invKpiInviters: "brought someone", invKpiInvited: "came through a code", invKpiActive: "of them used it", invKpiSameIp: "same address as the inviter",
+    invThWho: "Inviter", invThInvited: "Brought", invThActive: "Used it", invThSameIp: "Same address", invThSpent: "They spent", invThEarned: "Earned", invThLast: "Latest",
+    invSort: { invited: "brought", active: "used it", same_ip: "same address", spent: "they spent", earned: "earned", latest: "latest" },
+    invRecorded: (n) => `recorded ${fmt(n)}`, invSameIp: "same address", invGone: "deleted", invSeeRanking: "see who brought whom", invMore: (n) => `${fmt(n)} more; the account page lists them all`,
+    invSameIpNote: "“Same address” means an invitee's first or latest address is one of the inviter's own, which is what one person padding their own pool looks like; “recorded” is the invite counter, which does not go down when an invitee deletes their account.",
+    invitedList: (n) => `Brought · ${fmt(n)}`, invPill: (n) => `${fmt(n)} invited`, invEarnedLine: (m) => `${m} earned from invites`, invNewest: (n, total) => `the newest ${fmt(n)} of ${fmt(total)}`,
     cSignups: "Sign-ups", cRegions: "By region", cRegionsIn: (c) => `${c} · by region`, cSpend: "By spend", cActivity: "By activity", cChannel: "By channel", cClients: "By client", cClickNote: "Every piece of a chart is a filter: click it to see only that, click again to let go.", up: "Up a level",
     thRegion: "Region", moreRows: (n) => `Show ${fmt(n)} more`, exportCsv: "Export CSV", csvNote: "The current selection as the table shows it, phone numbers and addresses included; keep the file to yourself.",
     byDayLabel: "by day", byWeekLabel: "by week",
@@ -300,6 +316,7 @@
   const NAV_ICON = {
     overview: svg('<rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/>'),
     people: ICON.person,
+    invites: svg('<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M17.5 4v6M14.5 7h6"/>'),
     places: svg('<path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/>'),
     money: svg('<circle cx="12" cy="12" r="9"/><path d="M9 8.5l3 4 3-4M12 12.5V17M9.5 14.5h5"/>'),
     activity: svg('<path d="M3 12h4l2.5-6 4 12 2.5-6H21"/>'),
@@ -319,7 +336,7 @@
     "control.switch": ["warn", ICON.warn], "control.rule": ["warn", ICON.warn],
   };
   const FILTERS = [["", "all"], ["sign_in.code,sign_in.password,sign_in.session,sign_in.failed,account.created", "signIns"], ["budget.refused", "refusals"], ["upstream.error", "errors"], ["content.rejected", "contentChecks"], ["call.ended", "calls"], ["password.set,password.changed,password.cleared", "passwords"]];
-  const VIEWS = ["overview", "people", "places", "money", "activity", "demo", "data", "site", "models", "health", "stats", "controls", "settings"];
+  const VIEWS = ["overview", "people", "invites", "places", "money", "activity", "demo", "data", "site", "models", "health", "stats", "controls", "settings"];
   const PAGE = 50;
 
   // ── state ──────────────────────────────────────────────────────
@@ -385,6 +402,7 @@
     data: (d) => `/v1/admin/data?days=${d}`,
     demo: (d) => `/v1/admin/demo?days=${d}`,
     places: (d) => `/v1/admin/places?days=${d}`,
+    invites: () => "/v1/admin/invites?limit=500&per=20",
     catalog: () => "/v1/admin/catalog",
     health: () => "/v1/admin/health",
     nudges: () => "/v1/admin/nudges",
@@ -394,7 +412,7 @@
     stats: (d) => `/v1/admin/stats?days=${d}`,
     github: (d) => `/v1/admin/github?days=${d}`,
   };
-  const TIMELESS = new Set(["catalog", "health", "nudges", "sync", "controls"]);
+  const TIMELESS = new Set(["catalog", "health", "nudges", "sync", "controls", "invites"]);
   const CACHE = new Map();
   const cacheKey = (key) => `${key}:${TIMELESS.has(key) ? 0 : days}`;
   /** The view's data, or null while it is on its way (the view draws again when it lands);
@@ -696,7 +714,7 @@
         sparkRow(T.mRefused, rows, "budget_refusals", "warn", dayOf), sparkRow(T.mErrors, rows, "upstream_errors", "warn", dayOf), sparkRow(T.mContentRejected, rows, "content_rejected", "grey", dayOf)),
       h("div", { class: "kv" },
         h("b", {}, T.devices), h("span", {}, Object.keys(byKind).length ? Object.entries(byKind).map(([k, v]) => h("div", {}, h("span", { class: "pill", style: "margin-right:6px" }, `${T.devKinds[k] || k} ${fmt(v.n)}`), h("span", { class: "fine" }, v.os.join(" · ")))) : T.none),
-        h("b", {}, T.invitesTitle), h("span", {}, T.invitesLine({ with_code: 0, inviters: 0, invited: 0, ...(sr.invites || {}) })),
+        h("b", {}, T.invitesTitle), h("span", {}, T.invitesLine({ with_code: 0, inviters: 0, invited: 0, ...(sr.invites || {}) }), " · ", h("a", { class: "more-link", href: "#invites" }, T.invSeeRanking)),
         h("b", {}, T.webTitle), h("span", {}, sr.web && sr.web.enabled === false ? T.webOff : T.webLine(sr.web))));
   }
   function eventRow(e, withWho, accountId) {
@@ -897,7 +915,8 @@
           h("div", {}, h("div", { class: "k" }, T.spendToday), h("div", { class: "v", title: usd(sp.today_cny, rate) }, money(sp.today_cny)), h("div", { class: "k", style: "margin-top:4px" }, T.tokens(a.used))),
           h("div", {}, h("div", { class: "k" }, T.requests), h("div", { class: "v" }, fmt(sp.requests_total)), h("div", { class: "k", style: "margin-top:4px" }, s.unlimited ? T.noCap : `${T.grant}: ${fmt(a.granted)}`))),
         h("div", { class: "fine", style: "padding:0 16px 10px" }, T.poolLine(money(a.grant_cny || 0), a.left_cny === null || a.left_cny === undefined ? null : money(a.left_cny), a.invites || 0, !!a.contribute_bonus_at),
-          a.invited_by ? [" · ", T.invitedBy, " ", h("code", {}, String(a.invited_by).slice(0, 8))] : null),
+          // the inviter by name when the account is still there, the id's start when it is gone
+          a.invited_by ? [" · ", T.invitedBy, " ", a.inviter ? h("a", { class: "more-link", href: "#", onclick: (e) => { e.preventDefault(); openAccount(a.inviter.id); } }, who(a.inviter)) : [h("code", {}, String(a.invited_by).slice(0, 8)), ` (${T.invGone})`]] : null),
         h("div", { class: "acts" },
           s.unlimited ? null : h("button", { class: "btn quiet", onclick: () => doGrant(a) }, T.grant),
           h("button", { class: "btn quiet", onclick: () => doCredit(a) }, T.credit),
@@ -905,6 +924,10 @@
           a.listed ? null : h("button", { class: "btn quiet", onclick: () => doMember(a) }, a.unlimited ? T.unmakeMember : T.makeMember),
           h("button", { class: "btn quiet", onclick: () => doDisable(a) }, a.disabled ? T.enable : T.disable),
           h("button", { class: "btn danger", onclick: () => doDelete(a) }, T.remove))),
+      // the people this account's code brought, newest first; shown once there is one to show
+      ...((a.invited || []).length || a.invites ? [h("div", { class: "label" }, T.invitedList(a.invited_total || (a.invited || []).length), a.invite_earned_cny ? ` · ${T.invEarnedLine(money(a.invite_earned_cny))}` : ""),
+        h("div", { class: "card" }, ...(a.invited || []).map((i) => inviteeRow(i, a)), !(a.invited || []).length ? h("div", { class: "empty" }, T.none) : null,
+          (a.invited_total || 0) > (a.invited || []).length ? h("div", { class: "fine", style: "padding:6px 16px 10px" }, T.invNewest((a.invited || []).length, a.invited_total)) : null)] : []),
       h("div", { class: "label" }, T.byKind), h("div", { class: "card" },
         h("div", { class: "label", style: "margin:12px 16px 4px" }, T.usageToday), kindRows(u.today && u.today.by_kind, rate),
         h("div", { class: "label", style: "margin:12px 16px 4px" }, T.usagePeriod(p.days || days)), kindRows(p.by_kind, rate),
@@ -993,6 +1016,7 @@
   const SORTS = {
     active: (a) => a.last_active_at || 0, joined: (a) => a.created_at || 0, spent: (a) => Number(a.spent_cny || 0), today: (a) => Number(a.spent_today_cny || 0), tokens: (a) => Number(a.used || 0),
     requests: (a) => Number(a.requests || 0), left: (a) => (a.left_cny === null || a.left_cny === undefined ? -1 : Number(a.left_cny)), region: (a) => regionName(placeOfAccount(a)),
+    invites: (a) => Number(a.invites || 0),
   };
   const peopleFilters = () => {
     const g = (k) => params.get(k) || "";
@@ -1095,7 +1119,8 @@
               a.review ? h("span", { class: "pill", title: T.reviewNote }, T.review) : null,
               a.has_password ? h("span", { class: "pill violet" }, T.password) : null,
               a.disabled ? h("span", { class: "pill bad" }, T.disabled) : null,
-              a.locked ? h("span", { class: "pill warn" }, T.locked) : null)))),
+              a.locked ? h("span", { class: "pill warn" }, T.locked) : null,
+              a.invites ? h("span", { class: "pill violet", title: T.invSeeRanking, onclick: (e) => { e.stopPropagation(); go("invites", { q: a.identifier || a.hint }); } }, T.invPill(a.invites)) : null)))),
         h("td", { class: "hide-sm" }, dateOf(a.created_at)),
         h("td", { class: "hide-sm" }, p ? h("span", { class: "place", title: p.isp || "" }, placeText(p)) : h("span", { class: "fine" }, T.pUnknown)),
         h("td", { class: "num" }, money(a.spent_cny), h("span", { class: "sub" }, money(a.spent_today_cny)), cap > 0 ? h("div", { class: "meter sm", title: `${T.cap} ${money(cap)} · ${T.left} ${money(a.left_cny || 0)}` }, h("i", { class: frac >= 1 ? "bad" : frac >= 0.8 ? "warn" : "", style: `width:${Math.round(frac * 100)}%` })) : null),
@@ -1122,6 +1147,76 @@
     const esc = (v) => { const s = v === null || v === undefined ? "" : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
     const text = [cols.map((c) => c[0]).join(","), ...rows.map((a) => cols.map((c) => esc(c[1](a))).join(","))].join("\n");
     download(new Blob(["\ufeff" + text], { type: "text/csv;charset=utf-8" }), `nanomuse-accounts-${new Date().toISOString().slice(0, 10)}.csv`);
+  }
+
+  // ── invites: who brought whom, the inviters that brought most first ──
+  const INV_SORTS = {
+    invited: (x) => x.invited || 0, active: (x) => x.invited_active || 0, same_ip: (x) => x.invited_same_ip || 0,
+    spent: (x) => Number(x.invited_spent_cny || 0), earned: (x) => Number(x.earned_cny || 0), latest: (x) => x.last_invite_at || 0,
+  };
+  const INV_OPEN = new Set(); // the inviters whose people are unfolded in the table
+  const inviteeLabel = (i) => identOf(i.id, i.hint);
+  /** One account that came through a code, as a row: who, when, whether it was used, from where. */
+  function inviteeRow(i, inviter, cls) {
+    const same = !!(inviter && [i.first_ip, i.last_ip].some((ip) => ip && (ip === inviter.first_ip || ip === inviter.last_ip)));
+    return h("div", { class: "row tap" + (cls ? " " + cls : ""), onclick: (e) => { e.stopPropagation(); openAccount(i.id); } },
+      h("span", { class: "tile" + (i.requests > 0 ? "" : " grey"), html: ICON.person }),
+      h("div", { class: "txt" }, h("div", { class: "t" }, inviteeLabel(i), " ", h("span", { class: "pill" }, i.channel === "phone" ? T.phone : T.email),
+        same ? [" ", h("span", { class: "pill warn" }, T.invSameIp)] : null, i.disabled ? [" ", h("span", { class: "pill bad" }, T.disabled)] : null),
+        h("div", { class: "s" }, `${T.thJoined} ${dateOf(i.created_at)} · ${T.lastSeenAt} ${i.last_seen_at ? ago(i.last_seen_at) : T.never} · ${T.thReqs} ${fmt(i.requests)} · ${money(i.spent_cny)}`,
+          i.last_ip ? [" · ", ipChip(i.last_ip, i.id)] : null)));
+  }
+  function invitesView() {
+    const iv = need("invites");
+    if (!iv) return loadingPanel(T.nav.invites);
+    if (iv._error) return failedPanel(T.nav.invites, "invites", iv._error);
+    const f = { q: params.get("q") || "", sort: INV_SORTS[params.get("sort")] ? params.get("sort") : "invited", dir: params.get("dir") || "desc", n: Number(params.get("n")) || PAGE };
+    const q = f.q.trim().toLowerCase();
+    const all = iv.leaders || [], fun = { with_code: 0, inviters: 0, invited: 0, ...(iv.funnel || {}) };
+    const shown = all.filter((x) => !q || (x.hint || "").toLowerCase().includes(q) || (x.identifier || "").toLowerCase().includes(q) || (x.id || "").startsWith(q) || (x.last_ip || "").includes(q));
+    const key = INV_SORTS[f.sort], sign = f.dir === "asc" ? 1 : -1;
+    shown.sort((a, b) => (key(a) - key(b)) * sign || (b.invited || 0) - (a.invited || 0) || (b.last_invite_at || 0) - (a.last_invite_at || 0));
+    const page = shown.slice(0, f.n);
+    const sum = (k) => all.reduce((t, x) => t + Number(x[k] || 0), 0);
+    const kpis = h("div", { class: "kpis in-panel" },
+      flatKpi(T.invKpiCode, fmt(fun.with_code)), flatKpi(T.invKpiInviters, fmt(fun.inviters)), flatKpi(T.invKpiInvited, fmt(fun.invited)),
+      flatKpi(T.invKpiActive, fmt(sum("invited_active"))), flatKpi(T.invKpiSameIp, fmt(sum("invited_same_ip"))));
+    const toolbar = h("div", { class: "toolbar" },
+      h("span", { class: "search" }, h("input", { type: "search", "data-focus": "invites-q", placeholder: T.invSearch, value: f.q, oninput: (e) => setParams({ q: e.target.value, n: "" }) })),
+      select(T.fSort, f.sort, Object.entries(T.invSort), (v) => setParams({ sort: v, n: "" })),
+      h("span", { class: "cnt" }, T.fCount(shown.length, all.length)));
+    const th = (label, key, cls) => h("th", { class: (cls || "") + (key ? " sort" : "") + (key === f.sort ? " on" : ""), onclick: key ? () => setParams({ sort: key, dir: f.sort === key && f.dir === "desc" ? "asc" : "desc", n: "" }) : null }, label, key === f.sort ? (f.dir === "asc" ? " ↑" : " ↓") : "");
+    const rows = [];
+    page.forEach((x, i) => {
+      const open = INV_OPEN.has(x.id), rank = shown.indexOf(x) + 1;
+      rows.push(h("tr", { class: open ? "country" : "", onclick: () => { if (open) INV_OPEN.delete(x.id); else INV_OPEN.add(x.id); draw(); } },
+        h("td", { class: "num fine" }, String(rank)),
+        h("td", {}, h("div", { class: "who" }, h("div", { class: "disc" }, initial(x)),
+          h("div", { style: "min-width:0" }, h("div", { class: "n", title: x.hint }, h("a", { class: "more-link", href: "#", onclick: (e) => { e.preventDefault(); e.stopPropagation(); openAccount(x.id); } }, who(x))),
+            h("div", { class: "tags" }, h("span", { class: "pill" }, x.channel === "phone" ? T.phone : T.email), x.disabled ? h("span", { class: "pill bad" }, T.disabled) : null,
+              h("span", { class: "fine" }, `${T.thJoined} ${dateOf(x.created_at)}`))))),
+        h("td", { class: "num" + (f.sort === "invited" ? " on" : "") }, fmt(x.invited), x.invites !== x.invited ? h("span", { class: "sub" }, T.invRecorded(x.invites)) : null),
+        h("td", { class: "num hide-sm" + (f.sort === "active" ? " on" : "") }, fmt(x.invited_active), x.invited ? h("span", { class: "sub" }, `${Math.round(100 * x.invited_active / x.invited)}%`) : null),
+        h("td", { class: "num hide-sm" + (f.sort === "same_ip" ? " on" : "") }, x.invited_same_ip ? h("span", { class: "pill warn" }, fmt(x.invited_same_ip)) : "0"),
+        h("td", { class: "num hide-sm" + (f.sort === "spent" ? " on" : "") }, money(x.invited_spent_cny)),
+        h("td", { class: "num hide-sm" + (f.sort === "earned" ? " on" : "") }, money(x.earned_cny)),
+        h("td", { class: "hide-sm" + (f.sort === "latest" ? " on" : "") }, x.last_invite_at ? ago(x.last_invite_at) : T.never, h("span", { class: "sub" }, `${T.firstSeen} ${dateOf(x.first_invite_at)}`)),
+        h("td", { class: "num fine" }, open ? "▾" : "▸")));
+      if (open) {
+        const list = x.invitees || [];
+        rows.push(h("tr", { class: "province" }, h("td", {}, ""), h("td", { colspan: 8, style: "padding:0" },
+          h("div", { class: "list" }, ...list.map((it) => inviteeRow(it, x)), !list.length ? h("div", { class: "empty sm" }, T.none) : null,
+            x.invited > list.length ? h("div", { class: "row tap", onclick: (e) => { e.stopPropagation(); openAccount(x.id); } }, h("span", { class: "tile grey", html: ICON.person }), h("div", { class: "txt" }, h("div", { class: "s" }, T.invMore(x.invited - list.length)))) : null))));
+      }
+    });
+    const table = rows.length ? h("table", { class: "places" },
+      h("thead", {}, h("tr", {}, th("#"), th(T.invThWho), th(T.invThInvited, "invited", "num"), th(T.invThActive, "active", "num hide-sm"), th(T.invThSameIp, "same_ip", "num hide-sm"),
+        th(T.invThSpent, "spent", "num hide-sm"), th(T.invThEarned, "earned", "num hide-sm"), th(T.invThLast, "latest", "hide-sm"), th(""))),
+      h("tbody", {}, ...rows)) : h("div", { class: "empty" }, all.length ? T.invNoMatch : T.invNone);
+    return [h("div", { class: "panel" }, h("h2", {}, T.nav.invites, h("span", { class: "pill" }, fmt(fun.inviters)), h("span", { class: "sp" }), h("span", { class: "fine" }, T.invNote)), kpis, toolbar),
+      h("div", { class: "panel" }, table,
+        shown.length > page.length ? h("div", { class: "more" }, h("button", { class: "btn quiet sm", onclick: () => setParams({ n: f.n + PAGE }) }, T.moreRows(Math.min(PAGE, shown.length - page.length))), h("span", { class: "fine" }, T.shown(page.length, shown.length))) : null,
+        h("div", { class: "fine", style: "padding:10px 16px 12px" }, T.invSameIpNote))];
   }
 
   // ── places: where people are, and a way into them ──────────────
@@ -1637,7 +1732,7 @@
         h("div", {}, h("h3", {}, T.gh.releases), rankRows((latest.releases || []).map((r) => ({ name: r.tag, hits: r.downloads }))))),
       h("div", { class: "fine", style: "padding:0 16px 12px" }, T.gh.note));
   }
-  const RENDER = { overview: overviewView, people: peopleView, places: placesView, money: moneyView, activity: activityView, demo: demoView, data: dataView, site: siteView, models: modelsView, health: healthView, stats: statsView, controls: controlsView, settings: settingsView };
+  const RENDER = { overview: overviewView, people: peopleView, invites: invitesView, places: placesView, money: moneyView, activity: activityView, demo: demoView, data: dataView, site: siteView, models: modelsView, health: healthView, stats: statsView, controls: controlsView, settings: settingsView };
 
   // ── the shell: bar, nav, one view ──────────────────────────────
   function drawMain() {
