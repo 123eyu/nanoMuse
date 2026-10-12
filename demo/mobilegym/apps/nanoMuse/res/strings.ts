@@ -39,7 +39,7 @@ export const strings = {
   signin_mode_password: '密码登录',
   signin_mode_code: '验证码登录',
   signin_password: '密码',
-  signin_fine_print: '体验服务器只记下账号 id 和打码后的手机号或邮箱，不保存消息内容。',
+  signin_fine_print: '体验服务器记下账号 id、打码后的手机号或邮箱，以及每次体验的时间和来源地址；不保存任何消息内容。完整清单在隐私页。',
   signin_signed_in_as: '已登录 %s',
   signin_sign_out: '退出登录',
   // nanoMuse Cloud's refusals, in the phone's language (nm_cloud_err_* on Android)
@@ -194,7 +194,7 @@ export const stringsEn: Record<NanoMuseStringKey, string> = {
   signin_mode_password: 'Use a password',
   signin_mode_code: 'Use a code',
   signin_password: 'Password',
-  signin_fine_print: 'The showcase keeps an account id and a masked phone number or e-mail, and no message content.',
+  signin_fine_print: 'The showcase keeps the account id, a masked phone number or e-mail, and when and from where each demo ran; never any message content. The privacy page has the whole list.',
   signin_signed_in_as: 'Signed in as %s',
   signin_sign_out: 'Sign out',
   relay_bad_identifier: 'Enter a mainland China phone number or an e-mail address.',

@@ -232,7 +232,11 @@ html[data-theme="dark"] .nm-dock-app[aria-pressed="true"] { background: #e8e8e8;
   transition: color 200ms ease;
 }
 .boot:hover { color: #fff; }
+/* a keyboard visitor sees where they are: the ring lights up, as under the pointer; a mouse
+   click leaves no ring behind (focus-visible) */
 .boot:focus { outline: none; }
+.boot:focus-visible { color: #fff; }
+.boot:focus-visible .boot-ring { border-color: #d6d3d1; outline: 2px solid #d6d3d1; outline-offset: 4px; }
 .boot-ring {
   width: 72px;
   height: 72px;
@@ -415,4 +419,15 @@ html[data-theme="dark"] .nm-dock-app[aria-pressed="true"] { background: #e8e8e8;
 @media (max-width: 480px) {
   .top { padding: 0 12px; }
   .links a:not(:last-of-type) { display: none; }
+}
+
+/* reduce motion: the fades and the ring's growth happen at once; nothing moves on its own */
+@media (prefers-reduced-motion: reduce) {
+  .hero-demo *, .hero-demo *::before, .hero-demo *::after {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+  .boot:hover .boot-ring, .chip:active { transform: none; }
 }
