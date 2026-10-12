@@ -74,6 +74,9 @@ as `node …/dsh/lib/bin.js <profile>`, so a computer with the app has dsh sessi
 but no `dsh` on `PATH`. The desktop plugin therefore falls back to the harness it
 is running inside (the entry in its own command line) and starts that through
 node. A `dsh` installed on `PATH` is still used first, as for the other three.
+That fallback only sends: dsh counts as installed when a `dsh` is on `PATH` or
+`~/.dsh` exists, so a computer where nobody has used it does not list a fourth
+agent.
 Either way the run gets `DSH_HOME=~/.dsh`: the desktop app points `DSH_HOME` at its
 own home for the harness it runs, and a run there would neither find the chat it
 was asked to continue nor leave a new one where the list looks.
