@@ -25,10 +25,12 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 ### Web
 
 - **Adding an MCP server with its tools marked *high* no longer fails.** The risk chips under *Connections → MCP servers* offered *high*, a level the runtime does not have, so saving answered with a 400; the third chip is now *sensitive*, the level the Sentinel knows. The API key fields, the working hours and quiet hours times, the contacts search, the chat composer and the browser take-over fields are named for screen readers, the Settings selects are tied to their labels, a sheet's title names the dialog, the toast is announced, a pending sensitive approval keeps its red edge in the dark theme, sheets and drawers appear in place under *reduce motion*, and the places that showed a bare dash (the chat model summary without a model, a goal without a next step, a reminder without a time) say so in words. The docs' description of the chat now matches the screen (the ink pill, the chats drawer top left, the + button for attachments, the `conversation` grant scope). (#382)
+- **The invite sentences say when the bonus arrives.** The Account page's invite card, the allowance card's *Invite a friend* row and the sign-in form's hint under the invite code now say that both sides get the ¥5 (or the relay's figure) after the invited friend's first request to nanoMuse Cloud, not at sign-up. In English and 简体中文.
 
 ### Desktop
 
 - **A clip of your own with a fragmented layout is read right, and the connector sheet's Chinese title has its space.** A fragmented MP4 whose 64-bit movie header says "unknown" for the length was refused as too long instead of being read from its `mehd` box; it is now read like the 32-bit case. The sheet that connects a service reads 连接 Notion rather than 连接Notion in Chinese. The desktop shell's own tests now run in the desktop workflow on every platform and pass on a Windows checkout with CRLF line ends ([#383](https://github.com/nano-muse/nanoMuse/pull/383)).
+- **The invite sentences say when the bonus arrives.** The Invite card at the top of the chat, the allowance card's *Invite a friend* row and the hint under the invite code on the welcome and sign-in forms now say that both sides get the ¥5 (or the relay's figure) after the invited friend's first request to nanoMuse Cloud, not at sign-up. In English and 简体中文.
 
 ### Android
 
@@ -36,6 +38,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 - **A clip of your own stops copying at 30 MB.** The import copied the whole file into the avatar folder and only then checked its size, so a picker that gave no size up front could have a long video copied in full before it was refused; the copy now stops the moment the limit is passed, deletes the partial file and refuses with the usual sentence. The preview's refusal line reads *> 30 MB* when the true size is unknown (#362).
 - **Quoted words show their quotes again.** aapt reads a bare `"` inside a string as quoting and drops it, so the empty Permissions and Routines pages read *answer always allow* and *something every morning*, and the avatar studio's lines lost the quotes around the description, in English and in 简体中文; the English strings now escape them and the Chinese ones use “ ”. A unit test refuses a bare quote in any of the seventeen locale files from now on.
 - **The hub no longer takes the app down when the socket drops mid-task.** A task another device had running on the phone sent its progress and its answer through the hub socket; if the connection had dropped meanwhile the send threw on a worker thread, which Android treats as a crash. Such frames are now logged and lost (the relay fails the call to its caller on its own), and a client that was stopped for a sign-out or a key change no longer reports its own closing as the state of the new connection.
+- **The invite sentences say when the bonus arrives.** The account page's *Invite a friend* card and the allowance card's *Invite a friend* row now say that both sides get the ¥5 (or the relay's figure) after the invited friend's first request to nanoMuse Cloud, not at sign-up. In all seventeen languages.
 
 ### iOS
 
@@ -45,6 +48,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 - **Reduce Motion is honoured.** With it on, the pill bar's indicator moves to the tapped tab without the spring, and the face keeps still: no breath, bob, tilt, pop or shake; the mood still changes with its crossfade, and a clip of your own still plays.
 - **Three translations put their numbers back in order.** The avatar studio's *n of m moods drawn* line in Chinese and Traditional Chinese, and the Korean *nearly used up* line above the composer, had the two figures swapped.
 - **The Devices footer tells the truth about approvals.** A step a computer must ask about is approved on that computer, not on the phone; the footer said approvals would show here.
+- **The invite sentences say when the bonus arrives.** The account page's *Invite a friend* footer, the allowance card's *Invite a friend* row and the hint under the invite code on the sign-in form now say that both sides get the ¥5 (or the relay's figure) after the invited friend's first request to nanoMuse Cloud, not at sign-up. In all nine languages.
 
 ### Project
 

@@ -753,7 +753,7 @@
     <string name="nm_face_cost_not_now">Not now</string>
     <string name="nm_face_cost_declined">All right, the face stays as it is.</string>
     <string name="nm_cloud_invite_title">Invite a friend</string>
-    <string name="nm_cloud_invite_why">Each new person who signs up with your code adds ¥%1$s to your allowance, and ¥%1$s to theirs. It never expires.</string>
+    <string name="nm_cloud_invite_why">When a friend signs up with your code and makes their first request, you both get ¥%1$s. It never expires.</string>
     <string name="nm_cloud_invite_code">Your code</string>
     <string name="nm_cloud_invite_share">Share the link</string>
     <string name="nm_cloud_invite_copy">Copy</string>
@@ -791,7 +791,7 @@
     <string name="nm_cap_clips_unavailable">Clips need a provider with video models: Alibaba Cloud Bailian.</string>
     <string name="nm_cap_hands_unavailable">Hands need a model that sees the screen: Bailian, OpenRouter, OpenAI, Anthropic, Gemini, or any provider with vision models.</string>
     <string name="nm_cap_chat_unavailable">Chat needs a provider with chat models: add a key, or sign in.</string>
-    <string name="nm_ways_invite_title">Invite a friend: +¥%1$s for you and +¥%2$s for them, for each new person who signs up with your link.</string>
+    <string name="nm_ways_invite_title">Invite a friend: +¥%1$s for you and +¥%2$s for them, once a new person who signed up with your link makes their first request.</string>
     <string name="nm_ways_invite_share">Share the link</string>
     <string name="nm_ways_invite_copy">Copy the link</string>
     <string name="nm_cloud_ev_contribute_on">Data controls: help improve turned on</string>

@@ -770,7 +770,7 @@
     <string name="nm_face_cost_not_now">Hindi ngayon</string>
     <string name="nm_face_cost_declined">Sige, mananatili ang mukha kung ano ito.</string>
     <string name="nm_cloud_invite_title">Mag-imbita ng kaibigan</string>
-    <string name="nm_cloud_invite_why">Bawat bagong taong mag-sign up gamit ang code mo ay nagdaragdag ng ¥%1$s sa allowance mo, at ¥%1$s sa kanila. Hindi ito nag-e-expire.</string>
+    <string name="nm_cloud_invite_why">Kapag nag-sign up ang kaibigan gamit ang code mo at gumawa ng unang request, pareho kayong makakakuha ng ¥%1$s. Hindi ito nag-e-expire.</string>
     <string name="nm_cloud_invite_code">Ang code mo</string>
     <string name="nm_cloud_invite_share">Ibahagi ang link</string>
     <string name="nm_cloud_invite_copy">Kopyahin</string>
@@ -808,7 +808,7 @@
     <string name="nm_cap_clips_unavailable">Kailangan ng mga clip ng provider na may video model: Alibaba Cloud Bailian.</string>
     <string name="nm_cap_hands_unavailable">Kailangan ng mga kamay ng modelong nakakakita ng screen: Bailian, OpenRouter, OpenAI, Anthropic, Gemini, o anumang provider na may vision model.</string>
     <string name="nm_cap_chat_unavailable">Kailangan ng chat ng provider na may chat model: magdagdag ng key, o mag-sign in.</string>
-    <string name="nm_ways_invite_title">Mag-imbita ng kaibigan: +¥%1$s para sa iyo at +¥%2$s para sa kanila, sa bawat bagong taong mag-sign up gamit ang link mo.</string>
+    <string name="nm_ways_invite_title">Mag-imbita ng kaibigan: +¥%1$s para sa iyo at +¥%2$s para sa kanila, kapag ang bagong taong nag-sign up gamit ang link mo ay gumawa ng unang request.</string>
     <string name="nm_ways_invite_share">Ibahagi ang link</string>
     <string name="nm_ways_invite_copy">Kopyahin ang link</string>
     <string name="nm_cloud_ev_contribute_on">Mga kontrol sa data: na-on ang tulong sa pagpapabuti</string>

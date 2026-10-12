@@ -749,7 +749,7 @@
     <string name="nm_face_cost_not_now">先不了</string>
     <string name="nm_face_cost_declined">好，形象先保持现在这样。</string>
     <string name="nm_cloud_invite_title">邀请朋友</string>
-    <string name="nm_cloud_invite_why">每有一位新用户用你的邀请码注册，你的额度 +¥%1$s，对方也 +¥%1$s，不过期。</string>
+    <string name="nm_cloud_invite_why">朋友用你的邀请码注册并发出第一次请求后，你们各得 ¥%1$s，不过期。</string>
     <string name="nm_cloud_invite_code">邀请码</string>
     <string name="nm_cloud_invite_share">分享链接</string>
     <string name="nm_cloud_invite_copy">复制</string>
@@ -768,7 +768,7 @@
     <string name="nm_ways_sub">两个办法继续用；无论选哪个，登录和多设备功能都不受影响。</string>
     <string name="nm_ways_key_title">换成自己的 key</string>
     <string name="nm_ways_key_guide">图文教程</string>
-    <string name="nm_ways_invite_title">邀请朋友：每有一位新用户通过你的链接注册，你 +¥%1$s，对方也 +¥%2$s。</string>
+    <string name="nm_ways_invite_title">邀请朋友：每有一位新用户通过你的链接注册并发出第一次请求，你 +¥%1$s，对方也 +¥%2$s。</string>
     <string name="nm_ways_invite_share">分享链接</string>
     <string name="nm_ways_invite_copy">复制链接</string>
     <string name="nm_cloud_ev_contribute_on">数据控制：已开启「帮助改进」</string>
