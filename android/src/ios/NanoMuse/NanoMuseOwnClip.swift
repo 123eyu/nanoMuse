@@ -31,8 +31,10 @@ final class NanoMuseOwnClip: ObservableObject {
     nonisolated static let maxSeconds = 15
     /// The largest file taken.
     nonisolated static let maxBytes: Int64 = 30 * 1024 * 1024
-    /// The video codecs the system player decodes here, as the four-character codes of the format description.
-    nonisolated static let codecs: Set<String> = ["avc1", "hvc1", "hev1"]
+    /// The video codecs the system player decodes here, as the four-character codes of the format
+    /// description: H.264 in both of its sample entries (Android takes the one MIME type
+    /// `video/avc`, the desktop `avc1` and `avc3`) and HEVC.
+    nonisolated static let codecs: Set<String> = ["avc1", "avc3", "hvc1", "hev1"]
     /// The containers taken: MP4 and QuickTime (MOV), as uniform type identifiers.
     nonisolated static let containers: Set<String> = [UTType.mpeg4Movie.identifier, UTType.quickTimeMovie.identifier]
 
@@ -99,6 +101,16 @@ final class NanoMuseOwnClip: ObservableObject {
         ((try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? NSNumber)?.int64Value
     }
 
+    /// The clip is up to 30 MB the person can pick again: it stays out of the iCloud and
+    /// computer backups, with its still and the pending copy. Set on every write, as the
+    /// flag belongs to the file, not the path.
+    nonisolated private static func keepOutOfBackup(_ url: URL) {
+        var target = url
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try? target.setResourceValues(values)
+    }
+
     /// Reads the folder again: after an import, "Default face", or an account change (C12).
     func rescan() {
         let url = Self.clipFile
@@ -122,8 +134,10 @@ final class NanoMuseOwnClip: ObservableObject {
             try? fm.copyItem(at: pending.url, to: Self.clipFile)
             try? fm.removeItem(at: pending.url)
         }
+        Self.keepOutOfBackup(Self.clipFile)
         if let poster = pending.poster, let png = poster.pngData() {
             try? png.write(to: Self.posterFile, options: .atomic)
+            Self.keepOutOfBackup(Self.posterFile)
         } else {
             try? fm.removeItem(at: Self.posterFile)
         }
@@ -206,6 +220,7 @@ final class NanoMuseOwnClip: ObservableObject {
             try? fm.removeItem(at: url)
             return .failed(error.localizedDescription)
         }
+        keepOutOfBackup(dst)
         let poster = await firstFrame(dst)
         return .ready(Pending(url: dst, poster: poster, durationMs: probe.durationMs ?? 0, bytes: probe.bytes ?? size(of: dst) ?? 0))
     }

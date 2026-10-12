@@ -96,8 +96,9 @@ Ours, in `NanoMuse/`:
   remains) is tapped into **the agent's page**. A short clip of your own can play as the
   face instead (`NanoMuseOwnClip.swift`: *Your own clip…* under the pen on the agent's page and in
   the avatar studio; MP4 or MOV with H.264 or HEVC video, up to 15 seconds and 30 MB, previewed
-  before it is used, kept on that phone only under `Application Support/nanomuse/avatar/own-clip.mp4`,
-  and *Default face* removes it; the section in [avatar.md](avatar.md) has the fallback rule).
+  before it is used, kept on that phone only under `Application Support/nanomuse/avatar/own-clip.mp4`
+  and left out of the iCloud and computer backups with its still, and *Default face* removes it;
+  the section in [avatar.md](avatar.md) has the fallback rule).
   The drawer holds the sessions, search,
   a new side chat, *Pin as the main chat*, *All chats* and the nanoMuse settings; it opens from
   the round button and, on the main chat, from a swipe in at the left edge

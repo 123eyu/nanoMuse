@@ -87,8 +87,9 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   只剩状态切换时的淡入淡出）点一下进入**智能体的页面**。
   也可以换成一段你自己的短视频来当形象（`NanoMuseOwnClip.swift`：智能体页面钢笔菜单和形象
   工作室里的 *你自己的视频…*；MP4 或 MOV，H.264 或 HEVC 视频，最长 15 秒、最大 30 MB，用之前
-  先预览，只保存在这台手机的 `Application Support/nanomuse/avatar/own-clip.mp4`，*默认形象*
-  可移除；回退规则见 [avatar.md](avatar.md) 里的那一节）。
+  先预览，只保存在这台手机的 `Application Support/nanomuse/avatar/own-clip.mp4`，连同它的
+  静帧一起不进 iCloud 和电脑备份，*默认形象* 可移除；回退规则见 [avatar.md](avatar.md)
+  里的那一节）。
   抽屉里放着会话、搜索、新建旁聊、*设为主要聊天*、*全部对话* 和 nanoMuse 设置；点圆形按钮
   打开，在主要聊天里从左边缘向右滑也打开（`NanoMuseEdgeSwipe.swift`，挂在窗口上的屏幕边缘
   手势，和 Android 聊天页上的抽屉一样；推出来的旁聊仍然用系统的返回手势）。
