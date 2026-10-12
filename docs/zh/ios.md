@@ -280,12 +280,16 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   上边缘从底栏上方露出来一点。外壳的底栏是 `NavigationStack` 祖先上的一个 `safeAreaInset`，
   键盘弹起时隐藏；聊天在启动时尊重这个 inset，底栏离开又回来之后就不再尊重，于是整个聊天
   都跑到底栏下面去了，而输入区（贴底对齐、布局完成、按看门狗的每一项指标都正常）正好
-  躲在底栏后面。从 0.1.40 起，**底栏靠普通布局排在聊天下面，绝不做聊天祖先上的 inset**
-  （0.1.40 是一个 `VStack` 的一行；下文的悬浮胶囊栏之后，是聊天层上一段底栏高度的底部
-  padding，布局上是同一回事），输入区这一列（卡片、工具条、输入栏）同样是**消息列表下面的一行**：`NanoMuseComposerHost`
-  是一个普通的 `VStack`，列表拿到的底部 inset 是 0，`/` 和 `@` 的弹出菜单是列表底边的
-  overlay，所以从布局上就站在这一列的上边缘。没有任何东西盖在 UIKit 列表上，也没有第二个
-  宿主可切换。看门狗作为最后一道网留着（聊天在屏幕上时，这一列脱离或者量出 0，就通过
+  躲在底栏后面。从 0.1.40 起，**底栏绝不做聊天祖先上的 inset**（0.1.40 是一个 `VStack`
+  的一行；从悬浮胶囊栏到 1.0.3，是聊天层上一段底栏高度的底部 padding；之后底栏高度作为环境值
+  `nmBottomOverlay` 传进聊天，聊天把输入区抬高这么多）。0.1.40 到 1.0.3 之间，输入区这一列
+  （卡片、工具条、输入栏）是一个变矮的消息列表下面的一行，胶囊栏的玻璃后面只剩一片空白画布；
+  **从 1.0.4 起这一列重新盖在列表的底边上**：`NanoMuseComposerHost` 是一个 `ZStack`，列表保持
+  聊天的整个高度，拿到的底部 inset 是这一列量出的高度加底栏，于是消息从输入区和底栏下面滚过，
+  静止时最后一条停在输入区上方；`/` 和 `@` 的弹出菜单和这一列同在一个 `VStack` 里，所以从布局上
+  就站在它的上边缘。这一列背后是 Android 的滚动渐隐（`nmBottomFade`）：列表一离开最新一条，
+  就出现一段 90 pt 的画布色渐变和这一列背后的实底，止于底栏上方，好让玻璃留住它后面的消息。
+  没有第二个宿主可切换。看门狗作为最后一道网留着（聊天在屏幕上时，这一列脱离或者量出 0，就通过
   `.id(rebuildTick)` 重建，每次出现最多两次，这样一个量错了的健康输入区不会反复把键盘收走），
   并且把看到的都记下来：**设置 → 外观 → 输入框检查** 在这一列四周画一个红框（探针视图在
   它的背景里）并写一份报告（窗口和它的安全区、这一列的 frame、探针的每个 UIKit 祖先及其
@@ -451,11 +455,12 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   60 × 46 pt 的 `tabIndicator` 色胶囊（聊天的墨色：浅色黑底白符号，深色白底黑符号，和 Android 的
   `MuseBottomBar` 一样），点下一个标签时它带着弹簧滑过去
   （`matchedGeometryEffect`；开了「减弱动态效果」就不带弹簧，直接过去）；其他标签用次要颜色显示线框符号。键盘弹起或聊天的语音面板打开时，
-  底栏仍然离开。布局：胶囊在一个贴底对齐的 `ZStack` 里盖在房间和聊天上面。聊天沿用上面
-  0.1.40 的规矩（聊天层加一段底栏高度、70 pt 的底部 padding：46 加上下各 6，再加 12 pt 的间隙，所以输入区在胶囊上面，
-  `NavigationStack` 的祖先上没有任何 inset）；房间是普通的 SwiftUI 滚动视图，同样的高度用
-  `safeAreaInset` 给出，于是它们的内容会滚到胶囊下面，玻璃才有东西可模糊。在没有 Mac 的 Linux
-  上写的：iOS 检查能编译它，还没有设备显示过它。
+  底栏仍然离开。布局：胶囊在一个贴底对齐的 `ZStack` 里盖在房间和聊天上面。聊天拿到底栏的
+  高度（70 pt：46 加上下各 6，再加 12 pt 的间隙）作为环境值 `nmBottomOverlay`，把输入区抬高这么多，
+  消息从输入区和底栏下面滚过（见上面输入区那条）；`NavigationStack` 的祖先上没有任何 inset。
+  房间是普通的 SwiftUI 滚动视图，同样的高度用 `safeAreaInset` 给出。两种情况下玻璃后面都有
+  对话或房间可以模糊；1.0.3 之前聊天是垫在底栏上方的，玻璃后面只有空白画布，胶囊看上去就是一块
+  白的（1.0.3 在 iPad 上看到的样子）。
 - **聊天是单色的**（`NanoMuseFaces.swift` 里的 `NanoMuseTones.ink` / `onInk` / `agentPill`，
   `NanoMuseHeader.swift` 里的 `NanoMuseHeaderScrim`，`NanoMuseComposer.swift`，
   `NanoMuseChatCards.swift`，以及 `Views/Chat/ChatMessageViews.swift` 和

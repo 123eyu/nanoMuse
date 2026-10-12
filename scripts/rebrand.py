@@ -129,6 +129,20 @@ def soul_defaults() -> None:
             (r'const val DISPLAY_EMOJI = "✨"', 'const val DISPLAY_EMOJI = "🐾"'),
         ],
     )
+    # The default-name round-trip follows DEFAULT; explicit stored-name fixtures stay intact.
+    test = APP / "src" / "test" / "java" / "com" / "openminis" / "app" / "agent"
+    test /= "SoulIconConfigEdgeTest.kt"
+    if test.is_file():
+        edit(
+            test,
+            [
+                (
+                    r'^([ \t]*)assertEquals\("Minis", back\.metadata\.name\)$',
+                    r"\1// nanoMuse: round-trip the rebranded default name.\n"
+                    r"\1assertEquals(SoulMetadata.DEFAULT.name, back.metadata.name)",
+                ),
+            ],
+        )
 
 
 def links() -> None:
