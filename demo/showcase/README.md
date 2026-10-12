@@ -388,6 +388,12 @@ the header (`proxy_headers=False`), so its access log carries Caddy's address an
 visitor's. A front other than this compose file's Caddy goes into `TRUSTED_PROXIES`; `*`
 believes any peer, which is the old behaviour and not advisable.
 
+The two long-lived containers carry a health check (`docker compose ps` shows `healthy` or
+`unhealthy`): Caddy answers its admin endpoint on localhost while its config is loaded, the
+gateway answers `GET /api/demo/info`. Docker does not restart an unhealthy container by
+itself; `restart: unless-stopped` covers a process that exits, and the state is there for the
+operator (or a watcher such as autoheal) to act on.
+
 ### Other sites on the same Caddy
 
 The Caddyfile ends with `import /etc/caddy/sites.d/*.caddy`, and `docker-compose.yml` mounts
@@ -447,6 +453,28 @@ with `MOBILEGYM_CDN_BASE=https://cdn.mobilegym.dev` (a build arg of the same nam
 file) and the phone takes it from MobileGym's CDN, as their own site does.
 
 `cd gateway && pytest` runs the gateway's tests (no Docker needed; the containers are faked).
+
+### Bumping MobileGym
+
+The phone is built from one MobileGym commit, the id in `mobilegym.ref`; `caddy/Dockerfile`
+and `site/build.sh` both read it, so the image the workflow publishes and a local build are
+the same phone, and a change on MobileGym's `main` reaches the visitors only when someone
+moves the pin. To move it:
+
+1. `git ls-remote https://github.com/Purewhiter/mobilegym.git main` for the new id (or pick a
+   tag).
+2. Put it on the last line of `mobilegym.ref`.
+3. `site/build.sh` with a fresh checkout (`rm -rf site/mobilegym` first): it fetches that
+   commit, runs `demo/mobilegym/patch-seed.sh` (which fails if upstream moved the 微信 line
+   the showcase changes) and composes the page (`site/compose.mjs`, which fails if the markup
+   it borrows from MobileGym's `web/index.html` is gone). Open the result and walk the lines
+   in both languages.
+4. Commit the new id with whatever the two scripts or the module needed; the workflow builds
+   the Caddy image from it, and `docker compose pull && docker compose up -d` on the box
+   serves it.
+
+`MOBILEGYM_REF` in `.env` (a branch, tag or commit id) overrides the pin for a build on that
+box, for trying an upstream change before pinning it.
 
 ## Costs, roughly
 
