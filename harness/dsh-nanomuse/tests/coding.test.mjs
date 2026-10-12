@@ -8,7 +8,8 @@ import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { test } from 'node:test'
-import { clean, countProcesses, detect, parsePs, parseTasklist, readSession, sessions, sessionsRoot, slugToPath, title, which } from '../lib/coding-readers.js'
+import { zstdCompressSync } from 'node:zlib'
+import { cliFor, clean, countProcesses, detect, ownDshEntry, parsePs, parseTasklist, readSession, sessions, sessionsRoot, slugToPath, title, which } from '../lib/coding-readers.js'
 import { agentEnv, commandFor, continuation, normalise, Run, runFromView, startRun } from '../lib/coding-runner.js'
 import { CODING_ACTIONS, CodingService, codingBrief, GATED_CODING_ACTIONS } from '../lib/coding.js'
 
@@ -31,6 +32,17 @@ async function scratch(work) {
 async function write(path, lines) {
   await mkdir(dirname(path), { recursive: true })
   await writeFile(path, lines.map((l) => (typeof l === 'string' ? l : JSON.stringify(l))).join('\n') + '\n')
+}
+
+/**
+ * Write a dsh session file the way the harness does: one zstd frame per write. `groups` is a
+ * list of frames, each a list of JSON objects; reading it back must decompress every frame,
+ * not just the first.
+ */
+async function writeZstdFrames(path, groups) {
+  await mkdir(dirname(path), { recursive: true })
+  const frames = groups.map((lines) => zstdCompressSync(Buffer.from(lines.map((l) => JSON.stringify(l)).join('\n') + '\n')))
+  await writeFile(path, Buffer.concat(frames))
 }
 
 /** A home with one chat of each agent, in the formats `agents.py` documents. */
@@ -65,6 +77,29 @@ async function fixtureHome(home) {
     { type: 'assistant', message: { role: 'assistant', content: [{ type: 'text', text: 'The build runs esbuild twice.' }] }, timestamp: '2026-01-03T09:00:05Z', cwd: ws, sessionId: 'c1a2b3d4-aaaa-bbbb-cccc-ddddeeeeffff' },
     { type: 'user', message: { role: 'user', content: '<local-command-stdout>ignored</local-command-stdout>' }, isMeta: true, cwd: ws },
   ])
+  // dsh: the harness's own store, one zstd frame per write (a long chat is many frames
+  // appended, which is what a single zstdDecompressSync would stop at), with runtime context
+  // and a subagent session that must not show up as chats the person had
+  const dshDir = join(home, '.dsh', 'sessions', slugOf(ws), 'session-1111-2222-3333')
+  await mkdir(dshDir, { recursive: true })
+  await writeZstdFrames(join(dshDir, 'session.v4.jsonl.zstd'), [
+    [{ type: 'session', version: 4, id: 'session-1111-2222-3333', createdAt: 1_700_000_000_000, cwd: ws }],
+    [
+      { type: 'user/message', seq: 1, data: { content: [{ type: 'text', text: 'Refactor the loader' }], source: { kind: 'user' }, role: 'user' } },
+      { type: 'session/title', seq: 2, data: { title: 'Refactor the loader' } },
+    ],
+    [
+      { type: 'user/message', seq: 3, data: { content: [{ type: 'text', text: 'Current DSH file policy: workspace-write' }], source: { kind: 'runtime-context' } } },
+      { type: 'assistant/message', seq: 4, data: { message: { role: 'assistant', content: [{ type: 'reasoning', text: 'hmm' }, { type: 'text', text: 'The loader is now two functions.' }] } } },
+      { type: 'turn/end', seq: 5, data: { turn: 1 } },
+    ],
+  ])
+  const subDir = join(home, '.dsh', 'sessions', slugOf(ws), 'session-9999-8888-7777')
+  await mkdir(subDir, { recursive: true })
+  await writeZstdFrames(join(subDir, 'session.v4.jsonl.zstd'), [
+    [{ type: 'session', version: 4, id: 'session-9999-8888-7777', cwd: ws, origin: 'subagent', parentSession: 'session-1111-2222-3333' }],
+    [{ type: 'user/message', seq: 1, data: { content: [{ type: 'text', text: 'You are researching something' }], source: { kind: 'user' } } }],
+  ])
   return { ws, slug }
 }
 
@@ -76,9 +111,10 @@ test('readers: a fixture home gives one session per agent, in the runtime shape'
     const env = { ...process.env, NANOMUSE_CODING_HOME: home }
     assert.equal(sessionsRoot('codex', env), join(home, '.codex', 'sessions'))
     const all = await sessions(undefined, 30, undefined, env)
-    assert.equal(all.length, 4)
+    assert.equal(all.length, 5)
     for (const s of all) for (const k of SESSION_KEYS) assert.ok(k in s, `${s.agent} session carries ${k}`)
     assert.ok(all.every((s) => !('transcript' in s)), 'the list carries no transcripts')
+    assert.ok(!all.some((s) => s.id === 'session-9999-8888-7777'), 'a subagent session is not one of the person’s chats')
 
     const ide = all.find((s) => s.id === 'ide-1')
     assert.equal(ide.agent, 'cursor')
@@ -112,9 +148,19 @@ test('readers: a fixture home gives one session per agent, in the runtime shape'
     assert.equal(claude.messages, 2, 'the meta line is skipped')
     assert.equal(claude.source, '')
 
+    const dsh = all.find((s) => s.agent === 'dsh')
+    assert.equal(dsh.id, 'session-1111-2222-3333')
+    assert.equal(dsh.title, 'Refactor the loader')
+    assert.equal(dsh.workspace, ws)
+    assert.equal(dsh.created_at, 1_700_000_000)
+    assert.equal(dsh.messages, 2, 'the runtime-context user message is not the person’s words')
+    assert.equal(dsh.last_user, 'Refactor the loader')
+    assert.equal(dsh.resumable, true)
+
     // by agent, by workspace, and the limit
     assert.equal((await sessions('cursor', 30, undefined, env)).length, 2)
-    assert.equal((await sessions(undefined, 30, ws, env)).length, 4)
+    assert.equal((await sessions('dsh', 30, undefined, env)).length, 1)
+    assert.equal((await sessions(undefined, 30, ws, env)).length, 5)
     assert.equal((await sessions(undefined, 30, join(home, 'elsewhere'), env)).length, 0)
     assert.equal((await sessions(undefined, 1, undefined, env)).length, 1)
   })
@@ -134,18 +180,25 @@ test('readers: one session comes with its transcript; a bad id is nothing', { sk
     assert.equal(codex.transcript[1].text, 'Renamed parser.py to reader.py.')
     const claude = await readSession('claude', 'c1a2b3d4-aaaa-bbbb-cccc-ddddeeeeffff', env)
     assert.equal(claude.transcript.length, 2)
+    // dsh: every zstd frame is decompressed, not only the first
+    const dsh = await readSession('dsh', 'session-1111-2222-3333', env)
+    assert.deepEqual(dsh.transcript, [
+      { role: 'user', text: 'Refactor the loader' },
+      { role: 'assistant', text: 'The loader is now two functions.' },
+    ])
+    assert.equal(await readSession('dsh', 'session-9999-8888-7777', env), undefined, 'a subagent session is not readable as a chat')
     assert.equal(await readSession('claude', 'nope', env), undefined)
     assert.equal(await readSession('cursor', '../ide-1', env), undefined)
     assert.equal(await readSession('cursor', '', env), undefined)
   })
 })
 
-test('readers: a missing home is three agents with no sessions', async () => {
+test('readers: a missing home is every agent with no sessions', async () => {
   await scratch(async (home) => {
     const env = { ...process.env, NANOMUSE_CODING_HOME: join(home, 'nothing'), PATH: join(home, 'emptybin') }
     assert.deepEqual(await sessions(undefined, 30, undefined, env), [])
     const agents = await detect(false, env)
-    assert.deepEqual(agents.map((a) => a.id), ['cursor', 'codex', 'claude'])
+    assert.deepEqual(agents.map((a) => a.id), ['cursor', 'codex', 'claude', 'dsh'])
     for (const a of agents) {
       assert.deepEqual(Object.keys(a).sort(), ['cli', 'id', 'installed', 'name', 'running', 'sessions_root', 'version'])
       assert.equal(a.installed, false)
@@ -217,15 +270,15 @@ test('processes: ps and tasklist parsers, and the count by agent', () => {
   const ps = parsePs(['bash /bin/bash --login', 'node /usr/bin/node /home/me/.local/bin/cursor-agent --server extra words', 'codex codex exec --json', 'claude claude -p', 'cursor-agent cursor-agent -p hi', 'Cursor.exe', ''].join('\n'))
   assert.deepEqual(ps[1], ['node', '/usr/bin/node /home/me/.local/bin/cursor-agent --server'])
   assert.deepEqual(ps[5], ['Cursor.exe', ''])
-  assert.deepEqual(countProcesses(ps), { cursor: 3, codex: 1, claude: 1 })
+  assert.deepEqual(countProcesses(ps), { cursor: 3, codex: 1, claude: 1, dsh: 0 })
 
   const tl = parseTasklist(['"System Idle Process","0","Services","0","8 K"', '"node.exe","1234","Console","1","50,000 K"', '"node.exe","1235","Console","1","50,000 K"', '"codex.exe","99","Console","1","1 K"', '"Claude.exe","98","Console","1","1 K"'].join('\r\n'), ['"C:\\Program Files\\nodejs\\node.exe" C:\\Users\\me\\AppData\\cursor-agent\\index.js', '"C:\\Program Files\\nodejs\\node.exe" something-else.js'])
   assert.equal(tl.length, 5)
   assert.deepEqual(tl[1], ['node.exe', '"C:\\Program Files\\nodejs\\node.exe" C:\\Users\\me\\AppData\\cursor-agent\\index.js'])
   assert.deepEqual(tl[2], ['node.exe', '"C:\\Program Files\\nodejs\\node.exe" something-else.js'])
-  assert.deepEqual(countProcesses(tl), { cursor: 1, codex: 1, claude: 1 })
+  assert.deepEqual(countProcesses(tl), { cursor: 1, codex: 1, claude: 1, dsh: 0 })
   // our own command line never matches: there is no `pgrep -f`, only names and node's argv
-  assert.deepEqual(countProcesses([['python3', 'python3 -m nanomuse serve --coding cursor-agent']]), { cursor: 0, codex: 0, claude: 0 })
+  assert.deepEqual(countProcesses([['python3', 'python3 -m nanomuse serve --coding cursor-agent']]), { cursor: 0, codex: 0, claude: 0, dsh: 0 })
 })
 
 test('runner: the command lines the docs give', () => {
@@ -234,6 +287,34 @@ test('runner: the command lines the docs give', () => {
   assert.deepEqual(commandFor('codex', 'codex', 'th1', '/w', 'go', true), ['codex', 'exec', 'resume', 'th1', '--json', '--skip-git-repo-check', '-c', 'sandbox_mode="workspace-write"', 'go'])
   assert.deepEqual(commandFor('codex', 'codex', '', '/w', 'go', false), ['codex', 'exec', '--json', '--skip-git-repo-check', '-c', 'sandbox_mode="workspace-write"', '-C', '/w', 'go'])
   assert.deepEqual(commandFor('claude', 'claude', 's1', '/w', 'go', true), ['claude', '-p', '--output-format', 'stream-json', '--verbose', '--permission-mode', 'acceptEdits', '--resume', 's1', 'go'])
+  // dsh has no `-C`: it runs in the spawn's cwd, and adopting a session requires that cwd to match
+  assert.deepEqual(commandFor('dsh', '/u/dsh', 'session-1', '/w', 'go', true), ['/u/dsh', '--profile', 'headless', '--json', '--session-id', 'session-1', 'go'])
+  assert.deepEqual(commandFor('dsh', '/u/dsh', '', '/w', 'go', false), ['/u/dsh', '--profile', 'headless', '--json', 'go'])
+  // the harness this plugin runs inside is a `bin.js` (its own `dsh` ships in the app
+  // bundle, not on PATH), so node is what starts it
+  assert.deepEqual(commandFor('dsh', '/app/dsh/lib/bin.js', '', '/w', 'go', false), [process.execPath, '/app/dsh/lib/bin.js', '--profile', 'headless', '--json', 'go'])
+})
+
+test('readers: the harness finds its own dsh entry, and dsh sends through it', async () => {
+  // the desktop app starts `node …/dsh/lib/bin.js <profile>`, so the entry is in argv
+  assert.equal(ownDshEntry(['/usr/bin/node', '/app/other/lib/bin.js']), undefined, 'not a dsh entry')
+  assert.equal(ownDshEntry(['/usr/bin/node', '--expose-internals', '/nope/dsh/lib/bin.js']), undefined, 'a path that is not there')
+  assert.equal(ownDshEntry([]), undefined)
+  await scratch(async (dir) => {
+    const entry = join(dir, 'dsh', 'lib', 'bin.js')
+    await mkdir(dirname(entry), { recursive: true })
+    await writeFile(entry, '// the harness\n')
+    const argv = ['/usr/bin/node', '--expose-internals', entry, 'web']
+    assert.equal(ownDshEntry(argv), entry)
+    // no dsh on PATH: a run is sent through this harness's own entry, and only for dsh
+    const env = { ...process.env, PATH: join(dir, 'emptybin') }
+    assert.equal(cliFor('dsh', env, argv), entry)
+    assert.equal(cliFor('codex', env, argv), undefined, 'another agent never falls back')
+    // but the entry alone does not make dsh installed: that is PATH or ~/.dsh, as for the others
+    assert.equal(which('dsh', env), undefined)
+    const agents = await detect(false, { ...env, NANOMUSE_CODING_HOME: join(dir, 'nothing') })
+    assert.equal(agents.find((a) => a.id === 'dsh').installed, false)
+  })
 })
 
 test('runner: the CLI environment is scrubbed and keeps the agent’s own variables', () => {
@@ -254,6 +335,11 @@ test('runner: the CLI environment is scrubbed and keeps the agent’s own variab
   const bedrock = agentEnv('claude', { ...source, CLAUDE_CODE_USE_BEDROCK: '1' })
   assert.equal(bedrock.AWS_SECRET_ACCESS_KEY, 's')
   assert.equal(agentEnv('cursor', source).CURSOR_API_KEY, 'c')
+  // the desktop app points DSH_HOME at its own home; a dsh started from here works in the store
+  // the readers list instead, so the session it adopts or starts is the one the phone sees
+  const dsh = agentEnv('dsh', { ...source, DSH_HOME: '/app/home', NANOMUSE_CODING_HOME: '/h' })
+  assert.equal(dsh.DSH_HOME, join('/h', '.dsh'))
+  assert.equal(agentEnv('codex', { ...source, DSH_HOME: '/app/home' }).DSH_HOME, '/app/home', 'only dsh is redirected')
 })
 
 test('runner: Cursor stream-json → started, partial text then the whole message, tools, done', () => {
@@ -310,6 +396,30 @@ test('runner: Claude stream-json → init, text and tool_use blocks, result', ()
   assert.equal(run.output, 'Looking.\nLooking.\nDone.')
   assert.equal(normalise('claude', { type: 'result', is_error: true, result: 'nope' }, run)[0].kind, 'error')
   assert.deepEqual(normalise('claude', { type: 'rate_limit' }, run), [])
+})
+
+test('runner: dsh headless --json → session, text, tools, final, and the error it reports', () => {
+  const run = new Run('run_dsh', 'dsh', '', '', 'hi')
+  const ev = (obj) => normalise('dsh', obj, run)
+  // the opening line `dsh --profile headless --json` writes first
+  assert.deepEqual(ev({ type: 'session', sessionId: 'session-abc', cwd: '/w' }), [{ kind: 'started', text: '', session_id: 'session-abc', cwd: '/w' }])
+  assert.equal(run.result_session_id, 'session-abc')
+  // the status lines carry no words of their own
+  assert.deepEqual(ev({ type: 'status', phase: 'turn_start', turn: 1 }), [])
+  assert.deepEqual(ev({ type: 'status', phase: 'step_start', turn: 1, step: 1 }), [])
+  assert.deepEqual(ev({ type: 'thinking', text: 'let me look' }), [], 'reasoning is not the agent’s answer')
+  assert.deepEqual(ev({ type: 'text', text: 'Two files changed.' }), [{ kind: 'text', text: 'Two files changed.' }])
+  assert.equal(run.output, 'Two files changed.')
+  assert.deepEqual(ev({ type: 'tool_call', callId: 'c1', tool: 'bash', input: { command: 'ls -la' } }), [{ kind: 'tool', text: 'bash: ls -la', phase: 'started' }])
+  assert.equal(run.tools, 1)
+  assert.deepEqual(ev({ type: 'tool_result', callId: 'c1', status: 'completed', result: 'ok' }), [{ kind: 'tool', text: 'completed', phase: 'completed' }])
+  const done = ev({ type: 'final', text: 'Two files changed.' })
+  assert.equal(done[0].kind, 'done')
+  assert.equal(done[0].session_id, 'session-abc')
+  assert.equal(run.output, 'Two files changed.', 'the final text is not appended twice')
+  // a failed turn is reported on its status line
+  const failed = normalise('dsh', { type: 'status', phase: 'turn_end', turn: 1, reason: { kind: 'error', error: { code: 'MISSING_CREDENTIAL', message: 'no API key' } } }, new Run('r', 'dsh', '', '', 'x'))
+  assert.deepEqual(failed, [{ kind: 'error', text: 'no API key' }])
 })
 
 test('runner: the run view, the saved shape read back, the continuation message', () => {
@@ -446,12 +556,12 @@ test('service: coding.agents / sessions / session / runs answer in the runtime s
     const env = { ...process.env, NANOMUSE_CODING_HOME: home, PATH: join(home, 'emptybin') }
     const svc = new CodingService({ hub: fakeHub(), env, storePath: join(home, 'state', 'runs.json') })
     const agents = await svc.handle('coding.agents', {})
-    assert.equal(agents.agents.length, 3)
+    assert.equal(agents.agents.length, 4)
     assert.ok(agents.agents.every((a) => a.installed && a.cli === null), 'stores without CLIs')
     const list = await svc.handle('coding.sessions', { agent: 'cursor', limit: 10 })
     assert.equal(list.sessions.length, 2)
     const byWs = await svc.handle('coding.sessions', { workspace: ws })
-    assert.equal(byWs.sessions.length, 4)
+    assert.equal(byWs.sessions.length, 5)
     const one = await svc.handle('coding.session', { agent: 'codex', session_id: '0f9a7b6c-1111-2222-3333-444455556666' })
     assert.equal(one.transcript.length, 2)
     assert.ok(!('runs' in one), 'no runs on it yet')

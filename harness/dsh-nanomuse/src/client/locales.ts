@@ -174,9 +174,9 @@ export const en = {
   capOpen: 'Open links',
   capCoding: 'Coding agents',
   // Settings → Coding agents (CodingPanel.tsx)
-  cdLead: 'The Cursor, Codex and Claude Code chats on this computer and on the account’s other computers: read a chat, send a message, watch the run.',
+  cdLead: 'The Cursor, Codex, Claude Code and DeepSeek Harness chats on this computer and on the account’s other computers: read a chat, send a message, watch the run.',
   cdOtherComputers: 'Other computers',
-  cdNoneInstalled: 'None of Cursor, Codex or Claude Code is installed on this computer.',
+  cdNoneInstalled: 'None of Cursor, Codex, Claude Code or DeepSeek Harness is installed on this computer.',
   cdNoneInstalledSub: 'Install one and its chats appear here. A computer of the account that has one is listed below.',
   cdNoOtherComputers: 'No other computer of the account is online with coding agents.',
   cdOffHub: 'Not on the hub: only this computer’s agents are listed.',
@@ -1610,9 +1610,9 @@ export const zh: typeof en = {
   capOpen: '打开链接',
   capCoding: '编程助手',
   // 设置 → 编程助手（CodingPanel.tsx）
-  cdLead: '这台电脑和账号下其他电脑上的 Cursor、Codex、Claude Code 聊天：看记录，发消息，跟着运行看。',
+  cdLead: '这台电脑和账号下其他电脑上的 Cursor、Codex、Claude Code、DeepSeek Harness 聊天：看记录，发消息，跟着运行看。',
   cdOtherComputers: '其他电脑',
-  cdNoneInstalled: '这台电脑上没有安装 Cursor、Codex 或 Claude Code。',
+  cdNoneInstalled: '这台电脑上没有安装 Cursor、Codex、Claude Code 或 DeepSeek Harness。',
   cdNoneInstalledSub: '装上一个，它的聊天就会出现在这里。账号下装了的电脑列在下面。',
   cdNoOtherComputers: '账号下没有其他带编程助手的电脑在线。',
   cdOffHub: '没有连上 hub：只列出这台电脑上的助手。',

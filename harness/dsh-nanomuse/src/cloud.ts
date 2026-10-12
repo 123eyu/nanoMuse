@@ -638,7 +638,7 @@ export default class NanomuseCloud extends Service {
   private catalogue: ProviderEntry[] = []
   /** The ChatGPT sign-in and its proxy (C11), over the runtime's `nanomuse chatgpt`. */
   readonly chatgpt: ChatGptDesk
-  /** The Cursor, Codex and Claude Code sessions on this computer, for the page and the other devices (`docs/coding-agents.md`). */
+  /** The Cursor, Codex, Claude Code and DeepSeek Harness sessions on this computer, for the page and the other devices (`docs/coding-agents.md`). */
   readonly coding: CodingService
 
   constructor(ctx: Context, private readonly config: Config) {

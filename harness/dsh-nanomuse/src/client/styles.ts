@@ -1282,6 +1282,7 @@ html[data-nm-platform='darwin']:not([data-nm-fullscreen]) .nm-fr-top { height: 6
 .nm-cd-glyph-cursor { background: linear-gradient(135deg, #334155, #0f172a); }
 .nm-cd-glyph-codex { background: linear-gradient(135deg, #10b981, #0f766e); }
 .nm-cd-glyph-claude { background: linear-gradient(135deg, #fb923c, #d97706); }
+.nm-cd-glyph-dsh { background: linear-gradient(135deg, #6366f1, #3730a3); }
 .nm-cd-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .nm-cd-section-head h2 { flex: 1; }
 .nm-cd-link { display: inline-flex; align-items: center; gap: 2px; border: 0; padding: 0; background: none; color: var(--nm-blue); font: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; }

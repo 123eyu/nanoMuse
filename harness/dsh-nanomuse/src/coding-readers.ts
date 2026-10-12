@@ -12,6 +12,11 @@
  *             line, `response_item` messages, `event_msg` lines.
  * Claude Code `~/.claude/projects/<slug>/<id>.jsonl`: `{type: "user"|"assistant",
  *             message: {role, content}, timestamp, cwd, sessionId}`.
+ * dsh         `~/.dsh/sessions/<slug>/<id>/session.v4.jsonl.zstd`: the harness's own
+ *             store, one zstd-compressed JSON object a line. A `session` header
+ *             (`{id, createdAt, cwd}`), `user/message` and `assistant/message` events
+ *             (`{data: {content: […]}}` and `{data: {message: {content: […]}}}`), tools
+ *             as `tool/call` + `tool/result`, and `<id>` is the session id itself.
  *
  * Everything is read-only and best effort: a line that does not parse is skipped, a
  * missing directory is an agent with no sessions. `~` is the user's home unless
@@ -22,8 +27,9 @@ import { existsSync, statSync } from 'node:fs'
 import { open, readdir, readFile, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { basename, delimiter, join, resolve } from 'node:path'
+import { zstdDecompressSync } from 'node:zlib'
 
-export type AgentId = 'cursor' | 'codex' | 'claude'
+export type AgentId = 'cursor' | 'codex' | 'claude' | 'dsh'
 
 export interface AgentSpec {
   name: string
@@ -38,6 +44,7 @@ export const AGENTS: Record<AgentId, AgentSpec> = {
   cursor: { name: 'Cursor', bins: ['cursor-agent', 'agent'], process: ['cursor-agent', 'cursor'] },
   codex: { name: 'Codex', bins: ['codex'], process: ['codex'] },
   claude: { name: 'Claude Code', bins: ['claude'], process: ['claude'] },
+  dsh: { name: 'DeepSeek Harness', bins: ['dsh'], process: ['dsh'] },
 }
 
 export const AGENT_IDS = Object.keys(AGENTS) as AgentId[]
@@ -109,7 +116,26 @@ export function sessionsRoot(agent: AgentId, env: NodeJS.ProcessEnv = process.en
       return join(h, '.codex', 'sessions')
     case 'claude':
       return join(h, '.claude', 'projects')
+    case 'dsh':
+      return join(h, '.dsh', 'sessions')
   }
+}
+
+/**
+ * The harness's own entry script, when this plugin is running inside one: the desktop app
+ * starts `node …/dsh/lib/bin.js <profile>`, and that copy is not on PATH, so a dsh session
+ * could otherwise be read but never sent to. `process.argv` carries it.
+ */
+export function ownDshEntry(argv: readonly string[] = process.argv): string | undefined {
+  for (const arg of argv.slice(1)) {
+    if (!/[\\/]dsh[\\/]lib[\\/]bin\.js$/.test(arg)) continue
+    try {
+      if (statSync(arg).isFile()) return arg
+    } catch {
+      continue
+    }
+  }
+  return undefined
 }
 
 /** The first of the agent's executables on PATH (PATHEXT on Windows), or undefined. */
@@ -129,6 +155,15 @@ export function which(agent: AgentId, env: NodeJS.ProcessEnv = process.env, plat
     }
   }
   return undefined
+}
+
+/**
+ * The CLI a run starts: the one on PATH, or for dsh, whose CLI ships inside an app rather
+ * than onto PATH, the harness this plugin is running in (`commandFor` starts it through
+ * node). Only for sending: whether an agent is installed is still PATH or its store.
+ */
+export function cliFor(agent: AgentId, env: NodeJS.ProcessEnv = process.env, argv: readonly string[] = process.argv): string | undefined {
+  return which(agent, env) ?? (agent === 'dsh' ? ownDshEntry(argv) : undefined)
 }
 
 /** The first line of `<cli> --version`, at most 60 characters; empty when it cannot be run. */
@@ -152,7 +187,7 @@ export type ProcessRow = [comm: string, argv: string]
 
 /** How many processes of each agent the rows hold; the node-bundled Cursor CLI counts through its argv. */
 export function countProcesses(rows: readonly ProcessRow[]): Record<AgentId, number> {
-  const counts: Record<AgentId, number> = { cursor: 0, codex: 0, claude: 0 }
+  const counts: Record<AgentId, number> = { cursor: 0, codex: 0, claude: 0, dsh: 0 }
   for (const [comm, argv] of rows) {
     let base = basename(comm.trim()).toLowerCase()
     if (base.endsWith('.exe')) base = base.slice(0, -4)
@@ -252,7 +287,7 @@ export async function processRows(platform: NodeJS.Platform = process.platform):
   return []
 }
 
-let processCache: { at: number; counts: Record<AgentId, number> } = { at: 0, counts: { cursor: 0, codex: 0, claude: 0 } }
+let processCache: { at: number; counts: Record<AgentId, number> } = { at: 0, counts: { cursor: 0, codex: 0, claude: 0, dsh: 0 } }
 
 /** The process table, read once for all agents and kept two seconds (the apps ask about the three together). */
 export async function runningProcesses(platform: NodeJS.Platform = process.platform): Promise<Record<AgentId, number>> {
@@ -726,6 +761,180 @@ async function claudeSessions(limit: number, workspace: string | undefined, env:
   return out
 }
 
+// -- dsh -------------------------------------------------------------------------------------
+
+const DSH_SESSION_FILE = 'session.v4.jsonl.zstd'
+
+/** The zstd frame magic (RFC 8878): a dsh session is many frames appended as it is written. */
+const ZSTD_MAGIC = Buffer.from([0x28, 0xb5, 0x2f, 0xfd])
+
+/**
+ * Decompress a dsh session file. The store appends one zstd frame per write, and Node's
+ * `zstdDecompressSync` stops at the first frame's end, so a long chat would lose everything
+ * after its opening lines. So the frames are cut at the magic and decompressed one by one;
+ * a frame that does not decompress is skipped rather than failing the whole read.
+ */
+function decompressZstdFrames(buf: Buffer): string {
+  const starts: number[] = []
+  let at = buf.indexOf(ZSTD_MAGIC)
+  while (at !== -1) {
+    starts.push(at)
+    at = buf.indexOf(ZSTD_MAGIC, at + ZSTD_MAGIC.length)
+  }
+  if (starts.length === 0) return ''
+  const parts: string[] = []
+  for (let i = 0; i < starts.length; i++) {
+    const end = i + 1 < starts.length ? starts[i + 1]! : buf.length
+    try {
+      parts.push(zstdDecompressSync(buf.subarray(starts[i]!, end)).toString('utf8'))
+    } catch {
+      continue
+    }
+  }
+  return parts.join('')
+}
+
+/**
+ * The JSON objects of a dsh session file: zstd-compressed JSONL, one object a line. A file
+ * this Node cannot decompress is a session with nothing to show rather than an error.
+ */
+async function readZstdLines(path: string, limitBytes = LINE_LIMIT_BYTES): Promise<Obj[]> {
+  const out: Obj[] = []
+  let text: string
+  try {
+    const info = await stat(path)
+    if (info.size > limitBytes) return out
+    const fh = await open(path, 'r')
+    try {
+      text = decompressZstdFrames(await fh.readFile())
+    } finally {
+      await fh.close()
+    }
+  } catch {
+    return out
+  }
+  for (const raw of text.split('\n')) {
+    const line = raw.trim()
+    if (!line) continue
+    try {
+      const obj: unknown = JSON.parse(line)
+      if (isObj(obj)) out.push(obj)
+    } catch {
+      continue
+    }
+  }
+  return out
+}
+
+/** The text of a dsh content array: `text` parts only (reasoning and tool calls are not words). */
+function dshContentText(content: unknown): string {
+  if (typeof content === 'string') return content
+  if (!Array.isArray(content)) return ''
+  const parts: string[] = []
+  for (const c of content) {
+    if (isObj(c) && c.type === 'text' && c.text) parts.push(String(c.text))
+  }
+  return parts.join('\n')
+}
+
+async function dshSession(file: string, full: boolean): Promise<CodingSession | undefined> {
+  const lines = await readZstdLines(file)
+  const st = await statOf(file)
+  if (!st) return undefined
+  const dirId = basename(resolve(file, '..'))
+  let sid = dirId
+  let cwd = ''
+  let created = st.ctime
+  let storedTitle = ''
+  let firstUser = ''
+  let lastUser = ''
+  let lastAssistant = ''
+  let openTurn = false
+  let n = 0
+  const transcript: CodingMessage[] = []
+  for (const obj of lines) {
+    const t = obj.type
+    const data = isObj(obj.data) ? obj.data : {}
+    if (t === 'session') {
+      // a subagent (or a forked session) is the harness's own working session, not a chat the
+      // person had: it has no place in the apps' list
+      if (String(obj.origin ?? '') === 'subagent' || obj.parentSession !== undefined) return undefined
+      sid = String(obj.id ?? sid)
+      cwd = cwd || String(obj.cwd ?? '')
+      const ms = Number(obj.createdAt ?? 0) || 0
+      if (ms) created = ms / 1000
+    } else if (t === 'session/title') {
+      storedTitle = storedTitle || String(data.title ?? '')
+    } else if (t === 'user/message') {
+      // only what the person typed: the store also carries runtime context, the skill
+      // catalog and background-job notices as user messages, with `source.kind` naming them
+      const source = isObj(data.source) ? data.source : {}
+      if (String(source.kind ?? '') !== 'user') continue
+      const text = clean(dshContentText(data.content))
+      if (!text) continue
+      firstUser = firstUser || text
+      lastUser = text
+      openTurn = true
+      n += 1
+      if (full) transcript.push({ role: 'user', text })
+    } else if (t === 'assistant/message') {
+      const msg = isObj(data.message) ? data.message : {}
+      const text = dshContentText(msg.content).trim()
+      if (!text) continue
+      lastAssistant = text
+      n += 1
+      if (full) transcript.push({ role: 'assistant', text })
+    } else if (t === 'turn/end') {
+      openTurn = false
+    }
+  }
+  const session: CodingSession = {
+    agent: 'dsh',
+    id: sid,
+    title: title(storedTitle || firstUser) || 'Untitled session',
+    workspace: cwd || slugToPath(basename(resolve(file, '..', '..')).replace(/^-+|-+$/g, '')),
+    path: file,
+    created_at: created,
+    updated_at: st.mtime,
+    messages: n,
+    status: status(st.mtime, openTurn),
+    last_user: title(lastUser, 160),
+    last_assistant: title(lastAssistant, 160),
+    source: '',
+    // `dsh headless --session-id` adopts a session of this store, so a chat read here can be continued
+    resumable: true,
+  }
+  if (full) session.transcript = transcript.slice(-TRANSCRIPT_KEEP)
+  return session
+}
+
+async function dshSessions(limit: number, workspace: string | undefined, env: NodeJS.ProcessEnv): Promise<CodingSession[]> {
+  const root = sessionsRoot('dsh', env)
+  if (!(await isDir(root))) return []
+  const files: [number, string][] = []
+  for (const project of await readdir(root).catch(() => [] as string[])) {
+    const pdir = join(root, project)
+    if (!(await isDir(pdir))) continue
+    for (const name of await readdir(pdir).catch(() => [] as string[])) {
+      // a session directory holds session.v4.jsonl.zstd; older stores may keep session.jsonl
+      const sdir = join(pdir, name)
+      if (!(await isDir(sdir))) continue
+      const f = join(sdir, DSH_SESSION_FILE)
+      const st = (await statOf(f)) ?? (await statOf(join(sdir, 'session.jsonl')))
+      if (st) files.push([st.mtime, (await statOf(f)) ? f : join(sdir, 'session.jsonl')])
+    }
+  }
+  files.sort((a, b) => b[0] - a[0])
+  const out: CodingSession[] = []
+  for (const [, f] of files.slice(0, Math.max(limit * 2, 20))) {
+    const s = await dshSession(f, false)
+    if (!s || (workspace && !samePath(s.workspace || '', workspace))) continue
+    out.push(s)
+    if (out.length >= limit) break
+  }
+  return out
+}
+
 // ------------------------------------------------------------------------- the public readers
 
 /** Newest first, across the agents asked for (all when `agent` is undefined). */
@@ -735,6 +944,7 @@ export async function sessions(agent?: AgentId, limit = 30, workspace?: string, 
     cursor: cursorSessions,
     codex: codexSessions,
     claude: claudeSessions,
+    dsh: dshSessions,
   }
   const picked = agent ? [agent] : AGENT_IDS
   const out: CodingSession[] = []
@@ -759,6 +969,17 @@ export async function readSession(agent: AgentId, sessionId: string, env: NodeJS
   if (agent === 'codex') {
     const [f] = await walk(root, (n) => n.startsWith('rollout-') && n.endsWith(`${sessionId}.jsonl`))
     return f ? codexSession(f, true) : undefined
+  }
+  if (agent === 'dsh') {
+    // the session's own directory is named after its id: <slug>/<id>/session.v4.jsonl.zstd
+    for (const project of await readdir(root).catch(() => [] as string[])) {
+      const sdir = join(root, project, sessionId)
+      const f = join(sdir, DSH_SESSION_FILE)
+      if (await statOf(f)) return dshSession(f, true)
+      const legacy = join(sdir, 'session.jsonl')
+      if (await statOf(legacy)) return dshSession(legacy, true)
+    }
+    return undefined
   }
   const [f] = await walk(root, (n) => n === `${sessionId}.jsonl`)
   return f ? claudeSession(f, true) : undefined
