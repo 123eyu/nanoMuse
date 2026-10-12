@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { test } from 'node:test'
 import { zstdCompressSync } from 'node:zlib'
-import { clean, countProcesses, detect, ownDshEntry, parsePs, parseTasklist, readSession, sessions, sessionsRoot, slugToPath, title, which } from '../lib/coding-readers.js'
+import { cliFor, clean, countProcesses, detect, ownDshEntry, parsePs, parseTasklist, readSession, sessions, sessionsRoot, slugToPath, title, which } from '../lib/coding-readers.js'
 import { agentEnv, commandFor, continuation, normalise, Run, runFromView, startRun } from '../lib/coding-runner.js'
 import { CODING_ACTIONS, CodingService, codingBrief, GATED_CODING_ACTIONS } from '../lib/coding.js'
 
@@ -295,7 +295,7 @@ test('runner: the command lines the docs give', () => {
   assert.deepEqual(commandFor('dsh', '/app/dsh/lib/bin.js', '', '/w', 'go', false), [process.execPath, '/app/dsh/lib/bin.js', '--profile', 'headless', '--json', 'go'])
 })
 
-test('readers: the harness finds its own dsh entry, and dsh falls back to it', async () => {
+test('readers: the harness finds its own dsh entry, and dsh sends through it', async () => {
   // the desktop app starts `node …/dsh/lib/bin.js <profile>`, so the entry is in argv
   assert.equal(ownDshEntry(['/usr/bin/node', '/app/other/lib/bin.js']), undefined, 'not a dsh entry')
   assert.equal(ownDshEntry(['/usr/bin/node', '--expose-internals', '/nope/dsh/lib/bin.js']), undefined, 'a path that is not there')
@@ -304,14 +304,16 @@ test('readers: the harness finds its own dsh entry, and dsh falls back to it', a
     const entry = join(dir, 'dsh', 'lib', 'bin.js')
     await mkdir(dirname(entry), { recursive: true })
     await writeFile(entry, '// the harness\n')
-    assert.equal(ownDshEntry(['/usr/bin/node', '--expose-internals', entry, 'web']), entry)
-    // no dsh on PATH: this harness's own entry is the fallback, and only for dsh
+    const argv = ['/usr/bin/node', '--expose-internals', entry, 'web']
+    assert.equal(ownDshEntry(argv), entry)
+    // no dsh on PATH: a run is sent through this harness's own entry, and only for dsh
     const env = { ...process.env, PATH: join(dir, 'emptybin') }
-    const before = which('dsh', env)
-    assert.equal(which('codex', env), undefined, 'another agent never falls back')
-    assert.equal(which('cursor', env), undefined)
-    // whatever the fallback found, it is this harness's entry rather than a PATH lookup
-    assert.equal(before === undefined || before.endsWith(join('dsh', 'lib', 'bin.js')), true)
+    assert.equal(cliFor('dsh', env, argv), entry)
+    assert.equal(cliFor('codex', env, argv), undefined, 'another agent never falls back')
+    // but the entry alone does not make dsh installed: that is PATH or ~/.dsh, as for the others
+    assert.equal(which('dsh', env), undefined)
+    const agents = await detect(false, { ...env, NANOMUSE_CODING_HOME: join(dir, 'nothing') })
+    assert.equal(agents.find((a) => a.id === 'dsh').installed, false)
   })
 })
 

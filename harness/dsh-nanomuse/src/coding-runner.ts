@@ -18,7 +18,7 @@
 import { spawn, type ChildProcess } from 'node:child_process'
 import { stat } from 'node:fs/promises'
 import { join } from 'node:path'
-import { AGENTS, home, readSession, which, type AgentId, type CodingSession } from './coding-readers.ts'
+import { AGENTS, cliFor, home, readSession, type AgentId, type CodingSession } from './coding-readers.ts'
 
 export const RUN_TIMEOUT_MS = 20 * 60 * 1000
 /** Characters of agent text kept per run. */
@@ -543,7 +543,7 @@ export async function startRun(options: StartOptions): Promise<Run> {
   const sessionId = options.sessionId ?? ''
   const run = new Run(options.runId || `run_${Math.random().toString(16).slice(2, 10).padEnd(8, '0')}`, agent, sessionId, options.workspace ?? '', text)
   options.register?.(run)
-  const find = options.which ?? ((a: AgentId) => which(a, options.env ?? process.env))
+  const find = options.which ?? ((a: AgentId) => cliFor(a, options.env ?? process.env))
   const prior = sessionId ? await readSession(agent, sessionId, options.readerEnv ?? process.env) : undefined
   if (prior && !run.workspace) run.workspace = prior.workspace
   if (run.workspace) {

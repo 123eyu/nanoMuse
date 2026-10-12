@@ -154,10 +154,16 @@ export function which(agent: AgentId, env: NodeJS.ProcessEnv = process.env, plat
       }
     }
   }
-  // dsh is the one agent whose CLI ships inside an app rather than onto PATH: fall back to
-  // the harness this plugin is running in, which `commandFor` then starts through node
-  if (agent === 'dsh') return ownDshEntry()
   return undefined
+}
+
+/**
+ * The CLI a run starts: the one on PATH, or for dsh, whose CLI ships inside an app rather
+ * than onto PATH, the harness this plugin is running in (`commandFor` starts it through
+ * node). Only for sending: whether an agent is installed is still PATH or its store.
+ */
+export function cliFor(agent: AgentId, env: NodeJS.ProcessEnv = process.env, argv: readonly string[] = process.argv): string | undefined {
+  return which(agent, env) ?? (agent === 'dsh' ? ownDshEntry(argv) : undefined)
 }
 
 /** The first line of `<cli> --version`, at most 60 characters; empty when it cannot be run. */
