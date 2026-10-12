@@ -41,9 +41,15 @@ object OwnKeyPresets {
     /** The `preset` asks for the vendor's sign-in rather than a pasted key. */
     fun wantsSignIn(preset: String?): Boolean = preset?.trim()?.lowercase()?.endsWith(SIGN_IN_SUFFIX) == true
 
-    /** The form opens on the vendor's sign-in: asked for, and the vendor has one. */
-    fun signIn(context: Context, preset: String?): Boolean =
-        wantsSignIn(preset) && ProviderCatalogue.byId(context, id(preset))?.signIn != null
+    /**
+     * The form opens on the vendor's sign-in: asked for, the vendor has one, and this build can
+     * run it (the Claude sign-in needs an identifier the public build does not carry, #373).
+     */
+    fun signIn(context: Context, preset: String?): Boolean {
+        if (!wantsSignIn(preset)) return false
+        val auth = ProviderCatalogue.byId(context, id(preset))?.signIn ?: return false
+        return auth != ProviderCatalogue.AUTH_CLAUDE || ClaudeSignIn.available
+    }
 
     /** The form's pre-fill for a `preset` value, or null when it names no vendor of the catalogue. */
     fun template(context: Context, preset: String?): VoiceProviderTemplate? {

@@ -169,7 +169,13 @@ Kimi (a device code) and OpenRouter; *Sign in* opens the same form on the sign-i
 OpenAI's terms cover a ChatGPT plan inside OpenAI's own Codex, that other apps have had this
 access cut off before (OpenCode, January 2026), and that an API key works if it stops.
 Anthropic and Gemini open on OpenMinis' own provider types for them; everything else on the
-OpenAI-compatible form.
+OpenAI-compatible form. The Claude sign-in needs an identifier Anthropic expects at the start
+of every request; it is read at build time from `app/provider-customization.properties`, which
+is not in this repository, so the published APK does not have it. A build without it does not
+list the Claude sign-in (not on this card, not under *Add a provider*, and `?preset=anthropic:oauth`
+opens the API key form), and a Claude sign-in saved by an earlier build answers each send with
+*This build cannot use a Claude sign-in. Add Anthropic with an API key instead.* rather than
+closing the app (`io.github.nanomuse.cloud.ClaudeSignIn`).
 
 **Where the list comes from.** The relay's `/v1/me` carries `spend.guidance` (relay 0.21,
 [cloud.md](cloud.md)): the providers for the person's region in the relay's order, each with

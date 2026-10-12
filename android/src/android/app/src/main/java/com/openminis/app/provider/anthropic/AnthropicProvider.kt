@@ -288,9 +288,11 @@ class AnthropicProvider(
      */
     internal fun resolveSystemPrompt(userPrompt: String?): JSONArray? {
         if (isOAuth) {
-            // nanoMuse: read the Claude Code identifier only on the OAuth path; the getter throws when the
-            // public build leaves it empty, and an API key never needs it (#333)
-            val claudeCodePrefix = com.openminis.app.auth.ClaudeOAuthManager.ANTHROPIC_OAUTH_IDENTIFIER_PROMPT
+            // nanoMuse: read the Claude Code identifier only on the OAuth path; the public build leaves
+            // it empty, and an API key never needs it (#333). An empty one refuses the send with a
+            // provider error the chat shows as one sentence, instead of throwing out of the getter (#373)
+            val claudeCodePrefix = io.github.nanomuse.cloud.ClaudeSignIn.identifier
+            if (claudeCodePrefix.isEmpty()) throw LLMError.ProviderError(io.github.nanomuse.cloud.ClaudeSignIn.MISSING)
             // Strip the prefix if the caller already prepended it; the tail is the real user prompt.
             val tail = when {
                 userPrompt == null -> ""

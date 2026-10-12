@@ -1105,4 +1105,5 @@
     <string name="nm_a11y_liked">已喜歡</string>
     <string name="nm_a11y_not_liked">未喜歡</string>
     <string name="nm_a11y_post_details">貼文詳情</string>
+    <string name="nm_claude_sign_in_unavailable">這個版本不能用 Claude 帳號登入。請改用 API key 新增 Anthropic。</string>
 </resources>

@@ -1147,4 +1147,5 @@
     <string name="nm_a11y_liked">Отмечено как понравившееся</string>
     <string name="nm_a11y_not_liked">Не отмечено</string>
     <string name="nm_a11y_post_details">Сведения о записи</string>
+    <string name="nm_claude_sign_in_unavailable">Эта сборка не может использовать вход через Claude. Добавьте Anthropic с API-ключом.</string>
 </resources>
