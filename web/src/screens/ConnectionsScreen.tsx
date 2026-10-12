@@ -1794,6 +1794,8 @@ export function SearchCard({
   const info = s.providers.find((p) => p.id === s.provider);
   const chosen = s.providers.find((p) => p.id === provider);
   const needsKey = !!chosen?.needs_key;
+  // You.com: works without a key, a key raises the daily limit; the field shows, as optional
+  const takesKey = needsKey || !!chosen?.optional_key;
   const status = s.configured
     ? { text: t("On"), tone: "ok" }
     : { text: t("Not set up"), tone: "warn" };
@@ -1816,7 +1818,7 @@ export function SearchCard({
       await api.setSearch({
         provider,
         base_url: provider === "searxng" ? baseUrl.trim() : "",
-        api_key: needsKey ? (key ? key : undefined) : "",
+        api_key: takesKey ? (key ? key : undefined) : "",
       });
       setKey("");
       toast(t("Saved"));
@@ -1857,7 +1859,7 @@ export function SearchCard({
     >
       <p className="text-[12.5px] text-muted leading-snug">
         {t(
-          "DuckDuckGo needs nothing, but it is scraped and rate-limits now and then. For searches that always work, use a provider with an API. Whichever you pick, a failed search falls back to DuckDuckGo with a note.",
+          "DuckDuckGo needs nothing, but it is scraped and rate-limits now and then. For searches that always work, use a provider with an API; You.com answers 100 a day without a key. Whichever you pick, a failed search falls back to DuckDuckGo with a note.",
         )}
       </p>
       <Field label={t("Provider")}>
@@ -1874,13 +1876,17 @@ export function SearchCard({
           ))}
         </div>
       </Field>
-      {needsKey && (
+      {takesKey && (
         <Field
-          label={t("API key")}
+          label={needsKey ? t("API key") : t("API key (optional)")}
           hint={
             s.key_source === "vault" && s.provider === provider
               ? t("A key is in the vault. Leave blank to keep it.")
-              : t("Stored encrypted in the vault as SEARCH_API_KEY.")
+              : needsKey
+                ? t("Stored encrypted in the vault as SEARCH_API_KEY.")
+                : t(
+                    "Without a key, 100 searches a day. A key raises the limit; stored encrypted in the vault as SEARCH_API_KEY.",
+                  )
           }
         >
           <input

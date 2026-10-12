@@ -733,6 +733,7 @@ class Connections:
                     "id": pid,
                     "label": p["label"],
                     "needs_key": p["needs_key"],
+                    "optional_key": bool(p.get("optional_key")),
                     "keys_url": p.get("keys_url", ""),
                 }
                 for pid, p in SEARCH_PROVIDERS.items()
@@ -745,7 +746,7 @@ class Connections:
 
     def set_search(self, body: dict[str, Any]) -> dict[str, Any]:
         """Who answers web searches: DuckDuckGo (nothing to set), Brave or Tavily with a
-        key, or a SearXNG instance by URL."""
+        key, You.com with or without one, or a SearXNG instance by URL."""
         from nanomuse.search import PROVIDERS as SEARCH_PROVIDERS
 
         web = dict(self.data.get("search") or {})
@@ -772,11 +773,14 @@ class Connections:
 
     async def test_search(self) -> dict[str, Any]:
         """One search against the configured provider, no fallback."""
+        from nanomuse.search import PROVIDERS as SEARCH_PROVIDERS
+
         provider = self._search_provider() or WebSearchProvider(
             self.settings.connectors.search, vault=self.vault
         )
         if not provider.configured:
-            what = "an API key" if provider.name in ("brave", "tavily") else "the instance URL"
+            needs_key = SEARCH_PROVIDERS[provider.name]["needs_key"]
+            what = "an API key" if needs_key else "the instance URL"
             return {"ok": False, "error": f"{provider.label} needs {what} first"}
         return await provider.probe()
 

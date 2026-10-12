@@ -1052,14 +1052,21 @@ export interface ConnectionsData {
     status: string;
   };
   search: {
-    provider: "duckduckgo" | "brave" | "tavily" | "searxng";
+    provider: "duckduckgo" | "brave" | "tavily" | "you" | "searxng";
     /** SearXNG instance */
     base_url: string;
     key_source: "none" | "vault" | "config" | "missing";
     /** what the provider needs is there (a key, or an instance URL) */
     configured: boolean;
     from_app: boolean;
-    providers: Array<{ id: string; label: string; needs_key: boolean; keys_url: string }>;
+    providers: Array<{
+      id: string;
+      label: string;
+      needs_key: boolean;
+      /** works without a key; one raises the limit (You.com) */
+      optional_key?: boolean;
+      keys_url: string;
+    }>;
   };
   email: {
     enabled: boolean;
