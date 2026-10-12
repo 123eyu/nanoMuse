@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- nanoMuse: strings added on top of upstream; kept in their own file so an
      upstream pull never touches them. Anything missing here falls back to English. -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="nm_about_build">Cette version</string>
     <string name="nm_about_license">Licence</string>
     <string name="nm_about_upstream">Basé sur OpenMinis 1.13</string>
@@ -24,13 +24,13 @@
     <string name="nm_star_done">Déjà fait</string>
     <string name="nm_star_signed_in">Bienvenue. nanoMuse est gratuit, open source et sans but lucratif : un agent personnel pour quiconque le fait tourner. Si cela compte pour vous, une étoile sur GitHub est ce qui permet à la personne suivante de le trouver.</string>
     <plurals name="nm_star_tasks">
-        <item quantity="one">Une tâche accomplie. Si nanoMuse a aidé, une étoile sur GitHub le dit à ceux qui le construisent.</item>
+        <item quantity="one">%1$d tâche accomplie. Si nanoMuse a aidé, une étoile sur GitHub le dit à ceux qui le construisent.</item>
         <item quantity="other">%1$d tâches accomplies. Si nanoMuse vous est utile, une étoile sur GitHub aide la personne suivante à le trouver.</item>
     </plurals>
     <string name="nm_star_days_used_week">Une semaine avec nanoMuse. S’il a trouvé sa place dans votre journée, une étoile sur GitHub aide la personne suivante à le trouver.</string>
     <string name="nm_star_days_used_month">Un mois avec nanoMuse. S’il fait maintenant partie de vos habitudes, une étoile sur GitHub dit aux autres qu’il vaut l’essai.</string>
     <plurals name="nm_star_days_used">
-        <item quantity="one">Un jour avec nanoMuse. S’il a aidé, une étoile sur GitHub aide la personne suivante à le trouver.</item>
+        <item quantity="one">%1$d jour avec nanoMuse. S’il a aidé, une étoile sur GitHub aide la personne suivante à le trouver.</item>
         <item quantity="other">%1$d jours avec nanoMuse. S’il a trouvé sa place dans votre journée, une étoile sur GitHub aide la personne suivante à le trouver.</item>
     </plurals>
     <string name="nm_star_goal_done">Objectif atteint. Si nanoMuse vous y a aidé, une étoile sur GitHub le dit à ceux qui le construisent.</string>
@@ -102,7 +102,8 @@
     <string name="nm_goal_sheet_go">Commencer</string>
     <string name="nm_goal_create_message">Je voudrais créer un objectif « %1$s ».</string>
     <string name="nm_goal_check_task_label">Point d’objectif : %1$s</string>
-    <plurals name="nm_goal_every_hours">
+    <!-- the interval is never 0 (a goal without one is checked daily), so "one" is 1 alone -->
+    <plurals name="nm_goal_every_hours" tools:ignore="ImpliedQuantity">
         <item quantity="one">Vérifie toutes les heures</item>
         <item quantity="other">Vérifie toutes les %d heures</item>
     </plurals>
