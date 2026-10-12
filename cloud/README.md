@@ -79,7 +79,7 @@ Errors carry a stable `code` the app can turn into a sentence:
 | 401 | `bad_key` | unknown or revoked key — the phone keeps the account's data aside for the next sign-in |
 | 401 | `account_deleted` | the key's account was deleted (0.1.40; remembered for 90 days) — the phone may delete the account's data |
 | 402 | `out_of_tokens` | grant used up — top up with the admin endpoint |
-| 403 | `account_disabled` | |
+| 403 | `account_disabled` | the operator switched the account off: its keys answer `401 bad_key`, and `POST /v1/auth/code` answers this before any code is sent |
 | 403 | `session_from_session` | `POST /v1/auth/session-key` was called with a session key; only a device's standing key may mint one, so a leaked short-lived key cannot renew itself |
 | 404 | `model_not_offered` | not on the menu |
 | 400 | `no_secrets_in_profile` | a profile `connectors` entry carried a key named like a credential; nothing was stored |
@@ -141,12 +141,14 @@ stops at start with a sentence saying so instead of a traceback.
 Back up `data/cloud.db` together with `CLOUD_SECRET`: the hashes are useless
 without the secret, and the secret alone is useless without the database.
 
-The visitor's address — what the per-address limits on codes and sign-ins key on,
-and what the operator's page shows — is the first hop of `X-Forwarded-For` when
+The visitor's address, what the per-address limits on codes and sign-ins key on
+and what the operator's page shows, is the first hop of `X-Forwarded-For` when
 the request came through a proxy on the same box or network (Caddy, a tailnet:
-every loopback, private, link-local or shared address, or the list in
-`TRUSTED_PROXIES`), else the socket's peer. A relay reached directly from the
-internet ignores the header, so a request cannot name its own address.
+every loopback, private, link-local or shared address), else the socket's peer.
+`TRUSTED_PROXIES`, when set, replaces that rule: only the addresses and networks
+listed are believed, and a peer on the Docker network that is not among them
+keeps its own address. A relay reached directly from the internet ignores the
+header, so a request cannot name its own address.
 
 Point the app at it: in nanoMuse, *Sign in — free* → enter a phone number or an e-mail → code.
 The app stores the key in its encrypted preferences and sets up a provider
@@ -187,7 +189,7 @@ for the full list. The ones that matter:
 | `PER_MINUTE_REQUESTS` | 30 | per account — what stops a runaway loop |
 | `MAX_IN_FLIGHT` | 4 | requests of one account under way at the same time (0 = off); each holds a reservation against the allowance while it runs — see *Money* |
 | `UPSTREAM_TIMEOUT_S` | 180 | how long one call to the provider may take (connecting has 20 s of its own); a reservation that outlives it by two minutes is dropped |
-| `TRUSTED_PROXIES` | empty | whose `X-Forwarded-For` to believe, comma-separated addresses or networks; empty = every loopback, private, link-local and shared address (Caddy on this box or the compose network, a tailnet) |
+| `TRUSTED_PROXIES` | empty | whose `X-Forwarded-For` to believe, comma-separated addresses or networks (`*` for every peer); empty = every loopback, private, link-local and shared address (Caddy on this box or the compose network, a tailnet). Set, it is the whole list: a non-global peer not on it is not believed either |
 | `PASSWORD_MIN_LEN` | 8 | the shortest password the relay accepts (`400 password_short` below it) |
 | `PASSWORD_MAX_ATTEMPTS`, `LOCKOUT_S` | 5, 900 | wrong passwords before an account is locked for that long (a code still works) |
 | `PASSWORD_RESET_WINDOW_S` | 1800 | after a sign-in with a code, how long a new password may be set without the old one (the way back in when it is forgotten) |
@@ -293,7 +295,10 @@ person sees the adjustment on their account page.
 which are overridden, and the count below the allowance; `GET /v1/config`
 (no key) returns `version`, `signup_open`, `allowance_cny` / `allowance_usd`,
 `invite_bonus_cny`, `invitee_bonus_cny`, `usd_cny`, `invite_url`,
-`own_key_docs`, `privacy_url`, `repo_url` and `improve_default`.
+`own_key_docs`, `privacy_url`, `repo_url`, `improve_default`, and the two figures the
+sign-in and password forms print, `code_ttl_s` and `password_min_len`, so the web
+console says how long a code is good for and how short a password may be in the
+relay's own numbers.
 
 ### Controls (0.22)
 
@@ -659,6 +664,60 @@ downloads, what each day added, downloads by platform and by asset, and
 `/releases` every six hours and keeps one row per UTC day — a failed read
 leaves the previous row and shows on the page, the relay runs on without
 GitHub.
+
+**Every operator route**, each under `X-Admin-Token` (401 `admin` without it;
+`X-Admin-Actor` names who did it for the audit log, else `console`). An account
+is named by `account_id` or by `identifier` (the number or address itself):
+
+```
+GET    /v1/admin/health                          → {ok, version, in_flight, hub, last_hour, db, upstream_key, problems[]}; aggregates only
+GET    /v1/admin/overview        ?days=30        → the dashboard: accounts, today / week / period by kind and model, signals, events, geo, places
+GET    /v1/admin/accounts                        → {accounts: [{id, identifier, hint, channel, member, disabled, …, devices[]}], settings}
+GET    /v1/admin/accounts/{id}   ?days=30        → one account in full: usage by kind / model / day, sign-ins, devices, addresses, inviter, invitees, timeline
+GET    /v1/admin/accounts/{id}/ledger ?limit=&before=   → the statement, page by page (before = the last id shown)
+GET    /v1/admin/accounts/{id}/events ?limit=&before=   → the timeline, page by page
+GET    /v1/admin/address         ?ip=            → the accounts seen from one address
+GET    /v1/admin/invites         ?limit=200&per=20      → the funnel and the inviters ranked by the accounts their code brought
+POST   /v1/admin/invites/abuse   {account_id | identifier, disable?, delete_unused?}  → {reclaimed_cny, disabled, deleted, kept}
+GET    /v1/admin/usage           ?days=14        → charged tokens and yuan per day and kind
+GET    /v1/admin/events          ?limit=200&kind=a,b    → the timeline across accounts (never message content)
+GET    /v1/admin/series          ?days=30        → by day: sign-ins, new and active accounts, invites, data switches; devices by kind and system
+GET    /v1/admin/places          ?days=30        → accounts, new accounts, sign-ins, requests and demo visitors by country and province
+GET    /v1/admin/traffic         ?days=30        → the site's pages, visitors, downloads, referrers (TRAFFIC_DB)
+GET    /v1/admin/demo            ?days=30        → the phone in the browser: visitors and demos (WEB_ADMIN_URL)
+GET    /v1/admin/data            ?days=30        → Data controls: switches on, kept turns by day / model / app / account, the newest turns
+GET    /v1/admin/samples         ?account_id=&limit=&since=&before=&before_id=   → kept turns
+GET    /v1/admin/samples/export  ?since=&account_id=    → the same as JSON lines, without account ids or addresses
+GET    /v1/admin/sync                            → conversation sync in aggregate (never a text)
+GET    /v1/admin/catalog                         → the provider's models under the operator's key: which answer, which see, which were refused
+GET    /v1/admin/github          ?days=30        → stars, forks, watchers, open issues, release downloads by day
+POST   /v1/admin/github/refresh                  → read GitHub now
+GET    /v1/admin/stats           ?days=30        → every figure of the Stats page with how it is computed
+GET    /v1/admin/stats/{id}      ?days=30        → one figure as rows;  GET /v1/admin/stats/{id}.csv the same as CSV
+GET    /v1/admin/settings                        → the runtime settings in force, the environment's, which are overridden
+POST   /v1/admin/settings        {allowance_cny?, invite_bonus_cny?, signup_open?}   → the same; null puts a value back on its default
+POST   /v1/admin/allowance/apply                 → {accounts, allowance_cny}; the raised allowance reaches the accounts below it
+POST   /v1/admin/grant           {account_id | identifier, tokens}                   → the account; the older token grant
+POST   /v1/admin/credit          {account_id | identifier, cny, note?}               → the account with its pool fields
+POST   /v1/admin/credit-all      {cny, note?}    → {accounts, cny}
+POST   /v1/admin/pool            {account_id | identifier, left_cny | grant_cny | delta_cny, note?}   → the account with its pool fields
+POST   /v1/admin/pool/batch      {account_ids[] | all, left_cny | grant_cny | delta_cny, note?}      → {accounts, <mode>}
+POST   /v1/admin/disable         {account_id | identifier, disabled?}  → 204; true by default; the account's hub sockets are closed
+POST   /v1/admin/unlimited       {account_id | identifier, unlimited?} → 204; true by default
+POST   /v1/admin/delete          {account_id | identifier}             → 204; the same deletion as the person's own
+GET    /v1/admin/nudges                          → the star-asks policy in force, the defaults, whether the page set it
+PUT    /v1/admin/nudges          {star{…}} | {reset: true}   → the policy
+GET    /v1/admin/controls …                      → the switches, the rules and the audit log (the Controls section above)
+```
+
+Every operator action on an account or on money writes a line in the audit log
+(`control_audit`: who, when, from where, which action, which account by the
+first eight characters of its id) and, where the account keeps a timeline, a
+line on it too: `account.disabled` / `account.enabled`, `member.set` /
+`member.unset`, `grant.tokens`, `credit.granted`, `pool.set`. A deletion, the
+person's own or the operator's, writes `account.deleted` across accounts (the
+id's first eight characters and who did it), which the Stats page counts as a
+deletion; the account's own timeline goes with the account.
 
 ### Web console
 
