@@ -2,9 +2,10 @@
 
 DuckDuckGo needs no key and is the default, but it is scraped, not served: it rate-limits
 and breaks now and then. When that matters, pick a provider with an API — Brave or
-Tavily with a key, or a SearXNG instance you run yourself — in ``[connectors.search]``
-or from *Connections → Web search*. Whatever is picked, a failed search falls back to
-DuckDuckGo once, with a note in the result, so a lapsed key does not stop a task.
+Tavily with a key, You.com with or without one (keyless, 100 searches a day), or a
+SearXNG instance you run yourself — in ``[connectors.search]`` or from *Connections →
+Web search*. Whatever is picked, a failed search falls back to DuckDuckGo once, with a
+note in the result, so a lapsed key does not stop a task.
 """
 
 from __future__ import annotations
@@ -34,9 +35,21 @@ PROVIDERS: dict[str, dict[str, Any]] = {
         "host": "api.tavily.com",
         "keys_url": "https://app.tavily.com/",
     },
+    # Keyless: `api.you.com`, 100 searches a day per address. With a key: the keyed Search
+    # API at `ydc-index.io`. `host` names whichever one a search goes to.
+    "you": {
+        "label": "You.com",
+        "needs_key": False,
+        "optional_key": True,
+        "host": "api.you.com",
+        "keyed_host": "ydc-index.io",
+        "keys_url": "https://you.com/platform/api-keys",
+    },
     "searxng": {"label": "SearXNG", "needs_key": False, "host": ""},
 }
 TIMEOUT = 20.0
+# On You.com requests only, at the vendor's request, so they can tell nanoMuse's traffic apart.
+YOU_USER_AGENT = "youdotcom-integration/nano-muse-nanomuse"
 
 
 def _client() -> httpx.AsyncClient:
@@ -87,6 +100,8 @@ class WebSearchProvider:
         """Where a search goes — what the Sentinel shows as the egress target."""
         if self.name == "searxng":
             return urlparse(self.settings.base_url).hostname or "searxng"
+        if self.name == "you" and self.api_key():
+            return str(PROVIDERS[self.name]["keyed_host"])
         return str(PROVIDERS[self.name]["host"])
 
     def api_key(self) -> str:
@@ -111,6 +126,8 @@ class WebSearchProvider:
             return "DuckDuckGo (no key needed)"
         if self.name == "searxng":
             return f"SearXNG at {self.settings.base_url or '(no URL set)'}"
+        if self.name == "you" and not self.api_key():
+            return "You.com (no key: 100 searches a day)"
         return f"{self.label} ({'key set' if self.api_key() else 'no key'})"
 
     async def search(
@@ -177,6 +194,8 @@ class WebSearchProvider:
             return await self._brave(query, max_results, region)
         if self.name == "tavily":
             return await self._tavily(query, max_results)
+        if self.name == "you":
+            return await self._you(query, max_results, region)
         if self.name == "searxng":
             return await self._searxng(query, max_results, region)
         return await self._ddg(query, max_results, region)
@@ -248,6 +267,35 @@ class WebSearchProvider:
             for r in rows[:max_results]
         ]
 
+    async def _you(self, query: str, max_results: int, region: str) -> list[SearchResult]:
+        """You.com: the keyless endpoint at ``api.you.com`` (100 searches a day), or with a
+        key the Search API at ``ydc-index.io``. Both answer ``results.web[]`` and
+        ``results.news[]`` in the same shape; web results come first."""
+        key = self.api_key()
+        country, _lang = _region(region)
+        params: dict[str, Any] = {"query": query, "count": min(max_results, 20)}
+        if country:
+            params["country"] = country
+        headers = {"Accept": "application/json", "User-Agent": YOU_USER_AGENT}
+        if key:
+            headers["X-API-Key"] = key
+        url = "https://ydc-index.io/v1/search" if key else "https://api.you.com/v1/agents/search"
+        async with _client() as client:
+            resp = await client.get(url, params=params, headers=headers)
+        if not key and resp.status_code in (401, 403, 429):
+            raise SearchError(f"the keyless limit is used up (HTTP {resp.status_code})")
+        _raise_for(resp)
+        found = resp.json().get("results") or {}
+        rows = list(found.get("web") or []) + list(found.get("news") or [])
+        return [
+            SearchResult(
+                title=r.get("title") or "",
+                url=r.get("url") or "",
+                snippet=(r.get("description") or _first(r.get("snippets"))).strip()[:400],
+            )
+            for r in rows[:max_results]
+        ]
+
     async def _searxng(self, query: str, max_results: int, region: str) -> list[SearchResult]:
         country, lang = _region(region)
         params: dict[str, Any] = {"q": query, "format": "json"}
@@ -268,6 +316,13 @@ class WebSearchProvider:
             )
             for r in rows[:max_results]
         ]
+
+
+def _first(snippets: Any) -> str:
+    """The first entry of a list of strings, else nothing."""
+    if isinstance(snippets, list) and snippets and isinstance(snippets[0], str):
+        return snippets[0]
+    return ""
 
 
 def _raise_for(resp: httpx.Response) -> None:

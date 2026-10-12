@@ -815,9 +815,12 @@ const zhCN: Record<string, string> = {
   "{provider} needs {what}; searches use DuckDuckGo until then": "{provider}还需要{what}，在此之前搜索走 DuckDuckGo",
   "a key": "一个密钥",
   "an instance URL": "实例地址",
-  "DuckDuckGo needs nothing, but it is scraped and rate-limits now and then. For searches that always work, use a provider with an API. Whichever you pick, a failed search falls back to DuckDuckGo with a note.":
-    "DuckDuckGo 无需任何配置，但它是抓取来的结果，偶尔会被限流。想让搜索始终可用，选一个带 API 的服务。无论选哪个，搜索失败时都会退回 DuckDuckGo 并附上说明。",
+  "DuckDuckGo needs nothing, but it is scraped and rate-limits now and then. For searches that always work, use a provider with an API; You.com answers 100 a day without a key. Whichever you pick, a failed search falls back to DuckDuckGo with a note.":
+    "DuckDuckGo 无需任何配置，但它是抓取来的结果，偶尔会被限流。想让搜索始终可用，选一个带 API 的服务；You.com 不用密钥每天也能答 100 次。无论选哪个，搜索失败时都会退回 DuckDuckGo 并附上说明。",
   "Stored encrypted in the vault as SEARCH_API_KEY.": "加密存入保险库，名为 SEARCH_API_KEY。",
+  "API key (optional)": "API 密钥（可选）",
+  "Without a key, 100 searches a day. A key raises the limit; stored encrypted in the vault as SEARCH_API_KEY.":
+    "不填密钥每天可搜 100 次。填了密钥上限更高；加密存入保险库，名为 SEARCH_API_KEY。",
   "Get a key from {label}": "到 {label} 获取密钥",
   "Instance URL": "实例地址",
   "A SearXNG you run, with the JSON format enabled in its settings.": "你自己运行的 SearXNG，需在其设置中启用 JSON 格式。",
