@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { api } from "../api";
+import { LoadError } from "../components/LoadError";
 import { Markdown } from "../components/Markdown";
 import { MuseRoundButton } from "../components/MuseHeader";
 import { Sheet } from "../components/Sheet";
@@ -39,6 +40,9 @@ export function FeedScreen() {
   const [posts, setPosts] = useState<FeedPostsData | null>(null);
   const [upcoming, setUpcoming] = useState<UpcomingData | null>(null);
   const [calendar, setCalendar] = useState<CalendarData | null>(null);
+  // why the posts could not be fetched, shown in their place with Try again (null: no failure)
+  const [postsError, setPostsError] = useState<string | null>(null);
+  const [retry, setRetry] = useState(0);
   const name = state.profile?.name ?? "nanoMuse";
   const t = useT();
   const locale = useLocale();
@@ -52,13 +56,17 @@ export function FeedScreen() {
       .then((d) => alive && setUpcoming(d))
       .catch(() => undefined);
     api.feedPosts()
-      .then((d) => alive && setPosts(d))
-      .catch(() => undefined);
+      .then((d) => {
+        if (!alive) return;
+        setPosts(d);
+        setPostsError(null);
+      })
+      .catch((e: Error) => alive && setPostsError(e.message || "Could not load."));
     return () => {
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.feedVersion, state.remindersVersion]);
+  }, [state.feedVersion, state.remindersVersion, retry]);
 
   // the day's events, when a calendar is connected (a feed refresh pushes a new version)
   useEffect(() => {
@@ -124,6 +132,12 @@ export function FeedScreen() {
           <>
             <DayTitle text={dayLabel(todayKey(), new Date())} />
             {!introAck && <IntroCard instructions={posts?.instructions ?? ""} onEdit={() => setSettingsOpen(true)} onAck={ackIntro} />}
+            {/* the posts could not be fetched: say so where they would be, with Try again */}
+            {posts === null && postsError && (
+              <FeedCard>
+                <LoadError message={postsError} onRetry={() => setRetry((n) => n + 1)} />
+              </FeedCard>
+            )}
             {noPosts && (
               <>
                 <StaticCard
