@@ -247,7 +247,10 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   智能体页面的工具栏改成圆形按钮；*设置 → nanoMuse* 按 Android 的顺序重做成 Muse 卡片
   （`NanoMuseSettingsHomeView`：图像与视频模型、形象、电脑、外观（形象大小、名字下面的模型、
   步骤、主题）、通知、账号、编程、定时任务、共享文件夹、对话文件、系统文件、版本）。一个
-  `nmOnChange` 辅助函数让 `onChange` 在 iOS 16（App 的部署目标）上也能用。
+  `nmOnChange` 辅助函数让 `onChange` 在 iOS 16（App 的部署目标）上也能用。••• 菜单里的
+  *新对话*、⌘N、*上下文已满* 弹窗和拒绝卡片发出的都是上游的 `.newChatRequested` 通知；
+  `NanoMuseHomeView` 收到后新开一个草稿旁聊，和抽屉里的新对话按钮一样，因为在这个布局里
+  上游的 `ContentView` 不在屏幕上（1.0.2 没有这个监听，所以点了没反应，#392）。
 - **动作短视频（0.1.35）**（`NanoMuseVideoGen.swift`、`NanoMuseAvatarMotion.swift`、
   `NanoMuseMediaModels.swift`；对应 Android `avatar/VideoGen.kt`、`avatar/AvatarMotion.kt`）：
   画好的脸会得到四段 4 秒的短视频（待命、干活中、等你回复、搞定），来自 `wan2.2-i2v-flash`

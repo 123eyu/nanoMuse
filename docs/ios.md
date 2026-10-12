@@ -287,7 +287,11 @@ Ours, in `NanoMuse/`:
   (`NanoMuseSettingsHomeView`: Image & video models, Avatar, Computers, Appearance (avatar size,
   the model under the name, the steps, the theme), Notifications, Account, Coding, Scheduled
   tasks, Shared folders, Chat files, System files, Version). A `nmOnChange` helper keeps
-  `onChange` on iOS 16, the app's deployment target.
+  `onChange` on iOS 16, the app's deployment target. *New Chat* in the ••• menu, ⌘N, the
+  *Context Full* alert and the refusal cards all post upstream's `.newChatRequested`;
+  `NanoMuseHomeView` answers it with a fresh draft side chat, the same as the drawer's new chat
+  button, since upstream's `ContentView` is not on screen in this layout (1.0.2 had no listener
+  there, so the entry did nothing, #392).
 - **Motion clips (0.1.35)** (`NanoMuseVideoGen.swift`, `NanoMuseAvatarMotion.swift`,
   `NanoMuseMediaModels.swift`; Android `avatar/VideoGen.kt`, `avatar/AvatarMotion.kt`): a drawn
   face gets four 4-second clips (idle, working, waiting, happy) from `wan2.2-i2v-flash`

@@ -42,6 +42,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 - **Reduce Motion is honoured.** With it on, the pill bar's indicator moves to the tapped tab without the spring, and the face keeps still: no breath, bob, tilt, pop or shake; the mood still changes with its crossfade, and a clip of your own still plays.
 - **Three translations put their numbers back in order.** The avatar studio's *n of m moods drawn* line in Chinese and Traditional Chinese, and the Korean *nearly used up* line above the composer, had the two figures swapped.
 - **The Devices footer tells the truth about approvals.** A step a computer must ask about is approved on that computer, not on the phone; the footer said approvals would show here.
+- **The ••• menu's *New Chat* opens a chat again.** In the Muse layout the entry, ⌘N on a keyboard, *New Session* in the *Context Full* alert and *New chat* on a refusal card asked a view that was not on screen, so nothing happened; each now opens a fresh side chat, as the drawer's new chat button does ([#392](https://github.com/nano-muse/nanoMuse/issues/392)).
 
 ### Project
 

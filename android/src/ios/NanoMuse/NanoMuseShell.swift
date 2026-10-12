@@ -539,6 +539,15 @@ struct NanoMuseHomeView: View {
             guard let id = note.userInfo?["sessionId"] as? String, !id.isEmpty else { return }
             openSideChat(id)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .newChatRequested)) { _ in
+            // *New Chat* in the ••• menu, ⌘N, the *Context Full* alert and the relay's refusal
+            // cards all post this; upstream's ContentView answers it, and in this layout that view
+            // is only on screen under the classic cover, so the tap did nothing (#392). A fresh
+            // draft side chat here, as the drawer's new chat button opens one; with the classic
+            // cover up, ContentView handles it inside the sheet.
+            guard !showClassic else { return }
+            openSideChat(NanoMuseMainChat.draftPrefix + UUID().uuidString)
+        }
         .onReceive(NanoMuseVoicePrompt.shared.$pending) { request in
             // The Action Button's voice prompt with no chat named (#296): the main chat, on
             // screen, is the one to listen. Aimed at it by id, so a side chat pushed over it
