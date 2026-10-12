@@ -645,6 +645,11 @@ object NanoMuseCloud {
                 io.github.nanomuse.account.AccountData.leave(context, before, keep = true)
                 io.github.nanomuse.account.AccountData.enter(context, after)
             }
+            // the profile bookkeeping (the rev last worn, the face's hash, the other devices'
+            // connections) was the account before's: with it kept, a new account whose rev is
+            // not past the old one's would be read as "nothing new" and its name and face
+            // never worn here
+            ProfileSync.forget(context)
         }
         _signedIn.value = true
         io.github.nanomuse.hub.Hub.restart(context) // the new key joins the hub

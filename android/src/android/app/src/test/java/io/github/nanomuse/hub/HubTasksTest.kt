@@ -16,6 +16,20 @@ class HubTasksTest {
         assertEquals("notes", t.conversationKey("desk", " notes "))
     }
 
+    @Test fun `the prompt carries the asker's language when the frame names one`() {
+        assertEquals("do it", HubTasks.prompt("do it", prefix = null, language = null))
+        assertEquals("From Desk.\n\ndo it", HubTasks.prompt("do it", prefix = "From Desk.", language = "  "))
+        assertEquals(
+            "From Desk.\n\nAnswer in the language tagged zh-Hans; the device that asked shows its screens in it.\n\ndo it",
+            HubTasks.prompt("do it", prefix = "From Desk.", language = " zh-Hans "),
+        )
+        // a web console speaks for the person directly: no prefix, the language still counts
+        assertEquals(
+            "Answer in the language tagged fr; the device that asked shows its screens in it.\n\ndo it",
+            HubTasks.prompt("do it", prefix = null, language = "fr"),
+        )
+    }
+
     @Test fun `stop by call id, by conversation, or by the sender's default conversation`() {
         val t = HubTasks()
         t.started("c1", "desk", "from-desk", "s1")

@@ -325,14 +325,26 @@ object ModelSlots {
      * ([mainChatFollows]). A group with another name of the person's own is never edited; when
      * such a group is the default and already leads with the pick, the groups do not move.
      * False for a picture or video model, which is no chat model. True when the chats follow.
+     *
+     * With [groupId], the pick was a group row of a chat's picker (or an entry under one): a
+     * group of the person's own, named by them or mixing providers, becomes the default as it
+     * is, never edited, and the main chat follows it with the pick (the iPhone's
+     * `followPick(entryId:groupId:)`); a group named after the pick's provider is ours to lead
+     * with the pick, as above.
      */
-    fun followPick(context: Context, entryId: String): Boolean {
+    fun followPick(context: Context, entryId: String, groupId: String? = null): Boolean {
         val repo = repo(context) ?: return false
         val config = repo.config.value
         val entry = config.modelEntries.firstOrNull { it.id == entryId } ?: return false
         val inst = config.instances.firstOrNull { it.id == entry.providerInstanceId } ?: return false
         if (NanoMuseCloud.drawsOrFilms(entry.model) || ImageGen.looksLikeImageModel(entry.model.id)) return false
         val name = providerLabel(context, inst)
+        val picked = groupId?.let { id -> config.modelGroups.firstOrNull { it.id == id && entryId in it.memberEntryIds } }
+        if (picked != null && MainChatFollow.keepAsIs(picked.name, name, picked.memberEntryIds.map { id -> config.modelEntries.firstOrNull { it.id == id }?.providerInstanceId })) {
+            if (repo.defaultPrimaryGroupId != picked.id) repo.defaultPrimaryGroupId = picked.id
+            mainChatFollows(context, MainChatFollow.Pick(picked.id, entryId))
+            return true
+        }
         val default = config.modelGroups.firstOrNull { it.id == config.defaultPrimaryGroupId }
         if (default != null && default.memberEntryIds.firstOrNull() == entryId) {
             mainChatFollows(context, MainChatFollow.Pick(default.id, entryId))
