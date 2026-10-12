@@ -1434,7 +1434,7 @@ def config_show(config: ConfigOpt = None) -> None:
 
 
 _SECRET_KEY_RE = re.compile(
-    r"(api_key|password|passwd|secret|token|app_key|authorization|cookie|(^|_)key)$",
+    r"(api_key|password|passwd|secret|token|app_key|authorization|cookie|(^|[_-])key)$",
     re.IGNORECASE,
 )
 
