@@ -326,14 +326,20 @@ Ours, in `NanoMuse/`:
   bottom bar was a `safeAreaInset` on the `NavigationStack`'s ancestor, hidden while the keyboard is
   up; the chat respected that inset at launch and no longer after the bar had left and come back,
   so the whole chat ran under the bar and the composer, bottom-aligned, laid out, healthy by every
-  measure the watchdog had, sat behind it. Since 0.1.40 the **bar is laid out under the chat by
-  plain layout, never as an inset of the chat's ancestor** (a `VStack` row in 0.1.40; since the
-  floating pill bar, below, bottom padding of the bar's height on the chat layer, which is the same
-  layout), and the composer column (the cards, the tool strip, the input bar) is
-  likewise **a row under the message list**: `NanoMuseComposerHost` is a plain `VStack`, the list is
-  passed a bottom inset of 0, the `/` and `@` popup is an overlay of the list's bottom edge and so
-  stands on the column's top edge by layout. Nothing lies over the UIKit list and there is no
-  second host to switch to. The watch stays as the last net (a column that detaches or measures 0
+  measure the watchdog had, sat behind it. Since 0.1.40 the **bar is never an inset of the chat's
+  ancestor** (a `VStack` row in 0.1.40; bottom padding of the bar's height on the chat layer from
+  the floating pill bar to 1.0.3; since then the bar's height reaches the chat as an environment
+  value, `nmBottomOverlay`, and the chat stands its composer that much above the bottom). From
+  0.1.40 to 1.0.3 the composer column (the cards, the tool strip, the input bar) was a row under a
+  shorter message list, which left a plain canvas behind the pill bar's glass; **since 1.0.4 the
+  column is a layer over the list's bottom edge again**: `NanoMuseComposerHost` is a `ZStack`, the
+  list keeps the chat's full height and is passed a bottom inset of the column's measured height
+  plus the bar, so the rows scroll under the column and the bar and the last row stops above the
+  column at rest; the `/` and `@` popup shares a `VStack` with the column and so stands on its top
+  edge by layout. Behind the column, Android's scrolling fade (`nmBottomFade`): once the list is
+  scrolled away from the latest row, a 90 pt gradient of the canvas colour and the solid canvas
+  behind the column, stopping above the bar so the glass keeps its rows. There is no second host to
+  switch to. The watch stays as the last net (a column that detaches or measures 0
   while the chat is on screen is rebuilt through `.id(rebuildTick)`, at most twice per appearance so
   a mis-measured healthy composer cannot take the keyboard away repeatedly), and it keeps what it
   sees: **Settings → Appearance → Composer check** draws a red frame around the column (the probe
@@ -545,12 +551,13 @@ Ours, in `NanoMuse/`:
   (`matchedGeometryEffect`; with Reduce Motion on it moves without the spring); the others show
   the outlined symbol in the secondary colour. The bar
   still leaves while the keyboard or the chat's voice panel is up. Layout: the pill lies over the
-  rooms and the chat in a `ZStack` aligned to the bottom. The chat keeps the 0.1.40 rule above
-  (bottom padding of the bar's height, 70 pt: 46 plus 6 above and below plus the 12 pt gap, so the
-  composer sits above the pill and nothing is an inset of the `NavigationStack`'s ancestor); the
-  rooms, plain SwiftUI scroll views, take the same height as a `safeAreaInset`, so their content
-  scrolls under the pill and the glass has something to blur. Written on Linux without a Mac: the
-  iOS check compiles it, and no device has shown it yet.
+  rooms and the chat in a `ZStack` aligned to the bottom. The chat gets the bar's height (70 pt: 46
+  plus 6 above and below plus the 12 pt gap) as the `nmBottomOverlay` environment value, stands its
+  composer that much above the bottom and scrolls its rows under both (the composer note above);
+  nothing is an inset of the `NavigationStack`'s ancestor. The rooms, plain SwiftUI scroll views,
+  take the same height as a `safeAreaInset`. Either way the glass has the transcript or the room
+  behind it to blur; up to 1.0.3 the chat was padded above the bar instead, and over the plain
+  canvas the pill read as a white one (seen on the iPad on 1.0.3).
 - **The chat is monochrome** (`NanoMuseTones.ink` / `onInk` / `agentPill` in `NanoMuseFaces.swift`,
   `NanoMuseHeaderScrim` in `NanoMuseHeader.swift`, `NanoMuseComposer.swift`,
   `NanoMuseChatCards.swift`, and `// nanoMuse:` lines in `Views/Chat/ChatMessageViews.swift` and
