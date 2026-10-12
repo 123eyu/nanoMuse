@@ -277,6 +277,11 @@ computer's own hands) is in [every-device.md](every-device.md).
   refused (`no_screen`), the shell and files actions with `not_supported`. A step of a
   `task` that needs approval is not sent back as an `event`: with nanoMuse in front the
   phone shows its own card, in the background the step is declined and the answer says so.
+  The other way round, a `task` the phone sends (`@〈device〉`,
+  [`NanoMuseDeviceMention.swift`](../android/src/ios/NanoMuse/NanoMuseDeviceMention.swift))
+  has its `approval` events answered on the phone's card
+  ([`NanoMuseRemoteApproval.swift`](../android/src/ios/NanoMuse/NanoMuseRemoteApproval.swift))
+  and `approve` sent back; `approval_result` closes the card.
 - Runtime (`nanomuse serve`): [`nanomuse/cloud.py`](../nanomuse/cloud.py)
   (the account), [`nanomuse/hub/client.py`](../nanomuse/hub/client.py) (the
   socket, reconnect), [`nanomuse/hub/actions.py`](../nanomuse/hub/actions.py)

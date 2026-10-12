@@ -178,6 +178,15 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
 - **数据控制**（`NanoMuseDataControls.swift`）：中继的开关、保留的回合数、隐私页、带确认的
   删除。**Reach**（`NanoMuseReach.swift`）：账号下每台设备一个面板（打开链接、发一条便条、
   跑一行 shell、截一张图），都通过 hub。
+  **交给另一台设备的任务**（`NanoMuseDeviceMention.swift`、`NanoMuseRemoteApproval.swift`）：
+  以 `@〈设备〉` 开头的消息作为 hub 的 `task` 发给那台设备的 Muse；那边有一步需要点头时，
+  `approval` 事件在这里、在输入任务的地方回答（[hub.md](hub.md)），卡片上是 Android 手机的
+  四个答案：*允许一次*、*在这个聊天里允许*（为那个聊天记在内存里）、*在 〈设备〉 上始终允许
+  这一步*（同一步在同一台设备上，按设备 id 存在这台手机上，智能体页面的*审批*里列出并可
+  *撤销*）、*拒绝*；付款只有*允许一次*和*拒绝*。对方给出的时限内（没给则 180 秒）没有回答
+  就算拒绝；对方那台设备上的人先回答了的问题（`approval_result`），卡片直接离开，这边不再
+  作答。卡片是根上的一张 sheet，所以已经打开的 sheet（设置、工作室）会盖住它，直到关上。
+  1.0.3 之前手机对每个这样的问题都答拒绝。
 - **服务商连不上时**（`NanoMuseProviderReach.swift`、`NanoMuseProviderReachCard.swift`）：
   一个失败的回合，如果错误出在传输层（*Could not connect to the server*、*A server with the
   specified hostname could not be found*、TLS 或超时的那一行），或者是 OpenAI 的 *region not

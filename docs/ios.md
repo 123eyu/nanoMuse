@@ -206,6 +206,17 @@ Ours, in `NanoMuse/`:
 - **Data controls** (`NanoMuseDataControls.swift`): the relay's switch, the kept-turns count, the
   privacy page, deletion with a confirmation. **Reach** (`NanoMuseReach.swift`): a sheet per device
   of the account (open a link, send a note, a shell line, a screenshot) over the hub.
+  **A task for another device** (`NanoMuseDeviceMention.swift`, `NanoMuseRemoteApproval.swift`):
+  a message that starts with `@〈device〉` goes to that device's Muse as a hub `task`; when a step
+  there needs a yes, the `approval` event is answered here, where the task was typed
+  ([hub.md](hub.md)), on a card with the Android phone's four answers: *Allow once*, *Allow for
+  this chat* (held in memory for that chat), *Always allow this on 〈device〉* (the same step on
+  that device, kept on this phone under the device's id and listed with *Revoke* under
+  *Approvals* on the agent's page), *Deny*; a payment gets only *Allow once* and *Deny*. No
+  answer within the time the other side names (180 seconds when it names none) is a no, and a
+  question the person at the other device answered first (`approval_result`) leaves the card
+  without an answer from here. The card is a sheet at the root, so one already open (Settings,
+  the studio) covers it until it closes. Up to 1.0.3 the phone declined every such question.
 - **When the provider cannot be reached** (`NanoMuseProviderReach.swift`,
   `NanoMuseProviderReachCard.swift`): a failed turn whose error is the transport's (*Could not
   connect to the server*, *A server with the specified hostname could not be found*, a TLS or

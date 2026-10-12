@@ -134,6 +134,8 @@ struct NanoMuseRoot: View {
                     }, onOpenRoutines: nil)
             }
         }
+        // The card for a step another device's Muse asks about, over the shell and the upstream layout alike.
+        .nanoMuseRemoteApprovalPresenter()
         .onAppear {
             NanoMuseProfileSync.shared.start()
             NanoMuseAccountData.shared.start() // C12: whose chat is whose; the reinstall sweep
