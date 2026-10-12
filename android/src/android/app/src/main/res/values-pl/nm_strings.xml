@@ -1147,4 +1147,5 @@
     <string name="nm_a11y_liked">Polubione</string>
     <string name="nm_a11y_not_liked">Niepolubione</string>
     <string name="nm_a11y_post_details">Szczegóły wpisu</string>
+    <string name="nm_claude_sign_in_unavailable">Ta wersja nie obsługuje logowania przez Claude. Dodaj Anthropic z kluczem API.</string>
 </resources>

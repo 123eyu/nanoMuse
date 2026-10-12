@@ -1116,4 +1116,5 @@
     <string name="nm_a11y_liked">Liked</string>
     <string name="nm_a11y_not_liked">Not liked</string>
     <string name="nm_a11y_post_details">Post details</string>
+    <string name="nm_claude_sign_in_unavailable">This build cannot use a Claude sign-in. Add Anthropic with an API key instead.</string>
 </resources>

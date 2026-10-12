@@ -5791,7 +5791,7 @@ class ChatViewModel(
 
         val baseSystemPrompt = buildSystemPrompt()
         val systemPrompt = if ((provider as? com.openminis.app.provider.anthropic.AnthropicProvider)?.isOAuth == true) {
-            val prefix = com.openminis.app.auth.ClaudeOAuthManager.ANTHROPIC_OAUTH_IDENTIFIER_PROMPT
+            val prefix = io.github.nanomuse.cloud.ClaudeSignIn.identifier // nanoMuse: empty on a build without it, never throws; the provider refuses the send (#373)
             if (baseSystemPrompt?.startsWith(prefix) == true) baseSystemPrompt
             else "$prefix\n\n${baseSystemPrompt ?: ""}"
         } else baseSystemPrompt
@@ -7092,7 +7092,7 @@ class ChatViewModel(
             // Anthropic OAuth requires the Claude Code prefix in the system prompt
             val baseSystemPrompt = buildSystemPrompt()
             val systemPrompt = if ((provider as? com.openminis.app.provider.anthropic.AnthropicProvider)?.isOAuth == true) {
-                val prefix = com.openminis.app.auth.ClaudeOAuthManager.ANTHROPIC_OAUTH_IDENTIFIER_PROMPT
+                val prefix = io.github.nanomuse.cloud.ClaudeSignIn.identifier // nanoMuse: empty on a build without it, never throws; the provider refuses the send (#373)
                 if (baseSystemPrompt?.startsWith(prefix) == true) baseSystemPrompt
                 else "$prefix\n\n${baseSystemPrompt ?: ""}"
             } else baseSystemPrompt
@@ -7208,8 +7208,11 @@ class ChatViewModel(
         // would stick across reloads. An exception with a blank `message`
         // (`e.message ?: "Unknown error"` only guards null, not "") is the
         // realistic source. Coalesce to a generic non-empty message.
-        // nanoMuse: a turn refused for a spent allowance gets the plain sentence and the ways-on card.
-        val safeError = nmAllowanceErrorText(errorText.ifBlank { context.getString(R.string.error_empty_response_generic) })
+        // nanoMuse: a turn refused for a spent allowance gets the plain sentence and the ways-on card;
+        // a Claude sign-in on a build without its identifier gets its sentence in the person's language (#373).
+        val safeError = nmAllowanceErrorText(
+            io.github.nanomuse.cloud.ClaudeSignIn.userText(context, errorText).ifBlank { context.getString(R.string.error_empty_response_generic) },
+        )
         // T-streaming-side-channel: before mutating the canonical message,
         // drain any in-flight streaming delta so the error frame carries
         // the actual accumulated content (otherwise the user sees content
@@ -7464,7 +7467,7 @@ class ChatViewModel(
 
             val baseSystemPrompt = buildSystemPrompt()
             val systemPrompt = if ((provider as? com.openminis.app.provider.anthropic.AnthropicProvider)?.isOAuth == true) {
-                val prefix = com.openminis.app.auth.ClaudeOAuthManager.ANTHROPIC_OAUTH_IDENTIFIER_PROMPT
+                val prefix = io.github.nanomuse.cloud.ClaudeSignIn.identifier // nanoMuse: empty on a build without it, never throws; the provider refuses the send (#373)
                 if (baseSystemPrompt?.startsWith(prefix) == true) baseSystemPrompt
                 else "$prefix\n\n${baseSystemPrompt ?: ""}"
             } else baseSystemPrompt
@@ -12059,7 +12062,7 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
 
             val baseSystemPrompt = buildSystemPrompt()
             val systemPrompt = if ((provider as? com.openminis.app.provider.anthropic.AnthropicProvider)?.isOAuth == true) {
-                val prefix = com.openminis.app.auth.ClaudeOAuthManager.ANTHROPIC_OAUTH_IDENTIFIER_PROMPT
+                val prefix = io.github.nanomuse.cloud.ClaudeSignIn.identifier // nanoMuse: empty on a build without it, never throws; the provider refuses the send (#373)
                 if (baseSystemPrompt?.startsWith(prefix) == true) baseSystemPrompt
                 else "$prefix\n\n${baseSystemPrompt ?: ""}"
             } else baseSystemPrompt
@@ -12349,7 +12352,7 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
             val baseSystemPrompt = buildSystemPrompt()
             val systemPrompt =
                 if ((provider as? com.openminis.app.provider.anthropic.AnthropicProvider)?.isOAuth == true) {
-                    val prefix = com.openminis.app.auth.ClaudeOAuthManager.ANTHROPIC_OAUTH_IDENTIFIER_PROMPT
+                    val prefix = io.github.nanomuse.cloud.ClaudeSignIn.identifier // nanoMuse: empty on a build without it, never throws; the provider refuses the send (#373)
                     if (baseSystemPrompt?.startsWith(prefix) == true) baseSystemPrompt
                     else "$prefix\n\n${baseSystemPrompt ?: ""}"
                 } else baseSystemPrompt

@@ -1135,4 +1135,5 @@
     <string name="nm_a11y_liked">ถูกใจแล้ว</string>
     <string name="nm_a11y_not_liked">ยังไม่ถูกใจ</string>
     <string name="nm_a11y_post_details">รายละเอียดโพสต์</string>
+    <string name="nm_claude_sign_in_unavailable">บิลด์นี้ใช้การลงชื่อเข้าใช้ด้วย Claude ไม่ได้ ให้เพิ่ม Anthropic ด้วยคีย์ API แทน</string>
 </resources>

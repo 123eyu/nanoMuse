@@ -135,7 +135,11 @@ Claude、Kimi（设备码）和 OpenRouter；「登录」打开同一个表单�
 `OpenRouterOAuthManager`。ChatGPT 那一行附一句话：OpenAI 的条款只允许 ChatGPT 套餐在 OpenAI
 自己的 Codex 里使用，别的 App 曾被切断过这种访问（OpenCode，2026 年 1 月），如果停了，API key
 照样能用。Anthropic 和 Gemini 打开的是 OpenMinis 为它们准备的服务商类型；其他都走 OpenAI
-兼容表单。
+兼容表单。Claude 登录需要 Anthropic 要求放在每个请求开头的一段标识；它在构建时从
+`app/provider-customization.properties` 读入，这个文件不在仓库里，所以发布的 APK 没有它。没有这段
+标识的构建不会列出 Claude 登录（这张卡片上没有，「添加服务商」里没有，`?preset=anthropic:oauth`
+打开的是 API key 表单）；早先版本保存下来的 Claude 登录，每次发送都会得到一句「这个版本不能用
+Claude 账号登录。请改用 API key 添加 Anthropic。」，而不是让 App 退出（`io.github.nanomuse.cloud.ClaudeSignIn`）。
 
 **列表从哪来。** 中继的 `/v1/me` 带着 `spend.guidance`（中继 0.21，[cloud.md](cloud.md)）：这个人所在
 地区的服务商，按中继的顺序，每家覆盖什么、可以登录的套餐以及它们面向哪些客户端、本地服务器、

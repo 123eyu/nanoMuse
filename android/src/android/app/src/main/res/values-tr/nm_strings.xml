@@ -1139,4 +1139,5 @@
     <string name="nm_a11y_liked">Beğenildi</string>
     <string name="nm_a11y_not_liked">Beğenilmedi</string>
     <string name="nm_a11y_post_details">Gönderi ayrıntıları</string>
+    <string name="nm_claude_sign_in_unavailable">Bu sürüm Claude ile oturum açmayı kullanamaz. Bunun yerine Anthropic’i bir API anahtarıyla ekleyin.</string>
 </resources>

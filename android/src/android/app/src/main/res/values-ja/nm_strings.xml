@@ -1135,4 +1135,5 @@
     <string name="nm_a11y_liked">いいね済み</string>
     <string name="nm_a11y_not_liked">いいねしていません</string>
     <string name="nm_a11y_post_details">投稿の詳細</string>
+    <string name="nm_claude_sign_in_unavailable">このビルドでは Claude アカウントでのサインインは使えません。代わりに API キーで Anthropic を追加してください。</string>
 </resources>

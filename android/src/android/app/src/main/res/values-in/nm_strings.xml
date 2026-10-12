@@ -1135,4 +1135,5 @@
     <string name="nm_a11y_liked">Disukai</string>
     <string name="nm_a11y_not_liked">Belum disukai</string>
     <string name="nm_a11y_post_details">Detail kiriman</string>
+    <string name="nm_claude_sign_in_unavailable">Versi ini tidak bisa memakai masuk dengan Claude. Tambahkan Anthropic dengan kunci API saja.</string>
 </resources>

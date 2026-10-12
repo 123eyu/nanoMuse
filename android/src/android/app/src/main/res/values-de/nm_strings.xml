@@ -1139,4 +1139,5 @@
     <string name="nm_a11y_liked">Gefällt mir</string>
     <string name="nm_a11y_not_liked">Gefällt mir nicht</string>
     <string name="nm_a11y_post_details">Beitragsdetails</string>
+    <string name="nm_claude_sign_in_unavailable">Diese Version kann keine Claude-Anmeldung verwenden. Füge Anthropic stattdessen mit einem API-Schlüssel hinzu.</string>
 </resources>

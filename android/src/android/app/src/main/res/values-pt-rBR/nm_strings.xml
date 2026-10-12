@@ -1139,4 +1139,5 @@
     <string name="nm_a11y_liked">Curtido</string>
     <string name="nm_a11y_not_liked">Não curtido</string>
     <string name="nm_a11y_post_details">Detalhes da publicação</string>
+    <string name="nm_claude_sign_in_unavailable">Esta versão não pode usar o login com Claude. Adicione a Anthropic com uma chave de API.</string>
 </resources>
