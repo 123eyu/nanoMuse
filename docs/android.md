@@ -135,9 +135,11 @@ capsules stack with one edge. While the agent uses tools,
 the step bar sits above the composer; the latest message and tool pills can scroll fully
 above both. The conversation still scrolls behind the navigation pill for its frosted blur.
 The spacing follows the actual footer height when the composer expands or a tool preview
-or approval card appears. When reading older messages, the fade above the composer
-continues behind its padding and rounded corners without a gap. It stays hidden while
-the tool step bar, browser panel or browser hand-over controls are visible. With the keyboard
+or approval card appears. When reading older messages, a slightly lighter fade follows
+the composer's rounded outline. Live browser controls hide it; historical tool pills and
+other tools keep it. In dark-mode home and side chats, pure black surrounds the navigation
+pill and fills the gap below the composer. Its glass stays open to the scrolling content
+for live frosted blur. Other tabs keep their navigation appearance. With the keyboard
 open the composer sits on the keyboard and the pill is behind it. The Feed, Ideas, Goals and
 Library lists end above the pill as well, so their last row is never under it.
 
