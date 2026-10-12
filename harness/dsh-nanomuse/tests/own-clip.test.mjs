@@ -1,5 +1,5 @@
-// A clip of the person's own as the face (#324): the rule (MP4 or MOV with H.264, at most
-// 15 seconds and 30 MB, format before length before size), the look at the bytes, the
+// A clip of the person's own as the face (#324): the rule (MP4 or MOV with H.264 or HEVC video,
+// at most 15 seconds and 30 MB, format before length before size), the look at the bytes, the
 // pending copy that the preview plays and "Use" or "Cancel" settle, and the route that
 // serves the clip, its first frame and the pending copy.
 import assert from 'node:assert/strict'
@@ -134,10 +134,13 @@ test('exactly 30 MB is taken, one byte more is too large', () => {
   assert.equal(checkOwnClip({ ...ok, bytes: OWN_CLIP_MAX_BYTES + 1 }), 'too_large')
 })
 
-test('anything but H.264 in an MP4 or MOV is a format problem, and it comes before length and size', () => {
+test('anything but H.264 or HEVC in an MP4 or MOV is a format problem, and it comes before length and size', () => {
   const base = { container: true, codec: 'avc1', durationMs: 1000, bytes: 1000 }
-  assert.equal(checkOwnClip({ ...base, codec: 'hvc1' }), 'format')
+  // HEVC is taken here (docs/every-device.md: where the device can play it); the preview decides whether this computer can
+  assert.equal(checkOwnClip({ ...base, codec: 'hvc1' }), undefined)
+  assert.equal(checkOwnClip({ ...base, codec: 'hev1' }), undefined)
   assert.equal(checkOwnClip({ ...base, codec: 'vp09' }), 'format')
+  assert.equal(checkOwnClip({ ...base, codec: 'av01' }), 'format')
   assert.equal(checkOwnClip({ ...base, container: false }), 'format')
   assert.equal(checkOwnClip({ container: true, bytes: 1000 }), 'format')
   // a WebM that is also too long and too large is refused for its format, not its size
@@ -283,7 +286,7 @@ test('a stale pending copy is dropped on init, and an empty clip file counts as 
   })
 })
 
-test('stage refuses a WebM, a 16 s clip and an HEVC clip, and keeps nothing of them', async () => {
+test('stage refuses a WebM, a 16 s clip and an AV1 clip, and keeps nothing of them; an HEVC clip is staged', async () => {
   await withDir(async (dir) => {
     const { own } = store(dir)
     await own.init()
@@ -295,11 +298,16 @@ test('stage refuses a WebM, a 16 s clip and an HEVC clip, and keeps nothing of t
     assert.equal(b.ok, false)
     assert.equal(b.why, 'too_long')
     assert.equal(b.probe.durationMs, 16_000)
-    const c = await post((req) => own.stage(req), mp4({ codec: 'hvc1' }))
+    const c = await post((req) => own.stage(req), mp4({ codec: 'av01' }))
     assert.equal(c.ok, false)
     assert.equal(c.why, 'format')
     await assert.rejects(stat(join(dir, 'avatar', 'own-clip.pending.mp4')))
     assert.equal(own.view(), null)
+    const d = await post((req) => own.stage(req), mp4({ codec: 'hvc1' }))
+    assert.equal(d.ok, true)
+    await stat(join(dir, 'avatar', 'own-clip.pending.mp4'))
+    await own.discard()
+    await assert.rejects(stat(join(dir, 'avatar', 'own-clip.pending.mp4')))
   })
 })
 

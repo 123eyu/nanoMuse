@@ -39,7 +39,8 @@ harness 构建以 *nanoMuse Harness* 的名字另放在旁边；从 0.1.30 起�
   读出来（`/nanomuse/cloud/me`、`/sessions`、`/account-events`、`/password`、`/sign-out-all`、
   `/delete-account`、`/config`）；
 - **一段你自己的视频当形象**：智能体页面钢笔菜单和形象工作室里的「你自己的视频…」接受一段
-  MP4 或 MOV（H.264 视频，最长 15 秒、最大 30 MB），先在形象的圆形框里预览，再在所有状态下
+  MP4 或 MOV（最长 15 秒、最大 30 MB；H.264 视频，或这台电脑能解码的 HEVC：Windows 和 macOS
+  带解码器，多数 Linux 构建没有，预览放不出来的视频会在那里被拒绝），先在形象的圆形框里预览，再在所有状态下
   静音循环播放；视频只保存在这台电脑的 `$DSH_HOME/nanomuse/avatar/own-clip.mp4`，不会发给
   nanoMuse Cloud，「默认形象」可移除（回退规则见 [avatar.md](avatar.md)）；
 - **手（Hands）**，在这台电脑上：自带运行时的 `nanomuse mcp` 走 stdio，运行时的

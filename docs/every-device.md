@@ -24,6 +24,7 @@ Android app is the reference; the others follow its shape, not its pixels:
 | Devices: the account's other devices, online dots, *Remote control*, rename, forget, *ask this device* | `DevicesSection`, `ComputersScreen` | Devices page |
 | The stage while the hands work: a ring where the next tap lands, a capsule with the step and **Stop** | `HandsStage`, capsule | a live *Hands* card in the chat; the window adds an overlay |
 | First run: what it is, sign in with a phone number or an e-mail (free) or your own key, the Hands permissions, meet | `FirstRunSetup` | the same four pages |
+| A clip of your own as the face: MP4 or MOV, up to 15 seconds and 30 MB, H.264 video on every device and HEVC where the device can play it (tried, not assumed); nothing is transcoded, a refusal states the limits, the clip stays on that device | `OwnClip.kt` (H.264 only today) | `own-clip.ts` and the preview: an HEVC clip the computer cannot decode is refused there |
 
 ## Two roles
 
