@@ -28,6 +28,7 @@ jobs:
   changes:
     name: what changed
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       android: ${{ steps.filter.outputs.android }}
     steps:

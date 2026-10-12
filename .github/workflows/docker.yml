@@ -24,6 +24,8 @@ jobs:
   publish:
     name: build and push
     runs-on: ubuntu-latest
+    # two multi-arch images, the arm64 half under QEMU: about ten minutes, rarely twenty
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -49,9 +51,10 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
+          # what the image holds, in pyproject.toml's words (the hands are not in it)
           labels: |
             org.opencontainers.image.title=nanoMuse
-            org.opencontainers.image.description=Open-source version of Meta's Muse personal agent: phone app, Sentinel gatekeeper, credential vault, memory and goals. Bring your own model.
+            org.opencontainers.image.description=nanoMuse, an open-source personal agent for every device you own: the runtime in a container, with the agent, the Sentinel that decides what may run, and the web app. Bring your own model.
             org.opencontainers.image.licenses=GPL-3.0-or-later
 
       - name: Build and push

@@ -23,10 +23,10 @@ on:
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
+# Only the deploy job writes (actions/deploy-pages); the build reads the site's settings
+# (actions/configure-pages, a GET) and gets nothing more.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
@@ -35,6 +35,10 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pages: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Assemble site/assets (the dragon, the icons, the fonts, the screenshots)
@@ -81,6 +85,10 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
