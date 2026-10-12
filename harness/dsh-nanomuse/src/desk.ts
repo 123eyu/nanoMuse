@@ -522,6 +522,23 @@ export async function checkForUpdate(current: string, fetchImpl: Fetch = fetch a
   return { ...base, error: errors.join('; ') }
 }
 
+/** One check a day, at most, by itself; the About row may ask any time. */
+export const UPDATE_EVERY_MS = 24 * 60 * 60_000
+/** A check that could not read either source is tried again after an hour, not a day. */
+export const UPDATE_RETRY_MS = 60 * 60_000
+
+/**
+ * Whether a cached check still answers for the bundle that runs now: made by this very
+ * version, and younger than a day; a failed one (`source: 'none'`, nothing read) is good for
+ * an hour only, so a network that was down at start does not leave "Could not check" on the
+ * About row for the rest of the day. A cache made by another version is no answer at all.
+ */
+export function updateCacheFresh(cached: UpdateInfo | undefined, current: string, now = Date.now()): boolean {
+  if (!cached || cached.current !== current) return false
+  const ttl = cached.source === 'none' ? UPDATE_RETRY_MS : UPDATE_EVERY_MS
+  return now - cached.checkedAt < ttl
+}
+
 // ---- models (C4) --------------------------------------------------------------------
 
 /** What the relay says a model is for; absent on an older relay means chat. */

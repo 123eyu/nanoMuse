@@ -65,8 +65,9 @@ stylesheet over the harness's stable DOM hooks (`data-composer-card`,
   timestamps and the per-message actions on hover only; a link inside your pill keeps
   the pill's text colour, underlined. The header is a scrim over the conversation rather
   than a bar: messages scroll under the face and dissolve into the canvas, and no line
-  runs under it. An empty chat has no greeting: the composer waits at the bottom, as in
-  Muse, with the workspace and preset row above it.
+  runs under it. An empty chat has no greeting and no workspace or preset chips: the
+  composer waits at the bottom, as in Muse, and opens the workspace picker itself when a
+  workspace is needed.
 - The composer is one pill: *+* (attach), *Message*, the send disc (the stop square
   while a turn runs); the send disc and the harness's scroll-to-latest disc are the same
   ink as your pills, with the glyph in the opposite colour. The harness's model picker, permission mode and plan toggle are
@@ -674,6 +675,9 @@ nowhere else.
   versions; a newer one shows as a dot, an *Update to 0.1.x* menu item and a *Download*
   button for this platform's asset in About (on Linux the `.deb`, or the AppImage when
   the running app is one). The result is kept for a day and read against the version
-  that runs now, so an update installed in the meantime is not offered to itself.
+  that runs now, so an update installed in the meantime is not offered to itself. A check
+  that could read neither source (the network down at start, say) is kept for an hour
+  only: the host tries again by itself an hour later, and *Check for updates* asks at once
+  whatever the cache says.
 - **Open source, no closed component.** The bundle is GPL-3.0-or-later; the harness is
   MIT and travels with its notice; the About row says so.

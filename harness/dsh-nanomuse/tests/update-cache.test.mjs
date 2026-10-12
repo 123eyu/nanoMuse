@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Service } from '@deepseek-ai/cordis'
 import NanomuseCloud, { BUNDLE_VERSION, LLM_ROW, updateForThisVersion } from '../lib/cloud.js'
+import { UPDATE_EVERY_MS, UPDATE_RETRY_MS, updateCacheFresh } from '../lib/desk.js'
 
 process.env.NANOMUSE_PY = join(tmpdir(), 'nanomuse-runtime-that-does-not-exist')
 
@@ -92,6 +93,61 @@ test('right after installing this version over the previous one, the sidebar is 
     assert.equal(live.update.latest, BUNDLE_VERSION)
     assert.equal(live.update.newer, false)
   } finally {
+    await out.done()
+  }
+})
+
+test('a failed check is cached an hour, a successful one a day, and another version\'s never', () => {
+  const now = Date.now()
+  const good = { ...checkedByPrevious(BEYOND), current: BUNDLE_VERSION, checkedAt: now }
+  const failed = { ...good, latest: '', newer: false, source: 'none', error: 'nanomuse.cn: 503; github: 403' }
+  assert.equal(updateCacheFresh(good, BUNDLE_VERSION, now + UPDATE_EVERY_MS - 1), true)
+  assert.equal(updateCacheFresh(good, BUNDLE_VERSION, now + UPDATE_EVERY_MS), false)
+  assert.equal(updateCacheFresh(failed, BUNDLE_VERSION, now + UPDATE_RETRY_MS - 1), true)
+  assert.equal(updateCacheFresh(failed, BUNDLE_VERSION, now + UPDATE_RETRY_MS), false, 'a failure is tried again after an hour')
+  assert.ok(UPDATE_RETRY_MS < UPDATE_EVERY_MS)
+  assert.equal(updateCacheFresh(undefined, BUNDLE_VERSION, now), false)
+  assert.equal(updateCacheFresh({ ...good, current: PREVIOUS }, BUNDLE_VERSION, now), false)
+})
+
+test('a check that read nothing is not kept for the day: the next quiet check asks again, the About row asks at once', async () => {
+  const out = await cloudWith(undefined)
+  const realFetch = globalThis.fetch
+  let asked = 0
+  let down = true
+  // both sources down first, then the mirror answers; nothing leaves the test
+  globalThis.fetch = async () => {
+    asked += 1
+    if (down) return { ok: false, status: 503, json: async () => ({}) }
+    return { ok: true, status: 200, json: async () => ({ repo: 'nano-muse/nanoMuse', releases: [{ tag: `v${BUNDLE_VERSION}`, assets: [] }] }) }
+  }
+  try {
+    const failed = await out.svc.update(false)
+    assert.equal(failed.source, 'none')
+    assert.ok(failed.error)
+    assert.equal(asked, 2, 'the mirror and GitHub, once each')
+    // within the hour the failure stands for a quiet check...
+    asked = 0
+    assert.equal(await out.svc.update(false), failed)
+    assert.equal(asked, 0)
+    // ...never for the About row's button
+    down = false
+    const forced = await out.svc.update(true)
+    assert.equal(asked, 1)
+    assert.equal(forced.source, 'nanomuse.cn')
+    assert.equal(forced.latest, BUNDLE_VERSION)
+    // a failure older than an hour is asked again by a quiet check, where a success would still be cached
+    down = true
+    asked = 0
+    out.svc.state.update = { ...failed, checkedAt: Date.now() - UPDATE_RETRY_MS - 1 }
+    assert.equal((await out.svc.update(false)).source, 'none')
+    assert.equal(asked, 2)
+    asked = 0
+    out.svc.state.update = { ...forced, checkedAt: Date.now() - UPDATE_RETRY_MS - 1 }
+    assert.equal((await out.svc.update(false)).source, 'nanomuse.cn')
+    assert.equal(asked, 0)
+  } finally {
+    globalThis.fetch = realFetch
     await out.done()
   }
 })
