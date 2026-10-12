@@ -35,7 +35,7 @@ Legend: **✓** done · **◐** partial (what is missing is in the note) · **�
 | *Use it for* after a key is saved: one toggle per capability the provider has, all on; *Use it* moves those rows to the provider's catalogue defaults, *Not now* changes nothing; saving alone switches nothing | ✓ 0.1.41 | ✓ 0.1.41 (no screen toggle) | ✓ 0.1.41 | — the own-key form sets the chat provider; pictures and clips are set on their own rows *(40)* |
 | *Use nanoMuse Cloud models*, a switch, not a delete: off, the account leaves the pickers and the automatic order of every slot and nothing spends the allowance but the explicit *Use nanoMuse Cloud this time*; the sign-in stays for sync and the hub, and the Cloud provider row cannot be deleted | ✓ *Settings → Models* | ✓ *Settings → Models* | ✓ *Settings → Models* | ✓ the nanoMuse Cloud card under *Connections* (`POST /api/cloud/models`); refused while the chat model is the account's, since the runtime holds one chat model |
 | With a key of your own the app works signed out (chat, hands, pictures, clips); the first screen offers *Use your own API key instead* and the sign-in waits for the Cloud models, sync and the devices | ✓ | ✓ | ✓ the sign-in was never a wall | ✓ the sign-in page steps aside once a model is ready or the button was taken |
-| No silent fallback: a failed turn on an own model offers *Use nanoMuse Cloud this time* (signed in), that one turn on the account, no row changed | ✓ 0.1.41 `CloudRetry` | ✓ 0.1.41 `NanoMuseCloudOnce` | ✓ 0.1.41 also after a failed studio round and a failed set of clips | — the failure is shown; the rows stay as set *(40)* |
+| No silent fallback: a failed turn on an own model offers *Use nanoMuse Cloud this time* (signed in), that one turn on the account, no row changed | ✓ 0.1.41 `CloudRetry` | ✓ 0.1.41 `NanoMuseCloudOnce` | ✓ 0.1.41 also after a failed studio round and a failed set of clips | ✓ 1.0.1 under the failed turn (`via: "cloud"` on the send); the rows stay as set |
 | "Ways on" ordered by region (Bailian first on the mainland, OpenRouter first elsewhere) | ✓ 0.1.34 | ✓ 0.1.34 | ✓ 0.1.34 | ✓ 0.1.34 |
 | Own-key catalogue (`providers.json`: 20 providers, what each covers (chat · screen · pictures · clips), key pages, regions; one file, generated for every client) | ✓ 0.1.39 | ✓ 0.1.40 `NanoMuseCatalogue` *(32)* | ✓ 0.1.39 | ✓ 0.1.39 |
 | "Ways on" from the catalogue: the region's lead first, *more providers*, the plans one can sign in with, the key taken inline | ✓ 0.1.39 | ✓ 0.1.40 the pinned card, Settings → nanoMuse Cloud and the own-key sheet, one list (`NanoMuseWaysList`) *(32)* | ✓ 0.1.39 Settings → nanoMuse Cloud, the own-key first-run step | ✓ 0.1.39 |
@@ -344,12 +344,12 @@ notes above; a settled item keeps its number and says how it went.
 40. **Models page, four slots (0.1.41).** Settled on Android, iOS and the desktop as one page
     with the *Use it for* card after a key is saved and *Use nanoMuse Cloud this time* on a
     failed own-key turn; the web console has the same four slots on *Connections* (the runtime's
-    `PUT /api/connections/gui`, `/image`, `/video` and *Automatic* on each), but no *Use it for*
-    card and no one-turn retry on the account: the own-key form sets the chat provider, and a
-    failed turn shows the failure. Left on iOS: the pictures and clips pickers list, besides
+    `PUT /api/connections/gui`, `/image`, `/video` and *Automatic* on each) and, since 1.0.1,
+    *Use nanoMuse Cloud this time* under a failed own-key turn, but no *Use it for* card: the
+    own-key form sets the chat provider, and pictures and clips are set on their own rows. Left on iOS: the pictures and clips pickers list, besides
     nanoMuse Cloud, only own providers on a DashScope host (Alibaba Cloud Bailian), since the
-    iPhone's image and clip code speaks DashScope's API only. *Proposal:* the card and the button
-    on the web, and the OpenAI image shape on the iPhone, when someone asks.
+    iPhone's image and clip code speaks DashScope's API only. *Proposal:* the card on the web,
+    and the OpenAI image shape on the iPhone, when someone asks.
 
 ## Keeping this true
 
