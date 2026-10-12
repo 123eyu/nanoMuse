@@ -233,7 +233,7 @@ export function AvatarShareSheet({ open, onClose }: { open: boolean; onClose: ()
           <button
             key={p.id}
             type="button"
-            aria-label={p.id}
+            aria-label={t("Card {n}", { n: i + 1 })}
             aria-pressed={selected === i}
             onClick={() => setSelected(i)}
             className={cx("overflow-hidden rounded-2xl border-2 transition", selected === i ? "border-accent" : "border-transparent")}

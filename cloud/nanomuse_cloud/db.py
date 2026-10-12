@@ -270,6 +270,11 @@ CREATE TABLE IF NOT EXISTS deleted_keys (
 # account to come back online and hear the answer; short enough that a deletion is a deletion.
 DELETED_KEYS_TTL_S = 90 * 24 * 3600
 
+# How long a write waits for another process's lock on the file before it fails (sqlite3's
+# `timeout` and PRAGMA busy_timeout). Five seconds covers a backup's read transaction or a
+# checkpoint; a request held longer than that is better refused than queued for good.
+BUSY_TIMEOUT_S = 5.0
+
 # The per-account figures the invite views join in, requests made and money spent, in one
 # pass over the ledger (the same set of kinds as admin_accounts counts).
 USAGE_BY_ACCOUNT = """(SELECT account_id,
@@ -292,7 +297,11 @@ class Database:
         self.path = path
         if path != ":memory:":
             Path(path).parent.mkdir(parents=True, exist_ok=True)
-        self._conn = sqlite3.connect(path, check_same_thread=False, isolation_level=None)
+        # One connection behind one lock serialises the relay's own writes; the busy timeout
+        # is for the other writers that open the same file (a backup taken with the backup
+        # API, the admin CLI, a checkpoint by another process). The default is 0: the first
+        # locked write would raise "database is locked" instead of waiting a moment.
+        self._conn = sqlite3.connect(path, check_same_thread=False, isolation_level=None, timeout=BUSY_TIMEOUT_S)
         self._conn.row_factory = sqlite3.Row
         self._lock = threading.RLock()
         # columns this open added to an older file ("accounts.grant_uy"): the service seeds
@@ -300,6 +309,7 @@ class Database:
         self.added: set[str] = set()
         with self._lock:
             # executescript commits on its own; keep it outside tx().
+            self._conn.execute(f"PRAGMA busy_timeout={int(BUSY_TIMEOUT_S * 1000)}")
             self._conn.execute("PRAGMA journal_mode=WAL")
             # WAL with NORMAL: durable against a process crash, and an fsync per checkpoint
             # instead of per commit (the default FULL costs one per commit). A power cut
@@ -792,6 +802,9 @@ class Database:
             c.execute("DELETE FROM sync_conversations WHERE account_id=?", (account_id,))
             c.execute("DELETE FROM sync_cursors WHERE account_id=?", (account_id,))
             c.execute("DELETE FROM ledger WHERE account_id=?", (account_id,))
+            # the daily counters keyed by the account (`active`: one row per UTC day it made
+            # a call); the other metrics are keyed by route group, error code or asset
+            c.execute("DELETE FROM daily WHERE metric='active' AND key=?", (account_id,))
             # the keys' hashes stay a while, so a device still holding one hears
             # `account_deleted` (0.1.40); the rows that named the account do not
             ts = now()

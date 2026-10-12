@@ -162,6 +162,7 @@ export function ToolChip({ event }: { event: ToolEvent }) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
+        aria-expanded={event.output ? open : undefined}
         className="max-w-full text-left rounded-2xl bg-surface-2/80 border border-border/60 px-3 py-1.5 text-[13px] text-muted hover:text-fg transition"
       >
         <span className="flex items-center gap-2">

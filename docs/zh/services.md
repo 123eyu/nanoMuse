@@ -4,7 +4,7 @@
 
 > **没有在手机的根文件系统里跑过、留下记录之前，什么都不进[展示站](showcase.md)。** 装得上的包不等于能用的服务。「跑过」的意思是工具被调用了、也回答了；记录在这一页的底部。
 
-这个根文件系统就是本地 Android 构建在手机上解开的那份 Alpine Linux（[local-runtime.md](local-runtime.md)），里面有 Node 22 和 Python 3.12。下面的一切都是 2026-09-24 在那个镜像里、arm64 模拟器（构建机上的 QEMU 用户态）上跑的；PRoot 本身和手机的网络是模拟器碰不到的两样东西，检查清单里给它们各留了一行。
+今天手机上的根文件系统，是 Android 应用在 proot 下解开的那份 Alpine Linux 3.21 minirootfs（[android.md](android.md)；构建时由 `android/scripts/prepare_android_sandbox.sh` 下载）。它是光秃秃的：任务第一次需要时，智能体才用 `apk add` 在里面装 Node 和 Python。这一页底部的记录是 2026-09-24 在 Python 线的镜像里录的，那份镜像用同一个 Alpine 底座，预装了 Node 22 和 Python 3.12（[local-runtime.md](local-runtime.md) 是那条线的记录），跑在 arm64 模拟器（构建机上的 QEMU 用户态）上；当前应用的 rootfs 在这里还没有自己的一次记录。PRoot 本身和手机的网络是模拟器碰不到的两样东西，检查清单里给它们各留了一行。下面点到的技能是 Python 运行时自带的那些，在 `nanomuse/skills/builtin/` 下。
 
 ## 一档：已验证 {#tier-1-verified}
 
@@ -53,7 +53,7 @@ MCP 服务器：在 `config.toml` 里写一个 `[[mcp.servers]]` 块（或者在
 
 ## 验证记录 {#verification-log}
 
-在 `nanomuse-rootfs:aarch64`（Alpine 3.21.8、Node 22.23.2、npm 10.9.1、Python 3.12.14、nanomuse 0.1.0）里，x86_64 上的 QEMU 用户态，2026-09-24。镜像源用 `nanomuse-mirror cn` 切换。探针是一个 60 行的 Python 脚本，用的是智能体自己用的那个 `mcp` 客户端：连接、`tools/list`、几次 `tools/call`。
+在 Python 线的镜像 `nanomuse-rootfs:aarch64`（Alpine 3.21.8、Node 22.23.2、npm 10.9.1、Python 3.12.14、nanomuse 0.1.0）里，x86_64 上的 QEMU 用户态，2026-09-24。软件源当时用那份镜像里的 `nanomuse-mirror cn` 切换；今天的应用在第一次启动时自己测速选软件源。探针是一个 60 行的 Python 脚本，用的是智能体自己用的那个 `mcp` 客户端：连接、`tools/list`、几次 `tools/call`。
 
 ```
 $ npm i -g 12306-mcp @larksuite/cli @tencentcloud/tmeet @amap/amap-maps-mcp-server @kuaidi100-mcp/kuaidi100-mcp-server

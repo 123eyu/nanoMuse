@@ -1,5 +1,5 @@
 import { Bug, LayoutGrid, Lightbulb, Menu, MessageCircle, MonitorSmartphone, Newspaper, Search, SlidersHorizontal, SquareCheckBig, TerminalSquare, UserRound, Wrench, X } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { desktopBridge } from "../desktop";
 import { useDeveloperTools } from "../devtools";
 import { useT } from "../i18n";
@@ -8,6 +8,7 @@ import { MuseSheet } from "../screens/MuseSheet";
 import { useStore, type Tab } from "../store";
 import { cx } from "../util";
 import { Avatar } from "./Avatar";
+import { useMenuKeys } from "./useMenuKeys";
 
 /** Where a bug goes, with what the page knows filled in. */
 function bugReportUrl(version: string): string {
@@ -50,22 +51,8 @@ export function Sidebar() {
         ? t("Idle")
         : status.detail || (status.state === "waiting" ? t("Waiting for you") : t("Working…"));
 
-  // the menu closes on a click elsewhere or Escape
-  useEffect(() => {
-    if (!menuOpen) return;
-    const away = (e: MouseEvent) => {
-      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
-    };
-    const key = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMenuOpen(false);
-    };
-    document.addEventListener("mousedown", away);
-    document.addEventListener("keydown", key);
-    return () => {
-      document.removeEventListener("mousedown", away);
-      document.removeEventListener("keydown", key);
-    };
-  }, [menuOpen]);
+  // the menu closes on a click elsewhere or Escape; arrow keys walk its entries
+  useMenuKeys(menuRef, menuOpen, () => setMenuOpen(false));
 
   const rail: Array<{ id: Tab; label: string; icon: ReactNode; badge?: number; dot?: boolean }> = [
     { id: "chat", label: "Chat", icon: <MessageCircle size={21} />, badge: pendingApprovals },
