@@ -145,6 +145,7 @@ for the hands):
 cd harness/dsh-nanomuse && pnpm install && pnpm build          # the bundle
 cd ../desktop && npm ci
 node scripts/prepare-dsh.mjs                                     # dsh + the bundle → dsh/ (npm, public registry, this platform's prebuilds)
+node scripts/check-hooks.mjs                                     # the data-* hooks and class stems styles.ts leans on are in that dsh
 python ../../scripts/desktop-app/build-runtime.py --target harness/desktop/runtime   # optional: the hands
 npm start                                                        # or: npm run dist (installers under dist/)
 node scripts/smoke.mjs                                           # boots the staged harness once in Node mode

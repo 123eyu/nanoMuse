@@ -101,13 +101,22 @@ jobs:
           pnpm pack --pack-destination ../../packages
           (cd ../../packages && sha256sum * > SHA256SUMS-harness.txt && cat SHA256SUMS-harness.txt)
       - name: Install into a fresh dsh profile
-        # the tarball, not the source tree: what a person downloads must load as a plugin
+        # the tarball, not the source tree: what a person downloads must load as a plugin;
+        # the dsh it goes into is the one the bundle's peer dependencies name, the same
+        # version harness/desktop/scripts/prepare-dsh.mjs stages
         run: |
-          mkdir -p /tmp/dsh && cd /tmp/dsh && npm init -y >/dev/null && npm install --no-audit --no-fund @deepseek-ai/dsh@0.2.0-rc.2 >/dev/null
+          DSH_VERSION=$(node -p "require('$GITHUB_WORKSPACE/harness/dsh-nanomuse/package.json').peerDependencies['@deepseek-ai/dsh-agent']")
+          mkdir -p /tmp/dsh && cd /tmp/dsh && npm init -y >/dev/null && npm install --no-audit --no-fund "@deepseek-ai/dsh@$DSH_VERSION" >/dev/null
           export DSH_HOME=/tmp/dsh-home
           ./node_modules/.bin/dsh --profile check --from-default-profile web --dump-config >/dev/null
           ./node_modules/.bin/dsh plugin --profile check add "$GITHUB_WORKSPACE"/packages/dsh-nanomuse-*.tgz
           ./node_modules/.bin/dsh --profile check --dump-config | grep -c "patched by dsh-nanomuse"
+      # the data-* hooks and class-name stems styles.ts dresses the harness's DOM through are
+      # in this dsh (desktop-app.yml runs the same against the staged copy; here it runs on
+      # every pull request)
+      - name: The hooks styles.ts leans on are in that dsh
+        working-directory: harness/desktop
+        run: node scripts/check-hooks.mjs --dsh /tmp/dsh/node_modules
       - uses: actions/upload-artifact@v7
         with:
           name: harness-bundle

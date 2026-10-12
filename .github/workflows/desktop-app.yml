@@ -19,7 +19,8 @@
 # bundle is ad-hoc signed and macOS asks for Open Anyway in System Settings → Privacy & Security.
 # A push that touches harness/desktop builds Linux only; "Run workflow" and the release tags
 # `v*` build all four, and a tag uploads the installers to the release of the same name (the
-# one scripts/release-apk.sh creates with the APK), retrying until it exists. "Run workflow"
+# one scripts/release-apk.sh creates with the APK), retrying until it exists; the platforms
+# that built are attached even when another one failed, and the run ends red. "Run workflow"
 # with a release tag does the same for a release that already exists (a platform fixed afterwards).
 name: desktop app
 
@@ -118,6 +119,12 @@ jobs:
         working-directory: harness/desktop
         shell: bash
         run: node scripts/prepare-dsh.mjs
+      # The bundle's stylesheet dresses the harness's DOM through its data-* hooks and
+      # class-name stems; a dsh version that renamed one would leave rules matching nothing.
+      - name: The hooks styles.ts leans on are in the staged dsh
+        working-directory: harness/desktop
+        shell: bash
+        run: node scripts/check-hooks.mjs
       - name: The runtime for the hands
         if: runner.os != 'Linux'
         shell: bash
@@ -217,8 +224,15 @@ jobs:
             harness/desktop/dist/*.zip
           if-no-files-found: error
 
+  # The platforms that built are attached even when another one failed: `needs.build.result`
+  # is `failure` as soon as one leg of the matrix fails, which would skip this job and hold
+  # back three good installers for the one that broke. So the job runs on `success` and on
+  # `failure` alike (not when the build was cancelled or never ran), takes what the build
+  # uploaded, and attaches it; the run still ends red through the failed build job, and
+  # "Run workflow" with the tag, once the platform is fixed, builds all four again and
+  # replaces the installers and the checksum file.
   release:
-    if: startsWith(github.ref, 'refs/tags/v') || inputs.release_tag != ''
+    if: always() && (startsWith(github.ref, 'refs/tags/v') || inputs.release_tag != '') && (needs.build.result == 'success' || needs.build.result == 'failure')
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -226,6 +240,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v8
         with:
+          pattern: nanomuse-desktop-*
           path: packages
           merge-multiple: true
       - name: Attach to the release
@@ -233,7 +248,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.release_tag || github.ref_name }}
           REPO: ${{ github.repository }}
+          BUILD_RESULT: ${{ needs.build.result }}
         run: |
+          if [ "$BUILD_RESULT" != "success" ]; then
+            echo "::warning::a platform's build failed; attaching the installers of the platforms that built, so the release is not left empty. SHA256SUMS-desktop.txt lists those only; fix the platform and run the workflow again with release_tag=$TAG to complete the set."
+          fi
           # the release is created by scripts/release-apk.sh right after it pushes the tag;
           # give it up to fifteen minutes
           for i in $(seq 1 90); do
