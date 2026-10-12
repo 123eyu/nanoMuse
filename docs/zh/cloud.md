@@ -78,7 +78,7 @@ nanoMuse 是社区项目，不收费。`cloud.nanomuse.cn` 这个公共中继由
 
 *设置 → nanoMuse Cloud* 显示池子用了多少（以 ¥ 和 $ 计）、还剩多少、池子怎么增长。用到 80 % 时 App 提示一次；池子花完后中继以 `allowance_exhausted` 拒绝，App 显示接下来的路：自己的 key、你已经在付费的套餐，或者邀请（你们各加 ¥5，或者中继当天说的数）。先推荐哪家服务商取决于你在哪里（0.1.34：中继的 `region`，从号码的国家码或它自己磁盘上一份 ip2region 的离线副本读出；什么都不往外发）：中国大陆账号被指向阿里云百炼（服务商表单打开时已经预填好，[指南](own-key.md)），其他所有人指向 OpenRouter 或 OpenAI，因为百炼只接受中国大陆的注册。
 
-中继 0.21 起，拒绝响应和 `/v1/me` 把整张卡片作为数据带上，而不只是两个链接（契约 C11）：`spend.guidance`（以及 `allowance_exhausted` 错误旁边的 `guidance`）按顺序列出该地区的服务商和每家 key 覆盖的范围（`covers: chat | vision | image | video`，来自共享目录 [`nanomuse/llm/providers.json`](../../nanomuse/llm/providers.json)，中继自带一份副本）、一个人可能已经在付费的套餐和哪些客户端能用它们登录（`plans`：ChatGPT 到处都行，Claude 和 Kimi 在手机上，OpenRouter 在手机上）、本地服务器（`local`）、文档链接，以及关于 ChatGPT 登录的那句实话（`caveats.chatgpt`、`caveats.chatgpt_zh`）。0.17 的 `ways` 行仍然发送，现在每行带着服务商的 `name`、`name_zh`、`key_url`、`covers` 和 `auth`，所以 0.1.38 的客户端照旧画出它一直画的那两个按钮。`/app` 的控制台用 `guidance` 画卡片，遇到旧中继则退回两个链接。厂商要求每个对话带一个固定 id 的服务商（目录里的 `session_header`，比如 OpenCode Go）单独列在 `session_providers` 里，并写明那个请求头：1.0.1 及更早的手机端只读 `providers`，也不发这个 id，所以不会推荐它；会发 id 的应用把这份列表接在 `providers` 后面。其他中继可以定其他规则（`ALLOWANCE_CNY`、`INVITE_BONUS_CNY`、`SIGNUP_OPEN`、`ALLOWED_IDENTIFIERS`；三个数字都能在中继运行时调整，中继 0.15；见 [`cloud/README.md`](../../cloud/README.md)）。运营者能看到谁邀请了谁：管理页的「邀请」视图按邀请码带来的账号数给邀请人排序，并列出其中有多少人用过、有多少人还待到账（没发过第一次请求，所以还没有奖励）、有多少人的地址与邀请人相同；一个账号的页面写明它的邀请人，并列出它带来的人（`GET /v1/admin/invites`）。给自己刷额度不划算：奖励在被邀请人第一次发出计费请求时才到账；来自非知名邮箱服务商域名的新账号按天限量（`SIGNUP_PER_DOMAIN_DAY`，默认 20；拒绝码是 `domain_limited`）；健康检查会提出两种警报，一天之内邀请码带来超过十个账号的邀请人，以及带来二十个以上账号而几乎没人发过请求的邀请人。「邀请」视图里每个展开的邀请人、以及它账号页的「邀请的人」卡片，都有一个动作：收回邀请奖励（已经花掉的部分不动），并可同时停用这个账号、删除它邀请来的从没发过请求的账号（`POST /v1/admin/invites/abuse`）。
+中继 0.21 起，拒绝响应和 `/v1/me` 把整张卡片作为数据带上，而不只是两个链接（契约 C11）：`spend.guidance`（以及 `allowance_exhausted` 错误旁边的 `guidance`）按顺序列出该地区的服务商和每家 key 覆盖的范围（`covers: chat | vision | image | video`，来自共享目录 [`nanomuse/llm/providers.json`](../../nanomuse/llm/providers.json)，中继自带一份副本）、一个人可能已经在付费的套餐和哪些客户端能用它们登录（`plans`：ChatGPT 到处都行，Claude 和 Kimi 在手机上，OpenRouter 在手机上）、本地服务器（`local`）、文档链接，以及关于 ChatGPT 登录的那句实话（`caveats.chatgpt`、`caveats.chatgpt_zh`）。0.17 的 `ways` 行仍然发送，现在每行带着服务商的 `name`、`name_zh`、`key_url`、`covers` 和 `auth`，所以 0.1.38 的客户端照旧画出它一直画的那两个按钮。`/app` 的控制台用 `guidance` 画卡片，遇到旧中继则退回两个链接。厂商要求每个对话带一个固定 id 的服务商（目录里的 `session_header`，比如 OpenCode Go）单独列在 `session_providers` 里，并写明那个请求头：1.0.1 及更早的手机端只读 `providers`，也不发这个 id，所以不会推荐它；会发 id 的应用把这份列表接在 `providers` 后面。其他中继可以定其他规则（`ALLOWANCE_CNY`、`INVITE_BONUS_CNY`、`SIGNUP_OPEN`、`ALLOWED_IDENTIFIERS`；三个数字都能在中继运行时调整，中继 0.15；见 [`cloud/README.md`](../../cloud/README.md)）。运营者能看到谁邀请了谁：管理页的「邀请」视图按邀请码带来的账号数给邀请人排序，并列出其中有多少人用过、有多少人还待到账（没发过第一次请求，所以还没有奖励）、有多少人的地址与邀请人相同；一个账号的页面写明它的邀请人，并列出它带来的人（`GET /v1/admin/invites`）。给自己刷额度不划算：奖励在被邀请人第一次发出计费请求时才到账；来自非知名邮箱服务商域名的新账号按天限量（`SIGNUP_PER_DOMAIN_DAY`，默认 20；拒绝码是 `domain_limited`）；健康检查会提出两种警报，一天之内邀请码带来超过十个账号的邀请人，以及带来二十个以上账号而几乎没人发过请求的邀请人。「邀请」视图里每个展开的邀请人、以及它账号页的「邀请的人」卡片，都有一个动作：收回邀请奖励（已经花掉的部分不动），并可同时停用这个账号、删除它邀请来的从没发过请求的账号（`POST /v1/admin/invites/abuse`）。运营者对账号的每个操作都有记录：停用或启用、设为或取消成员、赠送、充值、改额度池、改设置和删除，每一个都在「控制」区的审计日志里留一行（谁、从哪里、对哪个账号，账号只记 id 的前八位），账号自己的时间线也记一笔；删除会计入统计页。被停用的账号申请登录验证码时直接被拒（`403 account_disabled`），不会再发出任何短信或邮件。
 
 nanoMuse 只求一样回报：在 [GitHub](https://github.com/nano-muse/nanoMuse) 上点一个 star，这是帮项目被人找到的东西。什么时候开口由中继定，不由 App 定（0.1.35）：`GET /v1/nudges` 说明什么时候问是合理的：它替你完成第三、第十和第三十个任务之后，你打开它的第七天和第三十天，达成一个目标时，画出一个新形象时，在账号页上一次，以及池子花完时，两次之间至少隔一周，每台设备最多四次。每次都是一张出现在当下位置的卡片；「以后再说」也算一次，去过那个页面或点了「已经点过了」之后就不再出现（只记在本机，账号不同步这个标记）。运营者在管理页（*设置 › 请求 star*）改这项策略，不用更新 App；每个 App 都内置同样的默认值，供连不上中继时使用。策略定的是*什么时候*，运营者愿意的话也可以定*说什么*：卡片上的文字默认是每个 App 自己的、用它的语言写的；策略里带了句子就用策略的：`star.text`（英文）和 `star.text_zh`（简体中文），各最多 200 字，默认为空。中文界面的 App 先看 `text_zh`，没有再看 `text`，都没有就用自己的句子；其他语言的 App 看 `text`，没有就用自己的。只换卡片上的那句话，标题和按钮还是 App 自己的。按中继 0.22 及更早版本做的 App 不认这两个字段。
 
@@ -123,24 +123,35 @@ docker compose up -d    # Caddy fetches the TLS certificate
 App 的调用，全部是 JSON：
 
 ```
-POST /v1/auth/code          {identifier}                      → 204
-POST /v1/auth/verify        {identifier, code, device}        → {api_key, base_url, account, tokens, models}
+GET  /healthz                                                 → {ok, version, models[], paused[]}; no key
+GET  /v1/config                                               → {version, signup_open, paused[], allowance_cny, allowance_usd, invite_bonus_cny, invitee_bonus_cny, usd_cny, invite_url, own_key_docs, openrouter_url, privacy_url, repo_url, improve_default, code_ttl_s, password_min_len}; no key, a minute's cache
+POST /v1/auth/code          {identifier}                      → 204; 400 phone_region, 403 not_invited | signup_closed | account_disabled, 429 code_too_often | domain_limited, 502 send_failed
+POST /v1/auth/verify        {identifier, code, device, invite?} → {api_key, base_url, account, tokens, models, created, region}; 400 code_wrong | code_expired
 POST /v1/auth/login         {identifier, password, device}    → the same; 401 bad_credentials, 429 locked, 400 no_password
-POST /v1/auth/password      Bearer  {password, current?}      → 204; "" with current removes it
-GET  /v1/me                 Bearer                            → {region: cn | intl | unknown, account{…, has_password, sessions, signed_in_via}, usage{today, total by kind / model}, tokens, spend{…, ways}, models, recent, nudges}
+POST /v1/auth/password      Bearer  {password, current?}      → 204; "" with current removes it; 400 password_short | password_long | password_weak | password_wrong | password_required
+POST /v1/auth/session-key   Bearer  {device?, ttl_s?}         → {api_key, expires_at}; a key that lapses on its own (90 days at most); 403 session_from_session
+GET  /v1/me                 Bearer                            → {region: cn | intl | unknown, account{…, has_password, sessions, signed_in_via}, usage{today, total by kind / model}, tokens, spend{…, ways, guidance}, invite, contribute, models, defaults, base_url, clips, recent, nudges, paused[]}
+GET  /v1/me/invite          Bearer                            → {code, url, invites, bonus_cny, invitee_bonus_cny, bonus_when: "first_use", settled, pending, earned_cny, friends[]}
+GET  /v1/estimate           Bearer  ?images=5&clips=4&image_model=&video_model=&size=  → {cny, usd, parts[{kind, model, count, seconds?, cny}], left_cny, grant_cny, unlimited, affordable}; nothing charged
+POST /v1/me/contribute      Bearer  {on}                      → {on, samples, default_on, keeps[], privacy_url}; the "help improve" switch
+DELETE /v1/me/samples       Bearer                            → {deleted}; every turn kept from this account
 GET  /v1/nudges                                               → {version, star{enabled, url, moments{signed_in, tasks[], new_look, exhausted, days_used[], goal_done}, cooldown_days, max_asks, text, text_zh}}; no key, cached an hour
 GET  /v1/me/profile         Bearer  ?face=false               → {rev, device, name, avatar, …, face?, connectors: [{id, label, url, auth, device, device_id, enabled, at}]}
 PUT  /v1/me/profile         Bearer  {device, name?, avatar?, …, face?, connectors?}  → {rev, device}; a field that is absent keeps what is stored (relay 0.25); a device's connectors replace only its own; 400 no_secrets_in_profile, too_many_connectors
 DELETE /v1/me/profile       Bearer                            → 204
-GET  /v1/me/sessions        Bearer                            → {sessions: [{prefix, device, via, created_at, last_used_at, current}]}
-DELETE /v1/me/sessions/{prefix}  Bearer                       → 204
+GET  /v1/me/sessions        Bearer                            → {sessions: [{prefix, device, via, created_at, last_used_at, expires_at, current}]}
+DELETE /v1/me/sessions/{prefix}  Bearer                       → 204; 404 no_session
 GET  /v1/me/events          Bearer  ?limit=50                 → {events: [{ts, kind, detail}]}
 POST /v1/auth/sign-out      Bearer                            → 204
 POST /v1/auth/sign-out-all  Bearer  {all?}                    → {signed_out}
 POST /v1/auth/delete        Bearer                            → 204
+GET  /v1/devices            Bearer                            → {devices: [{id, name, kind, os, version, actions[], online, last_seen, controllable, ip}]}; 503 hub_paused
+DELETE /v1/devices/{id}     Bearer                            → 204; 409 device_online
 ```
 
-其余都是 OpenAI API：`GET /v1/models`（带 `architecture` 模态，好认出图像模型，每个模型还有一个 `nanomuse` 块，含它的 `kind`、价格、`for`（聊天模型适用的通道：`chat` 和 / 或 `gui`）以及 `recommended_for`）、流式的 `POST /v1/chat/completions`、`POST /v1/images/generations` 和 `/v1/images/edits`。错误是 `{"error": {"message", "type": "nanomuse_cloud", "code"}}`，`code` 稳定不变，App 把它变成一句话。中继 0.22 加了运营者[开关](#controls)的码：`403 signup_closed`、`503 service_paused`、`503 sync_paused`、`503 hub_paused`（以及 hub 的关闭码 `4003 hub_paused`），还有免费额度是被暂停而不是花完时带 `paused: true` 的 `allowance_exhausted`；`/healthz`、`/v1/config` 和 `/v1/me` 在 `paused` 下列出关着的开关。
+`/v1/config` 里的 `code_ttl_s` 和 `password_min_len` 就是中继的 `CODE_TTL_S` 和 `PASSWORD_MIN_LEN`；网页控制台的登录表单和密码表单打印这两个数，所以设了别的数值的中继也能被说对，没有这两个字段的旧中继按十分钟和 8 位读。
+
+其余都是 OpenAI API：`GET /v1/models`（带 `architecture` 模态，好认出图像模型，每个模型还有一个 `nanomuse` 块，含它的 `kind`、价格、`for`（聊天模型适用的通道：`chat` 和 / 或 `gui`）以及 `recommended_for`）、`GET /v1/models/{id}?kind=chat`（成员检查一个手动输入的 id：`listed`、`priced_as`）、流式的 `POST /v1/chat/completions`、`POST /v1/images/generations` 和 `/v1/images/edits`，以及走服务商自己路径的短视频（`POST /api/v1/services/aigc/video-generation/video-synthesis`、只能查自己任务的 `GET /api/v1/tasks/{id}`、`GET /api/v1/uploads`）。错误是 `{"error": {"message", "type": "nanomuse_cloud", "code"}}`，`code` 稳定不变，App 把它变成一句话。中继 0.22 加了运营者[开关](#controls)的码：`403 signup_closed`、`503 service_paused`、`503 sync_paused`、`503 hub_paused`（以及 hub 的关闭码 `4003 hub_paused`），还有免费额度是被暂停而不是花完时带 `paused: true` 的 `allowance_exhausted`；`/healthz`、`/v1/config` 和 `/v1/me` 在 `paused` 下列出关着的开关。
 
 中继不认识的 key 得到 `401 bad_key`；0.1.40 起，账号已被删除的 key 改为得到 `401 account_deleted`，在每一个需要 key 的调用上都如此（`/v1/me`、`/v1/models`、`/v1/chat/completions`、同步和 hub 的调用），删除后持续 90 天；中继把已删除账号的 key 哈希保留这么久，别的什么都不留。不认识这个码的客户端看到的是和以前一样的 `401`；认识的客户端（手机）在 `account_deleted` 时删除账号的本地数据，其他情况都收起来保留（[sync.md](sync.md)）。完整的错误码表在 [`cloud/README.md`](../../cloud/README.md)。
 

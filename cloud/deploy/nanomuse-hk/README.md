@@ -132,15 +132,21 @@ the *Free allowance* switch says it better to the apps.
 
 ```bash
 ssh nanomuse-hk 'cd /opt/nanomuse/relay && docker compose stop \
-  && sudo sh -c "gunzip -c /opt/nanomuse/backups/cloud-YYYYMMDD-HHMMSS.db.gz > data/cloud.db \
-     && rm -f data/cloud.db-wal data/cloud.db-shm && chown 10001:10001 data/cloud.db" \
+  && gunzip -c /opt/nanomuse/backups/cloud-YYYYMMDD-HHMMSS.db.gz \
+     | docker compose run --rm --no-deps -T relay sh -c "cat > data/cloud.db && rm -f data/cloud.db-wal data/cloud.db-shm" \
   && docker compose start'
 ```
 
-`data/` belongs to uid 10001, the user the relay runs as, so the restored file
-is written with `sudo` and handed to that uid; a `cloud.db` left to the
-deploying user would stop the relay at start with the sentence about the
-directory not being writable.
+No `sudo`: the copies under `/opt/nanomuse/backups` belong to the deploying
+user (`backup.sh` hands each one over, mode 0600; `BACKUP_OWNER` in the
+timer's environment names another owner), and the restored file is written
+by a one-off container of the relay's own image, which runs as uid 10001
+and so leaves `data/cloud.db` owned by the user the relay runs as. A
+`cloud.db` written on the host by the deploying user would stop the relay at
+start with the sentence about the directory not being writable. Copies taken
+before the hand-over was in `backup.sh` are root's; one `sudo chown -R
+"$USER" /opt/nanomuse/backups` on the box (or the next `deploy.sh`, which
+does the same) makes them readable too.
 
 A backup is only readable with the `CLOUD_SECRET` it was written under;
 `backup.sh` keeps a copy of `.env` next to the database copies for that
