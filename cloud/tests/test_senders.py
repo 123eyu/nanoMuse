@@ -182,3 +182,15 @@ def test_a_number_the_sender_cannot_reach_is_a_400_before_any_code_exists(monkey
     asyncio.run(run())
     assert len(calls.urls) == 1  # only the mainland number went to Aliyun
     assert cloud.db.codes_recent_for(parse("+14155550100").hash(s.hmac_key), 0) == 0
+
+
+def test_smtp_failures_are_logged_without_the_address():
+    import smtplib
+
+    refused = smtplib.SMTPRecipientsRefused({"someone@example.com": (550, b"no such user")})
+    text = senders.smtp_error_text(refused)
+    assert "someone@example.com" not in text and "550" in text and "1 recipient" in text
+    sender_refused = smtplib.SMTPSenderRefused(553, b"relay denied", "relay@example.com")
+    text = senders.smtp_error_text(sender_refused)
+    assert "relay@example.com" not in text and "553" in text and "relay denied" in text
+    assert senders.smtp_error_text(OSError("connection refused")).startswith("OSError: connection refused")

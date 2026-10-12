@@ -1,11 +1,11 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Questions and ideas
+  - name: Questions and ideas / 提问和想法
     url: https://github.com/nano-muse/nanoMuse/discussions
-    about: Setup help, "how do I…", and half-formed ideas go to Discussions.
-  - name: Chat on Discord
+    about: "Setup help, \"how do I…\", and half-formed ideas go to Discussions. / 安装求助、「怎么做……」和还没成形的想法，去 Discussions。"
+  - name: Chat on Discord / 在 Discord 聊
     url: https://discord.gg/bkTySmm28X
-    about: Quick questions, show what you built, talk to other users, in English or 中文.
-  - name: Security issue
+    about: "Quick questions, show what you built, talk to other users, in English or 中文. / 随口一问、展示你做的东西、和其他用户聊天，英文中文都行。"
+  - name: Security issue / 安全问题
     url: https://github.com/nano-muse/nanoMuse/blob/main/SECURITY.md
-    about: A way past the Sentinel, a leaked secret, an SSRF: report privately, see SECURITY.md.
+    about: "A way past the Sentinel, a leaked secret, an SSRF: report privately, see SECURITY.md. / 绕过哨兵、泄露的密钥、SSRF：请私密报告，见 SECURITY.md。"

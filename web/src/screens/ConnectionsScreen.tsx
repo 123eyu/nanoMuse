@@ -874,10 +874,11 @@ export function ModelCard({
         )}
       >
         <div className="flex gap-1.5">
-          {["auto", "native", "prompt"].map((m) => (
+          {TOOL_MODES.map(([m, label]) => (
             <button
               key={m}
               type="button"
+              aria-pressed={toolMode === m}
               onClick={() => setToolMode(m)}
               className={cx(
                 "rounded-full px-3 py-1.5 text-[13px] border",
@@ -886,7 +887,7 @@ export function ModelCard({
                   : "border-border text-muted",
               )}
             >
-              {m}
+              {t(label)}
             </button>
           ))}
         </div>
@@ -955,6 +956,13 @@ export function ModelCard({
     </Card>
   );
 }
+
+/** the `tool_mode` values the runtime accepts, with the word each chip shows (translated) */
+const TOOL_MODES: Array<[string, string]> = [
+  ["auto", "Auto"],
+  ["native", "Native"],
+  ["prompt", "Prompt"],
+];
 
 // ------------------------------------------------------------------ endpoints of one's own (#294)
 /** what a slot is called in an endpoint's "used by" line */
