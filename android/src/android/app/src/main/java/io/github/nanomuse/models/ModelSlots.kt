@@ -356,18 +356,22 @@ object ModelSlots {
     /**
      * The main chat follows the chat slot ([MainChatFollow]): its row gets the group binding
      * the chat view-model would write for the same pick, unless it already says so, and the
-     * open view-model is told through [chatSlotWritten]. Side chats are not touched; a draft
-     * main chat has no row and resolves to the default group when it is first written to.
+     * open view-models are told through [chatSlotWritten]. Side chats with a row are not
+     * touched. A draft main chat has no row to write, but its view-model is told all the same:
+     * it resolved the default when it was built and would otherwise keep that provider for the
+     * first message, whatever the Models page says.
      */
     fun mainChatFollows(context: Context, pick: MainChatFollow.Pick) {
         val app = context.applicationContext as? MinisApp ?: return
-        val sid = MainChatFollow.target(MainChat.persisted(context)) ?: return
-        val chats = app.chatRepositoryOrNull ?: return
+        val sid = MainChatFollow.target(MainChat.persisted(context))
+        val chats = app.chatRepositoryOrNull
         scope.launch {
-            val session = runCatching { chats.getSession(sid) }.getOrNull() ?: return@launch
-            if (!MainChatFollow.alreadySays(session.modelBinding, pick)) {
-                val modelId = repo(context)?.config?.value?.modelEntries?.firstOrNull { it.id == pick.entryId }?.model?.id ?: session.modelId
-                chats.updateSessionBinding(sid, MainChatFollow.binding(pick), modelId)
+            if (sid != null && chats != null) {
+                val session = runCatching { chats.getSession(sid) }.getOrNull()
+                if (session != null && !MainChatFollow.alreadySays(session.modelBinding, pick)) {
+                    val modelId = repo(context)?.config?.value?.modelEntries?.firstOrNull { it.id == pick.entryId }?.model?.id ?: session.modelId
+                    chats.updateSessionBinding(sid, MainChatFollow.binding(pick), modelId)
+                }
             }
             _chatSlotWritten.tryEmit(pick)
         }

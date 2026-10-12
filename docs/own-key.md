@@ -133,7 +133,13 @@ one sentence naming who could, and *Add a provider*. A chat pick is the default
 for new chats and moves the main chat (*Applies to the main chat and to new
 chats; a side chat keeps its model.*): the main chat is the one conversation the
 Chat tab always shows and is never new, so it would otherwise stay on the
-provider it started with; a side chat already open keeps its model. The same
+provider it started with; a side chat already open keeps its model. A chat
+that has not been written to yet takes the pick as well: the main chat right
+after a sign-in (the account starts with an empty one), or a new chat you
+opened and left. So what the Chat row names is what answers the next message
+you send, in the main chat and in a new one, whichever source you came from:
+a plan you signed in with (ChatGPT, Claude, Kimi), a key of yours or nanoMuse
+Cloud; a sign-in never steps in front of a pick. The same
 on the phones and the desktop. On the iPhone, where a model group of yours can
 carry a default thinking level (*All settings › Model Groups*), the main chat
 takes that level along when it follows the pick, as a new chat and the chat's

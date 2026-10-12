@@ -3722,17 +3722,21 @@ class ChatViewModel(
         // nanoMuse: the main chat follows the chat slot (Settings › Models, the "Use it for"
         // card, a pick in a chat's picker: ModelSlots.followPick → mainChatFollows). Its row is
         // rewritten there; this view-model lives as long as the app, so it is told as well and
-        // re-resolves to the group that now leads with the pick. A side chat keeps its model.
+        // re-resolves to the group that now leads with the pick. A draft (no row yet, not opened
+        // on a group of its own) follows too: it resolved the default when it was built and
+        // would otherwise send its first message through the provider the default was on then,
+        // whatever the Models page says. A side chat with a row keeps its model.
         viewModelScope.launch {
             sessionLoaded.first { it }
             io.github.nanomuse.models.ModelSlots.chatSlotWritten.collect { pick ->
-                val sid = realSessionId.takeIf { it.isNotEmpty() } ?: return@collect
+                val sid = realSessionId.ifEmpty { sessionId }
                 val isMain = io.github.nanomuse.home.MainChat.isMain(context, sid)
-                if (!io.github.nanomuse.models.MainChatFollow.shouldMove(isMain, _activeEntryId.value, _selectedGroupId.value, pick)) return@collect
+                val isNew = realSessionId.isEmpty() && initialGroupId == null
+                if (!io.github.nanomuse.models.MainChatFollow.shouldMove(isMain, _activeEntryId.value, _selectedGroupId.value, pick, isNew)) return@collect
                 if (resolveProviderFromGroup(pick.groupId, pick.entryId)) {
                     _selectedGroupId.value = pick.groupId
                     _activeEntryId.value?.let { persistBinding(io.github.nanomuse.models.MainChatFollow.binding(pick.copy(entryId = it))) }
-                    AppLogger.info(TAG, "🔀RESOLVE main chat follows the chat slot: group=${pick.groupId} entry=${_activeEntryId.value} model=${currentModel?.id}")
+                    AppLogger.info(TAG, "🔀RESOLVE ${if (isMain) "main chat" else "draft"} follows the chat slot: group=${pick.groupId} entry=${_activeEntryId.value} model=${currentModel?.id}")
                 }
             }
         }
