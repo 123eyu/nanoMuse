@@ -270,7 +270,10 @@ Ours, in `NanoMuse/`:
   takes the address. No vendor is recommended.
 - **Network** (`NanoMuseProxy.swift`, `NanoMuseNetworkView.swift`, *Settings → nanoMuse →
   Network*): the HTTP proxy for own providers: host, port, optional user name and password, off
-  by default, in `UserDefaults` on this phone only. `URLSession` has no per-host proxy switch, so
+  by default, on this phone only: the address and the user name in `UserDefaults`, the password
+  in the Keychain as a device-only item (`io.github.nanomuse.app.proxy`, the relay key's rules;
+  a password a 1.0.3 build kept in `UserDefaults` moves over at the first read). `URLSession`
+  has no per-host proxy switch, so
   the proxy reaches a session as a proxy auto-configuration script in
   `connectionProxyDictionary` that answers the proxy for the catalogue's hosts, `chatgpt.com`,
   `auth.openai.com` and the provider instances' custom hosts (never the relay's, never a LAN

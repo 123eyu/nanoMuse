@@ -232,8 +232,10 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   （OpenCode，2026 年 1 月），要是停了，API key 照样能用（中继发过自己的措辞时用中继的）；
   *在自己的电脑上*（Ollama、LM Studio、vLLM）填地址。不推荐任何一家。
 - **网络**（`NanoMuseProxy.swift`、`NanoMuseNetworkView.swift`，*设置 → nanoMuse → 网络*）：
-  给自己的服务商用的 HTTP 代理：主机、端口、可选的用户名和密码，默认关闭，只存在这台手机的
-  `UserDefaults` 里。`URLSession` 没有按主机切换代理的开关，所以代理是以一段代理自动配置脚本
+  给自己的服务商用的 HTTP 代理：主机、端口、可选的用户名和密码，默认关闭，只存在这台手机上：
+  地址和用户名在 `UserDefaults` 里，密码在钥匙串里，是一条仅限本机的条目
+  （`io.github.nanomuse.app.proxy`，规则同中继密钥；1.0.3 版存在 `UserDefaults` 里的密码会在
+  第一次读取时搬过去）。`URLSession` 没有按主机切换代理的开关，所以代理是以一段代理自动配置脚本
   的形式进入会话的（`connectionProxyDictionary`）：对目录里的主机、`chatgpt.com`、
   `auth.openai.com` 和服务商实例的自定义主机返回代理（从不包括中继的主机，也从不包括局域网
   地址），其余返回 `DIRECT`；`NanoMuseProxy.apply(to:)` 在上游每个服务商会话里各占一行，
