@@ -458,6 +458,26 @@ struct NanoMuseAvatarStudioView: View {
             if own.clip != nil {
                 Button(AppLocalized("Default face")) { own.clear() }
             }
+            ForEach(NanoMuseMood.allCases, id: \.self) { mood in
+                HStack {
+                    Text({
+                        switch mood {
+                        case .idle: return AppLocalized("Idle")
+                        case .working: return AppLocalized("Working")
+                        case .waiting: return AppLocalized("Waiting")
+                        case .happy: return AppLocalized("Done")
+                        case .error: return AppLocalized("Error")
+                        }
+                    }())
+                    Spacer()
+                    Button(own.moods[mood] == nil ? AppLocalized("Choose a clip") : AppLocalized("Replace the clip")) {
+                        clipPicker.choose(mood: mood)
+                    }
+                    if own.moods[mood] != nil {
+                        Button(AppLocalized("Remove")) { own.clear(mood: mood) }
+                    }
+                }
+            }
         } header: {
             Text(AppLocalized("Your own clip"))
         } footer: {

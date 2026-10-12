@@ -12,9 +12,15 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Desktop
 
+- **Custom videos for each avatar mood.** The avatar studio can assign a separate local clip to idle, working, waiting, happy or error, preview and replace it, and remove each override without changing the other clips or the original single-video setting.
+
 ### Android
 
+- **Per-mood avatar clips.** The avatar studio now accepts an optional local video for each of the five moods. Moods without a video keep the existing single-video or built-in animation.
+
 ### iOS
+
+- **Per-mood avatar clips.** The avatar studio can choose and remove a separate local video for each mood without changing other moods or the existing single-video setting.
 
 ### Project
 

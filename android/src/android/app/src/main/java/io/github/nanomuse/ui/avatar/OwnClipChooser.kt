@@ -61,9 +61,10 @@ import kotlinx.coroutines.withContext
  */
 class OwnClipChooserState internal constructor() {
     internal var request by mutableIntStateOf(0)
+    internal var mood by mutableStateOf<AgentMood?>(null)
 
     /** Open the picker. */
-    fun choose() { request += 1 }
+    fun choose(mood: AgentMood? = null) { this.mood = mood; request += 1 }
 }
 
 @Composable
@@ -158,7 +159,7 @@ fun OwnClipChooserHost(state: OwnClipChooserState) {
                 )
                 Spacer(Modifier.height(20.dp))
                 Button(
-                    onClick = { OwnClip.adopt(p); pending = null },
+                    onClick = { OwnClip.adopt(p, state.mood); pending = null },
                     modifier = Modifier.fillMaxWidth().height(48.dp),
                     shape = CircleShape,
                     colors = ButtonDefaults.buttonColors(containerColor = MuseTones.action, contentColor = Color.White),

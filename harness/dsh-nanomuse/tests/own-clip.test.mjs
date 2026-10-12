@@ -270,6 +270,34 @@ test('discard drops the pending copy and leaves the clip; clear removes everythi
   })
 })
 
+test('five mood overrides survive restart, retain the legacy clip, and clear independently', async () => {
+  await withDir(async (dir) => {
+    const { own } = store(dir)
+    await own.init()
+    await post((req) => own.stage(req), mp4({ ms: 1000 }))
+    await own.use()
+    for (const mood of ['idle', 'working', 'waiting', 'happy', 'error']) {
+      await post((req) => own.stage(req), mp4({ ms: 2000 }))
+      assert.equal(await own.use(Buffer.from('poster'), mood), true)
+      assert.equal(own.moods()[mood]?.poster, true)
+      assert.ok(own.path(`own-clip-${mood}.mp4`))
+      assert.ok(own.path(`own-clip-${mood}.png`))
+    }
+    assert.equal(own.path('own-clip-unknown.mp4'), undefined)
+    const restarted = store(dir).own
+    await restarted.init()
+    assert.equal(Object.keys(restarted.moods()).length, 5)
+    assert.ok(restarted.view(), 'the legacy video remains in place')
+    await restarted.clear('working')
+    assert.equal(restarted.moods().working, undefined)
+    assert.equal(Object.keys(restarted.moods()).length, 4)
+    assert.ok(restarted.view(), 'clearing one mood does not remove the legacy video')
+    await restarted.clear()
+    assert.deepEqual(restarted.moods(), {})
+    assert.equal(restarted.view(), null)
+  })
+})
+
 test('a stale pending copy is dropped on init, and an empty clip file counts as none', async () => {
   await withDir(async (dir) => {
     const avatar = join(dir, 'avatar')

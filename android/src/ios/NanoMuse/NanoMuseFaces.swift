@@ -269,17 +269,18 @@ struct NanoMuseFaceView: View {
     /// The clip for this mood: the person's own, when one is set (#324), stands in for every
     /// mood; else the drawn face's clip for this mood, or the dragon's.
     private var clip: URL? {
+        if let state = own.moods[mood] { return state }
         if let ownClip = own.clip { return ownClip }
         if faces.hasCustomFace { return motion.clips[mood] }
         return NanoMuseAvatarMotion.dragonClip(mood)
     }
 
-    private var clipVersion: Int { own.clip != nil ? own.version : motion.clipVersion }
+    private var clipVersion: Int { own.moods[mood] != nil || own.clip != nil ? own.version : motion.clipVersion }
 
     /// The still under the clip, and the face itself when there is no clip: the drawn one for
     /// this mood, or the own clip's first frame when nothing was drawn, else the dragon.
     private var still: UIImage? {
-        if !faces.hasCustomFace, own.clip != nil, let poster = own.poster { return poster }
+        if !faces.hasCustomFace, let poster = own.moodPosters[mood] ?? (own.clip != nil ? own.poster : nil) { return poster }
         return faces.image(for: mood)
     }
 

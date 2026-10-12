@@ -58,6 +58,12 @@ export interface OwnClipView {
   poster: boolean
 }
 
+export const OWN_CLIP_MOODS = ['idle', 'working', 'waiting', 'happy', 'error'] as const
+export type OwnClipMood = (typeof OWN_CLIP_MOODS)[number]
+export function isOwnClipMood(value: unknown): value is OwnClipMood {
+  return typeof value === 'string' && (OWN_CLIP_MOODS as readonly string[]).includes(value)
+}
+
 export type OwnClipStaged =
   | { ok: true; pending: { v: number; size: number; durationMs: number } }
   | { ok: false; why: OwnClipRefusal; probe: OwnClipProbe }
@@ -175,6 +181,7 @@ export interface OwnClipDeps {
 
 export class OwnClip {
   private current: OwnClipView | null = null
+  private perMood: Partial<Record<OwnClipMood, OwnClipView>> = {}
 
   constructor(private readonly deps: OwnClipDeps) {}
 
@@ -190,6 +197,10 @@ export class OwnClip {
     return join(this.deps.dir, 'own-clip.pending.mp4')
   }
 
+  private moodFile(mood: OwnClipMood, extension: 'mp4' | 'png'): string {
+    return join(this.deps.dir, `own-clip-${mood}.${extension}`)
+  }
+
   /** A copy that was never used or cancelled (the app quit in between) is of no use now. */
   async init(): Promise<void> {
     await rm(this.pendingFile, { force: true }).catch(() => undefined)
@@ -200,11 +211,21 @@ export class OwnClip {
     return this.current
   }
 
+  moods(): Partial<Record<OwnClipMood, OwnClipView>> {
+    return this.perMood
+  }
+
   /** The file behind `/nanomuse/avatar/<name>`: the clip, its first frame, or the pending copy; else nothing. */
   path(name: string): string | undefined {
     if (name === 'own-clip.mp4') return this.current ? this.clipFile : undefined
     if (name === 'own-clip.png') return this.current?.poster ? this.posterFile : undefined
     if (name === 'own-clip.pending.mp4') return this.pendingFile
+    const match = /^own-clip-(idle|working|waiting|happy|error)\.(mp4|png)$/.exec(name)
+    if (match && isOwnClipMood(match[1])) {
+      const mood = match[1]
+      const clip = this.perMood[mood]
+      if (clip && (match[2] === 'mp4' || clip.poster)) return this.moodFile(mood, match[2] as 'mp4' | 'png')
+    }
     return undefined
   }
 
@@ -224,8 +245,21 @@ export class OwnClip {
     } catch {
       // no clip
     }
-    const changed = JSON.stringify(next) !== JSON.stringify(this.current)
+    const moods: Partial<Record<OwnClipMood, OwnClipView>> = {}
+    for (const mood of OWN_CLIP_MOODS) {
+      try {
+        const s = await stat(this.moodFile(mood, 'mp4'))
+        if (s.size > 0) {
+          const poster = await stat(this.moodFile(mood, 'png')).then((p) => p.size > 0).catch(() => false)
+          moods[mood] = { size: s.size, v: Math.floor(s.mtimeMs), poster }
+        }
+      } catch {
+        // no override for this mood
+      }
+    }
+    const changed = JSON.stringify(next) !== JSON.stringify(this.current) || JSON.stringify(moods) !== JSON.stringify(this.perMood)
     this.current = next
+    this.perMood = moods
     if (changed) this.deps.onChange()
   }
 
@@ -277,16 +311,18 @@ export class OwnClip {
   }
 
   /** "Use": the pending copy becomes the clip; `poster`, when the browser took one, its first frame. */
-  async use(poster?: Buffer): Promise<boolean> {
+  async use(poster?: Buffer, mood?: OwnClipMood): Promise<boolean> {
     try {
       await stat(this.pendingFile)
     } catch {
       return false
     }
-    await rm(this.clipFile, { force: true }).catch(() => undefined)
-    await rename(this.pendingFile, this.clipFile)
-    if (poster && poster.length) await writeFile(this.posterFile, poster)
-    else await rm(this.posterFile, { force: true }).catch(() => undefined)
+    const file = mood ? this.moodFile(mood, 'mp4') : this.clipFile
+    const posterFile = mood ? this.moodFile(mood, 'png') : this.posterFile
+    await rm(file, { force: true }).catch(() => undefined)
+    await rename(this.pendingFile, file)
+    if (poster && poster.length) await writeFile(posterFile, poster)
+    else await rm(posterFile, { force: true }).catch(() => undefined)
     await this.rescan()
     return true
   }
@@ -297,9 +333,18 @@ export class OwnClip {
   }
 
   /** "Default face": back to the drawn face, or the dragon. */
-  async clear(): Promise<void> {
-    await rm(this.clipFile, { force: true }).catch(() => undefined)
-    await rm(this.posterFile, { force: true }).catch(() => undefined)
+  async clear(mood?: OwnClipMood): Promise<void> {
+    if (mood) {
+      await rm(this.moodFile(mood, 'mp4'), { force: true }).catch(() => undefined)
+      await rm(this.moodFile(mood, 'png'), { force: true }).catch(() => undefined)
+    } else {
+      await rm(this.clipFile, { force: true }).catch(() => undefined)
+      await rm(this.posterFile, { force: true }).catch(() => undefined)
+      for (const state of OWN_CLIP_MOODS) {
+        await rm(this.moodFile(state, 'mp4'), { force: true }).catch(() => undefined)
+        await rm(this.moodFile(state, 'png'), { force: true }).catch(() => undefined)
+      }
+    }
     await rm(this.pendingFile, { force: true }).catch(() => undefined)
     await this.rescan()
   }

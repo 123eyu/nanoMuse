@@ -278,7 +278,7 @@ export class AvatarMotion {
 
 const CLIP = /^\/motion\/([a-z]+)\.mp4$/
 /** The person's own clip (#324), its first frame, and the copy waiting in the preview (`own-clip.ts`). */
-const OWN = /^\/(own-clip\.mp4|own-clip\.png|own-clip\.pending\.mp4)$/
+const OWN = /^\/(own-clip\.mp4|own-clip\.png|own-clip\.pending\.mp4|own-clip-(?:idle|working|waiting|happy|error)\.(?:mp4|png))$/
 
 /**
  * `GET /nanomuse/avatar/motion/<mood>.mp4`: the clip of the worn face, or 404. With `ownPath`,

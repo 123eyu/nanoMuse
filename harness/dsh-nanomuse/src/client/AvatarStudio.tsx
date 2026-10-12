@@ -239,8 +239,16 @@ export function AvatarStudioSheet({ t, initial, style: initialStyle, onClose }: 
         h('div', { className: 'nm-st-label' }, t('ocTitle')),
         h('p', { className: 'nm-fine nm-oc-body' }, live.ownClip ? t('ocOn') : t('ocBody')),
         h('div', { className: 'nm-oc-row' },
-          h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', disabled: clipChooser.busy, onClick: clipChooser.choose }, live.ownClip ? t('ocReplace') : t('ocChoose')),
+          h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', disabled: clipChooser.busy, onClick: () => clipChooser.choose() }, live.ownClip ? t('ocReplace') : t('ocChoose')),
           live.ownClip ? h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', onClick: () => void call('own-clip/clear').catch(() => undefined) }, t('ocDefault')) : null),
+        h('p', { className: 'nm-fine nm-oc-body' }, t('ocMoodIntro')),
+        (['idle', 'working', 'waiting', 'happy', 'error'] as const).map((mood) =>
+          h('div', { key: mood, className: 'nm-oc-row' },
+            h('span', { style: { flex: 1 } }, mood === 'error' ? t('ocMoodError') : t(({ idle: 'moMoodIdle', working: 'moMoodWorking', waiting: 'moMoodWaiting', happy: 'moMoodHappy' } as const)[mood])),
+            h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', disabled: clipChooser.busy, onClick: () => clipChooser.choose(mood) }, live.ownClips?.[mood] ? t('ocReplace') : t('ocChoose')),
+            live.ownClips?.[mood]
+              ? h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', onClick: () => void call('own-clip/clear', { mood }).catch(() => undefined) }, t('ocMoodDefault'))
+              : null)),
         h('p', { className: 'nm-fine nm-oc-body' }, t('ocLocal'))))
     footer = h('div', { className: 'nm-sheet-actions' },
       h('span', { style: { flex: 1 } }),

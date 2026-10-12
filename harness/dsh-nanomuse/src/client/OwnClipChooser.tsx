@@ -12,6 +12,7 @@
 import { createElement as h, Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
 import { call, failureText, type Translate } from './api.ts'
 import { Sheet } from './ui.tsx'
+import type { Mood } from './Avatar.tsx'
 
 const API = 'nanomuse/cloud'
 const MAX_SECONDS = 15
@@ -59,7 +60,7 @@ function posterOf(video: HTMLVideoElement | null): string {
 
 export interface OwnClipChooser {
   /** Open the file dialog. */
-  choose(): void
+  choose(mood?: Mood): void
   /** True from the pick until the host has looked at the file. */
   busy: boolean
   /** The preview sheet and the refusal, to render once on the screen. */
@@ -70,6 +71,7 @@ export function useOwnClipChooser(t: Translate): OwnClipChooser {
   const [busy, setBusy] = useState(false)
   const [pending, setPending] = useState<Pending | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [pendingMood, setPendingMood] = useState<Mood | undefined>()
   const alive = useRef(true)
   useEffect(() => () => { alive.current = false }, [])
 
@@ -99,20 +101,20 @@ export function useOwnClipChooser(t: Translate): OwnClipChooser {
     }
   }
 
-  const choose = () => {
+  const choose = (mood?: Mood) => {
     if (busy) return
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'video/mp4,video/quicktime,.mp4,.mov'
     input.onchange = () => {
       const file = input.files?.[0]
-      if (file) void stage(file)
+      if (file) { setPendingMood(mood); void stage(file) }
     }
     input.click()
   }
 
   const element = h(Fragment, null,
-    pending ? h(OwnClipPreview, { t, pending, onDone: () => setPending(null), onUnplayable: () => { setPending(null); setMessage(t('ocRefusedPlay')) } }) : null,
+    pending ? h(OwnClipPreview, { t, pending, mood: pendingMood, onDone: () => setPending(null), onUnplayable: () => { setPending(null); setMessage(t('ocRefusedPlay')) } }) : null,
     message
       ? h(Sheet, { title: t('ocTitle'), closeLabel: t('close'), onClose: () => setMessage(null), footer: h('div', { className: 'nm-sheet-actions' }, h('span', { style: { flex: 1 } }), h('button', { type: 'button', className: 'nm-pill nm-pill-sm', onClick: () => setMessage(null) }, t('ocOk'))) },
           h('p', { className: 'nm-sheet-lead', role: 'alert' }, message))
@@ -122,7 +124,7 @@ export function useOwnClipChooser(t: Translate): OwnClipChooser {
 }
 
 /** The preview: the clip playing as the face will play it, its length and size, "Use" and "Cancel", and that it stays here. */
-function OwnClipPreview({ t, pending, onDone, onUnplayable }: { t: Translate; pending: Pending; onDone(): void; onUnplayable(): void }): ReactNode {
+function OwnClipPreview({ t, pending, mood, onDone, onUnplayable }: { t: Translate; pending: Pending; mood?: Mood | undefined; onDone(): void; onUnplayable(): void }): ReactNode {
   const video = useRef<HTMLVideoElement | null>(null)
   const [busy, setBusy] = useState(false)
   const [ready, setReady] = useState(false)
@@ -147,7 +149,7 @@ function OwnClipPreview({ t, pending, onDone, onUnplayable }: { t: Translate; pe
     setBusy(true)
     setError(undefined)
     try {
-      await call('own-clip/use', { poster: posterOf(video.current) })
+      await call('own-clip/use', { poster: posterOf(video.current), mood })
       decided.current = true
       onDone()
     } catch (err: unknown) {

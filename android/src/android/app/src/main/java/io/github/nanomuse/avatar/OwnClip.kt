@@ -10,6 +10,7 @@ import android.provider.OpenableColumns
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import com.openminis.app.logging.AppLogger
+import io.github.nanomuse.ui.avatar.AgentMood
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.io.File
@@ -89,10 +90,16 @@ object OwnClip {
 
     /** The clip's first frame, the still shown under it and in its place when there is no studio face. */
     val poster: StateFlow<ImageBitmap?> = _poster
+    private val _moods = MutableStateFlow<Map<AgentMood, Clip>>(emptyMap())
+    val moods: StateFlow<Map<AgentMood, Clip>> = _moods
+    private val _moodPosters = MutableStateFlow<Map<AgentMood, ImageBitmap>>(emptyMap())
+    val moodPosters: StateFlow<Map<AgentMood, ImageBitmap>> = _moodPosters
 
     fun clipFile(): File = File(AvatarStore.root(), "own-clip.mp4")
     fun posterFile(): File = File(AvatarStore.root(), "own-clip.png")
     private fun pendingFile(): File = File(AvatarStore.root(), "own-clip.pending.mp4")
+    private fun moodClipFile(mood: AgentMood) = File(AvatarStore.root(), "own-clip-${mood.name.lowercase()}.mp4")
+    private fun moodPosterFile(mood: AgentMood) = File(AvatarStore.root(), "own-clip-${mood.name.lowercase()}.png")
 
     fun init() {
         // a copy that was never used or cancelled (the app died in between) is of no use now
@@ -104,17 +111,24 @@ object OwnClip {
         val f = clipFile()
         _current.value = f.takeIf { it.exists() && it.length() > 0 }?.let { Clip(it, it.lastModified()) }
         _poster.value = if (_current.value != null) AvatarStore.decodeBitmap(posterFile())?.asImageBitmap() else null
+        _moods.value = AgentMood.values().mapNotNull { mood ->
+            moodClipFile(mood).takeIf { it.exists() && it.length() > 0 }?.let { mood to Clip(it, it.lastModified()) }
+        }.toMap()
+        _moodPosters.value = _moods.value.keys.mapNotNull { mood ->
+            AvatarStore.decodeBitmap(moodPosterFile(mood))?.asImageBitmap()?.let { mood to it }
+        }.toMap()
     }
 
     /** *Use*: the pending copy becomes the clip, its first frame the still. */
-    fun adopt(pending: Pending) {
-        val f = clipFile()
+    fun adopt(pending: Pending, mood: AgentMood? = null) {
+        val f = mood?.let(::moodClipFile) ?: clipFile()
         if (!pending.file.renameTo(f)) {
             f.delete()
             if (!pending.file.renameTo(f)) { pending.file.copyTo(f, overwrite = true); pending.file.delete() }
         }
         val poster = pending.poster
-        if (poster != null) AvatarStore.write(posterFile(), poster) else posterFile().delete()
+        val still = mood?.let(::moodPosterFile) ?: posterFile()
+        if (poster != null) AvatarStore.write(still, poster) else still.delete()
         rescan()
     }
 
@@ -124,9 +138,15 @@ object OwnClip {
     }
 
     /** *Default face*: back to the studio face, or the built-in one. */
-    fun clear() {
-        clipFile().delete()
-        posterFile().delete()
+    fun clear(mood: AgentMood? = null) {
+        if (mood == null) {
+            clipFile().delete()
+            posterFile().delete()
+            AgentMood.values().forEach { moodClipFile(it).delete(); moodPosterFile(it).delete() }
+        } else {
+            moodClipFile(mood).delete()
+            moodPosterFile(mood).delete()
+        }
         pendingFile().delete()
         rescan()
     }

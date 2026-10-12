@@ -53,7 +53,7 @@ import { TaskRunner, textOf } from './task.ts'
 import { SCREEN_RUN_IDLE_MS, ScreenRuns, Trajectory, type ScreenRun, type StepAction, type TrajectoryView } from './trajectory.ts'
 import { RemoteStore, SyncEngine, SyncRelay, type RemoteLine, type SessionInfo, type SessionLine, type SyncState } from './sync.ts'
 import { AvatarMotion, ANIMATED, type MotionMood, type MotionView } from './motion.ts'
-import { OwnClip, type OwnClipView } from './own-clip.ts'
+import { OwnClip, isOwnClipMood, type OwnClipMood, type OwnClipView } from './own-clip.ts'
 import { DEFAULT_VIDEO_MODEL, hostOf, KNOWN_DASHSCOPE_MODELS, looksLikeVideoModel, probe as probeVideoModel, speaksDashScope, type VideoEndpoint } from './video.ts'
 import { editImage as ownEditImage, generateImage as ownGenerateImage, imageShapeOf, type ImageEndpoint } from './images.ts'
 import { checkMove, checkScreenshot, displayInfo, isBlack, runtimeInfo, screenHead, type MoveCheck, type RuntimeInfo, type ScreenshotCheck } from './hands-check.ts'
@@ -276,6 +276,8 @@ export interface LiveState {
   motion: MotionView
   /** The person's own clip as the face (#324): its size, cache key and whether a first frame was kept; null for none. Absent on an older host. */
   ownClip?: OwnClipView | null
+  /** Local video overrides for individual moods. Older clients ignore this field. */
+  ownClips?: Partial<Record<OwnClipMood, OwnClipView>>
   /** When the hands last saw an all-black screen (macOS: Screen Recording missing, or granted after the app started); 0 when they have not. */
   blackScreenAt: number
   /** Conversation sync (C8): `rev` moves with every change pulled or pushed; the session that is the account's main conversation. */
@@ -2023,6 +2025,7 @@ export default class NanomuseCloud extends Service {
       update: this.state.update ?? null,
       motion: this.motion.view(),
       ownClip: this.ownClip.view(),
+      ownClips: this.ownClip.moods(),
       blackScreenAt: this.blackScreenAt,
       sync: this.sync ? { rev: this.sync.view().rev, mainSession: this.sync.state.mainSession } : { rev: 0, mainSession: '' },
       ownKeys: {
@@ -3566,8 +3569,9 @@ export default class NanomuseCloud extends Service {
       }
       if (req.method === 'POST' && route === '/own-clip/use') {
         const body = await json(req, 2 * 1024 * 1024)
+        if (body.mood != null && !isOwnClipMood(body.mood)) return send(res, 400, { error: { code: 'bad_mood', message: 'Unknown avatar mood' } })
         const poster = typeof body.poster === 'string' && body.poster ? Buffer.from(body.poster, 'base64') : undefined
-        if (!(await this.ownClip.use(poster))) return send(res, 409, { error: { code: 'no_pending', message: 'No clip waiting to be used' } })
+        if (!(await this.ownClip.use(poster, body.mood as OwnClipMood | undefined))) return send(res, 409, { error: { code: 'no_pending', message: 'No clip waiting to be used' } })
         return send(res, 200, { ownClip: this.ownClip.view() })
       }
       if (req.method === 'POST' && route === '/own-clip/discard') {
@@ -3575,7 +3579,9 @@ export default class NanomuseCloud extends Service {
         return send(res, 204)
       }
       if (req.method === 'POST' && route === '/own-clip/clear') {
-        await this.ownClip.clear()
+        const body: Record<string, unknown> = await json(req).catch(() => ({}))
+        if (body.mood != null && !isOwnClipMood(body.mood)) return send(res, 400, { error: { code: 'bad_mood', message: 'Unknown avatar mood' } })
+        await this.ownClip.clear(body.mood as OwnClipMood | undefined)
         return send(res, 204)
       }
       // Settings → Computer use: the runtime and the "try it" checks (desk-b)
