@@ -480,8 +480,13 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   画布，而不是停在一条线上；列表滚离最新消息时，再从顶边以 250 ms 淡入一层完整画布色的渐变
   （外壳 `safeAreaInset` 的背景，像标题栏绑定心情那样绑定主聊天的 `isNearBottom`）。排队中的消息
   保留上游的虚线边框和灰字，*来自 {设备}* 的说明和附件都在胶囊外面，长按预览还是原来那张不透明
-  的卡片。从抽屉推出的侧聊天保留系统栏和它的材质；房间保留它们的画布。在没有 Mac 的 Linux
-  上写的：iOS 检查能编译它，还没有设备显示过它。
+  的卡片。从抽屉推出的侧聊天保留系统栏，为了返回按钮和标题，但从 1.0.4 起栏自己的背景和
+  细线都藏起来，后面站着同一层遮罩（`AIChatView.swift` 里的 `NavBarStyleModifier`，由外壳
+  给推出的聊天设置的环境值 `nmSystemBarScrim` 打开；1.0.3 之前栏坐在 `.ultraThinMaterial`
+  上）。房间从 1.0.4 起站在聊天的画布上，白色和黑色，和 Android 的各个标签页及
+  [design.md](design.md) 一致：想法是每行下面一道细线的平铺行，目标的卡片描一道细线边，
+  资料库是平铺列表；只有动态还保留它白卡片所在的那页灰底，和 Android 的 FeedTab 一样。
+  在没有 Mac 的 Linux 上写的：iOS 检查能编译它，还没有设备显示过它。
 - **iPad 的聊天是一根列**（`NanoMuseShell.swift` 里的 `NanoMuseColumn`；`AIChatView.swift` 里的
   `maxContentWidth` 一行和输入框的 frame，`NanoMuseChatCards.swift` 里智能体的胶囊）。1.0.3 在竖屏的
   iPad 上显示出三种宽度：上游在 regular 宽度下把消息列表和输入框限到 900 pt，于是输入框横贯 768 pt

@@ -585,9 +585,15 @@ Ours, in `NanoMuse/`:
   `safeAreaInset` background, bound to the main chat's `isNearBottom` the way the header binds
   its mood). A queued message keeps upstream's dashed outline and grey text, the *From {device}*
   caption and the attachments stay outside the pill, and the long-press preview is the opaque
-  card it was. Side chats pushed from the drawer keep the system bar on its material; the rooms
-  keep their canvas. Written on Linux without a Mac: the iOS check compiles it, and no device
-  has shown it yet.
+  card it was. Side chats pushed from the drawer keep the system bar for the back button and
+  the title, but since 1.0.4 the bar's own background and hairline are hidden and the same
+  scrim stands behind it (`NavBarStyleModifier` in `AIChatView.swift`, switched on by the
+  `nmSystemBarScrim` environment value the shell sets on the pushed chat; up to 1.0.3 the bar sat
+  on `.ultraThinMaterial`). The rooms since 1.0.4 stand on the chat's canvas, white and black,
+  as Android's tabs and [design.md](design.md): Ideas as plain rows with a hairline under each,
+  Goals with its cards outlined by a hairline, Library as a plain list; only the Feed keeps the
+  grey page its white cards sit on, as Android's FeedTab does. Written on Linux without a Mac:
+  the iOS check compiles it, and no device has shown it yet.
 - **The iPad's chat is one column** (`NanoMuseColumn` in `NanoMuseShell.swift`; the
   `maxContentWidth` line and the composer's frame in `AIChatView.swift`, the agent's pill in
   `NanoMuseChatCards.swift`). 1.0.3 on an iPad in portrait showed three widths: upstream caps

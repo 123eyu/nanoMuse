@@ -670,6 +670,8 @@ struct NanoMuseHomeView: View {
                 let draft = id.hasPrefix(NanoMuseMainChat.draftPrefix)
                 AIChatView(sessionId: draft ? nil : id, draftId: draft ? id : nil)
                     .id(id)
+                    // The side chat keeps the system bar, with the main chat's scrim behind it.
+                    .environment(\.nmSystemBarScrim, true)
             }
         }
     }
