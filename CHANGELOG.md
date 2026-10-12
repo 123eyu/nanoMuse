@@ -75,6 +75,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 - **Ideas, Goals and the Library stand on the chat's canvas.** The three rooms painted the Feed's grey page behind their rows, cards and list; Android and `docs/design.md` keep that grey for the Feed only. Ideas are plain rows with a hairline under each, the goal cards carry a hairline outline, the Library is a plain list, and the Feed keeps its grey page under its white cards.
 - **A routine's switch says which routine it is.** VoiceOver read the switches in *Scheduled tasks* and in the Goals room as nameless toggles; each now carries the routine's label.
 - **Reduce Motion crossfades the slides, the drawer and the bottom bar.** With Reduce Motion on, the welcome slides, the side drawer and the pill bar no longer slide in and out; they fade.
+- **The composer check reads the bar's height from the shell.** The developer check that reports where the chat's column ends assumed a 56 pt bar; it now uses the 70 pt the shell gives the bottom bar, so its verdict about a column hidden behind the bar matches the 1.0.4 layout. Its sibling's header comment describes the 1.0.4 layout too.
 
 ### Project
 
