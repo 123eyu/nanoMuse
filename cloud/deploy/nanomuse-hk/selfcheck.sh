@@ -33,7 +33,10 @@ backup_max_h=${BACKUP_MAX_H:-48}
 state=${STATE_DIR:-/run/nanomuse-selfcheck}
 mkdir -p "$state"
 
-tok=$(grep '^CLOUD_ADMIN_TOKEN=' "$relay/.env" 2>/dev/null | cut -d= -f2- || true)
+# ALERT_URL is a webhook address with a secret in it; it stays in this shell's variable and
+# reaches python below through the environment, never as an argument (`ps` shows arguments
+# to every user on the box). The admin token is not read here at all: the container has it
+# as CLOUD_ADMIN_TOKEN from .env and the health call reads it there.
 alert=$(grep '^ALERT_URL=' "$relay/.env" 2>/dev/null | cut -d= -f2- || true)
 
 problems=""
@@ -46,9 +49,9 @@ fi
 
 # 2. the relay's own view, over the edge network (no published ports)
 health=$(docker exec nanomuse-relay python -c "
-import json, sys, urllib.request
-req = urllib.request.Request('http://127.0.0.1:8787/v1/admin/health', headers={'X-Admin-Token': sys.argv[1]})
-print(urllib.request.urlopen(req, timeout=10).read().decode())" "$tok" 2>/dev/null || true)
+import os, urllib.request
+req = urllib.request.Request('http://127.0.0.1:8787/v1/admin/health', headers={'X-Admin-Token': os.environ.get('CLOUD_ADMIN_TOKEN', '')})
+print(urllib.request.urlopen(req, timeout=10).read().decode())" 2>/dev/null || true)
 if [ -z "$health" ]; then
 	add "relay /v1/admin/health not answering"
 	summary="(no relay data)"
@@ -101,9 +104,9 @@ if [ -n "$alert" ]; then
 	if [ ! -f "$state/last-problem" ] || [ "$(cat "$state/last-problem" 2>/dev/null)" != "$key" ] \
 		|| [ -n "$(find "$state/last-problem" -mmin +60 2>/dev/null)" ]; then
 		printf '%s' "$key" >"$state/last-problem"
-		python3 - "$alert" "$line" <<'EOF' || true
-import json, sys, urllib.request
-url, text = sys.argv[1], sys.argv[2]
+		NM_ALERT_URL="$alert" NM_ALERT_TEXT="$line" python3 - <<'EOF' || true
+import json, os, urllib.request
+url, text = os.environ["NM_ALERT_URL"], os.environ["NM_ALERT_TEXT"]
 body = json.dumps({"text": text, "msg_type": "text", "content": {"text": text}}).encode()
 req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
 urllib.request.urlopen(req, timeout=10).read()

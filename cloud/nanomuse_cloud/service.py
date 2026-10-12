@@ -465,12 +465,12 @@ class Cloud:
         out["below_allowance"] = self.db.below_allowance(self.s.allowance_uy, self.member_hashes) if self.s.allowance_cny > 0 else 0
         return out
 
-    def admin_update_settings(self, body: dict) -> dict:
+    def admin_update_settings(self, body: dict, actor: str = "console") -> dict:
         """The page saved: each known key is set (a value), or cleared back to the environment
-        (null). Takes effect at once — the next sign-up gets the new allowance, the next /v1/me
-        shows the new figures — and survives a restart. Nothing is taken from anyone: a lower
+        (null). Takes effect at once (the next sign-up gets the new allowance, the next /v1/me
+        shows the new figures) and survives a restart. Nothing is taken from anyone: a lower
         allowance only changes what new accounts get; a higher one reaches the existing
-        accounts when the operator asks (admin_apply_allowance)."""
+        accounts when the operator asks (admin_apply_allowance). The audit log says who."""
         changes: dict[str, Any] = {}
         for key in RUNTIME_SETTINGS:
             if key not in body:
@@ -491,27 +491,30 @@ class Cloud:
         said = ", ".join(f"{k}={'env' if v is None else v}" for k, v in changes.items())
         log.warning("settings changed from the page: %s", said)
         self.db.add_event("", "settings.changed", said[:200])
+        self.db.audit_add(actor, "settings.changed", "", said)
         return self.runtime_settings()
 
-    def admin_apply_allowance(self) -> dict:
+    def admin_apply_allowance(self, actor: str = "console") -> dict:
         """Bring the accounts that were given less than the current allowance up to it."""
         if self.s.allowance_cny <= 0:
             raise CloudError(400, "bad_request", "There is no allowance to apply (0 = no limit)")
         n = self.db.raise_allowance(self.s.allowance_uy, self.member_hashes)
         log.warning("allowance ¥%.2f applied to %d existing account(s)", self.s.allowance_cny, n)
         self.db.add_event("", "allowance.applied", f"¥{self.s.allowance_cny:g} to {n}")
+        self.db.audit_add(actor, "allowance.applied", "", f"¥{self.s.allowance_cny:g} to {n} account(s)")
         return {"accounts": n, "allowance_cny": self.s.allowance_cny}
 
-    def admin_credit_all(self, cny: float, note: str = "") -> dict:
+    def admin_credit_all(self, cny: float, note: str = "", actor: str = "console") -> dict:
         """The same credit into every limited account's pool at once; negative takes the same
         away from each (0.16), never below zero."""
         if cny == 0 or not -100 <= cny <= 100:
             raise CloudError(400, "bad_request", "A credit for everyone is between -¥100 and ¥100, not 0")
         if cny < 0:
-            return self.admin_set_pool_many({"all": True, "delta_cny": cny, "note": note})
+            return self.admin_set_pool_many({"all": True, "delta_cny": cny, "note": note}, actor=actor)
         n = self.db.credit_all(self.s.cny_to_uy(cny), note=note, exclude_hashes=self.member_hashes)
         log.warning("¥%.2f credited to %d account(s): %s", cny, n, note)
         self.db.add_event("", "credit.all", f"¥{cny:g} to {n}: {note}"[:200])
+        self.db.audit_add(actor, "credit.all", "", f"¥{cny:g} to {n} account(s){' · ' + note if note else ''}")
         return {"accounts": n, "cny": cny}
 
     # The pool set by the operator (0.16): exactly one of these says how.
@@ -544,10 +547,10 @@ class Cloud:
             return f"pool ¥{value:g}"
         return f"{'+' if value > 0 else '−'}¥{abs(value):g}"
 
-    def admin_set_pool(self, account_id: str, body: dict) -> dict:
-        """One account's pool set by the operator — to what is left, to a total, or by a
-        difference up or down. The account's timeline says so; the reply is the account with
-        its pool fields, as /v1/admin/credit answers."""
+    def admin_set_pool(self, account_id: str, body: dict, actor: str = "console") -> dict:
+        """One account's pool set by the operator: to what is left, to a total, or by a
+        difference up or down. The account's timeline says so and the audit log says who;
+        the reply is the account with its pool fields, as /v1/admin/credit answers."""
         if self.db.account(account_id) is None:
             raise CloudError(404, "no_account", "No such account")
         mode, value = self._pool_change(body)
@@ -557,6 +560,7 @@ class Cloud:
         words = self._pool_words(mode, value)
         log.warning("pool of %s set from the page: %s → ¥%.2f (%s)", account_id[:8], words, self.s.uy_to_cny(new or 0), note)
         self.db.add_event(account_id, "pool.set", f"{words}{' · ' + note if note else ''}"[:200])
+        self.db.audit_add(actor, "pool.set", account_id[:8], f"{words}{' · ' + note if note else ''}")
         a = dict(self.db.account(account_id))  # type: ignore[arg-type]
         a["identifier"] = self.crypto.decrypt(account_id, a.pop("identifier_enc", "")) or ""
         a["member"] = bool(a.get("unlimited")) or a.pop("id_hash", None) in self.member_hashes
@@ -566,10 +570,10 @@ class Cloud:
         self._pool_fields(a, spent_cny=a["spent_cny"])
         return a
 
-    def admin_set_pool_many(self, body: dict) -> dict:
-        """The same change to a set of accounts — the ids given (a filtered list on the
+    def admin_set_pool_many(self, body: dict, actor: str = "console") -> dict:
+        """The same change to a set of accounts: the ids given (a filtered list on the
         page), or every limited account when `all` is set; members and disabled accounts are
-        left out of `all`. Returns how many pools moved."""
+        left out of `all`. Returns how many pools moved; the audit log says who."""
         mode, value = self._pool_change(body)
         note = str(body.get("note", ""))[:200]
         if body.get("all"):
@@ -591,6 +595,7 @@ class Cloud:
             n += 1
         log.warning("pool of %d account(s) set from the page: %s (%s)", n, words, note)
         self.db.add_event("", "pool.set.many", f"{words} to {n}{' · ' + note if note else ''}"[:200])
+        self.db.audit_add(actor, "pool.set.many", "", f"{words} to {n} account(s){' · ' + note if note else ''}")
         return {"accounts": n, mode: value}
 
     def public_config(self) -> dict:
@@ -613,6 +618,10 @@ class Cloud:
             "privacy_url": self.s.privacy_url,
             "repo_url": self.s.repo_url,
             "improve_default": self.s.improve_default,
+            # how long a sign-in code is good for and the shortest password accepted, so the
+            # sign-in and password forms print the relay's figures and not their own
+            "code_ttl_s": self.s.code_ttl_s,
+            "password_min_len": self.s.password_min_len,
         }
 
     # -- sign-up -------------------------------------------------------------------
@@ -721,6 +730,11 @@ class Cloud:
             raise CloudError(403, "not_invited", "This relay is private; that address is not on its list")
         self._refuse_if_signups_closed(ident)
         self._refuse_if_domain_limited(ident)
+        account = self.db.account_by_hash(ident.hash(self.s.hmac_key))
+        if account is not None and account["disabled"]:
+            # the same answer the code would get at /v1/auth/verify, given before an SMS or
+            # a mail is paid for; a disabled account has nothing to sign in to
+            raise CloudError(403, "account_disabled", "This account is disabled")
         t = now()
         if self.db.codes_recent_for(ident.hash(self.s.hmac_key), t - 600) >= self.s.code_per_identifier_10m:
             raise CloudError(429, "code_too_often", "Too many codes for this address; wait a few minutes")
@@ -1132,8 +1146,11 @@ class Cloud:
         return [dict(r) for r in self.db.events_for(caller.account_id, max(1, min(limit, 200)))]
 
     def delete_account(self, caller: Caller) -> None:
-        """The person's own request: every key stops working and nothing about them stays."""
+        """The person's own request: every key stops working and nothing about them stays.
+        The one line left is written across accounts (`account.deleted`, the id's first
+        eight characters), which the statistics count as a deletion; it names nobody."""
         self.db.delete_account(caller.account_id)
+        self.db.add_event("", "account.deleted", f"{caller.account_id[:8]} by the person")
 
     def usage(self, account_id: str, day_start: int) -> dict:
         """The breakdown behind the totals: by kind (chat, pictures, clips,
@@ -2129,17 +2146,19 @@ class Cloud:
 
     # -- admin ------------------------------------------------------------------------------
 
-    def admin_credit(self, account_id: str, cny: float, note: str = "") -> dict:
+    def admin_credit(self, account_id: str, cny: float, note: str = "", actor: str = "console") -> dict:
         """Credit from the operator: a merged pull request, a reported bug, a
-        promised refund. It goes into the account's pool and never expires."""
+        promised refund. It goes into the account's pool and never expires; the audit
+        log says who gave it."""
         if self.db.account(account_id) is None:
             raise CloudError(404, "no_account", "No such account")
         if cny == 0 or not -1000 <= cny <= 1000:
             raise CloudError(400, "bad_request", "Credit is between -¥1000 and ¥1000, not 0")
         if cny < 0:  # 0.16: the operator may take back as well as give
-            return self.admin_set_pool(account_id, {"delta_cny": cny, "note": note})
+            return self.admin_set_pool(account_id, {"delta_cny": cny, "note": note}, actor=actor)
         self.db.add_credit(account_id, self.s.cny_to_uy(cny), note=note)
         self.db.add_event(account_id, "credit.granted", f"¥{cny:g}")
+        self.db.audit_add(actor, "credit", account_id[:8], f"¥{cny:g}{' · ' + note if note else ''}")
         a = dict(self.db.account(account_id))  # type: ignore[arg-type]
         a["identifier"] = self.crypto.decrypt(account_id, a.pop("identifier_enc", "")) or ""
         a["member"] = bool(a.get("unlimited")) or a.pop("id_hash", None) in self.member_hashes
@@ -2163,10 +2182,14 @@ class Cloud:
             raise CloudError(404, "no_account", "No such account")
         return row["id"]
 
-    def admin_grant(self, account_id: str, tokens: int) -> dict:
+    def admin_grant(self, account_id: str, tokens: int, actor: str = "console") -> dict:
+        """The older token grant, adjusted by the operator; the account's timeline and the
+        audit log say by how much and who did it."""
         if self.db.account(account_id) is None:
             raise CloudError(404, "no_account", "No such account")
         self.db.grant(account_id, tokens, kind="adjust")
+        self.db.add_event(account_id, "grant.tokens", f"{tokens:+d} tokens by {actor}"[:200])
+        self.db.audit_add(actor, "grant.tokens", account_id[:8], f"{tokens:+d} tokens")
         a = dict(self.db.account(account_id))  # type: ignore[arg-type]
         a["identifier"] = self.crypto.decrypt(account_id, a.pop("identifier_enc", "")) or ""
         a.pop("id_hash", None)
@@ -2586,13 +2609,16 @@ class Cloud:
         every account it brought that never made a request and never spent anything is
         deleted, in batches, all of them; the ones that used the relay are kept. The
         inviter's timeline says what was done (`invite.clawback`) and the audit log who did
-        it. Returns ``{reclaimed_cny, disabled, deleted, kept}``."""
+        it. Returns ``{reclaimed_cny, disabled, deleted, kept, deleted_ids}``; the caller
+        (api.py) drops the deleted accounts' hub sockets and live notes by those ids and
+        answers without them."""
         if self.db.account(account_id) is None:
             raise CloudError(404, "no_account", "No such account")
         reclaimed = self.db.clawback_invite(account_id, note=f"invite abuse ({actor})")
         if disable:
             self.db.set_disabled(account_id, True)
-        deleted = 0
+            self.db.add_event(account_id, "account.disabled", f"by {actor} (invite abuse)"[:200])
+        deleted_ids: list[str] = []
         if delete_unused:
             while True:
                 batch = self.db.unused_invitee_ids(account_id, limit=500)
@@ -2600,7 +2626,9 @@ class Cloud:
                     break
                 for invitee_id in batch:
                     self.db.delete_account(invitee_id)
-                    deleted += 1
+                    self.db.add_event("", "account.deleted", f"{invitee_id[:8]} by {actor} (invite abuse)"[:200])
+                    deleted_ids.append(invitee_id)
+        deleted = len(deleted_ids)
         kept = self.db.invitee_count(account_id)
         row = self.db.account(account_id)
         disabled = bool(row is not None and row["disabled"])
@@ -2613,7 +2641,7 @@ class Cloud:
         self.db.add_event(account_id, "invite.clawback", detail[:200])
         self.db.audit_add(actor, "invite.abuse", account_id[:8], detail)
         log.warning("invite abuse: %s by %s: %s", account_id[:8], actor, detail)
-        return {"reclaimed_cny": reclaimed_cny, "disabled": disabled, "deleted": deleted, "kept": kept}
+        return {"reclaimed_cny": reclaimed_cny, "disabled": disabled, "deleted": deleted, "kept": kept, "deleted_ids": deleted_ids}
 
     # the health check's two invite alerts: more sign-ups than this through one code in a
     # day, and inviters this many of whose people (at this share or fewer) ever used anything
@@ -2748,22 +2776,37 @@ class Cloud:
             "prices": {m.id: m.to_public()["nanomuse"]["price_cny"] for m in self.s.models},
         }
 
-    def admin_disable(self, account_id: str, disabled: bool) -> None:
+    def admin_disable(self, account_id: str, disabled: bool, actor: str = "console") -> None:
+        """Switch an account off (its keys stop opening, no code is sent to it) or back on.
+        The account's timeline and the audit log say who did it."""
         if self.db.account(account_id) is None:
             raise CloudError(404, "no_account", "No such account")
         self.db.set_disabled(account_id, disabled)
+        kind = "account.disabled" if disabled else "account.enabled"
+        self.db.add_event(account_id, kind, f"by {actor}"[:200])
+        self.db.audit_add(actor, kind, account_id[:8])
 
-    def admin_unlimited(self, account_id: str, unlimited: bool) -> None:
-        """Make an account a member (no daily cap) without touching the server's
-        environment — the operator's way of letting one more person in fully."""
+    def admin_unlimited(self, account_id: str, unlimited: bool, actor: str = "console") -> None:
+        """Make an account a member (no spend limit) without touching the server's
+        environment, the operator's way of letting one more person in fully; or take the
+        membership back. The account's timeline and the audit log say who did it."""
         if self.db.account(account_id) is None:
             raise CloudError(404, "no_account", "No such account")
         self.db.set_unlimited(account_id, unlimited)
+        kind = "member.set" if unlimited else "member.unset"
+        self.db.add_event(account_id, kind, f"by {actor}"[:200])
+        self.db.audit_add(actor, kind, account_id[:8])
 
-    def admin_delete(self, account_id: str) -> None:
+    def admin_delete(self, account_id: str, actor: str = "console") -> None:
+        """The operator removes an account: the same deletion as the person's own request
+        (``Database.delete_account``). The account's own timeline goes with it, so the line
+        that says so (`account.deleted`, the id's first eight characters and who did it) is
+        written across accounts, where the activity page and the statistics read it."""
         if self.db.account(account_id) is None:
             raise CloudError(404, "no_account", "No such account")
         self.db.delete_account(account_id)
+        self.db.add_event("", "account.deleted", f"{account_id[:8]} by {actor}"[:200])
+        self.db.audit_add(actor, "account.delete", account_id[:8])
 
 
 def estimate_tokens(text: str) -> int:
