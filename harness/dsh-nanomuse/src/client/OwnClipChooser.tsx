@@ -1,10 +1,13 @@
 /**
  * Picking a clip of one's own as the face (#324): the file dialog, the host's look at the
- * file (`own-clip.ts`: MP4 or MOV with H.264, at most 15 seconds and 30 MB), the refusal in
- * one sentence, and the preview sheet with the clip playing in the face's own round frame,
- * "Use" and "Cancel". The agent's page and the avatar studio call `choose()` from a button
- * or a menu and render `element` once. "Use" also hands the host the clip's first frame,
- * drawn from the preview, as the still for when there is no drawn face.
+ * file (`own-clip.ts`: MP4 or MOV with H.264 or HEVC video, at most 15 seconds and 30 MB),
+ * the refusal in one sentence, and the preview sheet with the clip playing in the face's own
+ * round frame, "Use" and "Cancel". The preview is also the last check: a clip this computer
+ * cannot decode (HEVC on a system without the decoder, mostly Linux) never plays there, the
+ * video element says so, and the clip is discarded with the refusal in place of the sheet;
+ * "Use" waits until the first frame can play. The agent's page and the avatar studio call
+ * `choose()` from a button or a menu and render `element` once. "Use" also hands the host
+ * the clip's first frame, drawn from the preview, as the still for when there is no drawn face.
  */
 import { createElement as h, Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
 import { call, failureText, type Translate } from './api.ts'
@@ -109,7 +112,7 @@ export function useOwnClipChooser(t: Translate): OwnClipChooser {
   }
 
   const element = h(Fragment, null,
-    pending ? h(OwnClipPreview, { t, pending, onDone: () => setPending(null) }) : null,
+    pending ? h(OwnClipPreview, { t, pending, onDone: () => setPending(null), onUnplayable: () => { setPending(null); setMessage(t('ocRefusedPlay')) } }) : null,
     message
       ? h(Sheet, { title: t('ocTitle'), closeLabel: t('close'), onClose: () => setMessage(null), footer: h('div', { className: 'nm-sheet-actions' }, h('span', { style: { flex: 1 } }), h('button', { type: 'button', className: 'nm-pill nm-pill-sm', onClick: () => setMessage(null) }, t('ocOk'))) },
           h('p', { className: 'nm-sheet-lead', role: 'alert' }, message))
@@ -119,9 +122,10 @@ export function useOwnClipChooser(t: Translate): OwnClipChooser {
 }
 
 /** The preview: the clip playing as the face will play it, its length and size, "Use" and "Cancel", and that it stays here. */
-function OwnClipPreview({ t, pending, onDone }: { t: Translate; pending: Pending; onDone(): void }): ReactNode {
+function OwnClipPreview({ t, pending, onDone, onUnplayable }: { t: Translate; pending: Pending; onDone(): void; onUnplayable(): void }): ReactNode {
   const video = useRef<HTMLVideoElement | null>(null)
   const [busy, setBusy] = useState(false)
+  const [ready, setReady] = useState(false)
   const [error, setError] = useState<string | undefined>()
   const decided = useRef(false)
   const cancel = () => {
@@ -129,6 +133,14 @@ function OwnClipPreview({ t, pending, onDone }: { t: Translate; pending: Pending
     decided.current = true
     void call('own-clip/discard').catch(() => undefined)
     onDone()
+  }
+  // the browser has no decoder for the clip's video (HEVC on most Linux builds): the same
+  // refusal a wrong format gets, and the pending copy goes
+  const unplayable = () => {
+    if (decided.current) return
+    decided.current = true
+    void call('own-clip/discard').catch(() => undefined)
+    onUnplayable()
   }
   const use = async () => {
     if (decided.current) return
@@ -149,12 +161,12 @@ function OwnClipPreview({ t, pending, onDone }: { t: Translate; pending: Pending
   const footer = h('div', { className: 'nm-sheet-actions' },
     h('span', { style: { flex: 1 } }),
     h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', disabled: busy, onClick: cancel }, t('cancel')),
-    h('button', { type: 'button', className: 'nm-pill nm-pill-sm', disabled: busy, onClick: () => void use() }, t('ocUse')))
+    h('button', { type: 'button', className: 'nm-pill nm-pill-sm', disabled: busy || !ready, onClick: () => void use() }, t('ocUse')))
   return h(Sheet, { title: t('ocPreviewTitle'), closeLabel: t('close'), onClose: cancel, footer },
     h('div', { className: 'nm-sheet-form' },
       h('p', { className: 'nm-sheet-lead' }, t('ocPreviewLead')),
       h('span', { className: 'nm-avatar nm-oc-disc', role: 'img', 'aria-label': t('ocPreviewLabel') },
-        h('video', { ref: video, src: `nanomuse/avatar/own-clip.pending.mp4?v=${pending.v}`, autoPlay: true, loop: true, muted: true, playsInline: true, disablePictureInPicture: true, 'aria-hidden': true })),
+        h('video', { ref: video, src: `nanomuse/avatar/own-clip.pending.mp4?v=${pending.v}`, autoPlay: true, loop: true, muted: true, playsInline: true, disablePictureInPicture: true, 'aria-hidden': true, onCanPlay: () => setReady(true), onError: unplayable })),
       h('p', { className: 'nm-fine nm-oc-details' }, t('ocDetails', { seconds: Math.min(seconds, MAX_SECONDS), size: sizeText(pending.size, t('langTag')) })),
       error ? h('div', { className: 'nm-room-error' }, error) : null,
       h('p', { className: 'nm-fine' }, t('ocLocal'))))

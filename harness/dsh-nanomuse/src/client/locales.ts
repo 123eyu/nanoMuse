@@ -286,7 +286,7 @@ export const en = {
   // a clip of the person's own as the face (#324)
   pfOwnClip: 'Your own clip…',
   ocTitle: 'Your own clip',
-  ocBody: 'A short video of yours plays as the face at rest, and the other moods fall back to it. MP4 or MOV with H.264 video, up to 15 seconds and 30 MB; it plays muted in a loop.',
+  ocBody: 'A short video of yours plays as the face at rest, and the other moods fall back to it. MP4 or MOV, up to 15 seconds and 30 MB; H.264 video plays everywhere, HEVC where this computer can decode it. It plays muted in a loop.',
   ocOn: 'Your clip is on and plays for every mood; the drawn stills still show where a still is used. Default face removes it.',
   ocLocal: 'The clip stays on this computer. It is not uploaded to nanoMuse Cloud or synced to your other devices.',
   ocChoose: 'Choose a clip',
@@ -299,6 +299,7 @@ export const en = {
   ocUse: 'Use',
   ocOk: 'OK',
   ocRefusedFormat: 'That file cannot be used here. Pick an MP4 or MOV with H.264 video, up to 15 seconds and 30 MB.',
+  ocRefusedPlay: 'This computer cannot play that clip. H.264 video plays everywhere; HEVC only where the system has a decoder for it. Pick an MP4 or MOV with H.264 video, up to 15 seconds and 30 MB.',
   ocRefusedLong: 'That clip runs {seconds} seconds. The limit is 15 seconds, and 30 MB.',
   ocRefusedLarge: 'That clip is {size}. The limit is 30 MB, and 15 seconds.',
   pfOffline: 'Offline',
@@ -1718,7 +1719,7 @@ export const zh: typeof en = {
   // a clip of the person's own as the face (#324)
   pfOwnClip: '你自己的视频…',
   ocTitle: '你自己的视频',
-  ocBody: '一段你自己的短视频会作为待机时的形象播放，其他状态也沿用它。MP4 或 MOV，H.264 视频，最长 15 秒、最大 30 MB；静音循环播放。',
+  ocBody: '一段你自己的短视频会作为待机时的形象播放，其他状态也沿用它。MP4 或 MOV，最长 15 秒、最大 30 MB；H.264 视频在哪里都能播，HEVC 则要这台电脑能解码。静音循环播放。',
   ocOn: '你的视频已启用，所有状态都播放它；需要静态图的地方仍用画好的图片。「默认形象」可移除它。',
   ocLocal: '视频只保存在这台电脑上，不会上传到 nanoMuse Cloud，也不会同步到你的其他设备。',
   ocChoose: '选择视频',
@@ -1731,6 +1732,7 @@ export const zh: typeof en = {
   ocUse: '使用',
   ocOk: '好',
   ocRefusedFormat: '这个文件无法在这里使用。请选择 MP4 或 MOV（H.264 视频），最长 15 秒、最大 30 MB。',
+  ocRefusedPlay: '这台电脑放不了这段视频。H.264 视频在哪里都能播，HEVC 只在系统带解码器时才行。请选择 MP4 或 MOV（H.264 视频），最长 15 秒、最大 30 MB。',
   ocRefusedLong: '这段视频长 {seconds} 秒。上限是 15 秒，以及 30 MB。',
   ocRefusedLarge: '这段视频有 {size}。上限是 30 MB，以及 15 秒。',
   pfOffline: '离线',

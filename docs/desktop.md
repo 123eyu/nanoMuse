@@ -45,8 +45,10 @@ speaking as nanoMuse through the `nanomuse` preset, with:
   read through the host's pass-through routes (`/nanomuse/cloud/me`, `/sessions`,
   `/account-events`, `/password`, `/sign-out-all`, `/delete-account`, `/config`);
 - **a clip of your own as the face**: *Your own clip…* under the pen on the agent's page
-  and in the avatar studio takes an MP4 or MOV with H.264 video of up to 15 seconds and
-  30 MB, previews it in the face's round frame, and plays it muted in a loop for every mood;
+  and in the avatar studio takes an MP4 or MOV of up to 15 seconds and 30 MB, with H.264
+  video, or HEVC when this computer can decode it (Windows and macOS have the decoder, most
+  Linux builds do not; a clip the preview cannot play is refused there), previews it in the
+  face's round frame, and plays it muted in a loop for every mood;
   it stays on this computer as `$DSH_HOME/nanomuse/avatar/own-clip.mp4`, is never sent to
   nanoMuse Cloud, and *Default face* removes it (the fallback rule is in
   [avatar.md](avatar.md));

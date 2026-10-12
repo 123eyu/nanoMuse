@@ -8,8 +8,9 @@
  * start and on that `profile` frame, when the relay's `rev` is newer than the one
  * last worn. A drawn face's stills land under `$DSH_HOME/nanomuse/faces/<id>/`
  * and the host serves them at `/nanomuse/assets/face/<id>/<mood>.webp`, so the
- * browser half shows the same face the phone does. Nothing is pushed yet: the
- * desktop has no avatar studio of its own, and renaming here comes later.
+ * browser half shows the same face the phone does. Writes go the other way through
+ * `cloud.ts` (`writeProfile`, `wearFace`): a rename, an emoji look or a face drawn in the
+ * desktop's own studio is put to the relay whole, and `wearLocal` wears it here at once.
  *
  * Never a key, never a message: the fields are the name, the face kind, the
  * emoji and its colour, the description and style, and the pictures.

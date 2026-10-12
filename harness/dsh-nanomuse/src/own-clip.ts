@@ -12,11 +12,15 @@
  * face's clips under `avatar/motion/` are the ones that go) and only "Default face"
  * removes it. The browser plays it from `/nanomuse/avatar/own-clip.mp4?v=<mtime>`.
  *
- * The rule is the phones' (`avatar/OwnClip.kt`, `NanoMuseOwnClip.swift`): MP4 or MOV with
- * H.264 video, at most 15 seconds and 30 MB; the format first (an unreadable file is a
- * format problem whatever its size), then the length, then the size. Node has no decoder,
- * so the file is read as ISO base media boxes: `ftyp`, then `moov/mvhd` for the length and
- * the video track's `stsd` sample entry for the codec.
+ * The rule is the one every device follows (`docs/every-device.md`): MP4 or MOV, at most
+ * 15 seconds and 30 MB, with H.264 video, or HEVC where the device can play it; nothing is
+ * transcoded. The format first (an unreadable file is a format problem whatever its size),
+ * then the length, then the size. Node has no decoder, so the file is read as ISO base
+ * media boxes: `ftyp`, then `moov/mvhd` for the length and the video track's `stsd` sample
+ * entry for the codec. Whether this computer plays HEVC is not known here (Chromium decodes
+ * it through the system's decoder, which Windows and macOS have and most Linux builds do
+ * not), so an HEVC clip is staged and the preview decides: a clip the browser cannot play
+ * is discarded there and refused in one sentence (`client/OwnClipChooser.tsx`).
  */
 import { createWriteStream } from 'node:fs'
 import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
@@ -28,8 +32,8 @@ import { pipeline } from 'node:stream/promises'
 export const OWN_CLIP_MAX_SECONDS = 15
 /** The largest file taken. */
 export const OWN_CLIP_MAX_BYTES = 30 * 1024 * 1024
-/** The sample entry codes of H.264 video in an MP4 or MOV. */
-const H264 = new Set(['avc1', 'avc3'])
+/** The sample entry codes of the video the face takes: H.264 (`avc1`, `avc3`) and HEVC (`hvc1`, `hev1`). */
+const VIDEO_CODECS = new Set(['avc1', 'avc3', 'hvc1', 'hev1'])
 /** Boxes whose children are boxes. */
 const CONTAINERS = new Set(['moov', 'trak', 'mdia', 'minf', 'stbl', 'mvex'])
 /** What a file may start with and still be an MP4 or a MOV (an old QuickTime file has no `ftyp`). */
@@ -61,7 +65,7 @@ export type OwnClipStaged =
 /** The rule: nothing means the clip is taken. */
 export function checkOwnClip(p: OwnClipProbe): OwnClipRefusal | undefined {
   if (!p.container || !p.codec || p.durationMs === undefined) return 'format'
-  if (!H264.has(p.codec)) return 'format'
+  if (!VIDEO_CODECS.has(p.codec)) return 'format'
   if (p.durationMs >= (OWN_CLIP_MAX_SECONDS + 1) * 1000) return 'too_long'
   if (p.bytes > OWN_CLIP_MAX_BYTES) return 'too_large'
   return undefined
