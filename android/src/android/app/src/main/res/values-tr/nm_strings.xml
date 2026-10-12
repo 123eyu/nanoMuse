@@ -770,7 +770,7 @@
     <string name="nm_face_cost_not_now">Şimdi değil</string>
     <string name="nm_face_cost_declined">Peki, yüz olduğu gibi kalıyor.</string>
     <string name="nm_cloud_invite_title">Bir arkadaşını davet et</string>
-    <string name="nm_cloud_invite_why">Kodunla kaydolan her yeni kişi kotana ¥%1$s ekler, ve onunkine de ¥%1$s. Süresi hiç dolmaz.</string>
+    <string name="nm_cloud_invite_why">Bir arkadaşın kodunla kaydolup ilk isteğini gönderdiğinde ikiniz de ¥%1$s alırsınız. Süresi hiç dolmaz.</string>
     <string name="nm_cloud_invite_code">Kodun</string>
     <string name="nm_cloud_invite_share">Bağlantıyı paylaş</string>
     <string name="nm_cloud_invite_copy">Kopyala</string>
@@ -808,7 +808,7 @@
     <string name="nm_cap_clips_unavailable">Klipler için video modelleri olan bir sağlayıcı gerekir: Alibaba Cloud Bailian.</string>
     <string name="nm_cap_hands_unavailable">Eller için ekranı gören bir model gerekir: Bailian, OpenRouter, OpenAI, Anthropic, Gemini veya görü modelleri olan herhangi bir sağlayıcı.</string>
     <string name="nm_cap_chat_unavailable">Sohbet için sohbet modelleri olan bir sağlayıcı gerekir: bir anahtar ekle ya da oturum aç.</string>
-    <string name="nm_ways_invite_title">Bir arkadaşını davet et: bağlantınla kaydolan her yeni kişi için sana +¥%1$s, ona +¥%2$s.</string>
+    <string name="nm_ways_invite_title">Bir arkadaşını davet et: bağlantınla kaydolan yeni kişi ilk isteğini gönderdiğinde sana +¥%1$s, ona +¥%2$s.</string>
     <string name="nm_ways_invite_share">Bağlantıyı paylaş</string>
     <string name="nm_ways_invite_copy">Bağlantıyı kopyala</string>
     <string name="nm_cloud_ev_contribute_on">Veri denetimleri: geliştirmeye yardım açıldı</string>

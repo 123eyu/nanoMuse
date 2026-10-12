@@ -218,7 +218,7 @@ export function SignIn({
                 placeholder="ABCD2345"
                 className={cx(inputCls, "mt-1 tracking-[0.2em] uppercase")}
               />
-              <p className="mt-1.5 text-[12px] text-muted">{t("A friend's code counts for a new account: you both get ¥{invite} more allowance.", { invite: (cfg.invite_bonus_cny ?? 5).toFixed(0) })}</p>
+              <p className="mt-1.5 text-[12px] text-muted">{t("A friend's code counts for a new account: you both get ¥{invite} after your first request.", { invite: (cfg.invite_bonus_cny ?? 5).toFixed(0) })}</p>
             </div>
           ) : (
             <button type="button" onClick={() => setInviteOpen(true)} className="text-[12px] text-muted underline-offset-2 hover:underline">

@@ -93,7 +93,7 @@ harness 构建以 *nanoMuse Harness* 的名字另放在旁边；从 0.1.30 起�
   这份清单是中继随拒绝和 `/v1/me` 一起发来的（`spend.guidance`，[cloud.md](cloud.md#allowance)），
   不是写死在应用里的，还有「图文教程」（[own-key.md](own-key.md)）；
 - **你已经在付费的套餐**：ChatGPT 登录就在这里，附上中继对它的提醒；
-- **邀请朋友**：你们各得的奖励，和「复制链接」；
+- **邀请朋友**：朋友发出第一次请求后你们各得的奖励，和「复制链接」；
 - 请你在 GitHub 上点一颗 star，只出现一次，且只在提示策略允许时：卡片的标题和按钮是应用
   自己的；那句话也是应用自己的，除非中继的策略带了一句（`star.text`、`star.text_zh`，最多
   200 个字符；中文界面取 `text_zh`，没有就取 `text`；[cloud.md](cloud.md)）；

@@ -767,7 +767,7 @@
     <string name="nm_face_cost_not_now">Nanti saja</string>
     <string name="nm_face_cost_declined">Baik, wajahnya tetap seperti sekarang.</string>
     <string name="nm_cloud_invite_title">Undang teman</string>
-    <string name="nm_cloud_invite_why">Setiap orang baru yang mendaftar dengan kodemu menambah ¥%1$s ke kuotamu, dan ¥%1$s ke kuota mereka. Tidak pernah kedaluwarsa.</string>
+    <string name="nm_cloud_invite_why">Saat teman mendaftar dengan kodemu dan mengirim permintaan pertamanya, kalian berdua mendapat ¥%1$s. Tidak pernah kedaluwarsa.</string>
     <string name="nm_cloud_invite_code">Kodemu</string>
     <string name="nm_cloud_invite_share">Bagikan tautan</string>
     <string name="nm_cloud_invite_copy">Salin</string>
@@ -805,7 +805,7 @@
     <string name="nm_cap_clips_unavailable">Klip memerlukan penyedia dengan model video: Alibaba Cloud Bailian.</string>
     <string name="nm_cap_hands_unavailable">Tangan memerlukan model yang bisa melihat layar: Bailian, OpenRouter, OpenAI, Anthropic, Gemini, atau penyedia mana pun dengan model visi.</string>
     <string name="nm_cap_chat_unavailable">Chat memerlukan penyedia dengan model chat: tambahkan kunci, atau masuk.</string>
-    <string name="nm_ways_invite_title">Undang teman: +¥%1$s untukmu dan +¥%2$s untuk mereka, untuk setiap orang baru yang mendaftar lewat tautanmu.</string>
+    <string name="nm_ways_invite_title">Undang teman: +¥%1$s untukmu dan +¥%2$s untuk mereka, saat orang baru yang mendaftar lewat tautanmu mengirim permintaan pertamanya.</string>
     <string name="nm_ways_invite_share">Bagikan tautan</string>
     <string name="nm_ways_invite_copy">Salin tautan</string>
     <string name="nm_cloud_ev_contribute_on">Kontrol data: bantu tingkatkan dinyalakan</string>

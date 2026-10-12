@@ -151,7 +151,7 @@ struct NanoMuseAccountSections: View {
             let bonus = yuan(invite.bonusCny)
             let earned = yuan(invite.earnedCny)
             let invited = invite.invites.formatted()
-            Text(String(format: AppLocalized("A friend who signs up with your code gets %@ of credit, and so do you. %@ invited · %@ earned."), bonus, invited, earned))
+            Text(String(format: AppLocalized("When a friend signs up with your code and makes their first request, you both get %@. %@ invited · %@ earned."), bonus, invited, earned))
         }
     }
 

@@ -115,7 +115,7 @@ export function makeOnboarding(t: Translate, _actions: OnboardingActions) {
     const [identifier, setIdentifier] = useState('')
     const [code, setCode] = useState('')
     const [password, setPassword] = useState('')
-    // A friend's invite code (optional, with the six digits): both get credit on a first sign-in.
+    // A friend's invite code (optional, with the six digits): both get credit once this account makes its first request.
     const [invite, setInvite] = useState('')
     const [inviteOpen, setInviteOpen] = useState(false)
     const config = useCloudConfig()
