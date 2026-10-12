@@ -1,6 +1,6 @@
 """HTTP: the sign-up endpoints the app calls, and the OpenAI-shaped proxy.
 
-    POST /v1/auth/code        {identifier}                      → 204 (400 phone_region: a number the SMS sender cannot reach)
+    POST /v1/auth/code        {identifier}                      → 204 (400 phone_region: a number the SMS sender cannot reach; 429 domain_limited: a new address of a domain at its day's sign-up limit)
     POST /v1/auth/verify      {identifier, code, device, invite?} → {api_key, base_url, account, tokens, models}
     POST /v1/auth/login       {identifier, password, device}    → the same, for accounts that set a password
     POST /v1/auth/password    {password, current?}              → 204 (set / change; "" + current removes)
@@ -52,6 +52,7 @@
     GET  /v1/admin/accounts/{id}/events X-Admin-Token ?limit=&before= → the account's timeline, every entry, page by page
     GET  /v1/admin/address    X-Admin-Token  ?ip=…              → the accounts seen from one address
     GET  /v1/admin/invites    X-Admin-Token  ?limit=200&per=20  → who invited whom: the funnel and the inviters ranked by the accounts their code brought, with the newest `per` of them
+    POST /v1/admin/invites/abuse X-Admin-Token {account_id | identifier, disable?, delete_unused?} → take back an inviter's invite credit, disable it, delete the invited accounts that never used anything; {reclaimed_cny, disabled, deleted, kept}
     GET  /v1/admin/usage      X-Admin-Token  ?days=14           → charged tokens and yuan per day and kind
     GET  /v1/admin/overview   X-Admin-Token  ?days=30           → the dashboard: accounts, today / week / period by kind and model, signals, events
     GET  /v1/admin/events     X-Admin-Token  ?limit=200&kind=…  → the timeline across accounts (never message content)
@@ -1284,6 +1285,12 @@ def create_app(
             problems.append("the database is not writable")
         if not settings.upstream_key:
             problems.append("no upstream key")
+        # invites being farmed: a code bringing many accounts in a day, or inviters whose
+        # people never use anything; each alert is one sentence here and the detail below
+        alerts = cloud.invite_alerts()
+        for alert in alerts:
+            problems.append(f"{alert['message']}; {alert['hint']}")
+        out["alerts"] = alerts
         out["ok"] = not problems
         out["problems"] = problems
         return out
@@ -1420,6 +1427,22 @@ def create_app(
         accounts did and the newest `per` of them, and the funnel; an account's detail
         page lists its invitees in full."""
         return with_places(cloud.admin_invites(max(1, min(limit, 1000)), max(0, min(per, 100))))
+
+    @app.post("/v1/admin/invites/abuse", dependencies=[Depends(admin_dep)])
+    async def admin_invite_abuse(request: Request) -> dict:
+        """{account_id, disable?: bool, delete_unused?: bool}: take back the invite credit an
+        inviter farmed (never below what it has spent), disable it when asked, and when asked
+        delete every account it brought that never used the relay. Answers
+        {reclaimed_cny, disabled, deleted, kept}; 404 no_account when unknown."""
+        body = await _json(request)
+        account_id = cloud.admin_resolve(str(body.get("account_id", "")), str(body.get("identifier", "")))
+        disable = bool(body.get("disable", False))
+        hub = getattr(app.state, "hub", None)
+        if disable and hub is not None:
+            await hub.drop_account(account_id)
+        return cloud.admin_invite_abuse(
+            account_id, disable=disable, delete_unused=bool(body.get("delete_unused", False)), actor=_actor(request)
+        )
 
     @app.get("/v1/admin/events", dependencies=[Depends(admin_dep)])
     async def admin_events(limit: int = 200, kind: str = "") -> dict:

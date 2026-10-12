@@ -677,6 +677,30 @@ class Cloud:
             "New sign-ups are paused on this relay for now; existing accounts keep working. Try again later.",
         )
 
+    def _refuse_if_domain_limited(self, ident: Identifier) -> None:
+        """At most SIGNUP_PER_DOMAIN_DAY new accounts per e-mail domain per rolling day, for
+        domains that are not a well known provider or on the allow list: an address of such
+        a domain without an account yet is turned away (`domain_limited`) once the day's
+        count is reached. An existing account always gets its code; phone numbers are never
+        limited; the reviewer's address is never limited. A catch-all domain of one's own,
+        or a bought list of mailboxes, is how one person made hundreds of accounts."""
+        limit = self.s.signup_per_domain_day
+        if limit <= 0 or ident.channel != "email" or self.is_review(ident):
+            return
+        domain = ident.value.rpartition("@")[2].lower()
+        if not domain or domain in self.s.signup_domain_allow_set:
+            return
+        if self.db.account_by_hash(ident.hash(self.s.hmac_key)) is not None:
+            return
+        if self.db.signups_from_domain_since(domain, now() - 86400) < limit:
+            return
+        self.db.add_event("", "signup.domain_limited", domain[:200])
+        raise CloudError(
+            429,
+            "domain_limited",
+            "This address's domain has reached today's sign-up limit on this relay; try again tomorrow or use another address",
+        )
+
     def request_code(self, ident: Identifier, ip: str) -> None:
         review = self.is_review(ident)
         if not review and not self.sender.accepts(ident):
@@ -696,6 +720,7 @@ class Cloud:
         if not self.allowed(ident):
             raise CloudError(403, "not_invited", "This relay is private; that address is not on its list")
         self._refuse_if_signups_closed(ident)
+        self._refuse_if_domain_limited(ident)
         t = now()
         if self.db.codes_recent_for(ident.hash(self.s.hmac_key), t - 600) >= self.s.code_per_identifier_10m:
             raise CloudError(429, "code_too_often", "Too many codes for this address; wait a few minutes")
@@ -805,12 +830,37 @@ class Cloud:
             # a wrong code is not an error: the person is signed in either way
             self.db.add_event(new_account_id, "invite.unknown")
             return
-        bonus_uy = self.s.cny_to_uy(self.s.invite_bonus_cny)
-        # the same bonus to both sides (0.9): the inviter's pool and the newcomer's
-        self.db.record_invite(inviter["id"], new_account_id, bonus_uy)
+        # the link and the counter now; the bonus (the same to both sides, 0.9) when the
+        # newcomer first uses the relay (settle_invite), so a sign-up alone pays nobody
+        self.db.link_invite(inviter["id"], new_account_id)
         self.db.add_event(inviter["id"], "invite.accepted", new_account_id[:8])
         self.db.add_event(new_account_id, "invite.used", inviter["id"][:8])
-        log.info("invite: %s brought %s (+¥%.2f each)", inviter["id"][:8], new_account_id[:8], self.s.invite_bonus_cny)
+        log.info("invite: %s brought %s (+¥%.2f each at first use)", inviter["id"][:8], new_account_id[:8], self.s.invite_bonus_cny)
+
+    def settle_invite(self, account_id: str) -> bool:
+        """Called after every charged request: when the account came through a code and its
+        bonus is still unpaid, both pools grow by the bonus in force now and both timelines
+        say so (`invite.settled`). One lookup by primary key on the common path; the
+        settlement itself happens once per account. A failure here must not cost a request."""
+        try:
+            if not self.db.invite_pending(account_id):
+                return False
+            settled, inviter_id, inviter_paid = self.db.settle_invite(account_id, self.s.cny_to_uy(self.s.invite_bonus_cny))
+        except sqlite3.Error as e:
+            log.warning("invite: could not settle for %s: %s", account_id[:8], e)
+            return False
+        if not settled:
+            return False
+        self.db.add_event(account_id, "invite.settled", inviter_id[:8])
+        if inviter_paid:
+            self.db.add_event(inviter_id, "invite.settled", account_id[:8])
+        log.info(
+            "invite: %s used the relay, +¥%.2f to %s",
+            account_id[:8],
+            self.s.invite_bonus_cny,
+            "both" if inviter_paid else "the newcomer only",
+        )
+        return True
 
     def invite_code_for(self, caller: Caller) -> str:
         """The account's code, made on first ask (no confusable letters)."""
@@ -831,20 +881,30 @@ class Cloud:
         # from the ledger, not invites × today's bonus: the bonus may have been another
         # figure when some of these friends signed up
         earned = self.s.uy_to_cny(self.db.invite_earned_uy(caller.account_id))
+        friends = self.db.invitees(caller.account_id)
+        settled = sum(1 for r in friends if r["invite_settled_at"] is not None)
         return {
             "code": code,
             "url": self.s.invite_url + code if self.s.invite_url else "",
+            # sign-ups recorded with the code (the counter), as the apps have always read it
             "invites": caller.invites,
             "bonus_cny": self.s.invite_bonus_cny,
             # 0.9: the friend who signs up with the code gets the same
             "invitee_bonus_cny": self.s.invite_bonus_cny,
+            # the bonus is paid to both sides at the friend's first charged request, not at
+            # sign-up: how many friends have been paid for and how many are still to be
+            "bonus_when": "first_use",
+            "settled": settled,
+            "pending": max(0, len(friends) - settled),
             "earned_cny": earned,
             # 0.4 names, one more version: the money invites brought (there is no separate
             # credit any more, it is all one pool) and no clips to count
             "credit_cny": earned,
             "credit_left_cny": earned,
             "clips_per_invite": 0,
-            "friends": [{"hint": r["hint"], "joined_at": int(r["created_at"])} for r in self.db.invitees(caller.account_id)],
+            "friends": [
+                {"hint": r["hint"], "joined_at": int(r["created_at"]), "settled": r["invite_settled_at"] is not None} for r in friends
+            ],
         }
 
     @staticmethod
@@ -1528,6 +1588,7 @@ class Cloud:
             cost_uy=cost,
             extra=json.dumps(detail) if detail else "",
         )
+        self.settle_invite(caller.account_id)
         return charged
 
     def charge_image(self, caller: Caller, model: ModelSpec, n: int, request_id: str, size: str | None = None, inputs: int = 0) -> int:
@@ -1535,6 +1596,7 @@ class Cloud:
         charged = model.per_image * max(1, n)
         cost = model.image_cost_uy(size, inputs) * max(1, n)
         self.db.charge(caller.account_id, "image", model.id, 0, 0, charged, request_id, cost_uy=cost)
+        self.settle_invite(caller.account_id)
         return charged
 
     def settle_video_task(self, task: Any, status: str | None) -> int | None:
@@ -1558,6 +1620,7 @@ class Cloud:
             return 0  # a model gone from the menu since the task was submitted
         account_id = str(task["account_id"])
         self.db.charge(account_id, "video", spec.id, 0, 0, spec.per_clip, task_id[:16], cost_uy=int(task["cost_uy"] or 0))
+        self.settle_invite(account_id)
         return spec.per_clip
 
     def note(self, account_id: str, kind: str, detail: str = "") -> None:
@@ -2460,6 +2523,8 @@ class Cloud:
             "last_seen_at": int(r["last_seen_at"]) if r["last_seen_at"] else None,
             "requests": int(r["requests"] or 0),
             "spent_cny": self.s.uy_to_cny(int(r["spent_uy"] or 0)),
+            # whether the bonus for this one has been paid (at its first charged request)
+            "settled": r["invite_settled_at"] is not None,
         }
 
     def admin_invites(self, limit: int = 200, per: int = 20) -> dict:
@@ -2486,14 +2551,93 @@ class Cloud:
                     "invites": int(r["invites"] or 0),
                     "invited": int(r["invited"] or 0),
                     "invited_active": int(r["invited_active"] or 0),
+                    "invited_settled": int(r["invited_settled"] or 0),
+                    "invited_pending": int(r["invited_pending"] or 0),
                     "invited_same_ip": int(r["invited_same_ip"] or 0),
                     "invited_spent_cny": self.s.uy_to_cny(int(r["invited_spent_uy"] or 0)),
+                    # net of any clawback: what the invites put in that is still in the pool
                     "earned_cny": self.s.uy_to_cny(int(r["earned_uy"] or 0)),
                     "first_invite_at": int(r["first_invite_at"] or 0),
                     "last_invite_at": int(r["last_invite_at"] or 0),
                 }
             )
         return {"generated_at": now(), "funnel": self.db.invite_funnel(), "leaders": leaders}
+
+    def admin_invite_abuse(self, account_id: str, disable: bool = False, delete_unused: bool = False, actor: str = "console") -> dict:
+        """One action against an inviter who farmed the bonus: the invite credit still in its
+        pool is taken back (never below what it has spent, so `left` stays at zero or above;
+        a second call reclaims nothing), the account is disabled when asked, and when asked
+        every account it brought that never made a request and never spent anything is
+        deleted, in batches, all of them; the ones that used the relay are kept. The
+        inviter's timeline says what was done (`invite.clawback`) and the audit log who did
+        it. Returns ``{reclaimed_cny, disabled, deleted, kept}``."""
+        if self.db.account(account_id) is None:
+            raise CloudError(404, "no_account", "No such account")
+        reclaimed = self.db.clawback_invite(account_id, note=f"invite abuse ({actor})")
+        if disable:
+            self.db.set_disabled(account_id, True)
+        deleted = 0
+        if delete_unused:
+            while True:
+                batch = self.db.unused_invitee_ids(account_id, limit=500)
+                if not batch:
+                    break
+                for invitee_id in batch:
+                    self.db.delete_account(invitee_id)
+                    deleted += 1
+        kept = self.db.invitee_count(account_id)
+        row = self.db.account(account_id)
+        disabled = bool(row is not None and row["disabled"])
+        reclaimed_cny = self.s.uy_to_cny(reclaimed)
+        detail = (
+            f"¥{reclaimed_cny:g} reclaimed"
+            + (", disabled" if disable else "")
+            + (f", {deleted} unused invitee(s) deleted, {kept} kept" if delete_unused else "")
+        )
+        self.db.add_event(account_id, "invite.clawback", detail[:200])
+        self.db.audit_add(actor, "invite.abuse", account_id[:8], detail)
+        log.warning("invite abuse: %s by %s: %s", account_id[:8], actor, detail)
+        return {"reclaimed_cny": reclaimed_cny, "disabled": disabled, "deleted": deleted, "kept": kept}
+
+    # the health check's two invite alerts: more sign-ups than this through one code in a
+    # day, and inviters this many of whose people (at this share or fewer) ever used anything
+    INVITE_VELOCITY_PER_DAY = 10
+    INVITE_UNUSED_MIN = 20
+    INVITE_UNUSED_SHARE = 0.05
+
+    def invite_alerts(self) -> list[dict]:
+        """What the health check says about invites (two aggregates): `invite_velocity`, any
+        inviter whose code brought more than ten accounts in the last 24 hours, and
+        `invite_unused`, any inviter with at least twenty invitees of whom one in twenty or
+        fewer ever made a request. Each carries a plain sentence, the inviters by the start
+        of their id and by hint with the counts, and where to look (the Invites view)."""
+        out: list[dict] = []
+        fast = self.db.invite_velocity(now() - 86400, self.INVITE_VELOCITY_PER_DAY)
+        if fast:
+            names = ", ".join(f"{r['id'][:8]} ({int(r['n'])})" for r in fast[:5]) + (", …" if len(fast) > 5 else "")
+            out.append(
+                {
+                    "kind": "invite_velocity",
+                    "message": f"{len(fast)} inviter(s) brought more than {self.INVITE_VELOCITY_PER_DAY} accounts in the last 24 hours: {names}",
+                    "hint": "open the Invites view of the admin page and check who they brought",
+                    "inviters": [{"id": r["id"], "hint": r["hint"], "n": int(r["n"])} for r in fast],
+                }
+            )
+        idle = self.db.invite_unused(self.INVITE_UNUSED_MIN, self.INVITE_UNUSED_SHARE)
+        if idle:
+            names = ", ".join(f"{r['id'][:8]} ({int(r['active'])}/{int(r['n'])})" for r in idle[:5]) + (", …" if len(idle) > 5 else "")
+            out.append(
+                {
+                    "kind": "invite_unused",
+                    "message": (
+                        f"{len(idle)} inviter(s) with {self.INVITE_UNUSED_MIN} or more invitees of whom "
+                        f"{self.INVITE_UNUSED_SHARE:.0%} or fewer ever made a request: {names}"
+                    ),
+                    "hint": "open the Invites view of the admin page; the abuse action reclaims the credit",
+                    "inviters": [{"id": r["id"], "hint": r["hint"], "n": int(r["n"]), "active": int(r["active"])} for r in idle],
+                }
+            )
+        return out
 
     def ledger_page(self, account_id: str, limit: int = 100, before_id: int = 0) -> dict:
         """One page of an account's statement, newest first, with the count of the whole
@@ -2577,6 +2721,9 @@ class Cloud:
             "allowed_identifiers": [s.strip() for s in self.s.allowed_identifiers.split(",") if s.strip()],
             "sender": self.s.sender,
             "password_min_len": self.s.password_min_len,
+            # the per-domain sign-up limit (read-only here; the environment sets it)
+            "signup_per_domain_day": self.s.signup_per_domain_day,
+            "signup_domain_allow": [s.strip() for s in self.s.signup_domain_allow.split(",") if s.strip()],
             "models": [m.id for m in self.s.models],
             "model_kinds": {m.id: m.kind for m in self.s.models},
             # 0.17: what each chat model is for (chat, gui) and where it is the recommended one
