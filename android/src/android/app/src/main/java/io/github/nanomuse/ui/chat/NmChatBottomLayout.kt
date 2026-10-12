@@ -11,6 +11,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+
+// Shared by the composer's bottom padding and the navigation surround's upper edge.
+internal val NM_CHAT_COMPOSER_BOTTOM_GAP = 8.dp
 
 private enum class BottomSlot { Footer, Content }
 
