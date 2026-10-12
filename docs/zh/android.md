@@ -219,7 +219,7 @@ base URL（从不包括中继的，从不包括局域网地址）它回答代理
 （`io.github.nanomuse.net.LanOnly`）。地址先解析再判断，所以 `10.foo.example.com` 这样的公网名字
 不会被当成私有地址。自己的中继能否用 `http://` 也按同一条规则判断；nanoMuse Cloud 以及到它的
 hub 只走 TLS。App 内的
-web view 不对其他 App 导出。
+web view 不对其他 App 导出。用服务商语音模型做语音输入时，麦克风只在录音期间打开：停止或取消录音都会立刻关掉录音器，取消的那段音频直接丢弃，不会发给服务商。
 
 ## 自己构建 {#building-it-yourself}
 
