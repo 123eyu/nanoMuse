@@ -787,7 +787,7 @@ final class NanoMuseSync: ObservableObject {
         // hidden by every screen; the other devices store the record as is, so they go before
         // the push (Android's Transcript does the same). A turn that was only a reminder, such
         // as the stop-and-continue nudge, is not a message at all.
-        let trimmed = ChatStore.stripSystemReminders(text).trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = RawMessage.stripSystemReminders(text).trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty || !attachments.isEmpty else { return nil }
         var record: [String: Any] = [
             "mid": message.id.lowercased(),
