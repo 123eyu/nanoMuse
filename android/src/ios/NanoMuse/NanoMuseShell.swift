@@ -366,6 +366,8 @@ struct NanoMuseHomeView: View {
     @State private var showChatFiles = false
     @State private var showDevices = false
     @State private var agentName = NanoMuseHomeView.currentAgentName()
+    /// Reduce Motion on: the bottom bar fades out for the keyboard instead of sliding down.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// The agent's name from SOUL.md, "nanoMuse" until it has one.
     static func currentAgentName() -> String {
@@ -423,7 +425,7 @@ struct NanoMuseHomeView: View {
                     if picked == tab, picked != .chat { return }
                     tab = picked
                 }
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
             }
         }
         .animation(.easeOut(duration: 0.2), value: bottomBarHidden)
@@ -672,6 +674,8 @@ struct NanoMuseHomeView: View {
                 let draft = id.hasPrefix(NanoMuseMainChat.draftPrefix)
                 AIChatView(sessionId: draft ? nil : id, draftId: draft ? id : nil)
                     .id(id)
+                    // The side chat keeps the system bar, with the main chat's scrim behind it.
+                    .environment(\.nmSystemBarScrim, true)
             }
         }
     }
@@ -1088,6 +1092,8 @@ struct NanoMuseDrawer: View {
     @State private var query = ""
     @State private var dragOffset: CGFloat = 0
     @State private var deleteCandidate: String?
+    /// Reduce Motion on: the panel fades in instead of sliding in from the edge.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// The panel's width: most of the window, at most 320 pt. Measured from the window the
     /// drawer is in rather than the screen, so an iPad window narrower than the screen (Stage
@@ -1105,7 +1111,7 @@ struct NanoMuseDrawer: View {
                     panel
                         .frame(width: width(in: geo.size.width))
                         .offset(x: min(0, dragOffset))
-                        .transition(.move(edge: .leading))
+                        .transition(reduceMotion ? .opacity : .move(edge: .leading))
                         .gesture(
                             DragGesture()
                                 .onChanged { v in dragOffset = v.translation.width }

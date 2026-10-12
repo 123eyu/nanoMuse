@@ -96,8 +96,9 @@ Ours, in `NanoMuse/`:
   remains) is tapped into **the agent's page**. A short clip of your own can play as the
   face instead (`NanoMuseOwnClip.swift`: *Your own clip…* under the pen on the agent's page and in
   the avatar studio; MP4 or MOV with H.264 or HEVC video, up to 15 seconds and 30 MB, previewed
-  before it is used, kept on that phone only under `Application Support/nanomuse/avatar/own-clip.mp4`,
-  and *Default face* removes it; the section in [avatar.md](avatar.md) has the fallback rule).
+  before it is used, kept on that phone only under `Application Support/nanomuse/avatar/own-clip.mp4`
+  and left out of the iCloud and computer backups with its still, and *Default face* removes it;
+  the section in [avatar.md](avatar.md) has the fallback rule).
   The drawer holds the sessions, search,
   a new side chat, *Pin as the main chat*, *All chats* and the nanoMuse settings; it opens from
   the round button and, on the main chat, from a swipe in at the left edge
@@ -120,12 +121,14 @@ Ours, in `NanoMuse/`:
   (`NanoMuseAvatarStudio.swift`) uses the same path and lets the image model be picked.
 - **The scheduler (0.1.34)** (`NanoMuseScheduler.swift`): routines (a label, a prompt, a time,
   daily / weekdays / once or every N hours) run as a headless turn in a conversation of their own
-  (`NanoMuseHeadless`). Honestly: the iPhone runs them when the app is open (every due one on
-  becoming active), asks iOS for a `BGAppRefreshTask` (`io.github.nanomuse.app.scheduler`) when
-  it goes to the background and runs what is due if iOS grants it, and posts a local notification
-  at each due time (*Check-in: 〈goal〉. Open to run it*) whose tap opens the conversation. Every
-  piece of copy about routines says so. *Settings → nanoMuse → Scheduled tasks* lists them all,
-  the goal check-ins and the feed's included.
+  (`NanoMuseHeadless`). Honestly: the iPhone runs them only while the app is open (every due
+  one on becoming active, then a check every minute), and posts a local notification at each
+  due time (*Check-in: 〈goal〉. Open to run it*) whose tap opens the conversation. The
+  `BGAppRefreshTask` it asks for when it goes to the background
+  (`io.github.nanomuse.app.scheduler`) never runs a routine: when iOS grants it, the handler
+  posts the reminder for whatever came due and asks for the next slot, nothing more. Every piece
+  of copy about routines says so. *Settings → nanoMuse → Scheduled tasks* lists them all, the
+  goal check-ins and the feed's included.
 - **Goals (0.1.34)** (`NanoMuseGoals.swift`, Android `goals/`): *Create a goal › category* sends
   the opener to the main chat with a system addendum for a few turns; the model's
   ` ```nanomuse-goal ` block becomes the goal and its check-in routine, ` ```nanomuse-goal-update `
@@ -281,7 +284,10 @@ Ours, in `NanoMuse/`:
   takes the address. No vendor is recommended.
 - **Network** (`NanoMuseProxy.swift`, `NanoMuseNetworkView.swift`, *Settings → nanoMuse →
   Network*): the HTTP proxy for own providers: host, port, optional user name and password, off
-  by default, in `UserDefaults` on this phone only. `URLSession` has no per-host proxy switch, so
+  by default, on this phone only: the address and the user name in `UserDefaults`, the password
+  in the Keychain as a device-only item (`io.github.nanomuse.app.proxy`, the relay key's rules;
+  a password a 1.0.3 build kept in `UserDefaults` moves over at the first read). `URLSession`
+  has no per-host proxy switch, so
   the proxy reaches a session as a proxy auto-configuration script in
   `connectionProxyDictionary` that answers the proxy for the catalogue's hosts, `chatgpt.com`,
   `auth.openai.com` and the provider instances' custom hosts (never the relay's, never a LAN
@@ -590,9 +596,15 @@ Ours, in `NanoMuse/`:
   `safeAreaInset` background, bound to the main chat's `isNearBottom` the way the header binds
   its mood). A queued message keeps upstream's dashed outline and grey text, the *From {device}*
   caption and the attachments stay outside the pill, and the long-press preview is the opaque
-  card it was. Side chats pushed from the drawer keep the system bar on its material; the rooms
-  keep their canvas. Written on Linux without a Mac: the iOS check compiles it, and no device
-  has shown it yet.
+  card it was. Side chats pushed from the drawer keep the system bar for the back button and
+  the title, but since 1.0.4 the bar's own background and hairline are hidden and the same
+  scrim stands behind it (`NavBarStyleModifier` in `AIChatView.swift`, switched on by the
+  `nmSystemBarScrim` environment value the shell sets on the pushed chat; up to 1.0.3 the bar sat
+  on `.ultraThinMaterial`). The rooms since 1.0.4 stand on the chat's canvas, white and black,
+  as Android's tabs and [design.md](design.md): Ideas as plain rows with a hairline under each,
+  Goals with its cards outlined by a hairline, Library as a plain list; only the Feed keeps the
+  grey page its white cards sit on, as Android's FeedTab does. Written on Linux without a Mac:
+  the iOS check compiles it, and no device has shown it yet.
 - **The iPad's chat is one column** (`NanoMuseColumn` in `NanoMuseShell.swift`; the
   `maxContentWidth` line and the composer's frame in `AIChatView.swift`, the agent's pill in
   `NanoMuseChatCards.swift`). 1.0.3 on an iPad in portrait showed three widths: upstream caps

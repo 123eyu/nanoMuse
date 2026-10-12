@@ -1086,6 +1086,9 @@ def test_llm_models_live_then_catalogue(server, monkeypatch):
     client, _, _ = server
 
     class FakeResponse:
+        is_redirect = False
+        has_redirect_location = False
+
         def __init__(self, status: int, data=None):
             self.status_code = status
             self._data = data
@@ -1151,6 +1154,78 @@ def test_llm_models_live_then_catalogue(server, monkeypatch):
         "source": "catalogue",
     }
     assert len(calls) == before
+
+
+def test_an_address_with_a_password_in_it_is_refused(server):
+    """``user:pass@host`` in an endpoint address would be stored in app-settings.json,
+    logged at every model switch and shown in the console as typed: every place that
+    takes an address from the app says no, with the reason, and a key goes in its field."""
+    from nanomuse.server.connections import check_base_url, has_userinfo
+
+    assert has_userinfo("https://me:secret@gateway.example/v1")
+    assert has_userinfo("me:secret@gateway.example")  # no scheme typed yet
+    assert has_userinfo("https://me@gateway.example/v1")
+    assert not has_userinfo("https://gateway.example/v1?token=a@b")
+    assert check_base_url("gateway.example") == "https://gateway.example/v1"
+    with pytest.raises(ValueError, match="user name or password"):
+        check_base_url("https://me:secret@gateway.example/v1")
+
+    client, _, _ = server
+    bad = "https://me:secret@gateway.example/v1"
+    for path in ("/api/connections/llm", "/api/connections/gui", "/api/connections/image"):
+        r = client.put(path, json={"base_url": bad, "model": "m"})
+        assert r.status_code == 400 and "user name or password" in r.json()["detail"], path
+    r = client.post("/api/llm/models", json={"base_url": bad, "api_key": "sk-1"})
+    assert r.status_code == 400 and "user name or password" in r.json()["detail"]
+    r = client.post("/api/connections/endpoints", json={"base_url": bad, "api_key": "sk-1"})
+    assert r.status_code == 400 and "user name or password" in r.json()["detail"]
+    # nothing of it was kept
+    assert "secret" not in json.dumps(client.get("/api/connections").json())
+
+
+async def test_fetch_models_keeps_the_key_on_its_host():
+    """A gateway that answers ``/models`` with a redirect: one to its own origin is
+    followed, one to another host is not when the request carries the key, and the key
+    never reaches the other host. An address with ``user:pass@`` is not asked at all."""
+    import httpx
+
+    from nanomuse.server.connections import fetch_models
+
+    seen: list[tuple[str, str]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append((str(request.url), request.headers.get("Authorization", "")))
+        host, path = request.url.host, request.url.path
+        if host == "same.example" and path == "/v1/models":
+            return httpx.Response(307, headers={"Location": "/v1/models/"})
+        if host == "same.example" and path == "/v1/models/":
+            return httpx.Response(200, json={"data": [{"id": "b"}, {"id": "a"}]})
+        if host == "away.example":
+            return httpx.Response(302, headers={"Location": "https://other.example/v1/models"})
+        if host == "loop.example":
+            return httpx.Response(302, headers={"Location": "/v1/models"})
+        if host == "other.example":
+            return httpx.Response(200, json={"data": [{"id": "stolen"}]})
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(handler)
+    ids, err = await fetch_models("https://same.example/v1", "sk-1", transport=transport)
+    assert (ids, err) == (["a", "b"], "")
+    assert [h for _, h in seen] == ["Bearer sk-1", "Bearer sk-1"]
+
+    seen.clear()
+    ids, err = await fetch_models("https://away.example/v1", "sk-1", transport=transport)
+    assert (ids, err) == ([], "redirect to another host")
+    assert all("other.example" not in url for url, _ in seen)
+    # without a key there is nothing to protect: the redirect is followed
+    ids, err = await fetch_models("https://away.example/v1", "", transport=transport)
+    assert (ids, err) == (["stolen"], "")
+    assert ("https://other.example/v1/models", "") in seen
+
+    ids, err = await fetch_models("https://loop.example/v1", "sk-1", transport=transport)
+    assert (ids, err) == ([], "TooManyRedirects")
+    ids, err = await fetch_models("https://me:pw@same.example/v1", "sk-1", transport=transport)
+    assert (ids, err) == ([], "userinfo in URL")
 
 
 def test_providers_carry_where_keys_come_from(server):
@@ -1305,6 +1380,67 @@ def test_connections_mcp_and_vault(server):
 
     client.post("/api/onboarded", json={"done": True})
     assert client.get("/api/settings").json()["onboarded"] is True
+
+
+async def test_mcp_env_values_go_to_the_vault(settings: Settings):
+    """An MCP server added with an ``env`` block: the values are kept in the vault under
+    ``MCP_<SERVER>_<KEY>`` and app-settings.json holds references, as it does for every
+    other secret; the server still gets the real value at spawn. A value typed as a
+    reference stays as typed; the console sees the names and which ones are references;
+    removing the server removes the entries it made and no other.
+
+    Driven on the service directly: a stdio session opened inside a TestClient request
+    cannot be closed in another, so the echo server is connected and closed in one task."""
+    import sys
+
+    from nanomuse.config import MCPServerSettings
+    from nanomuse.server.connections import mcp_env_vault_name
+
+    assert mcp_env_vault_name("amap", "AMAP_MAPS_API_KEY") == "MCP_AMAP_AMAP_MAPS_API_KEY"
+    assert mcp_env_vault_name("my.server-2", "key") == "MCP_MY_SERVER_2_KEY"
+    service = MuseService(settings, llm=MockLLM([]))
+    conn = service.connections
+    echo = str(Path(__file__).with_name("mcp_echo_server.py"))
+    conn.vault.set("OWN_TOKEN", "mine")
+    view = await conn.add_mcp(
+        {
+            "name": "echo",
+            "command": sys.executable,
+            "args": [echo],
+            "env": {"ECHO_KEY": "k-123", "ECHO_REF": "{{vault:OWN_TOKEN}}", "ECHO_PLAIN": ""},
+        }
+    )
+    try:
+        stored = json.loads((settings.data_dir / "app-settings.json").read_text("utf-8"))
+        assert stored["mcp"]["servers"][0]["env"] == {
+            "ECHO_KEY": "{{vault:MCP_ECHO_ECHO_KEY}}",
+            "ECHO_REF": "{{vault:OWN_TOKEN}}",
+            "ECHO_PLAIN": "",
+        }
+        assert "k-123" not in json.dumps(stored)
+        assert conn.vault.get("MCP_ECHO_ECHO_KEY") == "k-123"
+        # the running server was spawned with the real value, and the config keeps the reference
+        manager = conn._mcp["echo"]
+        assert manager._resolved(manager.servers[0]).env["ECHO_KEY"] == "k-123"
+        assert settings.mcp.servers[-1].env["ECHO_KEY"] == "{{vault:MCP_ECHO_ECHO_KEY}}"
+        mine = [m for m in view["mcp"] if m["name"] == "echo"][0]
+        assert mine["env"] == [
+            {"name": "ECHO_KEY", "vault": True},
+            {"name": "ECHO_REF", "vault": True},
+            {"name": "ECHO_PLAIN", "vault": False},
+        ]
+        assert "k-123" not in json.dumps(view)
+        # a server from config.toml with a plain value: the console is told it is plain
+        settings.mcp.servers.append(
+            MCPServerSettings(name="toml", command="x", env={"TOKEN": "plain-text"})
+        )
+        toml = [m for m in conn.view()["mcp"] if m["name"] == "toml"]
+        assert toml[0]["env"] == [{"name": "TOKEN", "vault": False}]
+        assert "plain-text" not in json.dumps(toml)
+    finally:
+        assert await conn.remove_mcp("echo") is True
+    assert "MCP_ECHO_ECHO_KEY" not in conn.vault.names()
+    assert conn.vault.get("OWN_TOKEN") == "mine"
 
 
 def test_app_settings_are_layered_on_config(server, settings: Settings):

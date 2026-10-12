@@ -187,8 +187,10 @@ model_not_offered` →「打开设置」；`503 service_paused`、`sync_paused`�
 单元测试：`RelayRefusalTest`、`GuidanceTest`。
 
 **设置 → 网络**（`net/OwnProviderProxy.kt`、`ui/net/NetworkScreen.kt`、`minis://settings/network`）。
-给自己的服务商用的 HTTP 代理：主机、端口、可选的用户名和密码，默认关闭，只存在这台手机的
-`SharedPreferences` 里。它在 `MinisApp.onCreate` 中被装为进程默认的 `ProxySelector`，所以每个 OkHttp
+给自己的服务商用的 HTTP 代理：主机、端口、可选的用户名和密码，默认关闭，只存在这台手机上：设置项在
+`SharedPreferences` 里，密码单独放在一个 `EncryptedSharedPreferences` 文件里（`nanomuse_proxy_secrets`，
+和服务商 key 一样的存法；1.0.3 的手机存在普通文件里的密码会在第一次读取时搬过去）。它在
+`MinisApp.onCreate` 中被装为进程默认的 `ProxySelector`，所以每个 OkHttp
 客户端每次请求都会问它；对目录里的主机、`chatgpt.com`、`auth.openai.com` 和服务商实例的自定义
 base URL（从不包括中继的，从不包括局域网地址）它回答代理，对其他所有主机回答系统的设置：hub、
 中继、沙箱镜像都不受影响。服务商客户端带着 `OwnProviderProxy.authenticator`，应付要密码的代理。
@@ -204,7 +206,7 @@ base URL（从不包括中继的，从不包括局域网地址）它回答代理
 中继保存账号 id、一个打码的标识、用量计数，以及智能体的名字和外观（让你的设备保持一致）；
 消息内容只以对话同步的形式保存：登录后默认开启，在*数据控制*里关掉（[privacy.md](privacy.md)、
 [sync.md](sync.md)）；第一次对话的第四句话会这么说。在手机上，API key 和账号 key 放在
-`EncryptedSharedPreferences` 里（*设置 → 网络* 的代理密码放在普通偏好里，只在这台手机上）；从 0.1.40 起 App 完全不参与设备备份（`allowBackup="false"`：
+`EncryptedSharedPreferences` 里，*设置 → 网络* 的代理密码也是（1.0.4 起；只在这台手机上）；从 0.1.40 起 App 完全不参与设备备份（`allowBackup="false"`：
 聊天、记忆和 key 从不上传到 Google，重装后从空白开始，账号的聊天通过同步回来；`res/xml/` 下的
 两个规则文件留着，等哪天开关再打开时用）。手需要无障碍服务和悬浮窗权限，两者都可选、都能在
 同一屏撤销（首次运行的「手」那一页在 App 标志下面请求这两项，和登录页一样）；会发送东西的步骤（点「发送」，或在聊天软件的消息框里按回车）一次一次地审批，
@@ -231,7 +233,13 @@ bash scripts/android/build-natives.sh   # 只需一次：proot、Alpine rootfs �
 cd android/src/android
 ./gradlew :app:assembleDebug        # app/build/outputs/apk/debug/app-debug.apk
 ./gradlew :app:assembleRelease      # signed with android/keystore.properties when present
+./gradlew :app:testDebugUnitTest --tests 'io.github.nanomuse.*'   # 我们的单元测试
+./gradlew :app:lintDebug            # Android lint；报告在 app/build/reports/lint-results-debug.html
 ```
+
+Lint 用的是比 AGP 8.7.3 自带版本更新的 lint（`gradle.properties` 里的
+`android.experimental.lint.version`）：Compose 和 lifecycle 库自带的检查，自带的那个加载不了。上游树里有
+它自己的 lint 发现；看报告时找 `io.github.nanomuse` 的部分。
 
 `rclone.aar` 用 Go 构建，模块走 Go 自己的默认代理（`https://proxy.golang.org,direct`）；在中国大陆网络下先
 `export GOPROXY=https://goproxy.cn,direct`，`env.sh` 会沿用你导出的值。

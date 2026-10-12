@@ -137,11 +137,16 @@ enum NanoMuseComposerReport {
         if column.height < 20 { return "the column has no height to speak of; nothing inside it took space" }
         if column.minY >= window.bounds.maxY { return "the column is below the window, off screen" }
         if column.maxY > safeBottom + 1 { return "the column reaches below the window's safe bottom, under the home indicator or off screen" }
-        if NanoMuseShellPrefs.shell, column.maxY > safeBottom - 56 + 1 {
-            return "the column ends behind the Muse bottom bar (the last 56 pt above the safe bottom); hidden by it unless the keyboard is up"
+        // The floating pill bar takes the last `NanoMuseBottomBar.height` points above the safe
+        // bottom (1.0.4: the chat pads its composer column by that much, `nmBottomOverlay`); a
+        // column ending inside that band is under the bar's glass. The bar leaves for the
+        // keyboard, and the column then stands on the keyboard, below the band.
+        let bar = NanoMuseBottomBar.height
+        if NanoMuseShellPrefs.shell, column.maxY > safeBottom - bar + 1 {
+            return "the column ends behind the Muse bottom bar (the last \(Int(bar)) pt above the safe bottom); hidden by it unless the keyboard is up"
         }
         if column.width < 100 { return "the column is too narrow to show the pill" }
-        return "the column is laid out inside the window, above the bottom bar; if nothing shows there, what is inside it is not drawing"
+        return "the column is laid out inside the window, above the bottom bar's band; if nothing shows there, what is inside it is not drawing"
     }
 
     private static func descendants(of view: UIView) -> [UIView] {

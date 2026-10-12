@@ -54,4 +54,17 @@ class MainChatFollowTest {
         // a draft opened on a group of its own is not new in this sense (the caller passes false)
         assertFalse(MainChatFollow.shouldMove(isMain = false, activeEntryId = "e-openai", selectedGroupId = "g-mine", pick = pick, isNew = false))
     }
+
+    @Test
+    fun `a group picked in a chat's picker stays as it is when it is the person's own`() {
+        // named by them, one provider: kept as is
+        assertTrue(MainChatFollow.keepAsIs("Work", "OpenAI", listOf("i-openai", "i-openai")))
+        // named after the provider but mixing providers: kept as is
+        assertTrue(MainChatFollow.keepAsIs("OpenAI", "OpenAI", listOf("i-openai", "i-bailian")))
+        // a member that is not known counts as another provider
+        assertTrue(MainChatFollow.keepAsIs("OpenAI", "OpenAI", listOf("i-openai", null)))
+        // ours: named after the provider, that provider alone; it may be led with the pick
+        assertFalse(MainChatFollow.keepAsIs("OpenAI", "OpenAI", listOf("i-openai")))
+        assertFalse(MainChatFollow.keepAsIs("nanoMuse Cloud", "nanoMuse Cloud", listOf("i-cloud", "i-cloud")))
+    }
 }

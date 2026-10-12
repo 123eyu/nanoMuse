@@ -10,6 +10,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -78,7 +79,9 @@ object UseItFor {
 fun UseItForScreen(instanceId: String, onDone: () -> Unit) {
     val context = LocalContext.current
     val repo = (context.applicationContext as? MinisApp)?.providerRepositoryOrNull
-    val inst = repo?.config?.value?.instances?.firstOrNull { it.id == instanceId }
+    // observed, not read once: the card can open before the saved config has landed
+    val config = repo?.config?.collectAsState()
+    val inst = config?.value?.instances?.firstOrNull { it.id == instanceId }
     val offered = remember(inst) { inst?.let { ModelSlots.offeredSlots(context, it) }.orEmpty() }
     if (inst == null || offered.isEmpty()) {
         LaunchedEffect(Unit) { onDone() }

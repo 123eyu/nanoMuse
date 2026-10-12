@@ -140,10 +140,15 @@ opened and left. So what the Chat row names is what answers the next message
 you send, in the main chat and in a new one, whichever source you came from:
 a plan you signed in with (ChatGPT, Claude, Kimi), a key of yours or nanoMuse
 Cloud; a sign-in never steps in front of a pick. The same
-on the phones and the desktop. On the iPhone, where a model group of yours can
-carry a default thinking level (*All settings › Model Groups*), the main chat
-takes that level along when it follows the pick, as a new chat and the chat's
-own picker do.
+on the phones and the desktop. A group of yours picked in a chat's own picker
+(a row of the `•••` menu, or a model under it) becomes the default as it is,
+never reordered, and the main chat follows it with the model the chat resolved;
+only a group named after a provider and holding that provider alone is led with
+the pick, as a pick on the Models page does. On the phones, where a model group
+of yours can carry a default thinking level (*All settings › Model Groups* on
+the iPhone, *Model Groups* from the chat's picker on Android), the main
+chat takes that level along when it follows the pick, as a new chat and the
+chat's own picker do.
 
 **Automatic.** The screen, pictures and clips rows open with an *Automatic*
 entry that says what it gives right now (*Currently nanoMuse Cloud ·

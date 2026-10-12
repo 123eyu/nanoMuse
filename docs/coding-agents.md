@@ -88,8 +88,8 @@ On the runtime (`nanomuse serve`), behind the app token:
 GET  /api/coding                                  → {agents: [{id, name, installed, cli, version, sessions_root, running}], runs: […]}
 GET  /api/coding/sessions?agent=&limit=&device=   → {sessions: [{agent, id, title, workspace, path, created_at, updated_at, messages, status, last_user, last_assistant, source, resumable}]}
 GET  /api/coding/sessions/{agent}/{id}?device=    → the session with transcript: [{role, text}]
-POST /api/coding/send    {agent, text, session_id?, workspace?, device?, wait?}  → the run
-POST /api/coding/stop    {run_id, device?}
+POST /api/coding/send    {agent, text, session_id?, workspace?, device?}  → the run
+POST /api/coding/stop    {run, device?}
 ```
 
 A run is `{id, agent, session_id, asked_session_id, workspace, text, started_at,

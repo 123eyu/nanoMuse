@@ -266,7 +266,8 @@ computer's own hands) is in [every-device.md](every-device.md).
   the console under [`cloud/nanomuse_cloud/console/`](../cloud/nanomuse_cloud/console/).
 - Android: `io.github.nanomuse.hub`: `HubClient` (OkHttp, reconnect),
   `Hub` (state, prefs, `call`/`find`), `HubActions` (what the phone does for
-  others, including `task` through the headless chat runner), `HubService`
+  others, including `task` through the headless chat runner, its `language`
+  honoured), `HubService`
   (foreground, `remoteMessaging`). `nanomuse-pc` (`io.github.nanomuse.reach`)
   reaches the hub devices from the phone's sandbox shell.
 - nanoMuse Desktop: [`harness/dsh-nanomuse/src/hub.ts`](../harness/dsh-nanomuse/src/hub.ts)

@@ -255,13 +255,6 @@ final class NanoMuseStar: ObservableObject {
     static let shared = NanoMuseStar()
     static let repoURL = URL(string: "https://github.com/nano-muse/nanoMuse")!
 
-    /// The moments by name, as the shell's card API has known them. `firstTask` / `tenthTask`
-    /// are the names from before the policy; they read as `tasks` with that count.
-    enum Moment: String {
-        case signedIn = "signed_in", firstTask = "first_task", tenthTask = "tenth_task", newLook = "new_look", exhausted
-        case tasks, daysUsed = "days_used", goalDone = "goal_done"
-    }
-
     private enum Keys {
         static let tasks = "nm.star.tasks"
         static let asks = "nm.star.asks"
@@ -447,33 +440,8 @@ final class NanoMuseStar: ObservableObject {
         d.set(Array(ledger.shown).sorted(), forKey: Keys.shown)
     }
 
-    // MARK: The pre-policy static API, kept for the shell
+    // MARK: The two buttons' shorthands (the star card, the account page's row)
 
-    /// Maps a named moment onto the gate's; the counted ones read the ledger.
-    private static func convert(_ moment: Moment) -> NanoMuseStarMoment {
-        switch moment {
-        case .signedIn: return .signedIn
-        case .firstTask: return .tasks(1)
-        case .tenthTask: return .tasks(10)
-        case .tasks: return .tasks(shared.ledger.tasks)
-        case .newLook: return .newLook
-        case .exhausted: return .exhausted
-        case .daysUsed: return .daysUsed(shared.ledger.days)
-        case .goalDone: return .goalDone
-        }
-    }
-
-    static var starred: Bool { shared.starred }
-
-    /// A task ended with a reply: counts per the policy and raises `shared.pending` when due.
-    static func countTask() -> Int { shared.taskFinished() }
-
-    /// The policy decides which counts ask, and `taskFinished()` already raised the card: nothing here.
-    static func moment(forTask n: Int) -> Moment? { nil }
-
-    static func text(_ moment: Moment) -> String { words(for: convert(moment)) }
-    static func due(_ moment: Moment) -> Bool { shared.due(convert(moment)) }
-    static func shown(_ moment: Moment) { shared.markShown(convert(moment)) }
     static func open() { shared.open() }
     static func markStarred() { shared.markStarred() }
 }

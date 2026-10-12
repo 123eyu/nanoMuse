@@ -1000,6 +1000,8 @@ def apply_app_settings(settings: Settings, data: dict[str, Any]) -> None:
             settings.hands.backend = hands["backend"]
         if hands.get("coords") in ("pixels", "norm1000"):
             settings.hands.coords = hands["coords"]
+        if hands.get("mode") in ("auto", "screen", "window"):
+            settings.hands.mode = hands["mode"]
     if cloud := data.get("cloud"):
         if cloud.get("base_url"):
             settings.cloud.base_url = str(cloud["base_url"]).strip().rstrip("/")
