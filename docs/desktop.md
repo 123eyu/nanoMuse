@@ -75,9 +75,9 @@ speaking as nanoMuse through the `nanomuse` preset, with:
   `device_notify` and `delegate` for the phone and the other computers; the phone's
   `delegate` landing here as a dsh session "From <device>" with its approvals relayed
   back; remote control (`shell`, `files`, `open`, `screen`) behind a switch;
-- **Coding agents**: *Settings → Coding agents*, with this computer's Cursor, Codex and
-  Claude Code chats (read from disk, a message starts the agent's own CLI, the run
-  streams in with its tools, *Stop* ends it) and then the account's other computers',
+- **Coding agents**: *Settings → Coding agents*, with this computer's Cursor, Codex,
+  Claude Code and DeepSeek Harness chats (read from disk, a message starts the agent's own
+  CLI, the run streams in with its tools, *Stop* ends it) and then the account's other computers',
   over the `coding.*` hub actions this computer announces too; a device card's *Coding
   agents* chip opens the page on that computer ([coding-agents.md](coding-agents.md)).
 - **Network** (Settings → nanoMuse Cloud → Network): one proxy for what the app sends out

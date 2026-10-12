@@ -61,8 +61,8 @@ harness 构建以 *nanoMuse Harness* 的名字另放在旁边；从 0.1.30 起�
   `device_screen`、`device_shell`、`device_files`、`device_open`、`device_notify` 和 `delegate`
   这些工具面向手机和其他电脑；手机发来的 `delegate` 在这里落成一段「来自 <device>」的 dsh
   会话，它的审批被转回手机；远程控制（`shell`、`files`、`open`、`screen`）在一个开关后面；
-- **编程助手**：「设置 → 编程助手」，这台电脑上的 Cursor、Codex 和 Claude Code 聊天
-  （从磁盘读取，发一条消息就启动助手自己的 CLI，运行连同它的工具一边跑一边显示，「停止」
+- **编程助手**：「设置 → 编程助手」，这台电脑上的 Cursor、Codex、Claude Code 和 DeepSeek Harness
+  聊天（从磁盘读取，发一条消息就启动助手自己的 CLI，运行连同它的工具一边跑一边显示，「停止」
   结束它），之后是账号下其他电脑的，走这台电脑同样声明的 `coding.*` hub 动作；设备卡片上的
   「编程助手」标签打开那台电脑的这一页（[coding-agents.md](coding-agents.md)）。
 - **网络**（设置 → nanoMuse Cloud → 网络）：给这个应用对外请求用的一个代理（`http://host:port`、

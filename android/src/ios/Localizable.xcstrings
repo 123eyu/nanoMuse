@@ -123003,61 +123003,61 @@
         }
       }
     },
-    "In a chat, just ask: “on my Mac, list the downloads folder”, “tell my PC to build the project and send me the log”. A step that needs permission is approved on that device, not here." : {
+    "In a chat, just ask: “on my Mac, list the downloads folder”, “tell my PC to build the project and send me the log”. Approvals show on this phone." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bitte einfach im Chat: „auf meinem Mac den Downloads-Ordner auflisten“, „sag meinem PC, er soll das Projekt bauen und mir das Log schicken“. Ein Schritt, der eine Freigabe braucht, wird auf dem jeweiligen Gerät freigegeben, nicht hier."
+            "value" : "Bitte einfach im Chat: „auf meinem Mac den Downloads-Ordner auflisten“, „sag meinem PC, er soll das Projekt bauen und mir das Log schicken“. Freigaben erscheinen auf diesem Telefon."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In a chat, just ask: “on my Mac, list the downloads folder”, “tell my PC to build the project and send me the log”. A step that needs permission is approved on that device, not here."
+            "value" : "In a chat, just ask: “on my Mac, list the downloads folder”, “tell my PC to build the project and send me the log”. Approvals show on this phone."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "En un chat, solo pídelo: “en mi Mac, lista la carpeta de descargas”, “dile a mi PC que compile el proyecto y me mande el registro”. Un paso que necesita permiso se aprueba en ese dispositivo, no aquí."
+            "value" : "En un chat, solo pídelo: “en mi Mac, lista la carpeta de descargas”, “dile a mi PC que compile el proyecto y me mande el registro”. Las aprobaciones se muestran en este teléfono."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dans une discussion, demandez simplement : « sur mon Mac, liste le dossier Téléchargements », « dis à mon PC de compiler le projet et de m’envoyer le journal ». Une étape qui demande une autorisation s’approuve sur cet appareil-là, pas ici."
+            "value" : "Dans une discussion, demandez simplement : « sur mon Mac, liste le dossier Téléchargements », « dis à mon PC de compiler le projet et de m’envoyer le journal ». Les approbations s’affichent sur ce téléphone."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "チャットでこう頼むだけです: 「Mac でダウンロードフォルダの一覧を出して」「PC にプロジェクトをビルドさせてログを送って」。許可が要る手順はその端末側で承認します。この端末には表示されません。"
+            "value" : "チャットでこう頼むだけです: 「Mac でダウンロードフォルダの一覧を出して」「PC にプロジェクトをビルドさせてログを送って」。承認はこの端末に表示されます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "채팅에서 그냥 말하세요. “내 Mac에서 다운로드 폴더 목록 보여 줘”, “내 PC에 프로젝트를 빌드하고 로그를 보내라고 해 줘”. 허가가 필요한 단계는 그 기기에서 승인합니다. 여기에는 표시되지 않습니다."
+            "value" : "채팅에서 그냥 말하세요. “내 Mac에서 다운로드 폴더 목록 보여 줘”, “내 PC에 프로젝트를 빌드하고 로그를 보내라고 해 줘”. 승인은 이 휴대전화에 표시됩니다."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "В чате просто попросите: «на моём Mac покажи папку загрузок», «скажи моему ПК собрать проект и прислать мне лог». Шаг, которому нужно разрешение, подтверждается на том устройстве, а не здесь."
+            "value" : "В чате просто попросите: «на моём Mac покажи папку загрузок», «скажи моему ПК собрать проект и прислать мне лог». Подтверждения показываются на этом телефоне."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在聊天里直接说就行：「在我 Mac 上列一下下载文件夹」「让电脑把项目编译一遍，把日志发给我」。需要确认的步骤要在那台设备上批准，这里不会弹卡片。"
+            "value" : "在聊天里直接说就行：「在我 Mac 上列一下下载文件夹」「让电脑把项目编译一遍，把日志发给我」。需要确认的事会在这台手机上弹卡片。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在聊天裡直接說就好：「在我的 Mac 上列出下載資料夾」「讓電腦把專案編譯一遍，把日誌傳給我」。需要確認的步驟要在那台裝置上核准，這裡不會跳出卡片。"
+            "value" : "在聊天裡直接說就好：「在我的 Mac 上列出下載資料夾」「讓電腦把專案編譯一遍，把日誌傳給我」。需要確認的事會在這支手機上跳出卡片。"
           }
         }
       }

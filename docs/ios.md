@@ -8,8 +8,8 @@ the TestFlight pipeline needs, and what is still to be ported from the Android a
 were written on a Linux machine. The app **builds, signs and is on TestFlight**: the first build,
 0.1.31 (2), went through the *iOS · TestFlight* workflow on 2026-10-03; 1.0.0 is build 16, which
 passed Apple's beta review, so the public link
-(`https://testflight.apple.com/join/ZHexbDqc`) installs it; 1.0.1 is build 18, 1.0.2 is build 19 and 1.0.3 is build 22, all three submitted to the review (2026-10-10,
-2026-10-11 and 2026-10-12; *Where it stands* below). Builds 20 and 21 (1.0.2) went to the internal testers only. The testers' reports have driven the fixes in the release
+(`https://testflight.apple.com/join/ZHexbDqc`) installed it first; 1.0.1 is build 18 and 1.0.2 is build 19, both through the review
+since 2026-10-12, so the link installs build 19 today; 1.0.3 is build 22, in the review since 2026-10-12, and 1.0.4 is build 26, submitted on 2026-10-13 (*Where it stands* below). Builds 20 and 21 (1.0.2), 23, 24 and 25 (1.0.3 with fixes merged after the tag) went to the internal testers only. The testers' reports have driven the fixes in the release
 notes (the composer, onboarding, sign-out); the Devices section and notifications from other
 devices still have the fewest hours on a real device. The first archive taught the pipeline
 that automatic signing wants a registered device, which is why it signs manually now.
@@ -715,7 +715,7 @@ Set up on 2026-10-03, all of it under the account holder's developer account (te
   2026-10-09 and passed it, so the public link installs it (build 14, 0.1.41, was what the link
   delivered before); build 17, 1.0.0 with the fixes merged after the tag, went to the internal
   testers only. **Build 18 (1.0.1)** was added to *nanoMuse Beta* and submitted to the review on
-  2026-10-10, **build 19 (1.0.2)** on 2026-10-11 and **build 22 (1.0.3)** on 2026-10-12; the link installs build 16 until one passes. The public link delivers a build only
+  2026-10-10 and **build 19 (1.0.2)** on 2026-10-11; both passed on 2026-10-12, so the link installs build 19. **Build 22 (1.0.3)** was submitted on 2026-10-12 and **build 26 (1.0.4)** on 2026-10-13; builds 23, 24 and 25 (1.0.3 with fixes merged after the tag) went to the internal testers only. The public link delivers a build only
   once a review has passed, and each new version repeats the step (the review is per version;
   later builds of an approved version need none).
   Nothing towards the App Store: the app is not going there.

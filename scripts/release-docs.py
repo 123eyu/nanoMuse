@@ -94,10 +94,11 @@ def is_major(version: str) -> bool:
 def edit_issue_form(text: str, old: str, new: str, code: str) -> tuple[str, int]:
     """An issue form's example versions moved to the new version, and how many lines moved.
 
-    ``<old> (<any code>)`` becomes ``<new> (<code>)`` and ``desktop <old>`` becomes
-    ``desktop <new>``; anything else that names the old version is left alone."""
+    ``<old> (<any code>)`` becomes ``<new> (<code>)`` and ``desktop <old>`` (or its Chinese
+    twin ``桌面版 <old>``) becomes ``desktop <new>``; anything else that names the old version
+    is left alone."""
     out, n1 = re.subn(rf"{re.escape(old)} \(\d+\)", f"{new} ({code})", text)
-    out, n2 = re.subn(rf"desktop {re.escape(old)}(?![\d.])", f"desktop {new}", out)
+    out, n2 = re.subn(rf"(desktop|桌面版) {re.escape(old)}(?![\d.])", rf"\1 {new}", out)
     return out, n1 + n2
 
 

@@ -6,6 +6,24 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Cloud
 
+### Runtime
+
+### Web
+
+### Desktop
+
+### Android
+
+### iOS
+
+### Project
+
+## [1.0.4] - 2026-10-13 · Compass
+
+Compass: the day after Helm, a health check of the whole project. Nine passes read the relay, the runtime, the web console, the desktop, the Android and iPhone apps, the showcase, the docs and the CI against each other and against what the apps do; what they found is below, by area. The relay is 0.25.0: the invite bonus is paid when the invited friend first uses nanoMuse Cloud rather than at sign-up, the admin page shows who invited whom and names the inviters worth a look, every operator action is on record, and a device that is signed out loses its hub socket at once ([#391](https://github.com/nano-muse/nanoMuse/pull/391), [#401](https://github.com/nano-muse/nanoMuse/pull/401), [#413](https://github.com/nano-muse/nanoMuse/pull/413)); a 1.0.3 client works against it unchanged. On the phones a chat, a rename and a new face reach the other devices without a restart ([#408](https://github.com/nano-muse/nanoMuse/pull/408), [#410](https://github.com/nano-muse/nanoMuse/pull/410)), the iPad's chat is one column under a glass pill bar ([#406](https://github.com/nano-muse/nanoMuse/pull/406), [#411](https://github.com/nano-muse/nanoMuse/pull/411)), and a step another device's Muse asks about is answered on the iPhone ([#424](https://github.com/nano-muse/nanoMuse/pull/424)). @cutey-none added DeepSeek Harness as a fourth coding agent on the desktop ([#354](https://github.com/nano-muse/nanoMuse/pull/354)), @brainsparker proposed You.com as a web search that needs no key ([#360](https://github.com/nano-muse/nanoMuse/issues/360)), @Ichiro786 blended the Android chat's navigation surround ([#397](https://github.com/nano-muse/nanoMuse/pull/397)), and @Mola-maker's reports and fixes on the Android app's speech input and tests are in ([#356](https://github.com/nano-muse/nanoMuse/issues/356), [#394](https://github.com/nano-muse/nanoMuse/pull/394), [#405](https://github.com/nano-muse/nanoMuse/pull/405)); the Android app no longer closes on a Claude sign-in ([#373](https://github.com/nano-muse/nanoMuse/issues/373), reported by @moh8919-dev) and the iPhone's *New Chat* opens a chat again ([#392](https://github.com/nano-muse/nanoMuse/issues/392), reported by @bldr3).
+
+### Cloud
+
 - **A chat older than a week can be renamed again.** The relay read a conversation's `updated_at` against its `created_at` with a week's grace, so a rename of the main chat or of a side chat that began more than a week earlier fell back to the chat's birth and was dropped without a word; the title never followed to the other devices. The grace is now measured against the relay's clock, and such a rename is accepted and announced like any other.
 - **A fresh device joins the account's main chat on its first pull.** The tail page (`since=0&tail=K`) listed only the conversations of the newest K messages, so an account whose main chat had no message yet, or none among the newest K, handed a new device nothing to adopt; the device minted a second main and learned the right id only from a `main_exists` refusal. The main conversation's row now rides with every tail page; 1.0.3 clients read it as any conversation row.
 - **A rename no longer takes the face off the other devices.** `PUT /v1/me/profile` required the whole look on every write, so a phone that renamed the muse before it had pulled the account's face sent the dragon in its place, and every other device went back to the dragon on its next pull; a face drawn on an iPhone whose muse still had the default name was refused outright with a 400 for the missing name. The write is partial now: a field left out keeps its stored value, a blank name keeps the stored name, and an `avatar` other than `face` drops the stored pictures so no device reads `has_face` as a face still worn. Clients that send the whole look are read as before.
@@ -35,7 +53,6 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 - **The hands' picture mode survives a restart.** *Screen* or *Window* chosen under *Devices → Hands on this computer* was saved but not read back on the next start, so the hands went back to *Auto*; it is applied with the switch and the backend now.
 - **Adding a skill from a link that does not answer says so.** `nanomuse skills add https://…` and *Skills → Import* on a host that is down or times out ended in a traceback or a bare 502; both now answer with one sentence naming the link and the error.
 - **Reading a long PDF or searching a large folder no longer stalls the app.** The `files` tool extracted PDF text and walked up to fifty thousand entries on the event loop, so the web app, the hub and the other chats waited meanwhile; both run in a worker thread now.
-
 - **You.com is a web search provider that needs no key.** `provider = "you"` under `[connectors.search]`, or the You.com chip under *Connections → Web search*, searches `api.you.com` without an account, 100 times a day per address; past that the result says so and DuckDuckGo answers once, as after any failed search. A key of your own (`SEARCH_API_KEY`) moves the searches to the keyed Search API at `ydc-index.io` with higher limits, and the Sentinel shows whichever host is in use. Requests to You.com carry the user agent `youdotcom-integration/nano-muse-nanomuse`, at the vendor's request; DuckDuckGo stays the default and the fallback. Proposed by @brainsparker ([#360](https://github.com/nano-muse/nanoMuse/issues/360)).
 
 ### Web
@@ -89,7 +106,6 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 - **The relay's key is written to this phone's keychain only, from the first moment.** Signing in wrote the key as an iCloud-synchronizable item first and replaced it with a device-only one after the model list arrived; the device-only write now follows at once.
 - **Reduce Motion is honoured.** With it on, the pill bar's indicator moves to the tapped tab without the spring, and the face keeps still: no breath, bob, tilt, pop or shake; the mood still changes with its crossfade, and a clip of your own still plays.
 - **Three translations put their numbers back in order.** The avatar studio's *n of m moods drawn* line in Chinese and Traditional Chinese, and the Korean *nearly used up* line above the composer, had the two figures swapped.
-- **The Devices footer tells the truth about approvals.** A step a computer must ask about is approved on that computer, not on the phone; the footer said approvals would show here.
 - **The invite sentences say when the bonus arrives.** The account page's *Invite a friend* footer, the allowance card's *Invite a friend* row and the hint under the invite code on the sign-in form now say that both sides get the ¥5 (or the relay's figure) after the invited friend's first request to nanoMuse Cloud, not at sign-up. In all nine languages.
 - **The ••• menu's *New Chat* opens a chat again.** In the Muse layout the entry, ⌘N on a keyboard, *New Session* in the *Context Full* alert and *New chat* on a refusal card asked a view that was not on screen, so nothing happened; each now opens a fresh side chat, as the drawer's new chat button does ([#392](https://github.com/nano-muse/nanoMuse/issues/392)).
 - **The iPad's chat is one column.** On an iPad the messages, the composer and the pill bar share one centred column of 760 pt, the web console's width; the composer and the pill bar are exactly as wide as each other and the agent's replies grow from a 340 pt pill to 600 pt. In 1.0.3 the composer ran across the window, the pill bar sat 420 pt wide under it and the replies stayed in a narrow pill at the left edge. iPhones are unchanged.

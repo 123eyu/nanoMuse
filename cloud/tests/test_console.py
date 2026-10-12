@@ -181,7 +181,7 @@ def test_admin_console_has_the_invites_view_in_both_languages():
 
 def test_web_console_prints_the_relays_code_lifetime_and_password_length():
     """The relay's ``CODE_TTL_S`` and ``PASSWORD_MIN_LEN`` are configurable; the console
-    read them from ``/v1/config`` since 0.26 instead of saying ten minutes and 8 characters."""
+    reads them from ``/v1/config`` since 0.25 instead of saying ten minutes and 8 characters."""
     source = (CONSOLE / "app.js").read_text(encoding="utf-8")
     assert '"/v1/config"' in source and "cfg.code_ttl_s" in source and "cfg.password_min_len" in source
     assert source.count("codeSent: (m) =>") == 2 and source.count("pwShort: (n) =>") == 2 and source.count("pwWhy: (n) =>") == 2
