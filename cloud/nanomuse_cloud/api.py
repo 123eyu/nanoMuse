@@ -51,6 +51,7 @@
     GET  /v1/admin/accounts/{id}/ledger X-Admin-Token ?limit=&before= → the account's statement, every line, page by page (before = last id shown)
     GET  /v1/admin/accounts/{id}/events X-Admin-Token ?limit=&before= → the account's timeline, every entry, page by page
     GET  /v1/admin/address    X-Admin-Token  ?ip=…              → the accounts seen from one address
+    GET  /v1/admin/invites    X-Admin-Token  ?limit=200&per=20  → who invited whom: the funnel and the inviters ranked by the accounts their code brought, with the newest `per` of them
     GET  /v1/admin/usage      X-Admin-Token  ?days=14           → charged tokens and yuan per day and kind
     GET  /v1/admin/overview   X-Admin-Token  ?days=30           → the dashboard: accounts, today / week / period by kind and model, signals, events
     GET  /v1/admin/events     X-Admin-Token  ?limit=200&kind=…  → the timeline across accounts (never message content)
@@ -1412,6 +1413,13 @@ def create_app(
         place = geo.place(ip.strip())
         out["place"] = place.as_dict() if place is not None else None
         return with_places(out)
+
+    @app.get("/v1/admin/invites", dependencies=[Depends(admin_dep)])
+    async def admin_invites(limit: int = 200, per: int = 20) -> dict:
+        """The inviters in order of how many accounts their code brought, with what those
+        accounts did and the newest `per` of them, and the funnel; an account's detail
+        page lists its invitees in full."""
+        return with_places(cloud.admin_invites(max(1, min(limit, 1000)), max(0, min(per, 100))))
 
     @app.get("/v1/admin/events", dependencies=[Depends(admin_dep)])
     async def admin_events(limit: int = 200, kind: str = "") -> dict:

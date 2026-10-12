@@ -269,6 +269,13 @@ CREATE TABLE IF NOT EXISTS deleted_keys (
 # account to come back online and hear the answer; short enough that a deletion is a deletion.
 DELETED_KEYS_TTL_S = 90 * 24 * 3600
 
+# The per-account figures the invite views join in, requests made and money spent, in one
+# pass over the ledger (the same set of kinds as admin_accounts counts).
+USAGE_BY_ACCOUNT = """(SELECT account_id,
+                              SUM(CASE WHEN kind IN ('chat','image','video','realtime') THEN 1 ELSE 0 END) AS requests,
+                              SUM(CASE WHEN cost_uy>0 THEN cost_uy ELSE 0 END) AS spent_uy
+                       FROM ledger GROUP BY account_id)"""
+
 
 def utc_day(ts: int) -> int:
     """The UNIX time the UTC day of `ts` starts — the key of the `daily` table."""
@@ -986,10 +993,54 @@ class Database:
         return int(r[0] or 0)
 
     def invitees(self, inviter_id: str, limit: int = 50) -> list[sqlite3.Row]:
+        """The accounts that signed up with this one's code, newest first, each with when it
+        came, whether it ever made a request and what it spent, where it was seen from and
+        when it was last seen. The person's own view keeps the hint and the date of these;
+        the operator's page shows the rest."""
         with self._lock:
             return self._conn.execute(
-                "SELECT id, hint, created_at FROM accounts WHERE invited_by=? ORDER BY created_at DESC LIMIT ?",
+                f"""SELECT i.id, i.hint, i.channel, i.created_at, i.disabled, i.first_ip, i.last_ip, i.last_seen_at,
+                           COALESCE(l.requests, 0) AS requests, COALESCE(l.spent_uy, 0) AS spent_uy
+                    FROM accounts i
+                    LEFT JOIN {USAGE_BY_ACCOUNT} l ON l.account_id=i.id
+                    WHERE i.invited_by=? ORDER BY i.created_at DESC, i.rowid DESC LIMIT ?""",
                 (inviter_id, limit),
+            ).fetchall()
+
+    def invitee_count(self, inviter_id: str) -> int:
+        """How many accounts here now signed up with this one's code (the ``invites`` column
+        is the counter as it was recorded; an invitee who deleted their account leaves it)."""
+        with self._lock:
+            r = self._conn.execute("SELECT COUNT(*) FROM accounts WHERE invited_by=?", (inviter_id,)).fetchone()
+        return int(r[0] or 0)
+
+    def invite_leaders(self, limit: int = 200) -> list[sqlite3.Row]:
+        """The accounts whose code brought someone, the ones that brought most first: how
+        many came (``invited``, the accounts here now; ``invites`` is the recorded counter),
+        how many of those ever made a request, how many were seen from one of the inviter's
+        own addresses, what they spent, what the inviter's pool got from them, and when the
+        first and the last of them signed up."""
+        with self._lock:
+            return self._conn.execute(
+                f"""SELECT a.id, a.hint, a.channel, a.created_at, a.disabled, a.invites, a.first_ip, a.last_ip, a.identifier_enc,
+                           COUNT(i.id) AS invited,
+                           SUM(CASE WHEN COALESCE(l.requests, 0) > 0 THEN 1 ELSE 0 END) AS invited_active,
+                           SUM(CASE WHEN (i.first_ip<>'' AND i.first_ip IN (a.first_ip, a.last_ip))
+                                      OR (i.last_ip<>'' AND i.last_ip IN (a.first_ip, a.last_ip)) THEN 1 ELSE 0 END) AS invited_same_ip,
+                           COALESCE(SUM(l.spent_uy), 0) AS invited_spent_uy,
+                           COALESCE(e.earned_uy, 0) AS earned_uy,
+                           MIN(i.created_at) AS first_invite_at,
+                           MAX(i.created_at) AS last_invite_at
+                    FROM accounts a
+                    JOIN accounts i ON i.invited_by=a.id
+                    LEFT JOIN {USAGE_BY_ACCOUNT} l ON l.account_id=i.id
+                    LEFT JOIN (SELECT account_id, SUM(json_extract(extra, '$.credit_uy')) AS earned_uy
+                               FROM ledger WHERE kind='credit' AND json_extract(extra, '$.from')='invite'
+                               GROUP BY account_id) e ON e.account_id=a.id
+                    GROUP BY a.id
+                    ORDER BY invited DESC, last_invite_at DESC
+                    LIMIT ?""",
+                (limit,),
             ).fetchall()
 
     # -- passwords -----------------------------------------------------------------
