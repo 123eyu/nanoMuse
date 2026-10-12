@@ -67,7 +67,7 @@ struct NanoMuseWaysList: View {
             // an invitation
             if let bonus = inviteBonusCny, bonus > 0 {
                 way(symbol: "gift", tint: Color(red: 0.88, green: 0.47, blue: 0.17),
-                    title: String(format: AppLocalized("Invite a friend: +¥%@ for you and +¥%@ for them, for each new person who signs up with your link."), NanoMuseAllowance.money(bonus), NanoMuseAllowance.money(inviteeBonusCny ?? bonus)),
+                    title: String(format: AppLocalized("Invite a friend: +¥%@ for you and +¥%@ for them, once a new person who signed up with your link makes their first request."), NanoMuseAllowance.money(bonus), NanoMuseAllowance.money(inviteeBonusCny ?? bonus)),
                     text: inviteBelow ? AppLocalized("Your code and link are just below.") : (inviteURL.isEmpty ? AppLocalized("Your code and link are under Settings → nanoMuse Cloud.") : AppLocalized("Your link is ready to share.")))
                 if !inviteBelow, !inviteURL.isEmpty, let url = URL(string: inviteURL) {
                     ShareLink(item: url) { Label(AppLocalized("Share the link"), systemImage: "square.and.arrow.up").font(.footnote) }

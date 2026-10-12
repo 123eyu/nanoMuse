@@ -116,7 +116,7 @@ show, under the turn that did not run, in the chat:
   the *Step-by-step guide* ([own-key.md](own-key.md));
 - **a plan you already pay for**: the ChatGPT sign-in, right there, with the relay's caveat
   about it;
-- **invite a friend**: the bonus for each of you and *Copy the link*;
+- **invite a friend**: the bonus for each of you, paid after the friend's first request, and *Copy the link*;
 - a star on GitHub, once, when the nudge policy allows it: the card's title and buttons are
   the app's; its sentence is the app's too unless the relay's policy carries one (`star.text`,
   `star.text_zh`, up to 200 characters; a Chinese UI takes `text_zh`, else `text`;

@@ -14,6 +14,7 @@ CONSOLE = Path(__file__).resolve().parents[1] / "nanomuse_cloud" / "console"
 # what a signed-in person can get from the relay since 0.22 (service.py, api.py), by code
 CODES_0_22 = [
     "signup_closed",
+    "domain_limited",
     "channel_unsupported",
     "service_paused",
     "sync_paused",
@@ -143,14 +144,36 @@ def test_admin_console_has_the_invites_view_in_both_languages():
         "invEarnedLine",
         "invNewest",
         "invPill",
+        "invPending",
+        "invPendingPill",
+        "invSettledPill",
+        "invAbuseDisable",
+        "invAbuseDelete",
+        "invAbuseGo",
+        "invAbuseConfirm",
+        "invAbuseDone",
     )
     for key in keys:
         assert source.count(f"{key}:") == 2, f"{key} is in one table only"
     assert 'invites: "邀请"' in source and 'invites: "Invites"' in source
     assert 'invThWho: "邀请人"' in source and 'invThWho: "Inviter"' in source
+    # the first KPI is the account count, not "made a code": every account has a code
+    assert 'invKpiCode: "账号总数"' in source and 'invKpiCode: "accounts"' in source
     for key in keys:
         assert f"T.{key}" in source, f"nothing draws {key}"
     view = source[source.index("function invitesView()") : source.index("function placesView()")]
     assert 'need("invites")' in view and "T.invSameIpNote" in view and "INV_OPEN" in view
+    # the pending sub-figure under Brought and the abuse action row under each unfolded inviter
+    assert "T.invPending(x.invited_pending)" in view and "inviteAbuseRow(x" in view
     drawer = source[source.index("function drawDrawer()") : source.index("function ledgerLine(")]
     assert "a.inviter" in drawer and "T.invitedList(" in drawer and "inviteeRow(i, a)" in drawer
+    assert "inviteAbuseRow(a" in drawer
+    # the action posts to the abuse route with both flags, asks first, and refreshes the view
+    action = source[source.index("async function doInviteAbuse(") : source.index("function inviteAbuseRow(")]
+    assert '"/v1/admin/invites/abuse"' in action and "delete_unused" in action and "confirm(" in action
+    assert 'forget("invites")' in action and "T.invAbuseDone(" in action
+    # new event kinds are named in both tables of both consoles
+    for kind in ("invite.settled", "invite.clawback", "signup.domain_limited"):
+        assert source.count(f'"{kind}":') == 2, kind
+    app_js = (CONSOLE / "app.js").read_text(encoding="utf-8")
+    assert app_js.count('"invite.settled":') == 2

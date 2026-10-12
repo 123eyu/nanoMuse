@@ -776,7 +776,7 @@
     <string name="nm_face_cost_not_now">Не сейчас</string>
     <string name="nm_face_cost_declined">Хорошо, образ остаётся прежним.</string>
     <string name="nm_cloud_invite_title">Пригласить друга</string>
-    <string name="nm_cloud_invite_why">Каждый новый человек, который регистрируется с вашим кодом, добавляет ¥%1$s к вашему лимиту, и ¥%1$s к своему. Срок не истекает.</string>
+    <string name="nm_cloud_invite_why">Когда друг регистрируется с вашим кодом и делает первый запрос, вы оба получаете ¥%1$s. Срок не истекает.</string>
     <string name="nm_cloud_invite_code">Ваш код</string>
     <string name="nm_cloud_invite_share">Поделиться ссылкой</string>
     <string name="nm_cloud_invite_copy">Копировать</string>
@@ -814,7 +814,7 @@
     <string name="nm_cap_clips_unavailable">Для клипов нужен провайдер с видеомоделями: Alibaba Cloud Bailian.</string>
     <string name="nm_cap_hands_unavailable">Рукам нужна модель, которая видит экран: Bailian, OpenRouter, OpenAI, Anthropic, Gemini или любой провайдер с vision-моделями.</string>
     <string name="nm_cap_chat_unavailable">Для чата нужен провайдер с чат-моделями: добавьте ключ или войдите.</string>
-    <string name="nm_ways_invite_title">Пригласите друга: +¥%1$s вам и +¥%2$s ему за каждого нового человека, который регистрируется по вашей ссылке.</string>
+    <string name="nm_ways_invite_title">Пригласите друга: +¥%1$s вам и +¥%2$s ему, как только новый человек, зарегистрировавшийся по вашей ссылке, сделает первый запрос.</string>
     <string name="nm_ways_invite_share">Поделиться ссылкой</string>
     <string name="nm_ways_invite_copy">Копировать ссылку</string>
     <string name="nm_cloud_ev_contribute_on">Управление данными: помощь в улучшении включена</string>

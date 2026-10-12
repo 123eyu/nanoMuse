@@ -767,7 +767,7 @@
     <string name="nm_face_cost_not_now">今はしない</string>
     <string name="nm_face_cost_declined">わかりました、顔はこのままにします。</string>
     <string name="nm_cloud_invite_title">友だちを招待</string>
-    <string name="nm_cloud_invite_why">あなたのコードで登録した人 1 人ごとに、あなたの無料枠に ¥%1$s、相手にも ¥%1$s が加わります。期限はありません。</string>
+    <string name="nm_cloud_invite_why">友だちがあなたのコードで登録して最初のリクエストを送ると、2 人とも ¥%1$s を受け取ります。期限はありません。</string>
     <string name="nm_cloud_invite_code">あなたのコード</string>
     <string name="nm_cloud_invite_share">リンクを共有</string>
     <string name="nm_cloud_invite_copy">コピー</string>
@@ -805,7 +805,7 @@
     <string name="nm_cap_clips_unavailable">クリップには動画モデルのあるプロバイダが必要です：Alibaba Cloud 百煉。</string>
     <string name="nm_cap_hands_unavailable">ハンズには画面を見られるモデルが必要です：百煉、OpenRouter、OpenAI、Anthropic、Gemini、またはビジョンモデルのあるプロバイダ。</string>
     <string name="nm_cap_chat_unavailable">チャットにはチャットモデルのあるプロバイダが必要です：キーを追加するか、サインインしてください。</string>
-    <string name="nm_ways_invite_title">友だちを招待: あなたのリンクで登録した人 1 人ごとに、あなたに +¥%1$s、相手に +¥%2$s。</string>
+    <string name="nm_ways_invite_title">友だちを招待: あなたのリンクで登録した人が最初のリクエストを送るごとに、あなたに +¥%1$s、相手に +¥%2$s。</string>
     <string name="nm_ways_invite_share">リンクを共有</string>
     <string name="nm_ways_invite_copy">リンクをコピー</string>
     <string name="nm_cloud_ev_contribute_on">データ管理: 改善への協力をオンにしました</string>

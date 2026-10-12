@@ -165,7 +165,9 @@ for the full list. The ones that matter:
 | `ALLOWED_IDENTIFIERS` | empty | comma-separated numbers / addresses of the **members**: no spend limit |
 | `REVIEW_ADDRESSES`, `REVIEW_CODE` | empty (off) | an app store reviewer's sign-in: for these e-mail addresses no code is sent and the six-digit `REVIEW_CODE` signs in — see *For App Store review* below |
 | `ALLOWANCE_CNY` | 10 | yuan per non-member account **for its lifetime**, at the list prices below; 0 = no limit. *Runtime setting* |
-| `INVITE_BONUS_CNY` | 5 | added to **both** pools — the inviter's and the newcomer's — per new person who signs up with the code. *Runtime setting* |
+| `INVITE_BONUS_CNY` | 5 | added to **both** pools, the inviter's and the newcomer's, per new person who signs up with the code, paid at the newcomer's first charged request (the figure in force at that moment). *Runtime setting* |
+| `SIGNUP_PER_DOMAIN_DAY` | 20 | new accounts one e-mail domain may open per rolling 24 hours when the domain is not a well-known mail provider (gmail.com, outlook.com, qq.com, 163.com and the like are never limited; phones never are); past it `POST /v1/auth/code` answers `429 domain_limited` and the timeline across accounts gets `signup.domain_limited` with the domain; 0 = off |
+| `SIGNUP_DOMAIN_ALLOW` | empty | comma-separated domains that join the built-in list of unlimited ones, your company's or school's for instance |
 | `REPO_URL` | `https://github.com/nano-muse/nanoMuse` | the repository the apps ask people to star, in `/v1/config` |
 | `IMPROVE_DEFAULT` | `0` | what *Help improve nanoMuse's AI models* (Data controls) starts as for accounts created from now on: `1` = on until the person turns it off, `0` = off until they turn it on; existing accounts keep their setting. State it in your privacy policy |
 | `PRIVACY_URL` | `https://nanomuse.cn/privacy/` | the policy the apps link from Data controls and the sign-in pages — the one that says what this relay keeps and its default |
@@ -544,7 +546,21 @@ addresses (what one person padding their own pool looks like), what they
 spent, what the inviter's pool got from them and when the first and the last
 signed up; a row unfolds to the newest of the people it brought, and the
 account drawer names an account's inviter and lists everyone it brought. The
-accounts table marks an inviter with the count and sorts by it.
+accounts table marks an inviter with the count and sorts by it. Under
+*Brought* the view also says how many are still pending (no first request, so
+no bonus yet), and each invitee carries a *pending* or *paid* pill. An unfolded
+inviter, and the *Brought* card of its account page, has the abuse action: a
+button that reclaims the invite credit (`POST /v1/admin/invites/abuse
+{account_id, disable?, delete_unused?}`: the inviter's pool loses what the
+invites earned, less any earlier reclaim, and never below what was already
+spent; one ledger line `credit` with a negative figure and `from: clawback`),
+with two boxes for disabling the account and for deleting the invited accounts
+that never made a request and never spent anything. The answer is
+`{reclaimed_cny, disabled, deleted, kept}`; the inviter's timeline gets
+`invite.clawback` and the audit log the actor. The health check's `problems`
+name the inviters worth a look: `invite_velocity` (a code that brought more
+than ten accounts in the last 24 hours) and `invite_unused` (twenty or more
+invitees of whom 5% or fewer ever made a request).
 
 Two more panels come from `/v1/admin/series` and `/v1/admin/traffic`: the
 relay's own numbers by day (sign-ins, new and active accounts, sign-ups
@@ -655,9 +671,13 @@ Every account has an eight-letter invite code (`GET /v1/me/invite`: the code,
 the share link `INVITE_URL` + code, who came, what they brought). A new person
 who signs up with it — `invite` in `POST /v1/auth/verify`; the web app and the
 console pick it up from `?invite=…` — adds `INVITE_BONUS_CNY` to the inviter's
-pool **and the same to their own** (ledger `from: invite` / `from: invited`);
-the second sign-in of the same person, one's own code and an unknown code add
-nothing (and are not errors). Until 0.9 joining the co-creation programme
+pool **and the same to their own** (ledger `from: invite` / `from: invited`)
+at the newcomer's **first charged request**, not at sign-up (`invite_settled_at`
+on the account; `GET /v1/me/invite` says `bonus_when: "first_use"` and counts
+`settled` and `pending`); a newcomer whose inviter is gone or disabled by then
+is still paid their own half. The second sign-in of the same person, one's own
+code and an unknown code add nothing (and are not errors). Accounts invited
+before this rule are marked settled when the relay first starts with it. Until 0.9 joining the co-creation programme
 added ¥10 once (`contribute_bonus_at` remembers who took it); that bonus is
 gone, and the data switch earns nothing either way.
 `GET /v1/estimate?images=5&clips=4` says what a job would cost
@@ -701,7 +721,9 @@ tokens, the newest turns, and the export.
 # is it well? aggregates only (0.13): requests under way, the hub's counters, the last
 # hour's requests / upstream errors / content-check refusals / refusals / sign-ins, the
 # database, `problems` (twenty upstream errors in an hour is one; a content check declining
-# words is not) — what deploy/nanomuse-hk/selfcheck.sh reads every ten minutes
+# words is not; an inviter whose code brought more than ten accounts in a day, or whose
+# invitees never use anything, is one too): what deploy/nanomuse-hk/selfcheck.sh reads
+# every ten minutes
 curl -H "X-Admin-Token: $CLOUD_ADMIN_TOKEN" https://$CLOUD_DOMAIN/v1/admin/health
 # who signed up (with the phone numbers and addresses since 0.22 — the console's answer)
 curl -H "X-Admin-Token: $CLOUD_ADMIN_TOKEN" https://$CLOUD_DOMAIN/v1/admin/accounts

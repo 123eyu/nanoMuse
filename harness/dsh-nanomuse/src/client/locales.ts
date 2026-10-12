@@ -316,7 +316,7 @@ export const en = {
   // invite
   invite: 'Invite',
   inviteTitle: 'Invite a friend',
-  inviteText: 'A friend who signs up with your code gets ¥{bonus} of credit, and so do you.',
+  inviteText: 'When a friend signs up with your code and makes their first request, you both get ¥{bonus}.',
   inviteCopy: 'Copy',
   inviteCopied: 'Copied',
   inviteLink: 'Invite link',
@@ -434,7 +434,7 @@ export const en = {
   // ---- the invite code at sign-in, and the free amount on the welcome
   obHaveInvite: 'Have an invite code?',
   obInviteCode: 'Invite code (optional)',
-  obInviteHint: 'A friend’s code adds ¥{bonus} for both of you on a first sign-in.',
+  obInviteHint: 'A friend’s code on a first sign-in adds ¥{bonus} for both of you after your first request.',
   obFreeAmount: 'Free to start: ¥{allowance} of credit comes with the account. No card.',
   gnUsageSignedOut: 'Sign in to see your allowance.',
   gnShortcuts: 'Shortcuts',
@@ -1408,7 +1408,7 @@ export const en = {
   awPlan: 'Sign in with a plan you already pay for',
   awPlanSub: '{plans}: the plan’s models answer here, no key to make. ChatGPT works on every device, the others on the phones.',
   awPlanSubNoList: 'A ChatGPT plan signs in here; the plan’s models answer, no key to make.',
-  awInvite: 'Invite a friend: +¥{bonus} for you and +¥{bonus} for them, for each new person who signs up with your link.',
+  awInvite: 'Invite a friend: +¥{bonus} for you and +¥{bonus} for them, once a new person who signed up with your link makes their first request.',
   awCopyLink: 'Copy the link',
   // The 80 % heads-up, once per pool size, above the composer.
   huText: 'Nearly used up: ¥{left} of ¥{grant} left. Invite a friend (+¥{bonus} for each of you) or bring your own key; your sign-in keeps working either way.',
@@ -1748,7 +1748,7 @@ export const zh: typeof en = {
   // invite
   invite: '邀请',
   inviteTitle: '邀请朋友',
-  inviteText: '朋友用你的邀请码注册，各得 ¥{bonus} 额度。',
+  inviteText: '朋友用你的邀请码注册并发出第一次请求后，你们各得 ¥{bonus}。',
   inviteCopy: '复制',
   inviteCopied: '已复制',
   inviteLink: '邀请链接',
@@ -1866,7 +1866,7 @@ export const zh: typeof en = {
   // ---- 登录时的邀请码，欢迎页上的免费额度
   obHaveInvite: '有邀请码？',
   obInviteCode: '邀请码（选填）',
-  obInviteHint: '首次登录时填朋友的邀请码，两人各加 ¥{bonus}。',
+  obInviteHint: '首次登录时填朋友的邀请码，你发出第一次请求后两人各加 ¥{bonus}。',
   obFreeAmount: '免费开始：账号自带 ¥{allowance} 额度，不需要绑卡。',
   gnUsageSignedOut: '登录后可以看到额度。',
   gnShortcuts: '快捷键',
@@ -2837,7 +2837,7 @@ export const zh: typeof en = {
   awPlan: '用你已经在付费的订阅登录',
   awPlanSub: '{plans}：订阅里的模型直接在这里回答，不用申请 key。ChatGPT 每台设备都能用，其余的在手机上。',
   awPlanSubNoList: 'ChatGPT 订阅可以在这里登录；订阅里的模型直接回答，不用申请 key。',
-  awInvite: '邀请朋友：每有一位新用户通过你的链接注册，你 +¥{bonus}，对方也 +¥{bonus}。',
+  awInvite: '邀请朋友：每有一位新用户通过你的链接注册并发出第一次请求，你 +¥{bonus}，对方也 +¥{bonus}。',
   awCopyLink: '复制链接',
   huText: '快用完了：还剩 ¥{left}，共 ¥{grant}。邀请朋友（你们各 +¥{bonus}）或换成自己的 key，登录不受影响。',
   huSee: '看看办法',

@@ -277,7 +277,7 @@ struct NanoMuseCloudView: View {
                 Text(message).foregroundStyle(failed ? Color.red : Color.secondary)
             } else if inviteOpen && codeSent && !usePassword {
                 let bonus = "¥" + (config.inviteeBonusCny ?? 5).formatted(.number.precision(.fractionLength(0)))
-                Text(String(format: AppLocalized("A friend’s code adds %@ for both of you on a first sign-in."), bonus))
+                Text(String(format: AppLocalized("A friend’s code on a first sign-in adds %@ for both of you after your first request."), bonus))
             }
         }
 

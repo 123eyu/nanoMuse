@@ -770,7 +770,7 @@
     <string name="nm_face_cost_not_now">Agora não</string>
     <string name="nm_face_cost_declined">Tudo bem, o rosto fica como está.</string>
     <string name="nm_cloud_invite_title">Convidar um amigo</string>
-    <string name="nm_cloud_invite_why">Cada pessoa nova que se cadastra com seu código soma ¥%1$s à sua cota, e ¥%1$s à dela. Nunca expira.</string>
+    <string name="nm_cloud_invite_why">Quando um amigo se cadastra com seu código e faz a primeira solicitação, vocês dois recebem ¥%1$s. Nunca expira.</string>
     <string name="nm_cloud_invite_code">Seu código</string>
     <string name="nm_cloud_invite_share">Compartilhar o link</string>
     <string name="nm_cloud_invite_copy">Copiar</string>
@@ -808,7 +808,7 @@
     <string name="nm_cap_clips_unavailable">Clipes precisam de um provedor com modelos de vídeo: Alibaba Cloud Bailian.</string>
     <string name="nm_cap_hands_unavailable">As mãos precisam de um modelo que veja a tela: Bailian, OpenRouter, OpenAI, Anthropic, Gemini ou qualquer provedor com modelos de visão.</string>
     <string name="nm_cap_chat_unavailable">O chat precisa de um provedor com modelos de chat: adicione uma chave ou entre.</string>
-    <string name="nm_ways_invite_title">Convide um amigo: +¥%1$s para você e +¥%2$s para ele, a cada pessoa nova que se cadastra com seu link.</string>
+    <string name="nm_ways_invite_title">Convide um amigo: +¥%1$s para você e +¥%2$s para ele, quando uma pessoa nova cadastrada com seu link faz a primeira solicitação.</string>
     <string name="nm_ways_invite_share">Compartilhar o link</string>
     <string name="nm_ways_invite_copy">Copiar o link</string>
     <string name="nm_cloud_ev_contribute_on">Controles de dados: ajudar a melhorar ligado</string>

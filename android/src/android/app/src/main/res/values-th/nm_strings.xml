@@ -767,7 +767,7 @@
     <string name="nm_face_cost_not_now">ไว้ก่อน</string>
     <string name="nm_face_cost_declined">ได้ ใบหน้าคงไว้เหมือนเดิม</string>
     <string name="nm_cloud_invite_title">ชวนเพื่อน</string>
-    <string name="nm_cloud_invite_why">ทุกคนที่สมัครใหม่ด้วยรหัสของคุณจะเพิ่ม ¥%1$s ให้โควตาของคุณ และ ¥%1$s ให้ของเขา ไม่มีวันหมดอายุ</string>
+    <string name="nm_cloud_invite_why">เมื่อเพื่อนสมัครด้วยรหัสของคุณและส่งคำขอครั้งแรก คุณทั้งคู่จะได้รับ ¥%1$s ไม่มีวันหมดอายุ</string>
     <string name="nm_cloud_invite_code">รหัสของคุณ</string>
     <string name="nm_cloud_invite_share">แชร์ลิงก์</string>
     <string name="nm_cloud_invite_copy">คัดลอก</string>
@@ -805,7 +805,7 @@
     <string name="nm_cap_clips_unavailable">คลิปต้องใช้ผู้ให้บริการที่มีโมเดลวิดีโอ Alibaba Cloud Bailian</string>
     <string name="nm_cap_hands_unavailable">มือต้องใช้โมเดลที่มองเห็นหน้าจอ Bailian, OpenRouter, OpenAI, Anthropic, Gemini หรือผู้ให้บริการใดก็ได้ที่มีโมเดลวิชัน</string>
     <string name="nm_cap_chat_unavailable">แชทต้องใช้ผู้ให้บริการที่มีโมเดลแชท เพิ่มคีย์ หรือลงชื่อเข้าใช้</string>
-    <string name="nm_ways_invite_title">ชวนเพื่อน: คุณได้ +¥%1$s และเขาได้ +¥%2$s สำหรับทุกคนที่สมัครใหม่ด้วยลิงก์ของคุณ</string>
+    <string name="nm_ways_invite_title">ชวนเพื่อน: คุณได้ +¥%1$s และเขาได้ +¥%2$s เมื่อคนที่สมัครใหม่ด้วยลิงก์ของคุณส่งคำขอครั้งแรก</string>
     <string name="nm_ways_invite_share">แชร์ลิงก์</string>
     <string name="nm_ways_invite_copy">คัดลอกลิงก์</string>
     <string name="nm_cloud_ev_contribute_on">การควบคุมข้อมูล: เปิดช่วยปรับปรุง</string>
