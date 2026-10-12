@@ -442,7 +442,8 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
 - **底栏是一个悬浮的胶囊**（`NanoMuseShell.swift` → `NanoMuseBottomBar`，`NanoMuseFaces.swift`
   里的 `NanoMuseTones.tabIndicator` / `tabIndicatorGlyph`；对应 Android 的 `MuseBottomBar`，
   @Ichiro786 的 #329）：五个标签放在一个 `Capsule` 里，离底部安全区 12 pt，和上方的输入框
-  一样宽（同样的 16 pt 边距；最宽 420 pt，更宽的屏幕上居中），只有图标，
+  一样宽（同样的 16 pt 边距；compact 宽度下最宽 420 pt，没有哪部手机碰得到；regular 宽度，也就是
+  iPad 上，它和输入框一样是聊天列减去边距的 728 pt，见下面关于列的那条），只有图标，
   SF 符号、无障碍标签和选中特征都和以前一样。胶囊是 `.ultraThinMaterial`，上面盖一层 55%
   不透明度的外壳 surface 色（对比度靠这层色，模糊靠材质，和 Android 在背景模糊上盖 55% surface
   一样），边上一道 1 pt 的 `NanoMuseTones.hairline`；原来那条通栏的条和它顶上的细线没有了。
@@ -472,6 +473,16 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   保留上游的虚线边框和灰字，*来自 {设备}* 的说明和附件都在胶囊外面，长按预览还是原来那张不透明
   的卡片。从抽屉推出的侧聊天保留系统栏和它的材质；房间保留它们的画布。在没有 Mac 的 Linux
   上写的：iOS 检查能编译它，还没有设备显示过它。
+- **iPad 的聊天是一根列**（`NanoMuseShell.swift` 里的 `NanoMuseColumn`；`AIChatView.swift` 里的
+  `maxContentWidth` 一行和输入框的 frame，`NanoMuseChatCards.swift` 里智能体的胶囊）。1.0.3 在竖屏的
+  iPad 上显示出三种宽度：上游在 regular 宽度下把消息列表和输入框限到 900 pt，于是输入框横贯 768 pt
+  的窗口，底栏胶囊在它下面只有 420 pt 宽，智能体的回复还留在左边 340 pt 的胶囊里。现在在 regular
+  宽度的 size class 下，列表、输入框和底栏胶囊共用一根居中的 760 pt 的列，即网页控制台的聊天列
+  （`max-w-[760px]`）；行在列里保留 16 pt 的内边距，输入框和底栏胶囊都是列宽减去边距的 728 pt，
+  于是它们的边和气泡的边、和彼此的边对齐，智能体的胶囊放宽到 600 pt，即网页宽布局的值。compact
+  宽度，也就是每一部 iPhone 和窄的分屏窗格，没有变化。消息列表的单元格由 `UIHostingConfiguration`
+  承载，它不传我们的 environment object，但会从单元格的 traits 传 size class；智能体的胶囊从那里
+  读它。
 
 ## 用操作按钮说一句 {#voice-prompts-from-the-action-button}
 

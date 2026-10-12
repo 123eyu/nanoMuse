@@ -532,9 +532,10 @@ Ours, in `NanoMuse/`:
 - **The bottom bar is a floating pill** (`NanoMuseShell.swift` → `NanoMuseBottomBar`,
   `NanoMuseTones.tabIndicator` / `tabIndicatorGlyph` in `NanoMuseFaces.swift`; Android's
   `MuseBottomBar`, #329 by @Ichiro786): the five tabs sit in a `Capsule` 12 pt above the bottom
-  safe area, as wide as the composer above it (the same 16 pt margins; 420 pt at most, centred on
-  a wider screen), icons only, with the same SF symbols, accessibility labels and selected trait as
-  before. The pill is `.ultraThinMaterial` under the shell's surface tone at 55 percent opacity (the
+  safe area, as wide as the composer above it (the same 16 pt margins; 420 pt at most on a compact
+  width, which no phone reaches; on a regular width, the iPad, it is the chat column's width less
+  the margins, 728 pt, as the composer is, see the column note below), icons only, with the same
+  SF symbols, accessibility labels and selected trait as before. The pill is `.ultraThinMaterial` under the shell's surface tone at 55 percent opacity (the
   tint carries the contrast, the material carries the blur, as Android's 55 percent surface over its
   backdrop blur) with a 1 pt `NanoMuseTones.hairline` edge; the old full-width strip and its hairline
   on top are gone. The five tabs share the pill's width equally, each slot tappable across; the
@@ -574,6 +575,19 @@ Ours, in `NanoMuse/`:
   card it was. Side chats pushed from the drawer keep the system bar on its material; the rooms
   keep their canvas. Written on Linux without a Mac: the iOS check compiles it, and no device
   has shown it yet.
+- **The iPad's chat is one column** (`NanoMuseColumn` in `NanoMuseShell.swift`; the
+  `maxContentWidth` line and the composer's frame in `AIChatView.swift`, the agent's pill in
+  `NanoMuseChatCards.swift`). 1.0.3 on an iPad in portrait showed three widths: upstream caps
+  the message list and the composer at 900 pt on a regular width, so the composer ran across
+  the 768 pt window, the pill bar sat 420 pt wide under it, and the agent's replies stayed in
+  their 340 pt pill at the left edge. On a regular width size class the list, the composer and
+  the pill bar now share one centred column of 760 pt, the web console's chat column
+  (`max-w-[760px]`); the rows keep their 16 pt padding inside it, the composer and the pill bar
+  are both the column less the margins, 728 pt, so their edges meet the bubbles' and each other's,
+  and the agent's pill grows to 600 pt, the web's wide value. A compact width, every iPhone and
+  a narrow Split View pane, is unchanged. The cells of the message list are hosted by
+  `UIHostingConfiguration`, which does not carry our environment objects but does carry the
+  size class from the cell's traits; the agent's pill reads it from there.
 
 ## Voice prompts from the Action Button
 

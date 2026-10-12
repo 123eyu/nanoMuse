@@ -75,6 +75,8 @@ The web console's tokens (`web/src/index.css`):
 
 The chat's header is a scrim rather than a bar: `bg` at 80 percent at its top edge, 35 percent past the middle, clear at the bottom, with the conversation scrolling under it; while older messages are being read the top 80 px fade fully into `bg`. A link inside your pill keeps the pill's text colour, underlined. In the dark theme the agent's pill is the same step off `#181819` that the phone's `#1c1c1e` is off black.
 
+On a wide screen the conversation is one centred column of 760, the width the web console gives its chat below the sidebar breakpoint (`max-w-[760px]`): the messages, the composer and the pill bar share it, and the composer and the pill bar are exactly as wide as each other, the column less the 16 margins on each side. The agent's reply pill grows from 340 to 600 inside it, the web's `wide:max-w-[600px]`. On the iPad this is the regular width size class (`NanoMuseColumn` in `NanoMuseShell.swift`); a phone, or a narrow pane, keeps the window's width and the pill bar's 420 cap, which no phone reaches.
+
 The Android app's chat palette is `ChatColors.kt`, written by `scripts/rebrand.py`:
 
 | Token | Light | Dark |

@@ -64,10 +64,13 @@ struct NanoMuseChatCardsHost: View {
 
 /// Muse's transcript: the agent's prose sits in a pill a shade off the canvas
 /// (Android: NmAssistantBubble, ChatColors.assistantBubble, radius 20, at most
-/// 340 wide), in the theme's text colour; a block that is a code fence, a table
-/// or raw HTML stays bare, as does everything in the classic layout.
+/// 340 wide; 600 on a regular width, inside the iPad's column, NanoMuseColumn),
+/// in the theme's text colour; a block that is a code fence, a table or raw HTML
+/// stays bare, as does everything in the classic layout.
 struct NanoMuseAssistantBubble: ViewModifier {
     var content: String
+    /// The cell's hosting view hands SwiftUI the window's size class through its traits.
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     /// Code, tables and markup read better without the bubble.
     static func isBare(_ content: String) -> Bool {
@@ -83,7 +86,7 @@ struct NanoMuseAssistantBubble: ViewModifier {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
                 .background(NanoMuseTones.agentPill, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .frame(maxWidth: 340, alignment: .leading)
+                .frame(maxWidth: NanoMuseColumn.agentPillWidth(for: sizeClass), alignment: .leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
         } else {
             view

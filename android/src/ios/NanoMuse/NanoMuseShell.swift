@@ -814,19 +814,57 @@ private struct NanoMuseClassicCover: View {
     }
 }
 
+// MARK: - The column on a wide window
+
+/// The chat on a regular width (an iPad, a wide Split View pane): the message list, the
+/// composer pill and the bottom bar share one centred column, so the conversation reads as one
+/// column and not as three widths. Up to 1.0.3 the list was capped at 900 pt, the composer with
+/// it and the bar at 420 pt: on an iPad in portrait the composer ran across the window, the bar
+/// sat 420 pt wide under it and the agent's replies stayed in a 340 pt pill at the left edge.
+/// The column is 760 pt, the width the web console gives its chat (`max-w-[760px]` in
+/// `web/src/App.tsx`); the rows keep their 16 pt padding inside it and the two pills are as wide
+/// as the rows' content, so their edges line up with the bubbles'. A compact width (every
+/// iPhone, a narrow pane) is unchanged: the rows and the composer take the window and the bar
+/// keeps its 420 pt cap, which no phone reaches.
+enum NanoMuseColumn {
+    /// The column's outer width, the rows' 16 pt padding included.
+    static let width: CGFloat = 760
+    /// The rows' horizontal padding, the composer's margins and the bar's inset: one number.
+    static let margin: CGFloat = 16
+    /// The composer pill and the bottom bar on a regular width: the column less its margins.
+    static var pillWidth: CGFloat { width - margin * 2 }
+    /// The agent's reply pill on a regular width, the web console's `wide:max-w-[600px]`; on a
+    /// compact one it stays 340 pt, as Android's NmAssistantBubble.
+    static let agentPillWidth: CGFloat = 600
+
+    /// The width of a pill for a size class: the column's on a regular width, `fallback` on a
+    /// compact one (the bar's 420 pt cap; nothing for the composer, which takes the window).
+    static func pillWidth(for sizeClass: UserInterfaceSizeClass?, otherwise fallback: CGFloat?) -> CGFloat? {
+        sizeClass == .regular ? pillWidth : fallback
+    }
+
+    /// The agent's reply pill for a size class.
+    static func agentPillWidth(for sizeClass: UserInterfaceSizeClass?) -> CGFloat {
+        sizeClass == .regular ? agentPillWidth : 340
+    }
+}
+
 // MARK: - Bottom bar
 
 /// Android's MuseBottomBar: a floating frosted-glass pill a little above the bottom edge, five
 /// glyphs and no labels. The pill is `.ultraThinMaterial` under the shell's surface tone at 55
 /// percent, with a 1 pt hairline; the current tab shows its filled glyph on a soft indicator
 /// capsule that springs across to the tab tapped next, the others stay outlined and muted. The
-/// pill is as wide as the composer above it (the same 16 pt margins), capped on a wide screen.
+/// pill is as wide as the composer above it (the same 16 pt margins): capped at 420 pt on a
+/// compact width, the column's width on a regular one (NanoMuseColumn).
 struct NanoMuseBottomBar: View {
     @Binding var selected: NanoMuseTab
     var onPick: (NanoMuseTab) -> Void
     @Namespace private var indicator
     /// Reduce Motion on: the indicator moves to the tapped tab without the spring.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Regular on an iPad: the pill takes the column's width, the composer's.
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     /// The indicator capsule behind the selected glyph, centred in its slot; the five slots share
     /// the pill's width equally.
@@ -838,7 +876,8 @@ struct NanoMuseBottomBar: View {
     /// The pill's distance from the screen's sides: the composer's margins in the shell
     /// (AIChatView, `nmPill`), so the two capsules stack with one edge.
     static let inset: CGFloat = 16
-    /// A wide screen gets a centred pill of this width, not a bar across the window.
+    /// The pill's cap on a compact width (an iPhone's composer never reaches it); a regular width
+    /// takes `NanoMuseColumn.pillWidth` instead, so the pill is as wide as the composer there too.
     static let maxWidth: CGFloat = 420
     /// How much of the screen the bar takes above the safe area: what the rooms and the chat
     /// leave free under their content so nothing lies behind the pill.
@@ -881,7 +920,7 @@ struct NanoMuseBottomBar: View {
         }
         .overlay(Capsule().strokeBorder(NanoMuseTones.hairline, lineWidth: 1))
         .animation(reduceMotion ? nil : Animation.spring(response: 0.35, dampingFraction: 0.8), value: selected)
-        .frame(maxWidth: Self.maxWidth)
+        .frame(maxWidth: NanoMuseColumn.pillWidth(for: sizeClass, otherwise: Self.maxWidth))
         .frame(maxWidth: .infinity)
         .padding(.horizontal, Self.inset)
         .padding(.bottom, Self.bottomGap)
