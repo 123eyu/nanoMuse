@@ -344,6 +344,7 @@ struct NanoMuseRoutinesView: View {
                 Toggle("", isOn: Binding(get: { routine.enabled }, set: { scheduler.setEnabled(routine.id, $0) }))
                     .labelsHidden()
                     .tint(NanoMuseTones.action)
+                    .accessibilityLabel(Text(label(for: routine)))
             }
         }
         .contentShape(Rectangle())

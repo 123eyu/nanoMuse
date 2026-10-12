@@ -575,6 +575,7 @@ struct NanoMuseGoalsRoom: View {
                 Toggle("", isOn: Binding(get: { routine.enabled }, set: { scheduler.setEnabled(routine.id, $0) }))
                     .labelsHidden()
                     .tint(NanoMuseTones.action)
+                    .accessibilityLabel(Text(routine.label.isEmpty ? AppLocalized("Routine") : routine.label))
             }
             Menu {
                 Button { editingRoutine = routine } label: { Label(AppLocalized("Edit"), systemImage: "pencil") }

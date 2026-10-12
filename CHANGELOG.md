@@ -73,6 +73,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 - **The routines copy says what the phone does.** The sentence above the Routines list and its footer said a routine would run in the background when iOS gave the app a moment; the refresh task only posts the reminder, so the copy now says the run waits for you to open the app and the reminder is all that comes while it is asleep, in all nine languages. `docs/ios.md` and the parity page say the same.
 - **A side chat's header dissolves like the main chat's.** A chat pushed from the drawer kept its system bar on a frosted material with a hairline, while the main chat had the canvas-coloured scrim since 1.0.3; the side chat now hides the bar's background and stands the same scrim behind the back button and the title, with the second fade while the list is scrolled away from the latest message.
 - **Ideas, Goals and the Library stand on the chat's canvas.** The three rooms painted the Feed's grey page behind their rows, cards and list; Android and `docs/design.md` keep that grey for the Feed only. Ideas are plain rows with a hairline under each, the goal cards carry a hairline outline, the Library is a plain list, and the Feed keeps its grey page under its white cards.
+- **A routine's switch says which routine it is.** VoiceOver read the switches in *Scheduled tasks* and in the Goals room as nameless toggles; each now carries the routine's label.
+- **Reduce Motion crossfades the slides, the drawer and the bottom bar.** With Reduce Motion on, the welcome slides, the side drawer and the pill bar no longer slide in and out; they fade.
 
 ### Project
 
