@@ -1,8 +1,9 @@
 import { Menu, MoreHorizontal } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useT } from "../i18n";
 import { useStore, type Tab } from "../store";
 import { MuseHeader, MusePageTitle, MuseRoundButton } from "./MuseHeader";
+import { useMenuKeys } from "./useMenuKeys";
 import { MuseSheet } from "../screens/MuseSheet";
 
 /**
@@ -68,28 +69,15 @@ export function TabHeader({
 
 /**
  * The "•••" disc and its dropdown, as the phone's tab headers have it: the page's own
- * entries first, then Memory and Settings.
+ * entries first, then Memory and Settings. Arrow keys walk the entries, Escape closes
+ * (`useMenuKeys`).
  */
 export function MoreMenu({ actions = [] }: { actions?: Array<{ label: string; onClick: () => void }> }) {
   const { setTab } = useStore();
   const t = useT();
   const [menu, setMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!menu) return;
-    const onDown = (e: PointerEvent) => {
-      if (!menuRef.current?.contains(e.target as Node)) setMenu(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMenu(false);
-    };
-    window.addEventListener("pointerdown", onDown);
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("pointerdown", onDown);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [menu]);
+  useMenuKeys(menuRef, menu, () => setMenu(false));
   const go = (tab: Tab) => {
     setMenu(false);
     setTab(tab);

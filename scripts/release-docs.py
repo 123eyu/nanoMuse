@@ -131,7 +131,15 @@ def version_code() -> str:
     return m.group(1)
 
 
+def usage() -> str:
+    """The two usage lines of the module docstring."""
+    return "\n".join(line[4:] for line in __doc__.strip().splitlines()[2:4])
+
+
 def main(argv: list[str]) -> int:
+    if argv in (["-h"], ["--help"]):
+        print(__doc__.strip())
+        return 0
     dry_run = "--dry-run" in argv
     argv = [a for a in argv if a != "--dry-run"]
     roadmap: dict[str, str] = {}
@@ -146,8 +154,12 @@ def main(argv: list[str]) -> int:
     if len(roadmap) == 1:
         print("--roadmap and --roadmap-zh go together (one row per language)", file=sys.stderr)
         return 2
+    unknown = [a for a in argv if a.startswith("-")]
+    if unknown:
+        print(f"unknown option {' '.join(unknown)} (try --help)", file=sys.stderr)
+        return 2
     if len(argv) != 5:
-        print(__doc__.strip().splitlines()[2].strip(), file=sys.stderr)
+        print(usage(), file=sys.stderr)
         return 2
     old, new, oldname, newname, date = argv
     if not Path("pyproject.toml").is_file():
