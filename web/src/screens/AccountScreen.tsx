@@ -226,7 +226,7 @@ function DataControlsLink({ me }: { me: CloudMe }) {
   );
 }
 
-/** Invite a friend: the code and link, what each sign-up adds, and what came of it so far. */
+/** Invite a friend: the code and link, what each friend's first request adds, and what came of it so far. */
 function Invite({ invite: inv }: { invite: NonNullable<CloudMe["invite"]> }) {
   const t = useT();
   const { toast } = useStore();
@@ -256,7 +256,7 @@ function Invite({ invite: inv }: { invite: NonNullable<CloudMe["invite"]> }) {
   return (
     <Section title={t("Invite a friend")}>
       <p className="text-[12.5px] text-muted">
-        {t("Each new person who signs up with your code adds ¥{bonus} to your allowance, and ¥{bonus} to theirs. It never expires.", { bonus: inv.bonus_cny.toFixed(0) })}
+        {t("When a friend signs up with your code and makes their first request, you both get ¥{bonus}. It never expires.", { bonus: inv.bonus_cny.toFixed(0) })}
       </p>
       <div className="flex items-center justify-between gap-3 rounded-2xl bg-surface-2/70 px-3 py-2">
         <div>

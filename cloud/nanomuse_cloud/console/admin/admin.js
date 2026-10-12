@@ -38,7 +38,7 @@
     all: "全部", signIns: "登录", refusals: "超额", errors: "错误", contentChecks: "内容审核", calls: "通话", passwords: "密码",
     eventName: {
       "account.created": "注册", "sign_in.code": "验证码登录", "sign_in.password": "密码登录", "sign_in.session": "换会话密钥", "sign_in.failed": "登录失败", "password.set": "设置密码", "password.changed": "修改密码",
-      "password.cleared": "移除密码", "sign_out": "退出", "sign_out.all": "全部退出", "pool.set": "额度调整", "pool.set.many": "批量额度调整", "budget.refused": "超出额度被拒", "upstream.error": "上游出错", "content.rejected": "内容审核未放行", "call.ended": "通话结束", "contribute.on": "开启「帮助改进」", "contribute.default": "新账号默认开启「帮助改进」", "contribute.bonus": "早期共创奖励 +¥10", "contribute.off": "关闭「帮助改进」", "contribute.deleted": "删除保存的对话", "invite.accepted": "邀请成功", "invite.used": "通过邀请注册", "invite.unknown": "无效邀请码", "credit.granted": "获得额度奖励", "profile.put": "更新资料", "profile.clear": "清空资料", "profile.connectors": "更新连接列表", "settings.changed": "修改配置", "nudges.changed": "修改 star 提示规则", "control.switch": "开关切换", "control.rule": "阈值规则触发",
+      "password.cleared": "移除密码", "sign_out": "退出", "sign_out.all": "全部退出", "pool.set": "额度调整", "pool.set.many": "批量额度调整", "budget.refused": "超出额度被拒", "upstream.error": "上游出错", "content.rejected": "内容审核未放行", "call.ended": "通话结束", "contribute.on": "开启「帮助改进」", "contribute.default": "新账号默认开启「帮助改进」", "contribute.bonus": "早期共创奖励 +¥10", "contribute.off": "关闭「帮助改进」", "contribute.deleted": "删除保存的对话", "invite.accepted": "邀请成功", "invite.used": "通过邀请注册", "invite.unknown": "无效邀请码", "invite.settled": "邀请奖励到账", "invite.clawback": "收回邀请奖励", "signup.domain_limited": "域名注册数达上限", "credit.granted": "获得额度奖励", "profile.put": "更新资料", "profile.clear": "清空资料", "profile.connectors": "更新连接列表", "settings.changed": "修改配置", "nudges.changed": "修改 star 提示规则", "control.switch": "开关切换", "control.rule": "阈值规则触发",
     },
     // drawer
     spendToday: "今天", spendTotal: "累计", requests: "请求", cap: "总额度", noCap: "无上限", left: "剩余", usageToday: "今天", usagePeriod: (d) => `最近 ${d} 天`, usageTotal: "累计",
@@ -138,12 +138,17 @@
     sortBy: { active: "最近活跃", joined: "注册时间", spent: "累计花费", today: "今天花费", tokens: "tokens", requests: "请求数", left: "剩余额度", region: "地区", invites: "邀请人数" },
     // who invited whom: the Invites view and the account drawer's list
     invNote: "谁邀请了谁。按邀请到的账号数排序；点一行展开被邀请的人，点名字打开账号页。", invSearch: "搜索邀请人…", invNone: "还没有人经邀请注册。", invNoMatch: "没有匹配的邀请人。",
-    invKpiCode: "生成过邀请码", invKpiInviters: "邀请成功的人", invKpiInvited: "经邀请注册", invKpiActive: "其中用过的", invKpiSameIp: "与邀请人同地址",
+    invKpiCode: "账号总数", invKpiInviters: "邀请成功的人", invKpiInvited: "经邀请注册", invKpiActive: "其中用过的", invKpiSameIp: "与邀请人同地址",
     invThWho: "邀请人", invThInvited: "邀请到", invThActive: "其中用过", invThSameIp: "同一地址", invThSpent: "他们花了", invThEarned: "获得奖励", invThLast: "最近一次",
     invSort: { invited: "邀请到", active: "其中用过", same_ip: "同一地址", spent: "他们花了", earned: "获得奖励", latest: "最近一次" },
     invRecorded: (n) => `记录为 ${fmt(n)}`, invSameIp: "同地址", invGone: "已注销", invSeeRanking: "查看谁邀请了谁", invMore: (n) => `还有 ${fmt(n)} 个，打开账号页看全部`,
-    invSameIpNote: "「同一地址」指被邀请人的首次或最近地址与邀请人的相同，一个人给自己刷额度时常是这样；「记录为」是邀请计数器的值，被邀请人注销账号后计数不减。",
+    invSameIpNote: "「同一地址」指被邀请人的首次或最近地址与邀请人的相同，一个人给自己刷额度时常是这样；「记录为」是邀请计数器的值，被邀请人注销账号后计数不减。邀请奖励在被邀请人第一次发出计费请求时才给双方到账；「待到账」是还没用过的人数。",
     invitedList: (n) => `邀请的人 · ${fmt(n)}`, invPill: (n) => `邀请了 ${fmt(n)} 人`, invEarnedLine: (m) => `邀请奖励共 ${m}`, invNewest: (n, total) => `只列出最新 ${fmt(n)} 个，共 ${fmt(total)} 个`,
+    invPending: (n) => `待到账 ${fmt(n)}`, invPendingPill: "待到账", invSettledPill: "已到账",
+    // the one-click abuse action: reclaim the invite credit, and what the two boxes add
+    invAbuseDisable: "停用账号", invAbuseDelete: "删除没用过的被邀请账号", invAbuseGo: "收回邀请奖励",
+    invAbuseConfirm: (who, amount, disable, del) => `收回 ${who} 的邀请奖励${amount ? `（可收回 ${amount}，不低于已花掉的部分）` : ""}？${disable ? "\n同时停用这个账号：所有设备立刻断开，再登录会被拒。" : ""}${del ? "\n同时删除它邀请来的、从没发过请求也没花过钱的账号，不可恢复；用过的保留。" : ""}`,
+    invAbuseDone: (r) => `已收回 ${r.reclaimed}${r.disabled ? "，账号已停用" : ""}${r.deleted || r.kept ? `，删除了 ${fmt(r.deleted)} 个没用过的被邀请账号，保留 ${fmt(r.kept)} 个` : ""}。`,
     cSignups: "注册", cRegions: "地区分布", cRegionsIn: (c) => `${c} · 分布`, cSpend: "花费分布", cActivity: "活跃度", cChannel: "渠道", cClients: "客户端", cClickNote: "图上的每一块都是筛选条件：点一下只看它，再点一下取消。", up: "上一级",
     thRegion: "地区", moreRows: (n) => `再显示 ${fmt(n)} 个`, exportCsv: "导出 CSV", csvNote: "导出的是当前筛选结果，和表格一样含完整的手机号 / 邮箱，文件只留在你手里。",
     byDayLabel: "按天", byWeekLabel: "按周",
@@ -171,7 +176,7 @@
     all: "All", signIns: "Sign-ins", refusals: "Refusals", errors: "Errors", contentChecks: "Content checks", calls: "Calls", passwords: "Passwords",
     eventName: {
       "account.created": "Joined", "sign_in.code": "Signed in with a code", "sign_in.password": "Signed in with the password", "sign_in.session": "Took a session key", "sign_in.failed": "Failed sign-in", "password.set": "Password set", "password.changed": "Password changed",
-      "password.cleared": "Password removed", "sign_out": "Signed out", "sign_out.all": "Signed out everywhere", "pool.set": "Pool set", "pool.set.many": "Pools set", "budget.refused": "Refused: over budget", "upstream.error": "Upstream error", "content.rejected": "Content check declined", "call.ended": "Call ended", "contribute.on": "“Help improve” on", "contribute.default": "New account: “help improve” on by default", "contribute.bonus": "Early co-creation bonus +¥10", "contribute.off": "“Help improve” off", "contribute.deleted": "Kept turns deleted", "invite.accepted": "Invited a friend", "invite.used": "Signed up via invite", "invite.unknown": "Unknown invite code", "credit.granted": "Credit granted", "profile.put": "Profile updated", "profile.clear": "Profile cleared", "profile.connectors": "Connectors updated", "settings.changed": "Settings changed", "nudges.changed": "Star asks policy changed", "control.switch": "Switch flipped", "control.rule": "Threshold rule fired",
+      "password.cleared": "Password removed", "sign_out": "Signed out", "sign_out.all": "Signed out everywhere", "pool.set": "Pool set", "pool.set.many": "Pools set", "budget.refused": "Refused: over budget", "upstream.error": "Upstream error", "content.rejected": "Content check declined", "call.ended": "Call ended", "contribute.on": "“Help improve” on", "contribute.default": "New account: “help improve” on by default", "contribute.bonus": "Early co-creation bonus +¥10", "contribute.off": "“Help improve” off", "contribute.deleted": "Kept turns deleted", "invite.accepted": "Invited a friend", "invite.used": "Signed up via invite", "invite.unknown": "Unknown invite code", "invite.settled": "Invite bonus paid", "invite.clawback": "Invite credit reclaimed", "signup.domain_limited": "Domain at its sign-up limit", "credit.granted": "Credit granted", "profile.put": "Profile updated", "profile.clear": "Profile cleared", "profile.connectors": "Connectors updated", "settings.changed": "Settings changed", "nudges.changed": "Star asks policy changed", "control.switch": "Switch flipped", "control.rule": "Threshold rule fired",
     },
     spendToday: "Today", spendTotal: "All time", requests: "Requests", cap: "Pool", noCap: "no cap", left: "left", usageToday: "Today", usagePeriod: (d) => `Last ${d} days`, usageTotal: "All time",
     sessions: "Sign-ins (incl. revoked)", revoked: "revoked", via: { code: "code", password: "password", session: "session key" }, lastUsed: "last used", devices: "Devices", firstSeen: "first", lastSeen: "last",
@@ -262,12 +267,17 @@
     sortBy: { active: "last active", joined: "joined", spent: "spent", today: "spent today", tokens: "tokens", requests: "requests", left: "left", region: "region", invites: "invites" },
     // who invited whom: the Invites view and the account drawer's list
     invNote: "Who brought whom. Inviters in order of the accounts their code brought; open a row for the people it brought, a name for the account page.", invSearch: "Search inviters…", invNone: "Nobody has come through an invite yet.", invNoMatch: "No inviter matches.",
-    invKpiCode: "made a code", invKpiInviters: "brought someone", invKpiInvited: "came through a code", invKpiActive: "of them used it", invKpiSameIp: "same address as the inviter",
+    invKpiCode: "accounts", invKpiInviters: "brought someone", invKpiInvited: "came through a code", invKpiActive: "of them used it", invKpiSameIp: "same address as the inviter",
     invThWho: "Inviter", invThInvited: "Brought", invThActive: "Used it", invThSameIp: "Same address", invThSpent: "They spent", invThEarned: "Earned", invThLast: "Latest",
     invSort: { invited: "brought", active: "used it", same_ip: "same address", spent: "they spent", earned: "earned", latest: "latest" },
     invRecorded: (n) => `recorded ${fmt(n)}`, invSameIp: "same address", invGone: "deleted", invSeeRanking: "see who brought whom", invMore: (n) => `${fmt(n)} more; the account page lists them all`,
-    invSameIpNote: "“Same address” means an invitee's first or latest address is one of the inviter's own, which is what one person padding their own pool looks like; “recorded” is the invite counter, which does not go down when an invitee deletes their account.",
+    invSameIpNote: "“Same address” means an invitee's first or latest address is one of the inviter's own, which is what one person padding their own pool looks like; “recorded” is the invite counter, which does not go down when an invitee deletes their account. The invite bonus reaches both sides at the invitee's first charged request; “pending” counts the people who have not used it yet.",
     invitedList: (n) => `Brought · ${fmt(n)}`, invPill: (n) => `${fmt(n)} invited`, invEarnedLine: (m) => `${m} earned from invites`, invNewest: (n, total) => `the newest ${fmt(n)} of ${fmt(total)}`,
+    invPending: (n) => `${fmt(n)} pending`, invPendingPill: "pending", invSettledPill: "paid",
+    // the one-click abuse action: reclaim the invite credit, and what the two boxes add
+    invAbuseDisable: "disable the account", invAbuseDelete: "delete the invited accounts that never used it", invAbuseGo: "Reclaim the invite credit",
+    invAbuseConfirm: (who, amount, disable, del) => `Reclaim the invite credit of ${who}${amount ? ` (${amount} can be reclaimed; what was already spent stays)` : ""}?${disable ? "\nAlso disable the account: every device is cut off now and a new sign-in is refused." : ""}${del ? "\nAlso delete the accounts it brought that never made a request and never spent anything; this cannot be undone. The ones that used it stay." : ""}`,
+    invAbuseDone: (r) => `Reclaimed ${r.reclaimed}${r.disabled ? ", account disabled" : ""}${r.deleted || r.kept ? `, ${fmt(r.deleted)} unused invited account(s) deleted, ${fmt(r.kept)} kept` : ""}.`,
     cSignups: "Sign-ups", cRegions: "By region", cRegionsIn: (c) => `${c} · by region`, cSpend: "By spend", cActivity: "By activity", cChannel: "By channel", cClients: "By client", cClickNote: "Every piece of a chart is a filter: click it to see only that, click again to let go.", up: "Up a level",
     thRegion: "Region", moreRows: (n) => `Show ${fmt(n)} more`, exportCsv: "Export CSV", csvNote: "The current selection as the table shows it, phone numbers and addresses included; keep the file to yourself.",
     byDayLabel: "by day", byWeekLabel: "by week",
@@ -796,6 +806,23 @@
     try { await api("POST", "/v1/admin/unlimited", { account_id: a.id, unlimited: !a.unlimited }); } catch (e) { alert(e.message); }
     await Promise.all([load(), detail ? openAccount(a.id) : null]);
   }
+  /** The abuse action on an inviter: reclaim the invite credit, and if asked disable it and delete its unused invitees. */
+  async function doInviteAbuse(a, disable, del) {
+    const earned = Number(a.invite_earned_cny ?? a.earned_cny ?? 0);
+    if (!confirm(T.invAbuseConfirm(who(a), earned ? money(earned) : "", disable, del))) return;
+    let r;
+    try { r = await api("POST", "/v1/admin/invites/abuse", { account_id: a.id, disable: !!disable, delete_unused: !!del }); } catch (e) { alert(e.message); return; }
+    forget("invites");
+    alert(T.invAbuseDone({ reclaimed: money(r.reclaimed_cny || 0), disabled: !!r.disabled, deleted: r.deleted || 0, kept: r.kept || 0 }));
+    await Promise.all([load(), detail ? openAccount(a.id) : null]);
+  }
+  /** The abuse action's row: two boxes and the button; `a` is the inviter as the leaders list or the drawer knows it. */
+  function inviteAbuseRow(a, pad) {
+    const box = (label) => { const i = h("input", { type: "checkbox" }); return [i, h("label", { class: "sw", onclick: (e) => e.stopPropagation() }, i, " ", label)]; };
+    const [dis, disEl] = box(T.invAbuseDisable), [del, delEl] = box(T.invAbuseDelete);
+    return h("div", { class: "acts", style: pad || "", onclick: (e) => e.stopPropagation() },
+      h("button", { class: "btn danger sm", onclick: () => doInviteAbuse(a, dis.checked, del.checked) }, T.invAbuseGo), disEl, delEl);
+  }
 
   // ── the drawer: one account ────────────────────────────────────
   let drawerEl = null;
@@ -927,7 +954,9 @@
       // the people this account's code brought, newest first; shown once there is one to show
       ...((a.invited || []).length || a.invites ? [h("div", { class: "label" }, T.invitedList(a.invited_total || (a.invited || []).length), a.invite_earned_cny ? ` · ${T.invEarnedLine(money(a.invite_earned_cny))}` : ""),
         h("div", { class: "card" }, ...(a.invited || []).map((i) => inviteeRow(i, a)), !(a.invited || []).length ? h("div", { class: "empty" }, T.none) : null,
-          (a.invited_total || 0) > (a.invited || []).length ? h("div", { class: "fine", style: "padding:6px 16px 10px" }, T.invNewest((a.invited || []).length, a.invited_total)) : null)] : []),
+          (a.invited_total || 0) > (a.invited || []).length ? h("div", { class: "fine", style: "padding:6px 16px 10px" }, T.invNewest((a.invited || []).length, a.invited_total)) : null,
+          // the abuse action lives with the people it is about
+          (a.invited || []).length ? inviteAbuseRow(a, "padding:6px 16px 12px;flex-wrap:wrap;gap:8px 14px") : null)] : []),
       h("div", { class: "label" }, T.byKind), h("div", { class: "card" },
         h("div", { class: "label", style: "margin:12px 16px 4px" }, T.usageToday), kindRows(u.today && u.today.by_kind, rate),
         h("div", { class: "label", style: "margin:12px 16px 4px" }, T.usagePeriod(p.days || days)), kindRows(p.by_kind, rate),
@@ -962,11 +991,13 @@
       h("div", { class: "fine", style: "padding:14px 4px 4px" }, h("b", {}, T.recorded), " ", T.recordedNote),
     );
   }
-  /** One statement line: when, kind, model, what it took, what it cost — and, 0.10, from where and with what. */
+  /** One statement line: when, kind, model, what it took, what it cost and, 0.10, from where and with what.
+   *  A credit line whose figure is negative (`from: clawback`) is a reclaim: red pill, the minus kept. */
   function ledgerLine(r, accountId) {
+    const clawback = r.kind === "credit" && r.detail && Number(r.detail.credit_uy) < 0;
     return h("div", { class: "line" },
       h("span", { class: "c when" }, when(r.ts)),
-      h("span", { class: "c" }, h("span", { class: "pill " + ({ chat: "blue", image: "violet", video: "cyan", realtime: "ok", grant: "ok", credit: "ok" }[r.kind] || "") }, T.kinds[r.kind] || r.kind)),
+      h("span", { class: "c" }, h("span", { class: "pill " + (clawback ? "bad" : { chat: "blue", image: "violet", video: "cyan", realtime: "ok", grant: "ok", credit: "ok" }[r.kind] || "") }, T.kinds[r.kind] || r.kind)),
       h("span", { class: "c grow" }, h("code", {}, r.model || ""), r.detail && r.detail.from ? h("span", { class: "fine" }, ` ${r.detail.from}`) : null, r.detail && r.detail.note ? h("span", { class: "fine" }, ` ${r.detail.note}`) : null),
       h("span", { class: "c num" }, r.kind === "chat" ? T.inOut(r.prompt_tokens, r.completion_tokens) : r.kind === "grant" || r.kind === "credit" ? (r.detail && r.detail.credit_uy ? money(r.detail.credit_uy / 1e6) : fmt(-r.charged)) : fmt(r.charged)),
       h("span", { class: "c num" }, money(r.cost_cny)),
@@ -1162,7 +1193,9 @@
     return h("div", { class: "row tap" + (cls ? " " + cls : ""), onclick: (e) => { e.stopPropagation(); openAccount(i.id); } },
       h("span", { class: "tile" + (i.requests > 0 ? "" : " grey"), html: ICON.person }),
       h("div", { class: "txt" }, h("div", { class: "t" }, inviteeLabel(i), " ", h("span", { class: "pill" }, i.channel === "phone" ? T.phone : T.email),
-        same ? [" ", h("span", { class: "pill warn" }, T.invSameIp)] : null, i.disabled ? [" ", h("span", { class: "pill bad" }, T.disabled)] : null),
+        same ? [" ", h("span", { class: "pill warn" }, T.invSameIp)] : null, i.disabled ? [" ", h("span", { class: "pill bad" }, T.disabled)] : null,
+        // the bonus is paid at the invitee's first charged request: say which side of that line this one is on
+        i.settled === false ? [" ", h("span", { class: "pill" }, T.invPendingPill)] : i.settled === true ? [" ", h("span", { class: "pill ok" }, T.invSettledPill)] : null),
         h("div", { class: "s" }, `${T.thJoined} ${dateOf(i.created_at)} · ${T.lastSeenAt} ${i.last_seen_at ? ago(i.last_seen_at) : T.never} · ${T.thReqs} ${fmt(i.requests)} · ${money(i.spent_cny)}`,
           i.last_ip ? [" · ", ipChip(i.last_ip, i.id)] : null)));
   }
@@ -1195,7 +1228,7 @@
           h("div", { style: "min-width:0" }, h("div", { class: "n", title: x.hint }, h("a", { class: "more-link", href: "#", onclick: (e) => { e.preventDefault(); e.stopPropagation(); openAccount(x.id); } }, who(x))),
             h("div", { class: "tags" }, h("span", { class: "pill" }, x.channel === "phone" ? T.phone : T.email), x.disabled ? h("span", { class: "pill bad" }, T.disabled) : null,
               h("span", { class: "fine" }, `${T.thJoined} ${dateOf(x.created_at)}`))))),
-        h("td", { class: "num" + (f.sort === "invited" ? " on" : "") }, fmt(x.invited), x.invites !== x.invited ? h("span", { class: "sub" }, T.invRecorded(x.invites)) : null),
+        h("td", { class: "num" + (f.sort === "invited" ? " on" : "") }, fmt(x.invited), x.invited_pending ? h("span", { class: "sub" }, T.invPending(x.invited_pending)) : null, x.invites !== x.invited ? h("span", { class: "sub" }, T.invRecorded(x.invites)) : null),
         h("td", { class: "num hide-sm" + (f.sort === "active" ? " on" : "") }, fmt(x.invited_active), x.invited ? h("span", { class: "sub" }, `${Math.round(100 * x.invited_active / x.invited)}%`) : null),
         h("td", { class: "num hide-sm" + (f.sort === "same_ip" ? " on" : "") }, x.invited_same_ip ? h("span", { class: "pill warn" }, fmt(x.invited_same_ip)) : "0"),
         h("td", { class: "num hide-sm" + (f.sort === "spent" ? " on" : "") }, money(x.invited_spent_cny)),
@@ -1206,7 +1239,8 @@
         const list = x.invitees || [];
         rows.push(h("tr", { class: "province" }, h("td", {}, ""), h("td", { colspan: 8, style: "padding:0" },
           h("div", { class: "list" }, ...list.map((it) => inviteeRow(it, x)), !list.length ? h("div", { class: "empty sm" }, T.none) : null,
-            x.invited > list.length ? h("div", { class: "row tap", onclick: (e) => { e.stopPropagation(); openAccount(x.id); } }, h("span", { class: "tile grey", html: ICON.person }), h("div", { class: "txt" }, h("div", { class: "s" }, T.invMore(x.invited - list.length)))) : null))));
+            x.invited > list.length ? h("div", { class: "row tap", onclick: (e) => { e.stopPropagation(); openAccount(x.id); } }, h("span", { class: "tile grey", html: ICON.person }), h("div", { class: "txt" }, h("div", { class: "s" }, T.invMore(x.invited - list.length)))) : null,
+            inviteAbuseRow(x, "padding:8px 16px 12px;flex-wrap:wrap;gap:8px 14px")))));
       }
     });
     const table = rows.length ? h("table", { class: "places" },

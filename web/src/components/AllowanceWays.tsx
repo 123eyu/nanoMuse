@@ -189,7 +189,7 @@ export function AllowanceWays({
         )}
       </Way>
 
-      <Way icon={<Users size={16} />} tone="bg-violet-500/12 text-violet-600 dark:text-violet-300" title={t("Invite a friend: +¥{bonus} for you and +¥{bonus} for them, for each new person who signs up with your link.", { bonus: inviteBonus.toFixed(0) })}>
+      <Way icon={<Users size={16} />} tone="bg-violet-500/12 text-violet-600 dark:text-violet-300" title={t("Invite a friend: +¥{bonus} for you and +¥{bonus} for them, once a new person who signed up with your link makes their first request.", { bonus: inviteBonus.toFixed(0) })}>
         {link ? (
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => void share()} className={cx(secondaryBtn, "inline-flex items-center gap-1.5")}>

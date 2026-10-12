@@ -773,7 +773,7 @@
     <string name="nm_face_cost_not_now">Nu acum</string>
     <string name="nm_face_cost_declined">În regulă, fața rămâne așa cum e.</string>
     <string name="nm_cloud_invite_title">Invită un prieten</string>
-    <string name="nm_cloud_invite_why">Fiecare persoană nouă care se înscrie cu codul tău adaugă ¥%1$s la creditul tău, și ¥%1$s la al ei. Nu expiră niciodată.</string>
+    <string name="nm_cloud_invite_why">Când un prieten se înscrie cu codul tău și trimite prima cerere, primiți amândoi ¥%1$s. Nu expiră niciodată.</string>
     <string name="nm_cloud_invite_code">Codul tău</string>
     <string name="nm_cloud_invite_share">Partajează linkul</string>
     <string name="nm_cloud_invite_copy">Copiază</string>
@@ -811,7 +811,7 @@
     <string name="nm_cap_clips_unavailable">Clipurile au nevoie de un furnizor cu modele video: Alibaba Cloud Bailian.</string>
     <string name="nm_cap_hands_unavailable">Mâinile au nevoie de un model care vede ecranul: Bailian, OpenRouter, OpenAI, Anthropic, Gemini sau orice furnizor cu modele de viziune.</string>
     <string name="nm_cap_chat_unavailable">Chatul are nevoie de un furnizor cu modele de chat: adaugă o cheie sau conectează-te.</string>
-    <string name="nm_ways_invite_title">Invită un prieten: +¥%1$s pentru tine și +¥%2$s pentru el, pentru fiecare persoană nouă care se înscrie cu linkul tău.</string>
+    <string name="nm_ways_invite_title">Invită un prieten: +¥%1$s pentru tine și +¥%2$s pentru el, când o persoană nouă înscrisă cu linkul tău trimite prima cerere.</string>
     <string name="nm_ways_invite_share">Partajează linkul</string>
     <string name="nm_ways_invite_copy">Copiază linkul</string>
     <string name="nm_cloud_ev_contribute_on">Controlul datelor: ajutorul la îmbunătățire pornit</string>

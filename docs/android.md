@@ -38,8 +38,8 @@ update*) and offers the download.
 3. **Sign in.** The first screen is the account: a phone number or an e-mail address,
    a code, or a password once you have set one. It is what lets your devices work as one
    ([hub.md](hub.md)) and brings a model to start with ([cloud.md](cloud.md): a free pool per
-   account (¥10 at the time of writing) and more for each friend invited, and for them;
-   the app prints the relay's current figures; then [your own key](own-key.md)). Then choose which model answers: the account's
+   account (¥10 at the time of writing) and more for each friend invited, and for them,
+   once the friend makes a first request; the app prints the relay's current figures; then [your own key](own-key.md)). Then choose which model answers: the account's
    own, or a key of your own (any OpenAI-compatible endpoint, or the OAuth sign-ins the
    app ships with). Four models are set, not one, and they live on one page, **Settings →
    Models** (the card at the top of Settings opens it): **Chat**, the model that talks with
@@ -239,6 +239,13 @@ system's answer for every other host: the hub, the relay, the sandbox mirrors ar
 Provider clients carry `OwnProviderProxy.authenticator` for a proxy that asks for a password.
 *Test* fetches `https://chatgpt.com/` through the proxy as entered and reports the status and the
 milliseconds. Unit tests: `ProviderReachTest`, `OwnProviderProxyTest`.
+
+## Voice input
+
+System voice input can prefer on-device recognition. If the phone has no usable on-device
+service, it falls back to the default recognition service. A language error from that
+default service is shown in the voice panel. A running on-device recognizer whose language
+pack is unavailable still falls back once to the default service.
 
 ## Privacy and permissions
 

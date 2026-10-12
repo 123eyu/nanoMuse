@@ -1535,61 +1535,61 @@
         }
       }
     },
-    "A friend who signs up with your code gets %@ of credit, and so do you. %@ invited · %@ earned." : {
+    "When a friend signs up with your code and makes their first request, you both get %@. %@ invited · %@ earned." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wer sich mit deinem Code registriert, bekommt %@ Guthaben, und du auch. %@ eingeladen · %@ erhalten."
+            "value" : "Wenn sich jemand mit deinem Code registriert und die erste Anfrage stellt, bekommt ihr beide %@. %@ eingeladen · %@ erhalten."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A friend who signs up with your code gets %@ of credit, and so do you. %@ invited · %@ earned."
+            "value" : "When a friend signs up with your code and makes their first request, you both get %@. %@ invited · %@ earned."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un amigo que se registre con tu código recibe %@ de crédito, y tú también. %@ invitados · %@ ganados."
+            "value" : "Cuando un amigo se registra con tu código y hace su primera solicitud, ambos reciben %@. %@ invitados · %@ ganados."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un ami qui s’inscrit avec votre code reçoit %@ de crédit, et vous aussi. %@ invités · %@ gagnés."
+            "value" : "Quand un ami s’inscrit avec votre code et envoie sa première requête, vous recevez chacun %@. %@ invités · %@ gagnés."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "あなたのコードで登録した友だちは %@ のクレジットを受け取り、あなたも同じ額を受け取ります。%@ 人を招待 · %@ を獲得。"
+            "value" : "友だちがあなたのコードで登録して最初のリクエストを送ると、2 人とも %@ を受け取ります。%@ 人を招待 · %@ を獲得。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "내 코드로 가입한 친구는 %@의 크레딧을 받고, 나도 똑같이 받습니다. %@명 초대 · %@ 적립."
+            "value" : "친구가 내 코드로 가입하고 첫 요청을 보내면 두 사람 모두 %@을 받습니다. %@명 초대 · %@ 적립."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Друг, который регистрируется с вашим кодом, получает %@ кредита, и вы тоже. Приглашено: %@ · получено: %@."
+            "value" : "Когда друг регистрируется с вашим кодом и делает первый запрос, вы оба получаете %@. Приглашено: %@ · получено: %@."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "朋友用你的邀请码注册，各得 %1$@ 额度。已邀请 %2$@ 人 · 共获得 %3$@。"
+            "value" : "朋友用你的邀请码注册并发出第一次请求后，你们各得 %1$@。已邀请 %2$@ 人 · 共获得 %3$@。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "朋友用你的邀請碼註冊，各得 %1$@ 額度。已邀請 %2$@ 人 · 共獲得 %3$@。"
+            "value" : "朋友用你的邀請碼註冊並發出第一次請求後，你們各得 %1$@。已邀請 %2$@ 人 · 共獲得 %3$@。"
           }
         }
       }
@@ -6875,61 +6875,61 @@
         }
       }
     },
-    "Invite a friend: +¥%@ for you and +¥%@ for them, for each new person who signs up with your link." : {
+    "Invite a friend: +¥%@ for you and +¥%@ for them, once a new person who signed up with your link makes their first request." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lade jemanden ein: +¥%@ für dich und +¥%@ für die Person, für jede neue Anmeldung über deinen Link."
+            "value" : "Lade jemanden ein: +¥%@ für dich und +¥%@ für die Person, sobald jemand Neues über deinen Link registriert ist und die erste Anfrage stellt."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Invite a friend: +¥%@ for you and +¥%@ for them, for each new person who signs up with your link."
+            "value" : "Invite a friend: +¥%@ for you and +¥%@ for them, once a new person who signed up with your link makes their first request."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Invita a alguien: +¥%@ para ti y +¥%@ para esa persona, por cada persona nueva que se registre con tu enlace."
+            "value" : "Invita a alguien: +¥%@ para ti y +¥%@ para esa persona, cuando alguien nuevo se registra con tu enlace y hace su primera solicitud."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Invitez quelqu’un : +¥%@ pour vous et +¥%@ pour la personne, pour chaque nouvelle inscription avec votre lien."
+            "value" : "Invitez quelqu’un : +¥%@ pour vous et +¥%@ pour la personne, dès qu’une nouvelle personne inscrite avec votre lien envoie sa première requête."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "友だちを招待：あなたのリンクから新しく登録した人ごとに、あなたに +¥%@、相手に +¥%@。"
+            "value" : "友だちを招待：あなたのリンクから登録した人が最初のリクエストを送るごとに、あなたに +¥%@、相手に +¥%@。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "친구 초대: 내 링크로 새로 가입하는 사람마다 나에게 +¥%@, 상대에게 +¥%@."
+            "value" : "친구 초대: 내 링크로 가입한 사람이 첫 요청을 보낼 때마다 나에게 +¥%@, 상대에게 +¥%@."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Пригласите друга: +¥%@ вам и +¥%@ ему за каждого нового человека, который зарегистрируется по вашей ссылке."
+            "value" : "Пригласите друга: +¥%@ вам и +¥%@ ему, как только новый человек, зарегистрировавшийся по вашей ссылке, сделает первый запрос."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "邀请朋友：每有一位新用户通过你的链接注册，你 +¥%@，对方 +¥%@。"
+            "value" : "邀请朋友：每有一位新用户通过你的链接注册并发出第一次请求，你 +¥%@，对方 +¥%@。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "邀請朋友：每有一位新用戶透過你的連結註冊，你 +¥%@，對方 +¥%@。"
+            "value" : "邀請朋友：每有一位新用戶透過你的連結註冊並發出第一次請求，你 +¥%@，對方 +¥%@。"
           }
         }
       }
@@ -116690,61 +116690,61 @@
         }
       }
     },
-    "A friend’s code adds %@ for both of you on a first sign-in." : {
+    "A friend’s code on a first sign-in adds %@ for both of you after your first request." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Code einer anderen Person bringt euch beiden bei der ersten Anmeldung %@."
+            "value" : "Der Code einer anderen Person bei der ersten Anmeldung bringt euch beiden %@ nach deiner ersten Anfrage."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A friend’s code adds %@ for both of you on a first sign-in."
+            "value" : "A friend’s code on a first sign-in adds %@ for both of you after your first request."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El código de un amigo añade %@ para los dos en el primer inicio de sesión."
+            "value" : "El código de un amigo en el primer inicio de sesión añade %@ para los dos después de tu primera solicitud."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Le code d’un ami ajoute %@ pour vous deux à la première connexion."
+            "value" : "Le code d’un ami à la première connexion ajoute %@ pour vous deux après votre première requête."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "友だちのコードを使うと、初回サインイン時にお互いに %@ が加わります。"
+            "value" : "初回サインイン時に友だちのコードを使うと、あなたの最初のリクエストの後にお互いに %@ が加わります。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "첫 로그인 때 친구의 코드를 넣으면 두 사람 모두에게 %@이 더해집니다."
+            "value" : "첫 로그인 때 친구의 코드를 넣으면 내 첫 요청 후에 두 사람 모두에게 %@이 더해집니다."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Код друга добавляет %@ вам обоим при первом входе."
+            "value" : "Код друга при первом входе добавляет %@ вам обоим после вашего первого запроса."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "首次登录时填朋友的邀请码，两人各加 %@。"
+            "value" : "首次登录时填朋友的邀请码，你发出第一次请求后两人各加 %@。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "首次登入時填朋友的邀請碼，兩人各加 %@。"
+            "value" : "首次登入時填朋友的邀請碼，你發出第一次請求後兩人各加 %@。"
           }
         }
       }
