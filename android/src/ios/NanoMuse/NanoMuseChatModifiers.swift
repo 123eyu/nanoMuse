@@ -27,33 +27,96 @@
 
 import SwiftUI
 
-/// The composer's place in the chat: a row under the message list, inside the safe area —
-/// not an overlay of the list (upstream, 0.1.36–0.1.37) and not a safe-area inset of it (the
-/// 0.1.38 fail-safe). A plain `VStack` has nothing to go wrong with: the list takes what is
-/// left above the column, the keyboard shortens both, and the column is where SwiftUI put it
-/// — which the check page (Settings → Appearance → Composer check) can now report in numbers.
-/// The list needs no bottom inset for the composer any more (0 is passed to it). The `/` and
-/// `@` popup and its tap-outside catcher stay an overlay of the list, so the popup's bottom
-/// edge is the column's top edge by layout, as upstream's note wanted.
+/// The height of the shell's floating bottom bar over the chat's bottom edge, 0 when the shell
+/// is off or the bar is away for the keyboard. `NanoMuseHomeView` sets it over the chat layer;
+/// `NanoMuseComposerHost` stands the composer column that much above the bottom, and the
+/// message list's content scrolls under the column and the bar alike.
+private struct NanoMuseBottomOverlayKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 0
+}
+
+extension EnvironmentValues {
+    var nmBottomOverlay: CGFloat {
+        get { self[NanoMuseBottomOverlayKey.self] }
+        set { self[NanoMuseBottomOverlayKey.self] = newValue }
+    }
+}
+
+/// The composer's place in the chat: a layer over the message list's bottom edge, standing
+/// `overlay` points above it (the shell's bottom bar), the list as tall as the chat. The rows
+/// scroll under the column and under the bar, which is what gives the bar's glass something to
+/// blur and lets the last row dissolve instead of ending at a hard edge, as on Android
+/// (`NmChatBottomLayout`, #331). The list keeps its content clear of the column with a bottom
+/// inset of the column's measured height plus the bar (`columnHeight` is written here and read
+/// by the chat for the list and for the scroll buttons). The `/` and `@` popup and its
+/// tap-outside catcher stand on the column's top edge by layout, in one `VStack` with it.
 ///
-/// The composer that could not be seen in 0.1.36–0.1.39 was not this host's doing: the chat
-/// as a whole ran under the shell's bottom bar once the keyboard had come and gone, and the
-/// column — wherever it was attached — sat behind the bar. That is fixed where it was, in
-/// `NanoMuseHomeView.body` (the bar is a row, not a safe-area inset); this host stays because
-/// a row is the simpler of the two layouts and the one the Android app has.
+/// Behind the column, Android's scrolling fade: once the person has scrolled up, a gradient of
+/// the canvas colour over the rows passing behind the column and the solid canvas behind the
+/// column itself, stopping at the bar so the glass keeps its rows; at the latest message there
+/// is nothing behind the column but the list's own inset, and the fade is away.
+///
+/// 0.1.40 to 1.0.3 had the column as a `VStack` row under a shorter list (the composer that could
+/// not be seen in 0.1.36 to 0.1.39 was a safe-area inset on the NavigationStack's ancestor, fixed
+/// in `NanoMuseHomeView.body`; the row was the simplest layout that could not fail). That
+/// layout left a plain canvas behind the bar, so the glass pill read as a white one. The three
+/// layers here are boxed in `AnyView`s to keep this body shallow (NanoMuseRound6Tests).
 struct NanoMuseComposerHost: ViewModifier {
     /// The column, type-erased: its tree (the cards, the tool strip, the input bar) is the
     /// heaviest part of the chat's body, and a box keeps it out of the body's value and type.
     let stack: AnyView
     /// The popup layer, type-erased for the same reason.
     let popup: AnyView
+    /// The shell's bottom bar under the column (`\.nmBottomOverlay`), 0 without it.
+    let overlay: CGFloat
+    /// The column's height as laid out, without `overlay`; written on every change.
+    @Binding var columnHeight: CGFloat
+    /// The person has scrolled up from the latest row: the fade shows.
+    let fade: Bool
+
+    /// Android's `nmFadeHeight`: how far above the column the canvas fades in.
+    static let fadeHeight: CGFloat = 90
 
     func body(content: Content) -> some View {
-        VStack(spacing: 0) {
+        ZStack(alignment: .bottom) {
             content
-                .overlay(alignment: .bottom) { popup }
-            stack
+            fadeLayer
+            VStack(spacing: 0) {
+                popup
+                columnLayer
+            }
         }
+    }
+
+    private var columnLayer: AnyView {
+        AnyView(
+            stack
+                .onGeometryChange(for: CGFloat.self) { proxy in
+                    proxy.size.height
+                } action: { height in
+                    if abs(height - columnHeight) > 0.5 { columnHeight = height }
+                }
+                .padding(.bottom, overlay)
+        )
+    }
+
+    private var fadeLayer: AnyView {
+        AnyView(
+            VStack(spacing: 0) {
+                LinearGradient(
+                    colors: [ChatColors.background.opacity(0), ChatColors.background],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: Self.fadeHeight)
+                ChatColors.background
+                    .frame(height: columnHeight)
+            }
+            .padding(.bottom, overlay)
+            .opacity(fade ? 1 : 0)
+            .animation(.easeInOut(duration: 0.25), value: fade)
+            .allowsHitTesting(false)
+        )
     }
 }
 
