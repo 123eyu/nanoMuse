@@ -401,7 +401,9 @@ struct NanoMuseGoalsRoom: View {
                 .padding(16)
             }
         }
-        .background(NanoMuseTones.canvas.ignoresSafeArea())
+        // The chat's canvas (white, black in dark), as Android's GoalsTab and docs/design.md; the
+        // grey page is the Feed's alone. The cards keep a hairline so they read on it.
+        .background(ChatColors.background.ignoresSafeArea())
         .sheet(item: $pickedCategory) { category in
             NanoMuseGoalCategorySheet(category: category) {
                 pickedCategory = nil
@@ -630,6 +632,7 @@ struct NanoMuseGoalsRoom: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 4)
             .background(NanoMuseTones.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(NanoMuseTones.hairline))
     }
 }
 
