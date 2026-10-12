@@ -275,6 +275,8 @@ async def test_fetch_skill_text(monkeypatch: pytest.MonkeyPatch):
             return httpx.Response(200, text="<html>not a skill</html>")
         if request.url.path.endswith("huge/SKILL.md"):
             return httpx.Response(200, content=b"---\n" + b"x" * (70 * 1024))
+        if request.url.host == "down.example":
+            raise httpx.ConnectError("no route to host")
         return httpx.Response(404)
 
     real = httpx.AsyncClient
@@ -294,6 +296,9 @@ async def test_fetch_skill_text(monkeypatch: pytest.MonkeyPatch):
         await fetch_skill_text("http://x.example/good/SKILL.md")
     with pytest.raises(ValueError, match="larger than a SKILL.md"):
         await fetch_skill_text("https://x.example/huge/SKILL.md")
+    # a host that does not answer is a message for the CLI and a 400 for the app, not a traceback
+    with pytest.raises(ValueError, match="could not fetch .*ConnectError"):
+        await fetch_skill_text("https://down.example/SKILL.md")
 
 
 # ----------------------------------------------------------------------------- the tool
