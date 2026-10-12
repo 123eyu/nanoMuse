@@ -521,7 +521,8 @@ const zhCN: Record<string, string> = {
   at: "于",
   "1 approval waiting for you": "需要你批准",
   "{n} approvals waiting for you": "{n} 项需要你批准",
-  "{n} approval": "{n} 项审批",
+  "1 approval": "1 项审批",
+  "{n} approvals": "{n} 项审批",
 
   // ── Settings ──────────────────────────────────────────────────────────────────────
   You: "你",
@@ -587,6 +588,9 @@ const zhCN: Record<string, string> = {
   "Reply language": "回复语言",
   "What {name} writes in": "{name} 用什么语言回复",
   Auto: "自动",
+  Native: "原生",
+  Prompt: "提示词",
+  Desktop: "桌面",
   "Match mine": "跟随我的语言",
   "App language": "应用语言",
   "Appearance": "外观",

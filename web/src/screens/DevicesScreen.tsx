@@ -445,10 +445,11 @@ function HandsCard({ hands, onChange }: { hands: HandsStatus; onChange: () => vo
               key={b}
               type="button"
               disabled={busy}
+              aria-pressed={(hands.backend ?? "auto") === b}
               onClick={() => void set({ backend: b })}
-              className={cx("rounded-full px-2.5 py-1", (hands.backend ?? "auto") === b || (b === "auto" && !hands.backend) ? "bg-fg text-bg" : "bg-surface-2 text-fg")}
+              className={cx("rounded-full px-2.5 py-1", (hands.backend ?? "auto") === b ? "bg-fg text-bg" : "bg-surface-2 text-fg")}
             >
-              {b}
+              {b === "auto" ? t("Auto") : b === "desktop" ? t("Desktop") : b}
             </button>
           ))}
         </div>
@@ -462,6 +463,7 @@ function HandsCard({ hands, onChange }: { hands: HandsStatus; onChange: () => vo
                   key={m}
                   type="button"
                   disabled={busy}
+                  aria-pressed={(hands.mode ?? "auto") === m}
                   onClick={() => void set({ mode: m })}
                   className={cx("rounded-full px-2.5 py-1", (hands.mode ?? "auto") === m ? "bg-fg text-bg" : "bg-surface-2 text-fg")}
                 >

@@ -307,7 +307,8 @@ export function ChatScreen() {
             onClick={jumpToBottom}
             className="sticky bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-ink text-ink-fg shadow px-3 py-1.5 text-[12.5px] font-medium flex items-center gap-1"
           >
-            <ChevronDown size={14} /> {t("Latest")}{pendingApprovals ? ` · ${t("{n} approval", { n: pendingApprovals })}` : ""}
+            <ChevronDown size={14} /> {t("Latest")}
+            {pendingApprovals ? ` · ${pendingApprovals > 1 ? t("{n} approvals", { n: pendingApprovals }) : t("1 approval")}` : ""}
           </button>
         )}
       </div>
