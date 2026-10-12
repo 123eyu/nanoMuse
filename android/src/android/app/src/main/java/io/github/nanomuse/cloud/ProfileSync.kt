@@ -5,6 +5,9 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Build
 import android.util.Base64
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.openminis.app.agent.SoulStore
 import com.openminis.app.logging.AppLogger
 import io.github.nanomuse.avatar.AvatarStore
@@ -72,6 +75,14 @@ object ProfileSync {
     fun init(context: Context) {
         app = context.applicationContext
         pullSoon(context)
+        // The hub's `profile` frame is missed while the app is in the background: a pull on
+        // the way back to the front picks up a name or a face another device wrote meanwhile,
+        // instead of waiting for the next cold start.
+        ProcessLifecycleOwner.get().lifecycle.addObserver(
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_START) pullSoon(context)
+            },
+        )
         // what this phone connected changes → the account's other devices hear about it
         SharedConnectors.watch(context.applicationContext) { changed() }
     }
@@ -217,7 +228,9 @@ object ProfileSync {
         val name = SoulStore.load(context)?.metadata?.name?.takeIf { it.isNotBlank() } ?: "nanoMuse"
         val p = prefs(context)
         val stamp = faceStamp()
-        val sameFace = stamp == p.getString(KEY_PUSHED_FACE, null)
+        // A phone that never pushed or pulled and wears no face has nothing to say about the
+        // look: its first write must not put the dragon over a face the account already has.
+        val sameFace = stamp == p.getString(KEY_PUSHED_FACE, null).orEmpty()
         val connectors = SharedConnectors.mine(context)
         val sameConnectors = connectors.toString() == p.getString(KEY_PUSHED_CONNECTORS, null)
         if (sameFace && sameConnectors && name == p.getString(KEY_PUSHED_NAME, null)) return
@@ -230,7 +243,11 @@ object ProfileSync {
         val cur = AvatarStore.current.value
         var sentHash: String? = null
         if (cur == null) {
-            body.put("avatar", DRAGON)
+            // The dragon goes up only when this phone took a face off (a reset): a rename or a
+            // connector change on a phone without a face leaves the look as the relay has it
+            // (relay 0.25 keeps a field that is absent). Before, every such write carried the
+            // dragon and the account's face vanished from the other devices.
+            if (!sameFace) body.put("avatar", DRAGON)
         } else {
             body.put("avatar", "face")
                 .put("style", cur.style.take(20))
@@ -252,7 +269,7 @@ object ProfileSync {
                     body.put("face", face)
                 } else {
                     // a face with no picture on disk cannot be shared: the others keep theirs
-                    body.put("avatar", DRAGON)
+                    body.remove("avatar")
                     body.remove("style")
                     body.remove("description")
                 }

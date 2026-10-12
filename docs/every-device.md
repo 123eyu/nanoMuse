@@ -114,7 +114,14 @@ here under the same conversation; nothing in the chat list says where a chat
 was written, the bubbles do. The person's message is on the other devices as
 soon as it is sent, the reply when the turn ends; signing in sends the device's
 whole history, oldest first. Rename the muse anywhere (the first
-conversation's naming included) and the name follows on the next pull.
+conversation's naming included) and the name follows on the next pull. The
+phones pull the account's name and face when the app starts, right after a
+sign-in, when the hub says `profile`, and each time the app comes back to the
+front (a `profile` frame sent while the app was in the background is missed,
+so the return to the front stands in for it). A rename, or a connector
+change, on a phone that wears no face of its own says nothing about the look:
+the relay keeps the face the account has, and only a reset in the avatar
+studio takes it off every device.
 
 Since 0.1.38 it is **main first**. Only the main conversation travels unless a
 device asks for more: side chats stay on the device that made them, and no other
