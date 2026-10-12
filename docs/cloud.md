@@ -98,7 +98,15 @@ The relay is the code in [`cloud/`](../cloud/README.md). It stores:
 - the agent's name and look (`/v1/me/profile`): which face it wears (the dragon,
   an emoji on a colour, or one drawn in the avatar studio, with that face's five
   stills as small WebP pictures), so every device of the account shows the same
-  one. Since 0.1.34 the same profile lists the account's **connectors**: which
+  one. The write is partial from relay 0.25: a device sends what changed on it,
+  the name alone for a rename, the face with its pictures for a new look, and
+  every field it leaves out keeps its stored value (a blank name too), so a
+  phone that renames the muse before it has pulled the account's face no
+  longer sends the dragon in the name's place and takes the face off every
+  other device; an `avatar` other than `face` drops the stored pictures, so no
+  device reads `has_face` as a face still worn. The clients of 1.0.3 send the
+  whole look on every write and are read exactly as before. Since 0.1.34 the
+  same profile lists the account's **connectors**: which
   device connected which service (a label; how it signed in: OAuth, a key, or
   open; and when), so another device can say "connected on your Mac". The
   credential itself stays on the device that holds it; the relay refuses an
@@ -232,7 +240,12 @@ conversation and its messages, and an account with no main yet gets an empty
 page whose `cursor` is the account's counter. `tail=K` (K ≤ 500, honoured with
 `since=0` only) returns the newest K messages in `seq` order, the conversations
 they belong to, `cursor` at the account's counter, `more: false` and `skipped`
-(how many older messages were left out). Any other `scope` is 400 `bad_scope`.
+(how many older messages were left out). From relay 0.25 the tail page also
+carries the account's main conversation's row whenever it exists, even with no
+message of its own among the K, so a fresh device adopts `cid_main` from its
+first pull instead of minting a second main and learning the id from a
+`main_exists` refusal (a 1.0.3 client reads the extra row as any conversation
+row and behaves the same). Any other `scope` is 400 `bad_scope`.
 `POST /v1/sync/working` says the device named in `device` (or in
 `X-Nanomuse-Device`) is answering in `cid` (`working: true`) or has finished
 (`false`); the relay keeps the live ones in memory for ten minutes (never in
@@ -250,8 +263,11 @@ characters of `a-z 0-9 . _ : -`, folded to lower case), times are Unix seconds.
 Every accepted change takes the account's next `seq`; a device keeps the
 highest `cursor` it has pulled and asks for `since=` that. A push is idempotent
 (a known `mid` is left alone unless the new row is a tombstone, a known `cid`
-takes the newer title) and at most 200 messages or conversations long (413
-`too_many_messages`). A page lists its conversations and messages in `seq`
+takes the newer title; a time more than a week past the relay's clock, or
+before the conversation began, is read as the conversation's `created_at`,
+relay 0.25, where earlier relays measured the week from `created_at` and so
+dropped every rename of a chat older than a week) and at most 200 messages or
+conversations long (413 `too_many_messages`). A page lists its conversations and messages in `seq`
 order, and the relay adds the conversation of every message in the page even
 when that conversation's own `seq` lies ahead (a rename moves it), so a client
 applies the page's conversations first, then its messages, and is never handed
@@ -460,7 +476,7 @@ POST /v1/auth/password      Bearer  {password, current?}      → 204; "" with c
 GET  /v1/me                 Bearer                            → {region: cn | intl | unknown, account{…, has_password, sessions, signed_in_via}, usage{today, total by kind / model}, tokens, spend{…, ways}, models, recent, nudges}
 GET  /v1/nudges                                               → {version, star{enabled, url, moments{signed_in, tasks[], new_look, exhausted, days_used[], goal_done}, cooldown_days, max_asks, text, text_zh}}; no key, cached an hour
 GET  /v1/me/profile         Bearer  ?face=false               → {rev, device, name, avatar, …, face?, connectors: [{id, label, url, auth, device, device_id, enabled, at}]}
-PUT  /v1/me/profile         Bearer  {device, name?, avatar?, …, connectors?}  → {rev, device}; a device's connectors replace only its own; 400 no_secrets_in_profile, too_many_connectors
+PUT  /v1/me/profile         Bearer  {device, name?, avatar?, …, face?, connectors?}  → {rev, device}; a field that is absent keeps what is stored (relay 0.25); a device's connectors replace only its own; 400 no_secrets_in_profile, too_many_connectors
 DELETE /v1/me/profile       Bearer                            → 204
 GET  /v1/me/sessions        Bearer                            → {sessions: [{prefix, device, via, created_at, last_used_at, current}]}
 DELETE /v1/me/sessions/{prefix}  Bearer                       → 204

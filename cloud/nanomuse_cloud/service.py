@@ -1817,14 +1817,25 @@ class Cloud:
             rev = self.db.put_profile(caller.account_id, device, None, None, connectors)
             self.note(caller.account_id, "profile.connectors", str(len(json.loads(connectors))))
             return {"rev": rev, "device": device}
-        name = str(data.get("name") or "").strip()
-        avatar = str(data.get("avatar") or "").strip()
-        emoji = str(data.get("emoji") or "").strip()
-        color = str(data.get("color") or "").strip()
-        style = str(data.get("style") or "").strip()
-        description = str(data.get("description") or "").strip()
-        if not name or len(name) > 60:
-            raise CloudError(400, "bad_request", "name is 1–60 characters")
+        # 0.25: a write names only what changed on the device. A field that is absent (or
+        # blank, for the name) keeps what is stored, so a phone that renamed the muse before
+        # it ever pulled the account's face sends the name alone and the face stays; a 1.0.3
+        # client that sends the whole look every time is read exactly as before.
+        stored: dict = json.loads(row["body"] or "{}") if row is not None else {}
+
+        def field(key: str, default: str = "") -> str:
+            if key in data and data[key] is not None:
+                return str(data[key]).strip()
+            return str(stored.get(key) or default)
+
+        name = field("name") or str(stored.get("name") or "")
+        avatar = field("avatar", "dragon")
+        emoji = field("emoji")
+        color = field("color")
+        style = field("style")
+        description = field("description")
+        if len(name) > 60:
+            raise CloudError(400, "bad_request", "name is at most 60 characters")
         if avatar not in self.PROFILE_AVATARS:
             raise CloudError(400, "bad_request", "avatar is dragon, emoji or face")
         if len(emoji) > 16 or len(style) > 20 or len(description) > 200:
@@ -1840,6 +1851,11 @@ class Cloud:
             face = self._check_face(data["face"])
         if avatar == "face" and not (face or (face is None and row is not None and row["face"])):
             raise CloudError(400, "bad_request", "a drawn face needs its pictures")
+        if avatar != "face" and face is None and row is not None and row["face"]:
+            # back to the dragon or an emoji without saying `face: null` (the Android app of
+            # 1.0.3 and before): the pictures go with the look, so no device reads `has_face`
+            # as a face still worn
+            face = ""
         body = json.dumps(
             {"name": name, "avatar": avatar, "emoji": emoji, "color": color, "style": style, "description": description},
             ensure_ascii=False,

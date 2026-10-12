@@ -447,24 +447,65 @@ def test_the_profile_is_shared_and_announced(client):
     r = client.put("/v1/me/profile", headers=auth, json={"device": "phone-1", "name": "小火龙", "avatar": "face"})
     assert r.status_code == 200 and r.json()["rev"] == 2
     assert client.get("/v1/me/profile", headers=auth).json()["face"]["idle"] == webp
+    # 0.25: a write names only what changed. The name alone keeps the look (a phone that
+    # renamed before it ever pulled the face no longer sends "dragon" and takes the face off
+    # every device); a blank name keeps the stored one; a face without a name keeps the name.
+    r = client.put("/v1/me/profile", headers=auth, json={"device": "phone-1", "name": "阿火"})
+    after = client.get("/v1/me/profile", headers=auth).json()
+    assert r.status_code == 200 and r.json()["rev"] == 3
+    assert after["name"] == "阿火" and after["avatar"] == "face" and after["style"] == "pixel" and after["face"]["idle"] == webp
+    r = client.put("/v1/me/profile", headers=auth, json={"device": "phone-1", "name": "", "description": "a robot owl, blue"})
+    after = client.get("/v1/me/profile", headers=auth).json()
+    assert r.status_code == 200 and after["name"] == "阿火" and after["description"] == "a robot owl, blue" and after["has_face"]
+    r = client.put("/v1/me/profile", headers=auth, json={"device": "phone-1", "avatar": "face", "face": {"idle": webp}, "style": "ink"})
+    after = client.get("/v1/me/profile", headers=auth).json()
+    assert r.status_code == 200 and after["name"] == "阿火" and after["style"] == "ink" and set(after["face"]) == {"idle"}
+    # back to the dragon without `face: null` (Android 1.0.3): the pictures go with the look,
+    # so no device reads `has_face` as a face still worn while another shows the dragon
+    r = client.put("/v1/me/profile", headers=auth, json={"device": "phone-1", "name": "阿火", "avatar": "dragon"})
+    after = client.get("/v1/me/profile", headers=auth).json()
+    assert r.status_code == 200 and after["avatar"] == "dragon" and after["has_face"] is False and after["face"] is None
+    r = client.put(
+        "/v1/me/profile",
+        headers=auth,
+        json={
+            "device": "phone-1",
+            "name": "阿火",
+            "avatar": "face",
+            "style": "pixel",
+            "description": "a robot owl",
+            "face": {"idle": webp},
+        },
+    )
+    assert r.status_code == 200
     r = client.put(
         "/v1/me/profile", headers=auth, json={"name": "小火龙", "avatar": "emoji", "emoji": "🦉", "color": "#0064d4", "face": None}
     )
     after = client.get("/v1/me/profile", headers=auth).json()
     assert r.status_code == 200 and after["face"] is None and after["face_id"] == ""
 
-    # what is refused: a face without pictures, a stray mood, a picture that is not a picture
+    # what is refused: a face without pictures, a stray mood, a picture that is not a picture, a name too long
     bad = [
         {"name": "x", "avatar": "face"},
         {"name": "x", "avatar": "face", "face": {"idle": webp, "angry": webp}},
         {"name": "x", "avatar": "face", "face": {"idle": base64.b64encode(b"hello").decode()}},
-        {"name": "", "avatar": "dragon"},
+        {"name": "x" * 61, "avatar": "dragon"},
         {"name": "x", "avatar": "emoji", "color": "blue"},
     ]
     for body in bad:
         assert client.put("/v1/me/profile", headers=auth, json=body).status_code == 400, body
     assert client.delete("/v1/me/profile", headers=auth).status_code == 204
     assert client.get("/v1/me/profile", headers=auth).json()["rev"] == 0
+    # the first write of an account may be the name alone: the look is the dragon until a device says otherwise
+    r = client.put("/v1/me/profile", headers=auth, json={"device": "phone-1", "name": "阿火"})
+    after = client.get("/v1/me/profile", headers=auth).json()
+    assert (
+        r.status_code == 200
+        and after["rev"] == 1
+        and after["name"] == "阿火"
+        and after["avatar"] == "dragon"
+        and after["has_face"] is False
+    )
 
 
 def test_a_flooding_socket_is_slowed_then_closed(client):
