@@ -388,15 +388,19 @@ struct NanoMuseHomeView: View {
         // the keyboard, then never again"; the sliver of a composer's top edge above the bar in
         // the 0.1.36 screenshot). 0.1.40 made the bar a VStack row under the rooms, plain layout:
         // the chat is as tall as what is left over the bar, and over the keyboard, whether the
-        // bar is there or not. The floating pill keeps that for the chat as bottom padding of
-        // the bar's height, the same layout by another name. The rooms are plain SwiftUI
-        // scroll views with no NavigationStack, so they take the bar's height as a safe-area
-        // inset instead: their content scrolls under the pill and the glass has something to
-        // blur. The pill itself lies over both, aligned to the bottom, inside the safe area.
+        // bar is there or not. The floating pill kept that for the chat as bottom padding of
+        // the bar's height up to 1.0.3, which left a plain canvas behind the glass. Now the chat
+        // gets the bar's height as an environment value instead (`nmBottomOverlay`): the chat
+        // keeps its full height, its composer column stands above the bar and its rows scroll
+        // under the column and the bar (NanoMuseComposerHost), so the pill blurs the transcript
+        // the way it blurs the rooms. The rooms are plain SwiftUI scroll views with no
+        // NavigationStack, so they take the bar's height as a safe-area inset: their content
+        // scrolls under the pill too. The pill itself lies over both, aligned to the bottom,
+        // inside the safe area.
         ZStack(alignment: .bottom) {
             ZStack {
                 chatLayer
-                    .padding(.bottom, bottomBarHidden ? 0 : NanoMuseBottomBar.height)
+                    .environment(\.nmBottomOverlay, bottomBarHidden ? 0 : NanoMuseBottomBar.height)
                     .background(ChatColors.background.ignoresSafeArea())
                     .opacity(tab == .chat ? 1 : 0)
                     .allowsHitTesting(tab == .chat)
@@ -879,8 +883,9 @@ struct NanoMuseBottomBar: View {
     /// The pill's cap on a compact width (an iPhone's composer never reaches it); a regular width
     /// takes `NanoMuseColumn.pillWidth` instead, so the pill is as wide as the composer there too.
     static let maxWidth: CGFloat = 420
-    /// How much of the screen the bar takes above the safe area: what the rooms and the chat
-    /// leave free under their content so nothing lies behind the pill.
+    /// How much of the screen the bar takes above the safe area: the rooms' bottom safe-area
+    /// inset and the chat's `nmBottomOverlay`, so their content scrolls under the pill and stops
+    /// above it at rest; the glass blurs whatever passes behind.
     static var height: CGFloat { tabSize.height + pillPadding * 2 + bottomGap }
 
     var body: some View {
