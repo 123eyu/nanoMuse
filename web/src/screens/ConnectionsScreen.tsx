@@ -3323,6 +3323,24 @@ function PhoneCard({
 }
 
 // ------------------------------------------------------------------ mcp
+/**
+ * `KEY=value` lines typed in the MCP form, as the runtime's `env` block. A line without
+ * `=` or with an empty name is skipped; the value keeps everything after the first `=`.
+ * The runtime moves each value into the vault and keeps a `{{vault:MCP_<SERVER>_<KEY>}}`
+ * reference in app-settings.json; a value typed as a reference already is kept as typed.
+ */
+export function parseEnvLines(text: string): Record<string, string> {
+  const env: Record<string, string> = {};
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    const eq = line.indexOf("=");
+    if (eq <= 0) continue;
+    const key = line.slice(0, eq).trim();
+    if (key) env[key] = line.slice(eq + 1).trim();
+  }
+  return env;
+}
+
 function MCPCard({
   data,
   onChange,
@@ -3337,6 +3355,7 @@ function MCPCard({
   const [name, setName] = useState("");
   const [command, setCommand] = useState("");
   const [url, setUrl] = useState("");
+  const [envText, setEnvText] = useState("");
   const [risk, setRisk] = useState("moderate");
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -3348,12 +3367,14 @@ function MCPCard({
         name: name.trim(),
         command: parts[0] ?? null,
         args: parts.slice(1),
+        env: parseEnvLines(envText),
         url: url.trim() || null,
         risk,
       });
       setName("");
       setCommand("");
       setUrl("");
+      setEnvText("");
       setAdding(false);
       toast(t("Server connected"));
       onChange();
@@ -3433,6 +3454,18 @@ function MCPCard({
                   {t("{n} tools", { n: m.tools })} · {t(m.risk)}
                   {!m.from_app && !m.builtin && ` · ${t("from config.toml")}`}
                 </div>
+                {(m.env?.length ?? 0) > 0 && (
+                  <div className="text-[11.5px] text-muted truncate">
+                    {t("Environment: {names}", { names: (m.env ?? []).map((e) => e.name).join(", ") })}
+                  </div>
+                )}
+                {(m.env ?? []).some((e) => !e.vault) && (
+                  <div className="text-[11.5px] text-amber-700 dark:text-amber-300">
+                    {t("{names} is written as plain text in config.toml; keep it in the vault and write {{vault:NAME}} instead", {
+                      names: (m.env ?? []).filter((e) => !e.vault).map((e) => e.name).join(", "),
+                    })}
+                  </div>
+                )}
               </div>
               {m.from_app && (
                 <button
@@ -3498,6 +3531,21 @@ function MCPCard({
               onChange={(e) => setCommand(e.target.value)}
               className={inputCls}
               placeholder="npx -y @modelcontextprotocol/server-…"
+            />
+          </Field>
+          <Field
+            label={t("Environment")}
+            hint={t(
+              "One KEY=value per line for the command. Each value goes into the vault; the settings file keeps a reference, not the value.",
+            )}
+          >
+            <textarea
+              value={envText}
+              onChange={(e) => setEnvText(e.target.value)}
+              rows={2}
+              className={cx(inputCls, "resize-none font-mono text-[12.5px]")}
+              placeholder={"AMAP_MAPS_API_KEY=…"}
+              spellCheck={false}
             />
           </Field>
           <Field

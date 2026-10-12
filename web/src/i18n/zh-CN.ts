@@ -732,6 +732,12 @@ const zhCN: Record<string, string> = {
   Command: "命令",
   "Run locally over stdio, for example: npx -y @modelcontextprotocol/server-filesystem ./workspace":
     "通过 stdio 在本地运行，例如：npx -y @modelcontextprotocol/server-filesystem ./workspace",
+  Environment: "环境变量",
+  "One KEY=value per line for the command. Each value goes into the vault; the settings file keeps a reference, not the value.":
+    "供命令使用，每行一个 KEY=value。每个值都存入保险库，设置文件里只保留引用，不保留值。",
+  "Environment: {names}": "环境变量：{names}",
+  "{names} is written as plain text in config.toml; keep it in the vault and write {{vault:NAME}} instead":
+    "{names} 在 config.toml 中以明文写入；请存入保险库并改写为 {{vault:NAME}}",
   "or URL": "或 URL",
   "A remote server over Streamable HTTP.": "通过 Streamable HTTP 连接的远程服务器。",
   "Risk of its tools": "其工具的风险级别",

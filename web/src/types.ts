@@ -1136,6 +1136,12 @@ export interface ConnectionsData {
     from_app: boolean;
     /** the phone's own capabilities (local build): always there, cannot be removed */
     builtin?: boolean;
+    /**
+     * The server's environment variables: the names, and whether each value is a vault
+     * reference (`{{vault:NAME}}`); never a value. A plain value is one written as text in
+     * config.toml. Older runtimes leave it out.
+     */
+    env?: Array<{ name: string; vault: boolean }>;
   }>;
   /**
    * Connections the account's other devices hold (contract C3): a name, an address and how
