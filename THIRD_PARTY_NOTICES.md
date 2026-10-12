@@ -61,6 +61,10 @@ Test-only: JUnit 4.13.2 (**EPL-1.0**), MockWebServer 4.12.0 (**Apache-2.0**), ko
 
 The name nanoMuse and the mark in `assets/brand/` are the project's own. Use them to refer to this project; do not use them to suggest that something else is nanoMuse or endorsed by it.
 
+### The default face
+
+The dragon that every app wears until a person picks another is the project's own asset, under the same GPL-3.0-or-later as the rest of the repository. The maintainer made it on 2026-09-25 (commit `58ccf1aa`): the five stills (`idle`, `working`, `waiting`, `happy`, `error`; WebP, 1024 × 1024) were drawn and posed with Alibaba Cloud Model Studio's `qwen-image-3.0-pro`, and the four short clips were animated from them with MiniMax's `MiniMax-H3`. The one set of files is shipped byte for byte in `web/public/avatars/dragon-*` (and the built copy under `nanomuse/server/static/avatars/`), `harness/dsh-nanomuse/assets/dragon-*`, the Android app's `res/drawable-nodpi/nm_avatar_*.webp` and `res/raw/nm_motion_*.mp4`, the iOS app's `NanoMuse/Resources/dragon-*`, and `demo/mobilegym/apps/nanoMuse/res/dragon-idle.webp`. The terms of the two services under which generated output may be redistributed are not recorded in this repository; the maintainer is the one to confirm them.
+
 ## The runtime, the relay, the web console, the desktop app and the showcase (`nanomuse/`, `cloud/`, `web/`, `harness/`, `demo/`)
 
 Our own code, GPL-3.0-or-later like the rest. Third-party code inside it keeps its own licence and notice; the ports named below say where they come from.
