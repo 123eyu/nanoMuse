@@ -87,6 +87,8 @@ def make_settings(**over) -> Settings:
         session_domain="s.localhost",
         public_port=":8000",
         trust_proxy=True,
+        # the test clients connect as 127.0.0.1 (httpx) or "testclient" (Starlette)
+        trusted_proxies=("127.0.0.1", "testclient"),
         site_dir="",
         cdn_dir="",
         image="nanomuse:test",

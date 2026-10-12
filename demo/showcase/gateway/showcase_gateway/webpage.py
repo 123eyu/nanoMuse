@@ -209,7 +209,11 @@ i.en,i.zh{font-style:normal}
     phone_region: "短信验证码目前只支持中国大陆手机号，海外用户请用邮箱登录。", bad_identifier: "请输入中国大陆手机号或邮箱。",
     code_wrong: "验证码不对。", code_expired: "验证码已过期，请重新发送。", code_too_often: "发送太频繁了，请几分钟后再试。",
     send_failed: "验证码没发出去，请稍后再试。", not_invited: "这个 relay 是私有的，这个账号不在名单上。",
-    bad_credentials: "账号和密码不匹配。", no_password: "这个账号还没设密码，先用验证码登录，再在「账号」里设一个。", locked: "密码错得太多次了，请稍后再试，或改用验证码登录。"
+    bad_credentials: "账号和密码不匹配。", no_password: "这个账号还没设密码，先用验证码登录，再在「账号」里设一个。", locked: "密码错得太多次了，请稍后再试，或改用验证码登录。",
+    web_off: "这里没有开启网页版。", web_full: "网页版的名额已满。装 App 吧，它跑在你自己的设备上。",
+    web_busy: "网页版现在很忙，请几分钟后再试，或者装 App。", start_failed: "没能启动你的 Muse，请稍后再试。",
+    start_timeout: "你的 Muse 启动太久了，请稍后再试。", sign_in_again: "登录已失效，请重新登录。",
+    relay_error: "nanoMuse Cloud 没有返回 key，请稍后再试。", relay_unreachable: "连不上 nanoMuse Cloud，请稍后再试。"
   };
   function errText(r){ return (zh && E[r.body.error]) || r.body.message || ("HTTP " + r.status); }
   function show(el, text, err){ el.textContent = text || ""; el.className = "msg" + (err ? " err" : ""); }

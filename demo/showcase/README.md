@@ -191,8 +191,12 @@ httpx's) carries the value: it is rewritten to `token=[redacted]` before it is w
   429 (`session_budget` / `daily_budget`) and the agent tells the visitor in those words
   (`nanomuse/server/failures.py`): the demo's share is used up, start over or install the
   app, not "the provider is rate-limiting this key".
-- **Per visitor (IP):** `PER_IP_ACTIVE` sessions at once, `PER_IP_DAILY` a day. `MAX_SESSIONS`
-  overall.
+- **Per visitor (IP):** `PER_IP_ACTIVE` sessions at once, `PER_IP_DAILY` in any 24 hours: a
+  rolling window from each start, so the allowance comes back to each visitor a day after they
+  used it, in their own time wherever they are, not at midnight in one time zone (the operator's
+  daily budgets above are the ones on the Asia/Shanghai day). A start the box failed to bring
+  up (no container, a health check that never answered) is not counted. `MAX_SESSIONS`
+  overall. The counts live in the gateway's memory; a restart starts them over.
 - **Who is trying it** (`DEMO_SIGNIN_REQUIRED=1`, the default): before the phone starts a Muse,
   the visitor signs in to nanoMuse Cloud (the Android app's door: a code to a phone or an
   inbox, or the account's password) on the phone's own pages (`demo/mobilegym`,
@@ -207,8 +211,9 @@ httpx's) carries the value: it is rewritten to `token=[redacted]` before it is w
   `401 signin_required`, and the phone shows the sign-in. A first sign-in creates the Cloud
   account, with its free allowance, so the day the person installs the app it is already
   theirs. One account is one person wherever it signs in from: `PER_ACCOUNT_ACTIVE` Muses at
-  once, `PER_ACCOUNT_DAILY` a day, on top of the address limits. The session log names the
-  visitor by the masked identifier; `GET /api/demo/info` → `signin` counts them. The book
+  once, `PER_ACCOUNT_DAILY` in any 24 hours, on top of the address limits. The session log
+  names the visitor by the masked identifier and never by address; `GET /api/demo/info` →
+  `signin` counts them. The book
   also keeps, per visitor, the address and browser string of the first and the latest
   sign-in or demo and how many sign-ins, and one *visit* row per demo started: when, from
   which address, with which browser, whether it brought its own key, and when it ended with
@@ -370,6 +375,18 @@ than edges (set the zone's SSL/TLS mode to *Full (strict)*: the origin has a rea
 It is off by default on purpose: from mainland China the free plan routes through overseas
 edges, and the phone's 1.6 MB bundle that a Hong Kong server delivers in 2–3 s took 15–40 s
 through the proxy in our measurements. The audience this is for reaches the origin faster.
+
+The gateway, in turn, believes `X-Forwarded-For` from Caddy alone: `TRUSTED_PROXIES` (the
+compose file sets `caddy`, the service name, which the gateway resolves through Docker's DNS
+and looks up again when a peer it does not know connects, since a recreated Caddy has a new
+address; addresses and networks work too). The session containers reach the same port over
+the sessions network, and the agent inside one does whatever the visitor driving it says, so
+a header from them is not the visitor's word: such a request is counted under the container's
+own address, not under the one it names, and the relay's per-address limits on sign-in codes
+cannot be walked around from inside a demo. uvicorn is not asked to rewrite the client from
+the header (`proxy_headers=False`), so its access log carries Caddy's address and no
+visitor's. A front other than this compose file's Caddy goes into `TRUSTED_PROXIES`; `*`
+believes any peer, which is the old behaviour and not advisable.
 
 ### Other sites on the same Caddy
 

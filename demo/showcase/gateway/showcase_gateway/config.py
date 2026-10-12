@@ -111,6 +111,10 @@ class Settings:
     listen_host: str
     listen_port: int
     trust_proxy: bool  # take the visitor's address from X-Forwarded-For (set by Caddy)
+    # the peers whose X-Forwarded-For is believed (peers.py): addresses, networks or names
+    # such as the compose service "caddy"; "*" is any peer, which lets a session container
+    # pick the address it is limited under
+    trusted_proxies: tuple[str, ...]
     # development only — in production Caddy serves both
     site_dir: str  # the built MobileGym
     cdn_dir: str  # MobileGym's companion dataset, for /cdn/*
@@ -230,6 +234,9 @@ class Settings:
             listen_host=_str("LISTEN_HOST", "0.0.0.0"),
             listen_port=_int("LISTEN_PORT", 8000),
             trust_proxy=_bool("TRUST_PROXY", True),
+            trusted_proxies=tuple(
+                p.strip() for p in _str("TRUSTED_PROXIES", "caddy").split(",") if p.strip()
+            ),
             site_dir=_str("SITE_DIR"),
             cdn_dir=_str("CDN_DIR"),
             sessions_network=_str("SESSIONS_NETWORK", "nanomuse-sessions"),

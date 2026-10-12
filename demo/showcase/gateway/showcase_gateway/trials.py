@@ -262,7 +262,8 @@ class TrialManager:
             disabled=False,
         )
         self.store.insert(trial, key)
-        log.info("trial %s issued to %s (device %s…)", trial.id, ip, device[:8])
+        # the address is in the trial's row for the per-address limit; the log does without
+        log.info("trial %s issued (device %s…)", trial.id, device[:8])
         return trial, key
 
     # ------------------------------------------------------------------ using
