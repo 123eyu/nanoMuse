@@ -1086,6 +1086,9 @@ def test_llm_models_live_then_catalogue(server, monkeypatch):
     client, _, _ = server
 
     class FakeResponse:
+        is_redirect = False
+        has_redirect_location = False
+
         def __init__(self, status: int, data=None):
             self.status_code = status
             self._data = data
@@ -1151,6 +1154,78 @@ def test_llm_models_live_then_catalogue(server, monkeypatch):
         "source": "catalogue",
     }
     assert len(calls) == before
+
+
+def test_an_address_with_a_password_in_it_is_refused(server):
+    """``user:pass@host`` in an endpoint address would be stored in app-settings.json,
+    logged at every model switch and shown in the console as typed: every place that
+    takes an address from the app says no, with the reason, and a key goes in its field."""
+    from nanomuse.server.connections import check_base_url, has_userinfo
+
+    assert has_userinfo("https://me:secret@gateway.example/v1")
+    assert has_userinfo("me:secret@gateway.example")  # no scheme typed yet
+    assert has_userinfo("https://me@gateway.example/v1")
+    assert not has_userinfo("https://gateway.example/v1?token=a@b")
+    assert check_base_url("gateway.example") == "https://gateway.example/v1"
+    with pytest.raises(ValueError, match="user name or password"):
+        check_base_url("https://me:secret@gateway.example/v1")
+
+    client, _, _ = server
+    bad = "https://me:secret@gateway.example/v1"
+    for path in ("/api/connections/llm", "/api/connections/gui", "/api/connections/image"):
+        r = client.put(path, json={"base_url": bad, "model": "m"})
+        assert r.status_code == 400 and "user name or password" in r.json()["detail"], path
+    r = client.post("/api/llm/models", json={"base_url": bad, "api_key": "sk-1"})
+    assert r.status_code == 400 and "user name or password" in r.json()["detail"]
+    r = client.post("/api/connections/endpoints", json={"base_url": bad, "api_key": "sk-1"})
+    assert r.status_code == 400 and "user name or password" in r.json()["detail"]
+    # nothing of it was kept
+    assert "secret" not in json.dumps(client.get("/api/connections").json())
+
+
+async def test_fetch_models_keeps_the_key_on_its_host():
+    """A gateway that answers ``/models`` with a redirect: one to its own origin is
+    followed, one to another host is not when the request carries the key, and the key
+    never reaches the other host. An address with ``user:pass@`` is not asked at all."""
+    import httpx
+
+    from nanomuse.server.connections import fetch_models
+
+    seen: list[tuple[str, str]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append((str(request.url), request.headers.get("Authorization", "")))
+        host, path = request.url.host, request.url.path
+        if host == "same.example" and path == "/v1/models":
+            return httpx.Response(307, headers={"Location": "/v1/models/"})
+        if host == "same.example" and path == "/v1/models/":
+            return httpx.Response(200, json={"data": [{"id": "b"}, {"id": "a"}]})
+        if host == "away.example":
+            return httpx.Response(302, headers={"Location": "https://other.example/v1/models"})
+        if host == "loop.example":
+            return httpx.Response(302, headers={"Location": "/v1/models"})
+        if host == "other.example":
+            return httpx.Response(200, json={"data": [{"id": "stolen"}]})
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(handler)
+    ids, err = await fetch_models("https://same.example/v1", "sk-1", transport=transport)
+    assert (ids, err) == (["a", "b"], "")
+    assert [h for _, h in seen] == ["Bearer sk-1", "Bearer sk-1"]
+
+    seen.clear()
+    ids, err = await fetch_models("https://away.example/v1", "sk-1", transport=transport)
+    assert (ids, err) == ([], "redirect to another host")
+    assert all("other.example" not in url for url, _ in seen)
+    # without a key there is nothing to protect: the redirect is followed
+    ids, err = await fetch_models("https://away.example/v1", "", transport=transport)
+    assert (ids, err) == (["stolen"], "")
+    assert ("https://other.example/v1/models", "") in seen
+
+    ids, err = await fetch_models("https://loop.example/v1", "sk-1", transport=transport)
+    assert (ids, err) == ([], "TooManyRedirects")
+    ids, err = await fetch_models("https://me:pw@same.example/v1", "sk-1", transport=transport)
+    assert (ids, err) == ([], "userinfo in URL")
 
 
 def test_providers_carry_where_keys_come_from(server):

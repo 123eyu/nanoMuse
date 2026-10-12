@@ -262,10 +262,82 @@ def normalize_base_url(url: str) -> str:
     return url
 
 
-async def fetch_models(base_url: str, key: str = "") -> tuple[list[str], str]:
+USERINFO_MESSAGE = (
+    "the address must not carry a user name or password (user:pass@host); "
+    "put the key in the key field instead"
+)
+
+
+def has_userinfo(url: str) -> bool:
+    """Whether a URL carries ``user:pass@`` before its host."""
+    try:
+        parts = urlsplit(url if "://" in url else "https://" + url.strip())
+    except ValueError:
+        return False
+    return parts.username is not None or parts.password is not None
+
+
+def check_base_url(url: str) -> str:
+    """:func:`normalize_base_url` for an address typed in the app, refusing one that
+    carries a user name or a password: it would be stored, logged and shown as typed,
+    and a key has its own field. Raises :class:`ValueError` with the reason."""
+    if has_userinfo(url):
+        raise ValueError(USERINFO_MESSAGE)
+    return normalize_base_url(url)
+
+
+def _same_origin(a: Any, b: Any) -> bool:
+    """Two parsed URLs with the same scheme, host and port (an ``http`` to ``https``
+    step on the same host counts, as httpx's own Authorization rule has it)."""
+    if a.host != b.host:
+        return False
+    if a.scheme == b.scheme:
+        return a.port == b.port
+    return a.scheme == "http" and b.scheme == "https" and a.port is None and b.port is None
+
+
+MAX_MODELS_REDIRECTS = 5
+
+
+class _CrossHostRedirect(Exception):
+    """A redirect that would carry the Authorization header to another origin."""
+
+
+async def _get_following(client: Any, url: str, headers: dict[str, str]) -> Any:
+    """``GET`` with redirects followed by hand: at most :data:`MAX_MODELS_REDIRECTS` hops,
+    never to an address with ``user:pass@`` or a non-HTTP scheme, and with an Authorization
+    header never to another origin (:class:`_CrossHostRedirect`)."""
+    import httpx
+
+    r = await client.get(url, headers=headers)
+    hops = 0
+    while r.is_redirect and r.has_redirect_location:
+        hops += 1
+        if hops > MAX_MODELS_REDIRECTS:
+            raise httpx.TooManyRedirects("too many redirects")
+        target = r.url.join(r.headers["location"])
+        if target.scheme not in ("http", "https") or target.userinfo:
+            raise httpx.TooManyRedirects("redirect to a refused address")
+        if headers and not _same_origin(r.url, target):
+            raise _CrossHostRedirect(str(target))
+        r = await client.get(target, headers=headers)
+    return r
+
+
+async def fetch_models(
+    base_url: str, key: str = "", *, transport: Any | None = None
+) -> tuple[list[str], str]:
     """The model ids an OpenAI-compatible endpoint lists (``GET /models``, then ``/v1/models``
     when the address names no version), sorted; with an empty list, one word on why
-    (``404``, ``HTTP 401``, ``ConnectError``, ``empty list``). Never raises."""
+    (``404``, ``HTTP 401``, ``ConnectError``, ``redirect to another host``, ``empty list``).
+    Never raises.
+
+    Redirects are followed by hand, at most :data:`MAX_MODELS_REDIRECTS` hops: with a key
+    in the request, only to the same origin, so a gateway answering with a ``Location``
+    elsewhere cannot have the key sent there. An address with ``user:pass@`` is refused
+    before any request. ``transport`` is for tests."""
+    if has_userinfo(base_url):
+        return [], "userinfo in URL"
     headers = {"Authorization": f"Bearer {key}"} if key else {}
     candidates = [f"{base_url}/models"]
     if not re.search(r"/v\d+$", base_url):
@@ -274,10 +346,15 @@ async def fetch_models(base_url: str, key: str = "") -> tuple[list[str], str]:
     try:
         import httpx
 
-        async with httpx.AsyncClient(timeout=8.0, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=8.0, follow_redirects=False, transport=transport
+        ) as client:
             for url in candidates:
                 try:
-                    r = await client.get(url, headers=headers)
+                    r = await _get_following(client, url, headers)
+                except _CrossHostRedirect:
+                    error = "redirect to another host"
+                    break
                 except httpx.HTTPError as exc:
                     error = f"{type(exc).__name__}"
                     continue
@@ -632,7 +709,7 @@ class Connections:
             if body.get(key) is not None:
                 llm[key] = str(body[key]).strip()
         if body.get("base_url") is not None:
-            llm["base_url"] = normalize_base_url(llm["base_url"])
+            llm["base_url"] = check_base_url(llm["base_url"])
         if llm.get("provider") not in (None, ""):
             # a protocol, "chatgpt", or a catalogue id (nanomuse/llm/providers.json)
             llm["provider"] = check_provider(str(llm["provider"]))
@@ -911,7 +988,7 @@ class Connections:
                 "chat_recommended": chat[0] if chat else "",
             }
         preset = PROVIDERS.get(preset_id) or {}
-        base_url = normalize_base_url(str(body.get("base_url") or preset.get("base_url") or ""))
+        base_url = check_base_url(str(body.get("base_url") or preset.get("base_url") or ""))
         catalogue: list[str] = list(preset.get("models") or [])
         key = str(body.get("api_key") or "").strip()
         endpoint = self.endpoints.get(str(body.get("endpoint") or ""))
@@ -1358,7 +1435,7 @@ class Connections:
             if body.get(key) is not None:
                 gui[key] = str(body[key]).strip()
         if gui.get("base_url"):
-            gui["base_url"] = normalize_base_url(gui["base_url"])
+            gui["base_url"] = check_base_url(gui["base_url"])
         if gui.get("provider") not in (None, ""):
             gui["provider"] = self._check_slot_provider(
                 str(gui["provider"]), gui.get("base_url") or "", "vision"
@@ -1461,7 +1538,7 @@ class Connections:
             if body.get(key) is not None:
                 media[key] = str(body[key]).strip()
         if media.get("base_url"):
-            media["base_url"] = normalize_base_url(media["base_url"])
+            media["base_url"] = check_base_url(media["base_url"])
         if media.get("provider"):
             media["provider"] = self._check_slot_provider(
                 media["provider"], media.get("base_url") or "", slot
