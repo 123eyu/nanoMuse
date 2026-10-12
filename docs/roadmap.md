@@ -20,11 +20,11 @@ The agent keeps `SOUL.md`, `USER.md`, `MEMORY.md` and `HEARTBEAT.md` and a `reme
 
 ### Proactivity
 
-Goals are checked on a schedule, routines run with the app closed, the feed is written each morning. What is missing: the agent noticing things between schedules, such as a mail that arrived (`nanomuse/triggers/mail.py` is the first trigger), a calendar entry coming up or a device that came online, and deciding whether it is worth a word.
+Goals are checked on a schedule, routines run with the app closed, the feed is written each morning. Three triggers exist (`nanomuse/triggers/`: a mail that arrived, a calendar entry coming up, a webhook). What is missing: the agent noticing other things between schedules, such as a device that came online, and deciding whether what it noticed is worth a word.
 
 - Module: `nanomuse/goals/`, `nanomuse/triggers/`, `nanomuse/nudges.py`; the phone's `io.github.nanomuse.feed` and `goals`.
 - Read: [every-device.md](every-device.md) for how a nudge reaches the device you are holding.
-- First task: a second trigger next to `mail.py` (calendar is the obvious one) with the same interface, and the feed entry it produces.
+- First task: a fourth trigger kind next to the three in `nanomuse/triggers/store.py` (a device of the account coming online, from the hub's `devices` frame) with the same interface, and the feed entry it produces.
 
 ### The conversation
 
