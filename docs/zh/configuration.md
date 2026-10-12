@@ -429,6 +429,8 @@ reads_private_data = false
 
 `tools` 是可选的，按工具名（不带 `<server>__` 前缀）逐个写；没写的都回退到服务器的值。手机自带的工具就是这样拿到默认值的：在手机上，App 的能力不用任何配置就以 `device` 这个服务器的身份出现（[device.md](device.md)），逐工具的表来自 `nanomuse/runtime.py`。
 
+需要 key 的命令通过 `env` 拿到它，而 key 本身放在保险库里：写 `env = { AMAP_MAPS_API_KEY = "{{vault:AMAP_KEY}}" }`，引用在服务器启动时才解析，不会写进磁盘，也不会显示在 App 里。从 App（连接页）添加的服务器也是同样的做法，不需要你额外操作：你输入的每个 `env` 值都存进保险库，名字是 `MCP_<SERVER>_<KEY>`（全部大写，`amap` 配 `AMAP_MAPS_API_KEY` 就是 `MCP_AMAP_AMAP_MAPS_API_KEY`），`app-settings.json` 里只保留 `{{vault:...}}`；移除服务器时这些条目一并删除。本来就写成引用的值原样保留。`config.toml` 里的明文值仍然可用，连接页会给这个服务器打上标记，提醒你把它挪进保险库。
+
 连不上的服务器会记一条日志然后跳过，智能体照常启动，只是没有它的工具；日志那一行写明服务器名和传输层的错误，URL 查询参数的值一律打码（`?key=***`），保险库里的机密也会被替换，所以被拒绝的 key 不会落进 `logs/`。
 
 内置技能认识的三个中国服务以 MCP 服务器的形式提供，`config/config.example.toml` 里每个都有一段：高德地图（托管，`AMAP_KEY` 放保险库）、12306（`npx -y 12306-mcp`，不要 key；火车票，只能查询）和快递100（托管，`KUAIDI100_KEY`；快递，按单号付费）。其中哪些真的在手机的根文件系统里跑过，外面还有些什么：[services.md](services.md)。
