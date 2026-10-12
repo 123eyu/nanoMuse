@@ -267,7 +267,9 @@ and refuses it at the provider URL field for anything else (`io.github.nanomuse.
 The address is parsed before it is judged, so a public name such as `10.foo.example.com` is
 not taken for a private address. The same rule decides whether a relay of your own may be
 `http://`; nanoMuse Cloud and the hub to it are TLS only. The in-app web view is not exported
-to other apps.
+to other apps. Voice input through a provider's speech model keeps the microphone open only
+while a recording is on: stopping or cancelling the recording closes the recorder at once, and a
+cancelled recording's audio is dropped, never sent to the provider.
 
 ## Building it yourself
 
