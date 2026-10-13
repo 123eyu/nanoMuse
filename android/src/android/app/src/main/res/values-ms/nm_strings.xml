@@ -610,6 +610,8 @@
     <string name="nm_risk_title_device">Benarkan “%1$s” mengendalikan telefon ini?</string>
     <string name="nm_risk_desc_device">“%1$s”, peranti lain pada akaun anda, mahu %2$s di telefon ini. Butirannya ditunjukkan di bawah. “Sentiasa” membenarkan peranti itu melakukan perkara sebegini di sini tanpa bertanya; tarik balik di bawah Kebenaran.</string>
     <string name="nm_risk_preview_device">Apa yang diminta peranti</string>
+    <string name="nm_risk_preview_show_all">Tunjukkan semua (%1$d baris)</string>
+    <string name="nm_risk_preview_show_less">Tunjukkan kurang</string>
     <string name="nm_risk_class_remote">Kawalan jauh</string>
     <string name="nm_hub_remote_reason">%1$s boleh mengendalikan telefon ini</string>
 
@@ -643,7 +645,6 @@
     <string name="nm_welcome_skip">Langkau buat masa ini</string>
     <string name="nm_welcome_hands_fine_print">Semua yang lain berfungsi tanpa ini. Ia ada di bawah Tetapan → Tangan bila-bila anda mahu.</string>
     <string name="nm_welcome_meet_fine_print">Sebelum apa-apa yang tidak boleh ditarik balik (memadam, menghantar, membayar) ia berhenti dan bertanya kepada anda dahulu.</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">Mulakan dengan nanoMuse Cloud</string>
     <string name="nm_cloud_signin_subtitle">Kod ke telefon atau peti masuk anda, atau kata laluan anda, setelah anda menetapkannya.</string>
     <string name="nm_cloud_mode_code">Dengan kod</string>
@@ -651,7 +652,7 @@
     <string name="nm_cloud_password">Kata laluan</string>
     <string name="nm_cloud_forgot_password">Lupa kata laluan? Log masuk dengan kod</string>
     <string name="nm_cloud_identifier">Nombor telefon tanah besar China atau e-mel</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · anda@example.com</string>
+    <string name="nm_cloud_identifier_hint">anda@example.com</string>
     <string name="nm_cloud_code">Kod</string>
     <string name="nm_cloud_send_code">Hantar kod</string>
     <string name="nm_cloud_resend">Hantar lagi</string>
@@ -661,7 +662,6 @@
     <!-- Your own relay (0.1.38): the sign-in screen's server form and the account page's row -->
     <string name="nm_cloud_other_server">Guna pelayan lain</string>
     <string name="nm_cloud_server_url">Alamat relay</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
     <string name="nm_cloud_server_check">Semak</string>
     <string name="nm_cloud_server_use">Guna pelayan ini</string>
     <string name="nm_cloud_server_now">Pelayan: %1$s</string>
@@ -1138,6 +1138,11 @@
     <string name="nm_a11y_not_liked">Belum disukai</string>
     <string name="nm_a11y_post_details">Butiran kiriman</string>
     <string name="nm_claude_sign_in_unavailable">Binaan ini tidak boleh menggunakan log masuk Claude. Tambah Anthropic dengan kunci API sebagai ganti.</string>
+    <string name="nm_oauth_rescue_hint">Jika pelayar menunjukkan halaman ralat di localhost, proksi atau VPN anda menelan panggilan balik itu. Tambahkan localhost ke senarai pengecualiannya, atau salin alamat halaman itu dan tampal di sini.</string>
+    <string name="nm_oauth_rescue_placeholder">Tampal alamat di sini</string>
+    <string name="nm_oauth_rescue_continue">Teruskan</string>
+    <string name="nm_oauth_rescue_no_code">Alamat itu tiada kod log masuk.</string>
+    <string name="nm_oauth_rescue_failed">Log masuk tidak lagi menunggu alamat itu. Ketik Log masuk dan cuba lagi.</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">Sangat kecil</string>
     <string name="nm_font_scale_small">Kecil</string>

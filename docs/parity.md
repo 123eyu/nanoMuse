@@ -60,7 +60,7 @@ Legend: **✓** done · **◐** partial (what is missing is in the note) · **�
 | Approval cards, three tiers, remembered grants; a Permissions page listing the remembered grants by risk tier, with Revoke | ✓ | upstream's; since 1.0.4 the card for a step another device's Muse asks about (*Allow once / Allow for this chat / Always allow this on 〈device〉 / Deny*), the standing answers under *Approvals* on the agent's page with Revoke | ✓ Settings → Permissions → *Standing grants*: the remote-control switch, the trusted devices and the hands' per-app grants under the phone's three tiers | ✓ |
 | Approvals answered outside the app while the hands work | ✓ 0.1.33 capsule *Allow / Deny* | n/a *(10)* | ✓ 0.1.34 stage *Allow once / Always in app / Deny*, capsule when the window is behind *(17)* | n/a |
 | Hand-over: a login / code / payment / CAPTCHA goes back to the person, the agent waits and resumes (holds) | ✓ 0.1.33 `hand_over` | — *(16)* | ✓ 0.1.34 *Your turn* with *Done*, *I'll take it* *(16)* | ✓ 0.1.34 drivable browser viewer, hold cards *(16)* |
-| Face tap opens the agent page (Change avatar · Edit name · studio; Activity · Approvals · Daily · Soul & memory; share card) | ✓ | ✓ 0.1.34 | ✓ 0.1.34 | ✓ Muse page |
+| Face tap opens the agent page (Change avatar · Edit name · studio; Activity · Approvals · Daily · Soul & memory; share card) | ✓ | ✓ 0.1.34 | ✓ 0.1.34 | ✓ the agent sheet |
 | Change the look from the chat (the same words, four candidates, pick by words, regenerate) | ✓ | ✓ 0.1.34 | ✓ 0.1.34 | ✓ studio intercept, reference picture 0.1.34 |
 
 ## Connectors, agents, devices
@@ -99,7 +99,7 @@ Legend: **✓** done · **◐** partial (what is missing is in the note) · **�
 | Feed opens on the intro card (*Write it now*), the first day is written after the first conversation, a daily routine at 08:00 | ✓ | ✓ 0.1.35 | ✓ 0.1.35 | ✓ 0.1.35 |
 | Ideas prefilled with the curated list (`ideas.{en,zh}.json`, byte for byte, with a test) | ✓ | ✓ | ✓ 0.1.34; empty-when-bundled bug fixed 0.1.35 | ✓ 0.1.35 |
 | Splash: wordmark and the person's own face, never the dragon | ✓ | ✓ system launch screen | ✓ 0.1.35 | n/a |
-| Settings as Muse cards in one order (Models since 0.1.41 · Avatar · Computers · Appearance · … · Version; *Image & video models* kept as a shortcut) | ✓ | ✓ 0.1.35, Models first 0.1.41 | ✓ sections, Models right after General 0.1.41 | ✓ sections |
+| Settings as cards in one order (Models since 0.1.41 · Avatar · Computers · Appearance · … · Version; *Image & video models* kept as a shortcut) | ✓ | ✓ 0.1.35, Models first 0.1.41 | ✓ sections, Models right after General 0.1.41 | ✓ sections |
 | Memory as a room | — settings page *(14)* | — | ✓ | ✓ |
 | Stage / browser viewer while the hands work | ✓ stage | n/a *(10)* | ✓ the glow and the capsule while the hands work, the run's trajectory in the chat 0.1.40 (a live stage from 0.1.33 to 0.1.39); Allow/Deny, holds 0.1.34 | ✓ browser viewer you can drive 0.1.34 |
 | Every working light breathes (2.4 s in, 2.4 s out), none runs; steady under reduce-motion | ✓ round 9: the stage's comet and scan line gone, the capsule's ring and bars breathe | n/a *(10)* | ✓ 0.1.40 | ✓ 0.1.40 |

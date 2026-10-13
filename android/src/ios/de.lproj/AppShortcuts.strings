@@ -1,0 +1,24 @@
+/* Siri invocation phrases for MinisShortcutsProvider (AppShortcuts), German.
+   Keys must match the English phrases exactly, with `\(.applicationName)`
+   spelled `${applicationName}`. Legacy .strings format (not .xcstrings)
+   because the deployment target is iOS 16. */
+
+"Ask ${applicationName}" = "${applicationName} fragen";
+"Ask ${applicationName} a question" = "${applicationName} eine Frage stellen";
+"Talk to ${applicationName}" = "Mit ${applicationName} sprechen";
+"New ${applicationName} chat" = "Neuer ${applicationName}-Chat";
+"Run a ${applicationName} quick task" = "${applicationName}-Schnellaufgabe ausführen";
+"Use ${applicationName} quick task" = "${applicationName}-Schnellaufgabe verwenden";
+"Send a prompt to ${applicationName}" = "Einen Prompt an ${applicationName} senden";
+"Ask ${applicationName} something" = "${applicationName} etwas fragen";
+"Start a ${applicationName} task" = "Eine ${applicationName}-Aufgabe starten";
+"Get ${applicationName} session status" = "${applicationName}-Sitzungsstatus abrufen";
+"Check ${applicationName} task" = "${applicationName}-Aufgabe prüfen";
+"List ${applicationName} sessions" = "${applicationName}-Sitzungen auflisten";
+"Show ${applicationName} chats" = "${applicationName}-Chats anzeigen";
+"Follow up a ${applicationName} session" = "Eine ${applicationName}-Sitzung weiterführen";
+"Continue a ${applicationName} session" = "Eine ${applicationName}-Sitzung fortsetzen";
+"Open a ${applicationName} session" = "Eine ${applicationName}-Sitzung öffnen";
+
+"Voice prompt to ${applicationName}" = "Spracheingabe an ${applicationName}";
+"Talk to ${applicationName} by voice" = "Mit ${applicationName} per Stimme sprechen";

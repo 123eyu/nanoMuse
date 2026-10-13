@@ -42,8 +42,8 @@ export function ChatGptSignIn({ compact, onChanged }: { compact?: boolean; onCha
       setRoutes("yes");
       return s;
     } catch (e) {
-      // 404 "Not Found": the runtime of before this round
-      if (/not found/i.test((e as Error).message)) setRoutes("no");
+      // 404 ("Not Found", or the runtime's "no such endpoint"): a runtime of before this round
+      if (/not found|no such endpoint/i.test((e as Error).message)) setRoutes("no");
       else setError((e as Error).message);
       return null;
     }
@@ -93,7 +93,7 @@ export function ChatGptSignIn({ compact, onChanged }: { compact?: boolean; onCha
       setWaiting(r.url);
       window.open(r.url, "_blank", "noopener");
     } catch (e) {
-      if (/not found/i.test((e as Error).message)) setRoutes("no");
+      if (/not found|no such endpoint/i.test((e as Error).message)) setRoutes("no");
       else setError((e as Error).message);
     } finally {
       setBusy(null);

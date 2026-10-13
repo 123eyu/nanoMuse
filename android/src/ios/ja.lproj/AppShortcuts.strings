@@ -1,0 +1,24 @@
+/* Siri invocation phrases for MinisShortcutsProvider (AppShortcuts), Japanese.
+   Keys must match the English phrases exactly, with `\(.applicationName)`
+   spelled `${applicationName}`. Legacy .strings format (not .xcstrings)
+   because the deployment target is iOS 16. */
+
+"Ask ${applicationName}" = "${applicationName}に聞く";
+"Ask ${applicationName} a question" = "${applicationName}に質問する";
+"Talk to ${applicationName}" = "${applicationName}と話す";
+"New ${applicationName} chat" = "${applicationName}で新しいチャット";
+"Run a ${applicationName} quick task" = "${applicationName}でクイックタスクを実行";
+"Use ${applicationName} quick task" = "${applicationName}のクイックタスクを使う";
+"Send a prompt to ${applicationName}" = "${applicationName}にプロンプトを送る";
+"Ask ${applicationName} something" = "${applicationName}に何か聞く";
+"Start a ${applicationName} task" = "${applicationName}でタスクを始める";
+"Get ${applicationName} session status" = "${applicationName}のセッション状況を確認";
+"Check ${applicationName} task" = "${applicationName}のタスクを確認";
+"List ${applicationName} sessions" = "${applicationName}のセッション一覧";
+"Show ${applicationName} chats" = "${applicationName}のチャットを表示";
+"Follow up a ${applicationName} session" = "${applicationName}のセッションを続ける";
+"Continue a ${applicationName} session" = "${applicationName}のセッションを再開";
+"Open a ${applicationName} session" = "${applicationName}のセッションを開く";
+
+"Voice prompt to ${applicationName}" = "${applicationName}に音声で入力";
+"Talk to ${applicationName} by voice" = "${applicationName}に声で話しかける";

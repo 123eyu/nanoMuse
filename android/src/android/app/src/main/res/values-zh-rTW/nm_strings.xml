@@ -591,6 +591,8 @@
     <string name="nm_risk_title_device">允許「%1$s」操作這支手機嗎？</string>
     <string name="nm_risk_desc_device">「%1$s」是你帳號下的另一台裝置，想在這支手機上 %2$s。具體內容見下方。選「始終」後，那台裝置以後在這裡做這類事不再詢問；可在「權限」裡收回。</string>
     <string name="nm_risk_preview_device">那台裝置的請求</string>
+    <string name="nm_risk_preview_show_all">全部顯示（%1$d 行）</string>
+    <string name="nm_risk_preview_show_less">收起</string>
     <string name="nm_risk_class_remote">遠端控制</string>
     <string name="nm_hub_remote_reason">%1$s 可以操作這支手機</string>
 
@@ -623,7 +625,6 @@
     <string name="nm_welcome_skip">暫時跳過</string>
     <string name="nm_welcome_hands_fine_print">不開也不影響其他功能。之後隨時可以在「設定 → Hands」裡開啟。</string>
     <string name="nm_welcome_meet_fine_print">凡是無法撤回的事（刪除、傳送、付款）它都會先停下來問你。</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">用 nanoMuse Cloud 開始</string>
     <string name="nm_cloud_signin_subtitle">手機號或信箱收一個驗證碼；設過密碼的話也可以直接用密碼。</string>
     <string name="nm_cloud_mode_code">驗證碼登入</string>
@@ -631,7 +632,7 @@
     <string name="nm_cloud_password">密碼</string>
     <string name="nm_cloud_forgot_password">忘了密碼？用驗證碼登入</string>
     <string name="nm_cloud_identifier">中國大陸手機號或信箱</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · you@example.com</string>
+    <string name="nm_cloud_identifier_hint">you@example.com</string>
     <string name="nm_cloud_code">驗證碼</string>
     <string name="nm_cloud_send_code">發送驗證碼</string>
     <string name="nm_cloud_resend">重新發送</string>
@@ -640,7 +641,6 @@
     <!-- 自架中繼伺服器（0.1.38）：登入頁的伺服器表單與帳號頁的那一列 -->
     <string name="nm_cloud_other_server">使用其他伺服器</string>
     <string name="nm_cloud_server_url">伺服器位址</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
     <string name="nm_cloud_server_check">檢查</string>
     <string name="nm_cloud_server_use">使用這個伺服器</string>
     <string name="nm_cloud_server_now">伺服器：%1$s</string>
@@ -1108,6 +1108,11 @@
     <string name="nm_a11y_not_liked">未喜歡</string>
     <string name="nm_a11y_post_details">貼文詳情</string>
     <string name="nm_claude_sign_in_unavailable">這個版本不能用 Claude 帳號登入。請改用 API key 新增 Anthropic。</string>
+    <string name="nm_oauth_rescue_hint">如果瀏覽器在 localhost 停在一個錯誤頁，是手機上的代理或 VPN 吞掉了回呼。把 localhost 加進它的直連（略過）清單，或者把那個頁面的網址複製下來貼到這裡。</string>
+    <string name="nm_oauth_rescue_placeholder">把網址貼到這裡</string>
+    <string name="nm_oauth_rescue_continue">繼續</string>
+    <string name="nm_oauth_rescue_no_code">這個網址裡沒有登入碼。</string>
+    <string name="nm_oauth_rescue_failed">這次登入已經不再等待這個網址了。點「登入」再試一次。</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">特小</string>
     <string name="nm_font_scale_small">小</string>

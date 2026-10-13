@@ -17,10 +17,14 @@ class NmStringsParityTest {
     private val nameRx = Regex("""<(string|plurals|string-array) name="([^"]+)"""")
     private val stringRx = Regex("""<string name="([^"]+)"[^>]*>(.*?)</string>""", RegexOption.DOT_MATCHES_ALL)
     private val placeholderRx = Regex("""%\d\$[sd]|%[sd]""")
+    private val untranslatableRx = Regex("""<string name="([^"]+)" translatable="false"""")
 
     private val File.locale: String get() = parentFile?.name ?: path
 
     private fun names(f: File): Set<String> = nameRx.findAll(f.readText()).map { it.groupValues[1] + ":" + it.groupValues[2] }.toSet()
+
+    /** A URL or a product name marked `translatable="false"` lives in the English file only. */
+    private fun untranslatable(f: File): Set<String> = untranslatableRx.findAll(f.readText()).map { "string:" + it.groupValues[1] }.toSet()
 
     private fun placeholders(f: File): Map<String, List<String>> =
         stringRx.findAll(f.readText()).associate { m -> m.groupValues[1] to placeholderRx.findAll(m.groupValues[2]).map { it.value }.sorted().toList() }
@@ -30,7 +34,9 @@ class NmStringsParityTest {
             .map { File(it, "nm_strings.xml") }.filter { it.exists() }.sortedBy { it.path }
 
     @Test fun `every locale carries every key of the English file`() {
-        val en = names(File(res, "values/nm_strings.xml"))
+        val enFile = File(res, "values/nm_strings.xml")
+        val fixed = untranslatable(enFile)
+        val en = names(enFile) - fixed
         assertTrue(en.size > 800)
         val locales = localeFiles()
         assertTrue("expected the sixteen locale files, found ${locales.size}", locales.size >= 16)
@@ -40,6 +46,15 @@ class NmStringsParityTest {
             val extra = keys - en
             assertEquals("${f.locale} lacks ${missing.size} key(s): ${missing.sorted().take(8)}", emptySet<String>(), missing)
             assertEquals("${f.locale} has ${extra.size} key(s) English does not: ${extra.sorted().take(8)}", emptySet<String>(), extra)
+        }
+    }
+
+    @Test fun `a string marked not translatable has no copy in a locale`() {
+        val fixed = untranslatable(File(res, "values/nm_strings.xml"))
+        assertTrue("the URL and product-name strings are expected here", fixed.isNotEmpty())
+        for (f in localeFiles()) {
+            val copies = names(f) intersect fixed
+            assertEquals("${f.locale} translates ${copies.sorted()}", emptySet<String>(), copies)
         }
     }
 

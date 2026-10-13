@@ -50,11 +50,13 @@ test('the words around a goal match the phone, in both languages', () => {
   assert.match(goalCreationNote('health', true), /"category": "health"/)
 })
 
-test('the Ideas list is the phone list, byte for byte, and reads into sections', () => {
+test('the Ideas list is the phones\' list, byte for byte, and reads into sections', () => {
   for (const lang of ['en', 'zh']) {
     const ours = readFileSync(new URL(`../assets/ideas.${lang}.json`, here), 'utf8')
-    const phone = readFileSync(new URL(`../../../android/src/android/app/src/main/assets/nanomuse/ideas.${lang}.json`, here), 'utf8')
-    assert.equal(ours, phone, `assets/ideas.${lang}.json must be the phone's file (copy it over)`)
+    const android = readFileSync(new URL(`../../../android/src/android/app/src/main/assets/nanomuse/ideas.${lang}.json`, here), 'utf8')
+    const ios = readFileSync(new URL(`../../../android/src/ios/NanoMuse/Resources/ideas.${lang}.json`, here), 'utf8')
+    assert.equal(ours, android, `assets/ideas.${lang}.json must be the Android app's file (copy it over)`)
+    assert.equal(ours, ios, `assets/ideas.${lang}.json must be the iPhone app's file too (copy it over)`)
     const ideas = parseIdeas(ours)
     assert.equal(ideas.length, 24)
     assert.deepEqual([...new Set(ideas.map((i) => i.section))], ['travel', 'work', 'life', 'learn', 'family', 'more'])

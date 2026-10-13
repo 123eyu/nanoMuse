@@ -41,6 +41,8 @@ struct NanoMuseAgentPage: View {
     @State private var showShare = false
     @State private var showEditName = false
     @State private var soulName = SoulStore.cachedMetadata.name
+    /// The name under the face follows Dynamic Type, capped as the header's lines are (NanoMuseHeaderMetrics).
+    @ScaledMetric(relativeTo: .title2) private var nameSize: CGFloat = 24
 
     private var name: String {
         let n = soulName.trimmingCharacters(in: .whitespaces)
@@ -121,7 +123,7 @@ struct NanoMuseAgentPage: View {
                 .accessibilityLabel(Text(AppLocalized("Edit")))
             }
             .padding(.top, 8)
-            Text(name).font(.system(size: 24, weight: .bold))
+            Text(name).font(.system(size: NanoMuseHeaderMetrics.capped(nameSize, base: 24), weight: .bold))
             HStack(spacing: 6) {
                 Circle().fill(Color.green).frame(width: 8, height: 8)
                 Text(flow.statusLine ?? NanoMuseAvatarStudioModel.shared.headerStatus ?? NanoMuseAvatarMotion.shared.statusLine ?? AppLocalized("online"))

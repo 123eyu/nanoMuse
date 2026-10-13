@@ -113,6 +113,8 @@ ChatGPT 登录走的是 OpenAI 自家 Codex 的授权流程（网页控制台：
 
 在终端里也可以：`nanomuse chatgpt login` 打开登录页并等浏览器回来，`nanomuse chatgpt status` 看登录的是谁、什么时候过期，`nanomuse chatgpt logout` 忘掉它；然后在 `config.toml` 里写 `[llm] provider = "chatgpt"`（不用 `base_url`、`api_key`，`model` 留空就是 `gpt-5.6-sol`）。浏览器要能访问运行时所在机器的 1455 端口；运行时在别的机器上时，把浏览器最后停在的那个地址整条复制下来，贴给命令行的提示，或者 `POST /api/chatgpt/callback {"url": …}`（[configuration.md](configuration.md#a-chatgpt-plan-instead-of-a-key)）。
 
+**手机上的代理或 VPN 可能吞掉回调。** Android 上，登录页会把浏览器送回 `http://localhost:1455/auth/callback`，这个地址只有同一部手机上的 App 会应答。把所有地址都送进隧道、或者替 `localhost` 答 DNS 的代理或 VPN 应用（比如 Clash）会把这个地址也接走：浏览器显示连接错误，App 一直等。两条路：把 `localhost` 和 `127.0.0.1` 加进代理应用的直连（绕过）列表再登录一次；或者把那个错误页的地址复制下来，贴进「登录」按钮下方大约十秒后出现的输入框（手机的代理设置会接走这个地址时立刻出现），点「继续」，登录码会不经代理直接交给正在等待的登录流程。Anthropic、xAI 和 OpenRouter 的登录用同一种回跳，也有这个输入框；Kimi 的登录用设备码，不需要它。
+
 **一句老实话。** OpenAI 的条款只允许在它自家的 Codex 里使用 ChatGPT 套餐；其他应用曾被切断过这条路（OpenCode，2026 年 1 月）。哪天它不能用了，API key 仍然可以。
 
 ## 服务商连不上的时候 {#when-the-provider-cannot-be-reached}
@@ -131,7 +133,7 @@ Ollama、LM Studio、vLLM 跑在自己电脑上的模型也能用：选对应的
 
 | 字段 | 填什么 |
 |---|---|
-| 地址（Base URL） | 服务商给的地址，通常以 `/v1` 结尾 |
+| 地址（Base URL） | 服务商给的地址，通常以 `/v1` 结尾；运行时、网页控制台和桌面版都会拒绝带 `user:pass@` 的地址（key 有自己的栏位） |
 | API key | 服务商控制台里创建的 key（本机服务可以留空） |
 | 模型 | 保存后从列表里选；接口列不出模型时，表单会请你填模型 id（逗号分开），再按这些保存 |
 

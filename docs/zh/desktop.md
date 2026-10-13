@@ -1,8 +1,8 @@
 # nanoMuse 桌面版
 
 电脑上的 Muse，装在一个窗口里：nanoMuse 建在
-[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（`dsh`）之上，布局照着
-Muse 桌面版（[desktop-muse.md](desktop-muse.md)），账号、形象、在这台电脑屏幕上动手的
+[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（`dsh`）之上，窗口的
+布局一屏一屏见 [desktop-muse.md](desktop-muse.md)，账号、形象、在这台电脑屏幕上动手的
 「手」（Hands）、够得着账号下每一台其他设备的 Reach，都以插件的形式加进来
 （[harness.md](harness.md)）。支持 Windows 10 以上、macOS 12 以上和 Linux x64；每个平台一个
 安装包，不需要先装别的：harness、nanoMuse 插件包和负责手的运行时都在里面。
@@ -17,7 +17,9 @@ Muse 桌面版（[desktop-muse.md](desktop-muse.md)），账号、形象、在�
 Windows 版本还带着 electron-updater 要读的更新元数据：`latest.yml` 写着安装包的名字和它的
 SHA-512，旁边是安装包的 `.exe.blockmap`。CI 在把它们附上 release 之前，会先让 electron-updater
 亲自检查这一套：它必须能在 `latest.yml` 里找到候选版本、从测试源下载安装包并校验通过，字节对不上
-的会被拒绝（`harness/desktop/scripts/update-feed-check.mjs`）。
+的会被拒绝（`harness/desktop/scripts/update-feed-check.mjs`）。这套元数据对应的更新源是下载镜像的
+[nanomuse.cn/dl/win/](https://nanomuse.cn/dl/win/)：只有当一个版本的 `latest.yml`、安装包和 `.blockmap`
+三个都到齐、安装包的字节也对得上时，它才切到这个版本；在那之前继续提供上一个版本。
 代码在 [`harness/`](../../harness/) 下：插件包在 `harness/dsh-nanomuse`，Electron 外壳在
 `harness/desktop`；自己怎么构建见 [harness/README.md](../../harness/README.md)。到 0.1.29 为止，
 同名的安装包装的是 Python 运行时和网页版，套在它们自己的 Electron 外壳里（`desktop/app`），
@@ -28,9 +30,9 @@ harness 构建以 *nanoMuse Harness* 的名字另放在旁边；从 0.1.30 起�
 
 一个由外壳作为子进程启动的 dsh Host，把 harness 的网页应用显示在我们自己的窗口里：侧栏
 （聊天、搜索、动态、点子、目标、资源库、设备，还有汉堡菜单），放着主要聊天和旁聊的聊天列，
-钉在对话上方的形象和名字，带一行实时状态和「停止」，盖在 harness 审批之上的 Muse 式审批卡片，
+钉在对话上方的形象和名字，带一行实时状态和「停止」，盖在 harness 审批之上的权限卡片，
 聊天里手的一次运行的轨迹（每一步的截图、画在上面的动作和智能体说的话，运行中和运行后都能
-回看），带记忆的个人资料面板，Muse 的那些设置页（连接器、电脑操作、文件访问、听写、权限、
+回看），带记忆的个人资料面板，那些设置页（连接器、电脑操作、文件访问、听写、权限、
 带导出和重置的数据控制），以及占满整个窗口的第一次打开。智能体是 dsh 的（它的智能体循环、
 工具、技能、目标、计划模式、压缩、子智能体、MCP），通过 `nanomuse` 预设以 nanoMuse 的身份
 说话，再加上：
@@ -57,7 +59,7 @@ harness 构建以 *nanoMuse Harness* 的名字另放在旁边；从 0.1.30 起�
   那张图的像素（[gui.md](gui.md#hands-on-the-computer-the-picture-is-the-unit)）。不是由这个
   应用来跑运行时的时候，运行时自己的后端仍然是退路。运行时 `config.toml` 里打开的连接器
   （邮箱、日历、通讯录）经同一个服务器送过来，「设置 → 连接器」里有每一个的设置方法；
-- **房间**：动态、点子、目标和资源库，和 Muse 里的一样，由 Host 保存在
+- **房间**：动态、点子、目标和资源库，和手机上的一样，由 Host 保存在
   `nanomuse/rooms.json` 里，由智能体在隐藏聊天里写（动态和点子）或在各自的聊天里写（目标，
   自动化部分用 harness 的日程插件；资源库里的作品放在 `~/nanoMuse/Library` 下），再加上记忆：
   它对你的了解，每段聊天都会读进去（[desktop-muse.md](desktop-muse.md#rail-rooms)）；
@@ -73,7 +75,7 @@ harness 构建以 *nanoMuse Harness* 的名字另放在旁边；从 0.1.30 起�
   `https://`、`socks5://` 或 `socks5h://`，可以带 `user:pass@`，显示时会遮住）。dsh Host 发出的请求
   都经过它：你自己的 key、ChatGPT 登录的调用、「列出模型」、工具读取的网页、连接的服务、更新检查，
   还有手的运行时（`nanomuse mcp` 继承同一组变量）。nanoMuse Cloud（中继、hub 的 WebSocket、同步）和本机回环永远不经过。
-  外壳把它存在 `desktop.json` 里，和「登录时启动」放在一起，启动 dsh Host 时写进它的环境
+  外壳把它存在 `desktop.json` 里（权限 0600，因为地址里可能带密码），和「登录时启动」放在一起，启动 dsh Host 时写进它的环境
   （`HTTP_PROXY`、`HTTPS_PROXY`、SOCKS 时还有 `ALL_PROXY`，`NO_PROXY` 带着
   `localhost,127.0.0.1,::1`、`cloud.nanomuse.cn` 和插件所连的中继，以及让 Node 的 fetch 读这些
   变量的 `NODE_USE_ENV_PROXY=1`），所以重启后生效；这一行下面的「立即重启」会在窗口不关的

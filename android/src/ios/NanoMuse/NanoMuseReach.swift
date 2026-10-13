@@ -180,7 +180,7 @@ private struct NanoMuseReachSheet: View {
                 let body = try await NanoMuseHub.shared.call(to: device.id, action: action, args: args, timeout: 150)
                 result = describe(body)
             } catch {
-                result = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                result = NanoMuseHubErrors.describe(error)
             }
         }
     }

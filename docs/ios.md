@@ -648,6 +648,25 @@ Ours, in `NanoMuse/`:
   gets a one-turn addendum (`NanoMuseSessionAddenda`) saying the person did not type it, so it
   opens with the result instead of thanking them for asking. The prompt's text is unchanged, so
   the turn runs as it did.
+- **The fourth audit (1.0.x)** (`*.lproj/AppShortcuts.strings`, `NanoMuseChrome.swift`,
+  `NanoMuseShell.swift`, `NanoMuseAgentPage.swift`, `NanoMuseHub.swift`,
+  `NanoMuseBackgroundSettings.swift`, `Localizable.xcstrings`): the Siri phrases are in all nine
+  languages (they were in English and the two Chinese tables; a phone in Japanese, Korean, German,
+  Spanish, French or Russian got the English ones). The Muse pages' titles and the agent's name in
+  the drawer and on the agent's page follow Dynamic Type, capped at 1.35 times their base as the
+  header's lines are (`NanoMuseHeaderMetrics`); before, they were fixed at 17 and 24 pt. *Create
+  routine* on an idea opens the routine's editor as it was meant to: the shell owns that sheet
+  now, where before the Goals room was asked to open it and that room is not on screen while the
+  Ideas room is, so the routine was made at the idea's time and nothing opened. *Background &
+  notifications* says what the phone does: a notification is a routine's reminder or a note from
+  another device, and Background App Refresh lets iOS post the reminder, never run the routine
+  (the page used to say the app got slots to finish a routine). A failure from the hub or a
+  computer (*Coding agents*, the Reach sheet, an `@device` message) is one sentence in the phone's
+  language from the hub's code, as Android's `HubErrors.describe` (`NanoMuseHubErrors`): *That
+  computer is offline.*, *The computer did not answer in time.*, *The computer runs an older
+  nanoMuse that does not know this action.*; before, the English line the relay or the runtime
+  sent was shown as it came. The Library's and the account page's segmented pickers and the •••
+  menus of a goal, a routine and a feed post carry a VoiceOver label.
 
 ## Voice prompts from the Action Button
 
@@ -673,8 +692,8 @@ transcription stack; the transcript reaches `inputText` the way it always does. 
 than 30 seconds is dropped. iOS gives an App Intent no way to take free-form speech, which is
 why this is a voice entry rather than "ask nanoMuse something" in one breath, and why the app
 opens: a microphone running with nothing on screen would read as a fault. The Siri phrases are
-in the three `AppShortcuts.strings` tables (English, 简体中文, 繁體中文), the intent's own strings
-in `Localizable.xcstrings` (#296, #298).
+in the nine `AppShortcuts.strings` tables (one per `<lang>.lproj`, legacy `.strings` because the
+deployment target is iOS 16), the intent's own strings in `Localizable.xcstrings` (#296, #298).
 
 ## Building on a Mac
 

@@ -416,7 +416,12 @@ The same box mirrors the releases: `mirror/release-sync.py`, run by a second tim
 minutes, asks the GitHub API for the newest two releases (drafts and pre-releases skipped) and
 fetches every asset into `www/dl/<tag>/`, checking each against the SHA-256 GitHub records for it;
 `www/dl/latest` points at the newest tag, `www/dl/index.json` lists what is there, older tags are
-removed. The site block serves the directory at [nanomuse.cn/dl/](https://nanomuse.cn/dl/) with a
+removed. `www/dl/win` is the Windows desktop's update feed (the URL in
+`harness/desktop/electron-builder.yml`): it points at the newest kept tag whose folder holds the
+whole set electron-updater reads, `latest.yml`, the installer it names and that installer's
+`.blockmap`, with the installer's SHA-512 the one `latest.yml` promises; while a release's Windows
+build is still running, or its installer did not arrive whole, the feed stays on the previous
+release (`index.json` says which under `win`). The site block serves the directory at [nanomuse.cn/dl/](https://nanomuse.cn/dl/) with a
 listing, and the site's download switch ("GitHub / 国内镜像") rewrites its links to
 `https://nanomuse.cn/dl/<tag>/<file>`. About 1.3 GB per release; `MIRROR_RELEASES_KEEP` in
 `/etc/default/nanomuse-site-mirror` changes how many are kept. `install.sh` installs this too and

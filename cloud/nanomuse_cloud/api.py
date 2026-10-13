@@ -2,7 +2,7 @@
 
     GET  /healthz                                               → {ok, version, models, paused}
     GET  /v1/config                                             → the public figures the apps print (allowance, bonus, links, code_ttl_s, password_min_len); a minute's cache
-    POST /v1/auth/code        {identifier}                      → 204 (400 phone_region: a number the SMS sender cannot reach; 403 account_disabled before any code is sent; 429 domain_limited: a new address of a domain at its day's sign-up limit)
+    POST /v1/auth/code        {identifier}                      → 204 (400 phone_region: a number the SMS sender cannot reach; a disabled account gets the same 204 and no code is sent; 429 domain_limited: a new address of a domain at its day's sign-up limit)
     POST /v1/auth/verify      {identifier, code, device, invite?} → {api_key, base_url, account, tokens, models}
     POST /v1/auth/login       {identifier, password, device}    → the same, for accounts that set a password
     POST /v1/auth/password    {password, current?}              → 204 (set / change; "" + current removes)
@@ -978,7 +978,10 @@ def create_app(
         prompt = str(body.get("prompt", "")).strip()
         if not prompt:
             raise CloudError(400, "bad_request", "prompt is required")
-        n = int(body.get("n") or 1)
+        try:
+            n = int(body.get("n") or 1)
+        except (TypeError, ValueError) as e:
+            raise CloudError(400, "bad_request", "n is a whole number") from e
         if n != 1:
             raise CloudError(400, "bad_request", "nanoMuse Cloud draws one picture per request")
         params = {"size": size, "watermark": False}
@@ -1531,7 +1534,11 @@ def create_app(
     async def admin_grant(request: Request) -> dict:
         body = await _json(request)
         account_id = cloud.admin_resolve(str(body.get("account_id", "")), str(body.get("identifier", "")))
-        return cloud.admin_grant(account_id, int(body.get("tokens", 0)), actor=_actor(request))
+        try:
+            tokens = int(body.get("tokens", 0))
+        except (TypeError, ValueError) as e:
+            raise CloudError(400, "bad_request", "tokens is a whole number") from e
+        return cloud.admin_grant(account_id, tokens, actor=_actor(request))
 
     @app.post("/v1/admin/credit", dependencies=[Depends(admin_dep)])
     async def admin_credit(request: Request) -> dict:

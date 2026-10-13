@@ -2,7 +2,7 @@
 
 The computer's Muse, in a window: nanoMuse built on
 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`), laid out
-like the Muse desktop ([desktop-muse.md](desktop-muse.md)), with the account, the face,
+screen by screen in [desktop-muse.md](desktop-muse.md), with the account, the face,
 Hands on this computer's screen and Reach to every other device of the account as
 plugins ([harness.md](harness.md)). Windows 10+, macOS 12+ and Linux x64; one
 installer each, nothing to install first: the harness, the nanoMuse bundle and the
@@ -19,7 +19,10 @@ beside them). Windows releases also carry the update metadata electron-updater r
 which names the installer and its SHA-512, and the installer's `.exe.blockmap`. CI checks the set with electron-updater itself before
 anything is attached: it must find the candidate version in `latest.yml`, download the
 installer from a test feed and verify it, and refuse one whose bytes do not match
-(`harness/desktop/scripts/update-feed-check.mjs`). The code is under
+(`harness/desktop/scripts/update-feed-check.mjs`). The feed the metadata is built for is the
+download mirror's [nanomuse.cn/dl/win/](https://nanomuse.cn/dl/win/), which moves to a new
+release only once its `latest.yml`, installer and `.blockmap` are all there and the installer's
+bytes match; until then it serves the previous release. The code is under
 [`harness/`](../harness/): the bundle of plugins in
 `harness/dsh-nanomuse`, the Electron shell in `harness/desktop`; how to build it yourself is
 in [harness/README.md](../harness/README.md). Up to 0.1.29 the same installers wrapped the
@@ -32,11 +35,11 @@ desktop, and it installs over the old one (same application id).
 A dsh Host started by the shell as a child process, showing the harness's web app in a
 window of ours: the rail (Chats, Search, Feed, Ideas, Goals, Library, Devices, the
 hamburger), the chats column with the main chat and the side chats, the face and name
-pinned over the conversation with a live status line and *Stop*, Muse's permission card
+pinned over the conversation with a live status line and *Stop*, the permission card
 over the harness's approvals, the trajectory of a hands run in the chat (each step's
 screenshot with the action drawn on it and the agent's words, to look back at during
 and after the run), the profile panel with memory,
-Muse's Settings pages (Connectors, Computer use, File system access, Dictation,
+the Settings pages (Connectors, Computer use, File system access, Dictation,
 Permissions, Data controls with export and reset), the full-window first run. The agent
 is dsh's (its agent loop, tools, skills, goals, plan mode, compaction, sub-agents, MCP),
 speaking as nanoMuse through the `nanomuse` preset, with:
@@ -70,7 +73,7 @@ speaking as nanoMuse through the `nanomuse` preset, with:
   The runtime's own backends remain the fallback when the app is not the one running it.
   The connectors the runtime's `config.toml` turns on (mailbox, calendar, address book)
   arrive over the same server, and Settings → Connectors shows how to set each one up;
-- **the rooms**: Feed, Ideas, Goals and Library as Muse has them, kept by the host in
+- **the rooms**: Feed, Ideas, Goals and Library as the phone has them, kept by the host in
   `nanomuse/rooms.json` and written by the agent in hidden chats (feed and ideas) or
   chats of their own (goals, with the harness's schedule plugin for their automations;
   Library creations under `~/nanoMuse/Library`), plus memory: what it remembers about
@@ -90,7 +93,8 @@ speaking as nanoMuse through the `nanomuse` preset, with:
   shown masked). Everything the dsh Host sends goes through it: your own keys, the ChatGPT
   sign-in's calls, *List models*, the pages the tools read, connectors, the update check,
   and the hands' runtime (`nanomuse mcp` inherits the same variables). nanoMuse Cloud (the relay, the hub's WebSocket, the sync) and loopback never
-  do. The shell keeps it in `desktop.json` next to *open at login* and puts it on the dsh
+  do. The shell keeps it in `desktop.json` (mode 0600, since the address may carry a
+  password) next to *open at login* and puts it on the dsh
   Host's environment at start (`HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY` for SOCKS, `NO_PROXY`
   with `localhost,127.0.0.1,::1`, `cloud.nanomuse.cn` and the relay the plugin talks to, and
   `NODE_USE_ENV_PROXY=1`, which is what makes Node's fetch read them), so it takes effect

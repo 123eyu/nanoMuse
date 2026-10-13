@@ -58,7 +58,7 @@ import { OwnClip, type OwnClipView } from './own-clip.ts'
 import { DEFAULT_VIDEO_MODEL, hostOf, KNOWN_DASHSCOPE_MODELS, looksLikeVideoModel, probe as probeVideoModel, speaksDashScope, type VideoEndpoint } from './video.ts'
 import { editImage as ownEditImage, generateImage as ownGenerateImage, imageShapeOf, type ImageEndpoint } from './images.ts'
 import { checkMove, checkScreenshot, displayInfo, isBlack, runtimeInfo, screenHead, type MoveCheck, type RuntimeInfo, type ScreenshotCheck } from './hands-check.ts'
-import { apiOf, baseUrlFor, CAPABILITIES, capabilitiesForAuth, capabilitiesOf, CHATGPT_KEY_REF, CHATGPT_PROVIDER, ChatGptDesk, keyRefFor, listModelRows, listModels, loadCatalogue, modelsOf, ownProviderRow, parseModelReasoning, regionOf, typedModelIds, type Capability, type ChatGptState, type LoginView, type OwnModel, type OwnProvider, type ProviderEntry, type Region } from './providers.ts'
+import { apiOf, baseUrlFor, CAPABILITIES, capabilitiesForAuth, capabilitiesOf, CHATGPT_KEY_REF, CHATGPT_PROVIDER, ChatGptDesk, hasUserinfo, keyRefFor, listModelRows, listModels, loadCatalogue, modelsOf, ownProviderRow, parseModelReasoning, regionOf, typedModelIds, USERINFO_TEXT, type Capability, type ChatGptState, type LoginView, type OwnModel, type OwnProvider, type ProviderEntry, type Region } from './providers.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -1574,6 +1574,8 @@ export default class NanomuseCloud extends Service {
     const region = this.region(input.lang ?? '')
     const baseURL = (input.baseURL ?? '').trim().replace(/\/+$/, '') || (wantedRow ? existing?.baseURL : undefined) || baseUrlFor(entry, region)
     if (!/^https?:\/\//.test(baseURL)) throw new RelayError(400, 'bad_url', 'The address must start with http:// or https://')
+    // `user:pass@` would be kept in cloud.json and the model adapter's row and shown back as typed
+    if (hasUserinfo(baseURL)) throw new RelayError(400, 'bad_url', USERINFO_TEXT)
     let apiKey = (input.apiKey ?? '').trim()
     // a row changed without a new key keeps the one it has, read back to ask the endpoint for its models
     const keptKeyRef = !apiKey && wantedRow && existing?.keyRef ? existing.keyRef : ''

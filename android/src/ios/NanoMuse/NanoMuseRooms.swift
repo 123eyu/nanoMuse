@@ -373,11 +373,12 @@ struct NanoMuseLibraryRoom: View {
                     }
                 }
             }
-            Picker("", selection: $segment) {
+            Picker(AppLocalized("Library"), selection: $segment) {
                 Text(AppLocalized("Artifacts")).tag(0)
                 Text(AppLocalized("Media")).tag(1)
             }
             .pickerStyle(.segmented)
+            .labelsHidden()
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
 

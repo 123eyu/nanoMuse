@@ -158,7 +158,16 @@ fun OwnClipChooserHost(state: OwnClipChooserState) {
                 )
                 Spacer(Modifier.height(20.dp))
                 Button(
-                    onClick = { OwnClip.adopt(p); pending = null },
+                    onClick = {
+                        // Two renames and the poster write: off the main thread, with the busy
+                        // disc up so Cancel cannot delete the file half-way through.
+                        busy = true
+                        scope.launch {
+                            withContext(Dispatchers.IO) { OwnClip.adopt(p) }
+                            busy = false
+                            pending = null
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth().height(48.dp),
                     shape = CircleShape,
                     colors = ButtonDefaults.buttonColors(containerColor = MuseTones.action, contentColor = Color.White),

@@ -41,7 +41,7 @@ class FakeSocket {
 
 const DEVICE = { id: 'pc-dsh-test', name: 'Desk', kind: 'computer', os: 'Linux', version: 'test', actions: ['info', 'notify'] }
 
-function harness({ key = 'nm_test' } = {}) {
+function harness({ key = 'nm_test', pingMs = 100_000 } = {}) {
   const sockets = []
   const client = new HubClient({
     url: 'ws://relay/v1/hub',
@@ -53,7 +53,7 @@ function harness({ key = 'nm_test' } = {}) {
       return s
     },
     backoffMs: { min: 5, max: 20 },
-    pingMs: 100_000,
+    pingMs,
   })
   return { client, sockets }
 }
@@ -283,4 +283,33 @@ test('hub_paused waits well beyond the normal back-off; a refused device stays c
   await tick()
   assert.equal(h2.sockets.length, 2, 'a restart (a new sign-in, a rename) tries again')
   h2.client.stop()
+})
+
+test('a ping is sent on the interval; a relay that answers nothing for two pings is dropped and the client reconnects', async () => {
+  const h = harness({ pingMs: 40 })
+  const s = await connected(h)
+  const states = []
+  h.client.onState(() => states.push(h.client.connected))
+  await wait(60)
+  assert.equal(s.sent.filter((f) => f.type === 'ping').length, 1, 'the first ping went out')
+  s.push({ type: 'pong' })
+  await wait(40)
+  assert.equal(s.sent.filter((f) => f.type === 'ping').length, 2, 'a pong keeps the socket; the second ping went out')
+  assert.equal(h.client.connected, true)
+  // nothing answers the second ping: a call made meanwhile fails when the socket is dropped
+  const failed = h.client.call('phone-1', 'screen', {}, { timeoutMs: 5000 }).then(() => undefined, (e) => e)
+  await wait(40)
+  assert.equal(h.client.connected, false, 'two pings without a frame back: the link is dead')
+  assert.equal(s.readyState, 3, 'the silent socket was closed by the client')
+  assert.equal(h.client.lastError, 'the relay stopped answering')
+  const e = await failed
+  assert.ok(e instanceof HubError && e.code === 'disconnected', 'the call in flight failed at once')
+  await wait(40)
+  assert.equal(h.sockets.length, 2, 'the usual reconnect followed')
+  const s2 = h.sockets.at(-1)
+  s2.open()
+  s2.push({ type: 'welcome', device_id: DEVICE.id, devices: [], server: {} })
+  assert.equal(h.client.connected, true)
+  assert.deepEqual(states, [false, true])
+  h.client.stop()
 })

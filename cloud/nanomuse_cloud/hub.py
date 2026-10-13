@@ -180,14 +180,14 @@ class Connection:
             try:
                 await self.ws.send_text(text)
             except Exception as e:  # the socket went away under us; the receive loop notices too
-                log.debug("send to %s failed: %s", self.device_id, e)
+                log.debug("send to %s failed: %s", self.device_id[:12], e)
                 self.closed = True
 
     async def _close(self, code: int, reason: str) -> None:
         try:
             await self.ws.close(code=code, reason=reason)
         except Exception as e:  # already gone
-            log.debug("close %s: %s", self.device_id, e)
+            log.debug("close %s: %s", self.device_id[:12], e)
 
 
 @dataclass
@@ -466,9 +466,9 @@ class Hub:
         conn.start()
         if conn.kind != "web":
             self.db.upsert_device(conn.account_id, conn.device_id, conn.name, conn.kind, conn.os, conn.version, json.dumps(conn.actions))
-        log.info(
-            "hub: %s '%s' (%s) connected; account %s has %d online", conn.kind, conn.name, conn.device_id, conn.account_id[:8], len(account)
-        )
+        # the id and the account masked like every other line; the device's name is the
+        # person's own words and stays out of the log
+        log.info("hub: %s %s connected; account %s has %d online", conn.kind, conn.device_id[:12], conn.account_id[:8], len(account))
 
     async def _detach(self, conn: Connection) -> None:
         conn.stop()
@@ -481,7 +481,7 @@ class Hub:
                 self.online.pop(conn.account_id, None)
             if conn.kind != "web":
                 self.db.touch_device(conn.account_id, conn.device_id)
-            log.info("hub: %s '%s' (%s) left", conn.kind, conn.name, conn.device_id)
+            log.info("hub: %s %s left; account %s", conn.kind, conn.device_id[:12], conn.account_id[:8])
             await self._fail_pending_for(conn)
             await self.broadcast_devices(conn.account_id)
 

@@ -65,6 +65,27 @@ class RiskGateTest {
         assertNull(RiskGate.pending.value)
     }
 
+    @Test fun `a cancel before the request is queued leaves no card behind`() = runTest(dispatcher) {
+        // The asker is cancelled before the main-thread hop that registers its request ran.
+        val req = request("rm f")
+        val job = launch { RiskGate.ask(req) }
+        job.cancel()
+        runCurrent()
+        assertNull(RiskGate.pending.value)
+        assertEquals(0, RiskGate.queued.value)
+        assertTrue(RiskGate.recent.value.none { it.first.id == req.id })
+
+        // The queue still works afterwards: the next request comes straight up.
+        val next = request("rm g")
+        val waiting = async { RiskGate.ask(next) }
+        runCurrent()
+        assertEquals(next.id, RiskGate.pending.value?.id)
+        RiskGate.decide(next.id, RiskDecision.DENY)
+        runCurrent()
+        assertEquals(RiskDecision.DENY, waiting.await())
+        assertNull(RiskGate.pending.value)
+    }
+
     @Test fun `cancelling a queued asker drops it from the line`() = runTest(dispatcher) {
         val first = request("rm d")
         val second = request("rm e")

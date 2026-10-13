@@ -619,6 +619,8 @@
     <string name="nm_risk_title_device">Zezwolić „%1$s” na sterowanie tym telefonem?</string>
     <string name="nm_risk_desc_device">„%1$s”, inne urządzenie na twoim koncie, chce %2$s na tym telefonie. Co dokładnie, widać poniżej. „Zawsze” pozwala temu urządzeniu robić tu takie rzeczy bez pytania; cofniesz to w Uprawnieniach.</string>
     <string name="nm_risk_preview_device">O co poprosiło urządzenie</string>
+    <string name="nm_risk_preview_show_all">Pokaż wszystko (%1$d wierszy)</string>
+    <string name="nm_risk_preview_show_less">Pokaż mniej</string>
     <string name="nm_risk_class_remote">Zdalne sterowanie</string>
     <string name="nm_hub_remote_reason">%1$s może sterować tym telefonem</string>
 
@@ -652,7 +654,6 @@
     <string name="nm_welcome_skip">Pomiń na razie</string>
     <string name="nm_welcome_hands_fine_print">Wszystko inne działa bez nich. Znajdziesz je w Ustawienia → Ręce, kiedy zechcesz.</string>
     <string name="nm_welcome_meet_fine_print">Przed wszystkim, czego nie da się cofnąć (usuwaniem, wysyłaniem, płaceniem) zatrzymuje się i najpierw pyta ciebie.</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">Zacznij z nanoMuse Cloud</string>
     <string name="nm_cloud_signin_subtitle">Kod na telefon lub skrzynkę, albo hasło, gdy już je ustawisz.</string>
     <string name="nm_cloud_mode_code">Kodem</string>
@@ -660,7 +661,7 @@
     <string name="nm_cloud_password">Hasło</string>
     <string name="nm_cloud_forgot_password">Nie pamiętasz hasła? Zaloguj się kodem</string>
     <string name="nm_cloud_identifier">Numer telefonu z Chin kontynentalnych lub e-mail</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · ty@example.com</string>
+    <string name="nm_cloud_identifier_hint">ty@example.com</string>
     <string name="nm_cloud_code">Kod</string>
     <string name="nm_cloud_send_code">Wyślij kod</string>
     <string name="nm_cloud_resend">Wyślij ponownie</string>
@@ -670,7 +671,6 @@
     <!-- Your own relay (0.1.38): the sign-in screen's server form and the account page's row -->
     <string name="nm_cloud_other_server">Użyj innego serwera</string>
     <string name="nm_cloud_server_url">Adres relay</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
     <string name="nm_cloud_server_check">Sprawdź</string>
     <string name="nm_cloud_server_use">Użyj tego serwera</string>
     <string name="nm_cloud_server_now">Serwer: %1$s</string>
@@ -1150,6 +1150,11 @@
     <string name="nm_a11y_not_liked">Niepolubione</string>
     <string name="nm_a11y_post_details">Szczegóły wpisu</string>
     <string name="nm_claude_sign_in_unavailable">Ta wersja nie obsługuje logowania przez Claude. Dodaj Anthropic z kluczem API.</string>
+    <string name="nm_oauth_rescue_hint">Jeśli przeglądarka pokazuje stronę błędu pod localhost, twój proxy lub VPN przechwytuje odpowiedź. Dodaj localhost do jego listy wyjątków albo skopiuj adres tej strony i wklej go tutaj.</string>
+    <string name="nm_oauth_rescue_placeholder">Wklej adres tutaj</string>
+    <string name="nm_oauth_rescue_continue">Dalej</string>
+    <string name="nm_oauth_rescue_no_code">Ten adres nie zawiera kodu logowania.</string>
+    <string name="nm_oauth_rescue_failed">Logowanie nie czeka już na ten adres. Stuknij Zaloguj się i spróbuj ponownie.</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">Bardzo mały</string>
     <string name="nm_font_scale_small">Mały</string>

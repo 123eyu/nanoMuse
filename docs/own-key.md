@@ -234,6 +234,19 @@ address the browser ends on and give it to the CLI's prompt or to
 `POST /api/chatgpt/callback {"url": …}`
 ([configuration.md](configuration.md#a-chatgpt-plan-instead-of-a-key)).
 
+**A proxy or VPN on the phone can swallow the callback.** On Android the sign-in
+page sends the browser back to `http://localhost:1455/auth/callback`, which only
+the app on the same phone answers. A proxy or VPN app (Clash, for example) that
+routes every address into its tunnel, or whose DNS answers for `localhost`,
+takes that address too; the browser shows a connection error and the app keeps
+waiting. Two ways through: add `localhost` and `127.0.0.1` to the proxy app's
+bypass (direct) list and sign in again, or copy the address of the error page
+and paste it into the box that appears under *Sign in* after about ten seconds
+(at once when the phone's proxy settings would take the address); *Continue*
+hands the code to the waiting sign-in without going through the proxy. The same
+box appears for the Anthropic, xAI and OpenRouter sign-ins, which use the same
+kind of redirect; the Kimi sign-in uses a device code and does not need it.
+
 **One honest line.** OpenAI's terms cover using a ChatGPT plan inside OpenAI's
 own Codex; other apps have had this access cut off before (OpenCode, January
 2026). If it stops working, an API key does.
@@ -288,7 +301,7 @@ Anything that speaks the OpenAI API works; choose *Custom*:
 
 | Field | Value |
 |---|---|
-| Base URL | the provider's address, usually ending in `/v1` |
+| Base URL | the provider's address, usually ending in `/v1`; the runtime, the web console and the desktop refuse an address with `user:pass@` in it (the key has its own field) |
 | API key | the key made in the provider's console (a local server may leave it empty) |
 | Model | pick from the list after saving; if the endpoint does not list its models, the form asks for their ids (comma-separated) and saves with those |
 

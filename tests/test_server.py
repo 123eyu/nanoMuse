@@ -2511,3 +2511,20 @@ def test_update_endpoint(server, monkeypatch):
     view = client.get("/api/update").json()
     assert view["enabled"] is False and view["newer"] is False and view["current"]
     assert TestClient(client.app).get("/api/update").status_code == 401
+
+
+def test_static_app_caching_headers(server):
+    """The build's hashed assets may be kept for a year; index.html and sw.js never are."""
+    client, _, _ = server
+    plain = TestClient(client.app)  # the app itself needs no token
+    from nanomuse.server.api import STATIC_DIR
+
+    asset = next((STATIC_DIR / "assets").glob("*.js"))
+    r = plain.get(f"/assets/{asset.name}")
+    assert r.status_code == 200
+    assert r.headers["cache-control"] == "public, max-age=31536000, immutable"
+    assert plain.get("/").headers["cache-control"] == "no-cache"
+    assert plain.get("/sw.js").headers["cache-control"] == "no-cache"
+    # the app's own routes, not the HTML, answer a wrong API path
+    r = plain.get("/api/no-such-thing")
+    assert r.status_code == 404 and "no such endpoint" in r.json()["detail"]
