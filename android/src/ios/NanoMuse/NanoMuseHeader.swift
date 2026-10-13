@@ -123,6 +123,10 @@ struct NanoMuseHeaderScrim: View {
             .animation(.easeInOut(duration: 0.25), value: scrolledUp)
         }
         .contentShape(Rectangle())
+        // A tap on the bare scrim ends here: the rows the list has under the header (nmTopOverlay)
+        // are not to be tapped through it. The header's own discs and pills lie over the scrim and
+        // take their taps first.
+        .onTapGesture {}
     }
 }
 

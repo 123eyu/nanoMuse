@@ -505,7 +505,18 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   于是它们的边和气泡的边、和彼此的边对齐，智能体的胶囊放宽到 600 pt，即网页宽布局的值。compact
   宽度，也就是每一部 iPhone 和窄的分屏窗格，没有变化。消息列表的单元格由 `UIHostingConfiguration`
   承载，它不传我们的 environment object，但会从单元格的 traits 传 size class；智能体的胶囊从那里
-  读它。
+  读它。1.0.4 里只有智能体的行把内边距加在列的外面，于是它的胶囊比输入框的边往左多出
+  16 pt；`CollectionViewMessageListV3.swift` 里的三个智能体单元格（头部、块、尾部）现在和用户的行
+  一样把内边距放在列里面。
+- **行会滚到标题栏下面。** 外壳量出 Muse 标题栏的高度，作为环境值 `nmTopOverlay` 交给聊天
+  （`NanoMuseChatModifiers.swift`）；消息列表在顶部忽略容器的安全区，再把行往下留出这么多
+  （`CollectionViewMessageListV3` 的 `topOverlay`，加进 `contentInset.top`），就像它已经在输入框和
+  底栏胶囊下面延伸那样。于是行会滚到形象下面，被标题栏后面的遮罩淡化，和 Android 一样。1.0.3 和
+  1.0.4 只把标题栏做成了 `safeAreaInset`，这对 SwiftUI 的 `ScrollView` 够用，却会把一个 UIKit 视图
+  缩短：列表止于标题栏下面，行在那里被一条硬边切断，遮罩什么也没淡化。从抽屉推出的侧聊天保留
+  系统栏，这个值是 0，它改为像上游 iOS 26 的布局那样把内容一直延伸到系统栏下面
+  （`NavBarStyleModifier`）；系统栏是 UIKit 的，列表自己的内边距调整会让第一行停在栏下面，它的行
+  也会在栏后面的遮罩里淡化。
 
 ## 用操作按钮说一句 {#voice-prompts-from-the-action-button}
 

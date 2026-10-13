@@ -42,6 +42,25 @@ extension EnvironmentValues {
     }
 }
 
+/// The height of the shell's Muse header over the main chat's top edge (the face row and, while
+/// one is up, the star or allowance card), 0 when the shell is off or in a pushed side chat.
+/// `NanoMuseHomeView.chatLayer` measures the header and sets it; the chat lets its message list
+/// extend under the header (`.ignoresSafeArea(.container, edges: .top)`) and gives the list that
+/// much top content inset, so the rows pass under the face and the scrim behind the header
+/// (`NanoMuseHeaderScrim`) has rows to fade. 1.0.3 and 1.0.4 laid the list out below the header
+/// (a `safeAreaInset` shortens a UIKit view, unlike a SwiftUI `ScrollView`), so the rows stopped
+/// at a hard edge under the face and the scrim faded nothing.
+private struct NanoMuseTopOverlayKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 0
+}
+
+extension EnvironmentValues {
+    var nmTopOverlay: CGFloat {
+        get { self[NanoMuseTopOverlayKey.self] }
+        set { self[NanoMuseTopOverlayKey.self] = newValue }
+    }
+}
+
 /// True for a side chat pushed from the shell: the system navigation bar stays, with the main
 /// chat's scrim behind it instead of a bar background (`NavBarStyleModifier` in AIChatView.swift
 /// reads it). The main chat has no system bar and draws its scrim behind the Muse header.
