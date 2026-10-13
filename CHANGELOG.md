@@ -29,7 +29,6 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 ### iOS
 
 - **The daily feed is written quietly and a routine speaks first.** The feed's conversation no longer appears in the drawer or the chat lists, the prompt a routine sends is shown as one quiet line, *Routine · 〈label〉 · 08:00*, instead of a bubble in your voice, and the agent is told the turn is the routine's, so it opens with the result rather than thanking you for asking.
-
 - **The conversation scrolls under the header now.** The rows pass under the face and fade in the scrim behind it, as they do under the composer and the pill bar, and as on Android; in 1.0.3 and 1.0.4 the list ended right under the header and the top row was cut at a hard edge there. The shell hands the header's measured height to the chat (`nmTopOverlay`), and the message list extends under it with that much top inset. A side chat opened from the drawer runs under its system bar the same way.
 - **On an iPad the agent's replies line up with the composer.** The agent's rows padded outside the 760 pt column while the user's rows padded inside it, so the reply pill began 16 pt left of the composer's and the pill bar's edge; the three assistant cells now pad inside the column too.
 
@@ -37,6 +36,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 - **The READMEs' News notes the thousandth star.** The ten READMEs gained a 2026-10-13 line: 1,000 stars on GitHub eighteen days after the first release, the four days on GitHub Trending's Swift list (seventh on October 7, fourth on October 10, as Trendshift records it), a thank-you, and the plan to keep going with a version every few days and the roadmap for what comes next.
 - **The Intel Mac installer builds again.** The desktop workflow installs pnpm from npm instead of letting `pnpm/action-setup` self-update to the newest 11, whose native binary pnpm no longer publishes for Intel Macs; the 1.0.4 run's `macos-x64` job stopped at that step, and the `mac-x64` files are attached to the 1.0.4 release by a rerun of the workflow.
+- **The docs describe nanoMuse in its own words.** The design page and the desktop page (screen by screen) no longer hold another product up as the model and compare ours to it; they say what each screen is, how it behaves and where it lives in the code, with the same facts as before. The desktop, harness, parity, brand, deployment, app and avatar pages and their Chinese twins follow, the feature-request form asks what problem a change solves instead of what another app does, the configuration page's recipe table names the catalogue's current GLM and OpenAI models, and the third-party notices list the connector marks from simple-icons and the ip2region database the relay downloads.
 
 ## [1.0.4] - 2026-10-13 · Compass
 
