@@ -161,6 +161,24 @@ def test_cloud_urls() -> None:
     assert CloudClient.recommended_model(list(reversed(menu)), "chat") == "deepseek-v4.1-flash"
 
 
+def test_estimate_encodes_what_people_typed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A model id or a size with an ``&`` or a space in it is one value of the query, not
+    a second parameter."""
+    asked: list[str] = []
+
+    async def fake_request(self: CloudClient, method: str, path: str, **_: Any) -> dict[str, Any]:
+        asked.append(path)
+        return {"cny": 0}
+
+    monkeypatch.setattr(CloudClient, "_request", fake_request)
+    client = CloudClient("http://127.0.0.1:9")
+    asyncio.run(client.estimate(2, image_model="odd&images=99", size="1024 x 1024"))
+    asyncio.run(client.estimate(1, clips=1, video_model="wan2.2-i2v-flash"))
+    asyncio.run(client.close())
+    assert asked[0] == "/v1/estimate?images=2&image_model=odd%26images%3D99&size=1024+x+1024"
+    assert asked[1] == "/v1/estimate?images=1&clips=1&video_model=wan2.2-i2v-flash"
+
+
 # ----------------------------------------------------------------------------- a fake relay
 class _TrackedConnection(ServerConnection):
     """A server connection the relay keeps a list of, from the TCP accept to the TCP close.
