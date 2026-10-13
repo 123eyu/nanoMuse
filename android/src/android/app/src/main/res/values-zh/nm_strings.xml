@@ -706,6 +706,8 @@
     <string name="nm_cloud_err_password_short">密码至少 8 位。</string>
     <string name="nm_cloud_err_password_weak">这个密码太好猜了。</string>
     <string name="nm_cloud_err_signup_closed">这台中继暂时关闭了注册。已有的账号仍可登录。</string>
+    <string name="nm_cloud_err_domain_limited">这个域名的邮箱今天在这台中继上的注册名额已经用完。明天再试，或者换一个地址。</string>
+    <string name="nm_cloud_err_channel_unsupported">这台中继不会给这类地址发送验证码。换另一类地址（邮箱或手机号），或者用密码登录。</string>
     <string name="nm_cloud_err_too_large">这条消息对模型来说太长了。缩短一些、去掉几个附件，或者新开一个对话。</string>
     <string name="nm_cloud_err_content_rejected">模型服务商的内容审核没有放行这次请求。换个说法试试；如果反复出现，就新开一个对话，被拦下的可能是对话里更早的内容。</string>
     <string name="nm_cloud_err_provider_busy">模型服务商现在很忙，稍后再试。</string>
@@ -911,7 +913,7 @@
     <string name="nm_hub_err_device_offline">那台电脑不在线。</string>
     <string name="nm_hub_err_busy">电脑正忙着另一个任务，稍后再试。</string>
     <string name="nm_hub_err_not_controllable">那个设备不能接受操作。</string>
-    <string name="nm_hub_err_unknown_agent">电脑上没有这个 编程助手。</string>
+    <string name="nm_hub_err_unknown_agent">电脑上没有这个编程助手。</string>
     <string name="nm_hub_err_no_session">这个会话已经不在电脑上了。</string>
     <string name="nm_hub_err_unknown_action">电脑上的 nanoMuse 版本较旧，不认识这个操作。</string>
     <string name="nm_hub_err_bad_key">中继上已退出登录，请重新登录。</string>

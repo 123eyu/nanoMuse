@@ -726,6 +726,8 @@
     <string name="nm_cloud_err_password_short">Parola en az 8 karakter olmalı.</string>
     <string name="nm_cloud_err_password_weak">Bu parolayı tahmin etmek çok kolay.</string>
     <string name="nm_cloud_err_signup_closed">Bu relay’de kayıtlar şimdilik durduruldu. Zaten var olan bir hesap oturum açmaya devam edebilir.</string>
+    <string name="nm_cloud_err_domain_limited">Bu alan adındaki adresler bu relay üzerinde bugünkü kayıt sınırına ulaştı. Yarın yeniden deneyin ya da başka bir adres kullanın.</string>
+    <string name="nm_cloud_err_channel_unsupported">Bu relay bu tür adreslere kod göndermiyor. Diğer türü (e-posta ya da telefon numarası) kullanın ya da parolanızla giriş yapın.</string>
     <string name="nm_cloud_err_too_large">Bu mesaj model için fazla büyük. Kısalt, bazı ekleri çıkar ya da yeni bir sohbet başlat.</string>
     <string name="nm_cloud_err_content_rejected">Model sağlayıcısının içerik denetimi bu isteği reddetti. Başka sözcükler deneyin; tekrarlanırsa yeni bir sohbet başlatın, itiraz edilen sözcükler konuşmanın daha önceki kısmında olabilir.</string>
     <string name="nm_cloud_err_provider_busy">Model sağlayıcısı şu anda yoğun. Birazdan yeniden dene.</string>

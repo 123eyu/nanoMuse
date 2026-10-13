@@ -321,6 +321,8 @@ def create_app(
         finally:
             rules_task.cancel()
             video_task.cancel()
+            # waited for, so neither cancellation lands after the database is closed
+            await asyncio.gather(rules_task, video_task, return_exceptions=True)
             await collector.stop()
             await http.aclose()
 

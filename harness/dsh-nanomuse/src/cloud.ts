@@ -1575,7 +1575,7 @@ export default class NanomuseCloud extends Service {
     const baseURL = (input.baseURL ?? '').trim().replace(/\/+$/, '') || (wantedRow ? existing?.baseURL : undefined) || baseUrlFor(entry, region)
     if (!/^https?:\/\//.test(baseURL)) throw new RelayError(400, 'bad_url', 'The address must start with http:// or https://')
     // `user:pass@` would be kept in cloud.json and the model adapter's row and shown back as typed
-    if (hasUserinfo(baseURL)) throw new RelayError(400, 'bad_url', USERINFO_TEXT)
+    if (hasUserinfo(baseURL)) throw new RelayError(400, 'url_userinfo', USERINFO_TEXT)
     let apiKey = (input.apiKey ?? '').trim()
     // a row changed without a new key keeps the one it has, read back to ask the endpoint for its models
     const keptKeyRef = !apiKey && wantedRow && existing?.keyRef ? existing.keyRef : ''

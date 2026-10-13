@@ -538,6 +538,10 @@ enum NanoMuseCloud {
             return AppLocalized("That invite code is not one we know. Check it, or leave it empty.")
         case "signup_closed":
             return AppLocalized("Sign-ups are paused on this relay for now. An account that already exists can still sign in.")
+        case "domain_limited":
+            return AppLocalized("Today's sign-up limit for addresses at that domain is reached on this relay. Try again tomorrow, or use another address.")
+        case "channel_unsupported":
+            return AppLocalized("This relay does not send codes to that kind of address. Use the other kind (e-mail or phone number), or sign in with a password.")
         case "daily_cap":
             return AppLocalized("Today's allowance is used up. It resets tomorrow.")
         case "rate_limited":

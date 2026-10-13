@@ -1019,8 +1019,6 @@ class Cloud:
             self._note_login_failure(ip)
             self.db.add_event("", "sign_in.failed", ident.channel)
             raise CloudError(401, "bad_credentials", "That address and password do not match")
-        if account["disabled"]:
-            raise CloudError(403, "account_disabled", "This account is disabled")
         locked_until = account["locked_until"]
         if locked_until and int(locked_until) > now():
             raise CloudError(429, "locked", "Too many wrong passwords; wait a while or sign in with a code")
@@ -1033,6 +1031,10 @@ class Cloud:
             if left == 0:
                 raise CloudError(429, "locked", "Too many wrong passwords; wait a while or sign in with a code")
             raise CloudError(401, "bad_credentials", "That address and password do not match")
+        if account["disabled"]:
+            # Only the holder of the right password hears that the account is disabled; a
+            # probe with a guessed password gets the same answer as for any wrong password.
+            raise CloudError(403, "account_disabled", "This account is disabled")
         self.db.login_succeeded(account["id"])
         key, caller = self._issue_key(account["id"], device, via="password")
         self.db.add_event(account["id"], "sign_in.password", device)

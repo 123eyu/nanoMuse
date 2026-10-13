@@ -726,6 +726,8 @@
     <string name="nm_cloud_err_password_short">Kailangan ng password ng hindi bababa sa 8 character.</string>
     <string name="nm_cloud_err_password_weak">Masyadong madaling hulaan ang password na iyan.</string>
     <string name="nm_cloud_err_signup_closed">Naka-pause muna ang pag-sign up sa relay na ito. Puwede pa ring mag-sign in ang account na mayroon na.</string>
+    <string name="nm_cloud_err_domain_limited">Naabot na ng mga address sa domain na iyon ang limitasyon sa pag-sign-up ngayong araw sa relay na ito. Subukan ulit bukas o gumamit ng ibang address.</string>
+    <string name="nm_cloud_err_channel_unsupported">Hindi nagpapadala ng code ang relay na ito sa ganoong uri ng address. Gamitin ang isa pang uri (e-mail o numero ng telepono), o mag-sign in gamit ang password.</string>
     <string name="nm_cloud_err_too_large">Masyadong malaki ang mensaheng iyan para sa model. Paikliin ito, alisin ang ilang attachment, o magsimula ng bagong chat.</string>
     <string name="nm_cloud_err_content_rejected">Tinanggihan ng content check ng model provider ang kahilingang ito. Subukan ang ibang mga salita, o magsimula ng bagong chat kung paulit-ulit itong nangyayari: ang mga salitang tinutulan nito ay maaaring nasa mas maagang bahagi ng usapan.</string>
     <string name="nm_cloud_err_provider_busy">Abala ngayon ang provider ng model. Subukan muli maya-maya.</string>

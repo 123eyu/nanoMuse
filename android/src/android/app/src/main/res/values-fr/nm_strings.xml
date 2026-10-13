@@ -727,6 +727,8 @@
     <string name="nm_cloud_err_password_short">Le mot de passe doit faire au moins 8 caractères.</string>
     <string name="nm_cloud_err_password_weak">Ce mot de passe est trop facile à deviner.</string>
     <string name="nm_cloud_err_signup_closed">Les inscriptions sont suspendues sur ce relais pour le moment. Un compte déjà créé peut toujours se connecter.</string>
+    <string name="nm_cloud_err_domain_limited">Les adresses de ce domaine ont atteint la limite d’inscriptions du jour sur ce relais. Réessayez demain ou utilisez une autre adresse.</string>
+    <string name="nm_cloud_err_channel_unsupported">Ce relais n’envoie pas de code à ce type d’adresse. Utilisez l’autre type (e-mail ou numéro de téléphone) ou connectez-vous avec votre mot de passe.</string>
     <string name="nm_cloud_err_too_large">Ce message est trop volumineux pour le modèle. Raccourcissez-le, retirez quelques pièces jointes ou commencez une nouvelle discussion.</string>
     <string name="nm_cloud_err_content_rejected">Le contrôle de contenu du fournisseur du modèle a refusé cette demande. Essayez d\'autres mots ou, si cela se répète, ouvrez une nouvelle discussion : les mots en cause peuvent se trouver plus haut dans la conversation.</string>
     <string name="nm_cloud_err_provider_busy">Le fournisseur du modèle est occupé en ce moment. Réessayez dans un instant.</string>

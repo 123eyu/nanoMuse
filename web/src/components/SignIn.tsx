@@ -170,7 +170,7 @@ export function SignIn({
           inputMode={identifierInputMode(identifier)}
           autoComplete="username"
           autoFocus={autoFocus}
-          placeholder={t("138 0000 0000 or you@example.com")}
+          placeholder={isMainland() ? t("138 0000 0000 or you@example.com") : "you@example.com"}
           className={cx(inputCls, "mt-1")}
         />
         {mode === "code" && !sent && (!isMainland() || looksLikeForeignNumber(identifier)) && (

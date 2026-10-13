@@ -320,6 +320,23 @@ const FORBIDDEN_FIELD = /token|secret|key|authorization|password/i
 
 export const SHARED_CONNECTORS_CAP = 64
 
+/**
+ * A connector's address without a `user:pass@` in it. New addresses with one are refused when
+ * saved; one saved before that check keeps it in connectors.json, and the profile the other
+ * devices read must not carry it.
+ */
+export function withoutUserinfo(url: string): string {
+  try {
+    const parsed = new URL(url)
+    if (!parsed.username && !parsed.password) return url
+    parsed.username = ''
+    parsed.password = ''
+    return parsed.toString()
+  } catch {
+    return url
+  }
+}
+
 /** This device's connections as the profile should list them. */
 export function sharedConnectors(
   connections: { service: string; id: string; label: string; url: string; auth: string; state: string; connectedAt: number; updatedAt: number }[],
@@ -329,7 +346,7 @@ export function sharedConnectors(
   const rows = connections.slice(0, SHARED_CONNECTORS_CAP).map((c): SharedConnector => ({
     id: (c.service && c.service !== 'custom' ? c.service : c.id).slice(0, 64),
     label: c.label.slice(0, 80),
-    ...(c.url ? { url: c.url.slice(0, 256) } : {}),
+    ...(c.url ? { url: withoutUserinfo(c.url).slice(0, 256) } : {}),
     auth: c.auth === 'oauth' ? 'oauth' : c.auth === 'none' ? 'open' : 'key',
     device: device.slice(0, 80),
     device_id: deviceId.slice(0, 80),
