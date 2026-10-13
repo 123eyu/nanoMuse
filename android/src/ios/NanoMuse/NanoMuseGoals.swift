@@ -414,10 +414,6 @@ struct NanoMuseGoalsRoom: View {
         .sheet(item: $editingRoutine) { routine in
             NanoMuseRoutineEditor(routine: routine)
         }
-        .onReceive(NotificationCenter.default.publisher(for: .nanoMuseEditRoutine)) { note in
-            // An idea just became a routine: set the time and details.
-            if let id = note.object as? String, let routine = scheduler.routine(id: id) { editingRoutine = routine }
-        }
         .confirmationDialog(AppLocalized("Delete this goal? Its conversation stays in your chats."), isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }), titleVisibility: .visible) {
             Button(AppLocalized("Delete goal"), role: .destructive) {
                 if let g = deleting { NanoMuseGoalFlow.delete(g) }

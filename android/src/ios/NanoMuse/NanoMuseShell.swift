@@ -363,6 +363,8 @@ struct NanoMuseHomeView: View {
     @State private var showNanoMuseSettings = false
     @State private var showCoding = false
     @State private var showRoutines = false
+    /// The routine an idea just became, while its editor is up (the Ideas room has no sheet of its own).
+    @State private var editingRoutine: NanoMuseRoutine?
     @State private var showSystemFiles = false
     @State private var showSharedFolders = false
     @State private var showChatFiles = false
@@ -471,6 +473,9 @@ struct NanoMuseHomeView: View {
         }
         .sheet(isPresented: $showRoutines) {
             NanoMusePageSheet(title: AppLocalized("All routines")) { NanoMuseRoutinesView() }
+        }
+        .sheet(item: $editingRoutine) { routine in
+            NanoMuseRoutineEditor(routine: routine)
         }
         .sheet(isPresented: $showSystemFiles) {
             NanoMusePageSheet(title: AppLocalized("System files")) { NanoMuseSystemFilesView() }
@@ -780,7 +785,9 @@ struct NanoMuseHomeView: View {
         sendToMainChat(trimmed.isEmpty ? opener : opener + " " + trimmed)
     }
 
-    /// A routine from an idea: created at the idea's time (9:00 when it has none), then the editor.
+    /// A routine from an idea: created at the idea's time (9:00 when it has none), then the editor,
+    /// as a sheet of this view. Up to 1.0.4 the Goals room was asked to open it, and that room is
+    /// not on screen while the Ideas room is, so the routine was made and nothing opened.
     private func createRoutine(from idea: NanoMuseIdea) {
         let at = NanoMuseDay.parseClock(idea.time) ?? (hour: 9, minute: 0)
         let routine = NanoMuseScheduler.shared.create(NanoMuseRoutine(
@@ -790,7 +797,7 @@ struct NanoMuseHomeView: View {
             minute: at.minute,
             repeatMode: .daily
         ))
-        NotificationCenter.default.post(name: .nanoMuseEditRoutine, object: routine.id)
+        editingRoutine = routine
     }
 
     /// "Discuss" on a feed card: a side chat that opens on the post.
@@ -816,8 +823,6 @@ struct NanoMuseHomeView: View {
 extension Notification.Name {
     /// `object` is a session id (or a `__new__…` draft id): the shell shows it.
     static let nanoMuseOpenChat = Notification.Name("nanoMuse.openChat")
-    /// `object` is a routine id: the Goals room opens its editor.
-    static let nanoMuseEditRoutine = Notification.Name("nanoMuse.editRoutine")
 }
 
 /// The upstream layout, presented from the drawer as a sheet (swipe down
