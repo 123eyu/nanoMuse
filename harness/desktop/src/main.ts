@@ -17,6 +17,7 @@ import { maskProxyUrl, proxyEnv, validProxyUrl } from "./proxy";
 import { HostStartWatch, maskToken, waitedText, type WaitState } from "./host-start";
 import { HostWork } from "./host-work";
 import { ProtectedExit, type ExitDialog, type ExitIntent, type WorkItem, type WorkSource } from "./protected-exit";
+import { WindowsUpdates, RestartNsisUpdater } from "./windows-updates";
 
 /**
  * nanoMuse Desktop — the nanoMuse desktop, built on DeepSeek Harness.
@@ -532,14 +533,20 @@ async function restartHost(): Promise<void> {
 let hostWork: HostWork | null = null;
 /** The one protected exit (a quit today; the restart-update request of the update tickets reuses it). */
 let exitGuard: ProtectedExit | null = null;
+let windowsUpdates: WindowsUpdates | null = null;
 
 const workSource: WorkSource = {
-  busy: async () => (await hostWork?.busy()) ?? [],
-  setGate: async (open) => {
-    await hostWork?.setGate(open);
+  busy: async (strict) => {
+    if (strict && !hostWork) throw new Error("The Host is not ready for an update restart");
+    return (await hostWork?.busy(strict)) ?? [];
   },
-  stopAll: async () => {
-    await hostWork?.stopAll();
+  setGate: async (open, strict) => {
+    if (strict && !hostWork) throw new Error("The Host is not ready for an update restart");
+    await hostWork?.setGate(open, strict);
+  },
+  stopAll: async (strict) => {
+    if (strict && !hostWork) throw new Error("The Host is not ready for an update restart");
+    await hostWork?.stopAll(strict);
   },
 };
 
@@ -983,6 +990,13 @@ function registerBridge(): void {
   ipcMain.handle("nanomuse:relaunch", () => {
     relaunchNow();
   });
+  ipcMain.handle("nanomuse:updates:snapshot", () => windowsUpdates?.snapshot() ?? null);
+  for (const action of ["check", "download", "restart"] as const) {
+    ipcMain.handle(`nanomuse:updates:${action}`, async () => {
+      await windowsUpdates?.[action]();
+      return windowsUpdates?.snapshot() ?? null;
+    });
+  }
   ipcMain.handle("nanomuse:permissions:settings", (_e, kind: PermissionKind | "files") => {
     if (process.platform === "darwin" && typeof kind === "string" && kind in PERMISSION_PANES) void shell.openExternal(PERMISSION_PANES[kind]);
   });
@@ -1999,6 +2013,20 @@ if (!app.requestSingleInstanceLock({ version: app.getVersion() })) {
     if (!screenshotFlag) void ensureMacPermissionsAtLaunch().catch((exc: unknown) => log(`permissions: ${String(exc)}`));
     try {
       await boot();
+      if (process.platform === "win32" && process.arch === "x64" && app.isPackaged && !screenshotFlag) {
+        windowsUpdates = new WindowsUpdates({
+          currentVersion: app.getVersion(), supported: true,
+          createUpdater: (canQuit) => {
+            const updater = new RestartNsisUpdater(canQuit);
+            updater.logger = { info: (line) => log(`update: ${line}`), warn: (line) => log(`update: ${line}`), error: (line) => log(`update: ${line}`) };
+            return updater;
+          },
+          restart: async (install) => !quitting && !!exitGuard && exitGuard.requestExit("restart-update", install),
+          cancelHandoff: async () => { await exitGuard?.cancelHandoff(); },
+        });
+        windowsUpdates.subscribe((state) => { mainWindow?.webContents.send("nanomuse:updates:state", state); });
+        windowsUpdates.start();
+      }
     } catch (exc) {
       await reportStartupFailure(exc);
       app.quit();
@@ -2019,6 +2047,7 @@ if (!app.requestSingleInstanceLock({ version: app.getVersion() })) {
     globalShortcut.unregisterAll();
     if (quitting) return;
     quitting = true;
+    windowsUpdates?.dispose();
     // The record the install-on-exit change will read: a quit that did not go through the
     // protected exit (a crash, the system switching off, a Host that never came up) is not
     // the person approving an installation.

@@ -10,6 +10,8 @@
  * nothing: the check then reads as idle and the quit proceeds as it did before
  * this existed. That is safe to accept because the plugin ships in the same
  * installer as the shell: the pairing is the norm, the mismatch the dev case.
+ * Update restarts request strict acknowledgements instead of the ordinary quit's
+ * tolerant path: unavailable work, gate or stop answers refuse installation.
  */
 
 import type { WorkItem } from "./protected-exit";
@@ -84,8 +86,9 @@ export class HostWork {
   }
 
   /** The work a real exit would end, over every source the plugin aggregates; empty when there is no answer. */
-  async busy(): Promise<WorkItem[]> {
+  async busy(strict = false): Promise<WorkItem[]> {
     const res = await this.request(WORK_PREFIX);
+    if (strict && (!res || !res.ok)) throw new Error("The Host's work state is unavailable");
     if (!res) return [];
     if (!res.ok) {
       this.options.log(`work: the Host answered ${res.status} for the work check (an older plugin?)`);
@@ -93,26 +96,38 @@ export class HostWork {
     }
     try {
       const body = (await res.json()) as { busy?: unknown };
-      if (!Array.isArray(body.busy)) return [];
-      return body.busy.filter((item): item is WorkItem => {
+      if (!Array.isArray(body.busy)) {
+        if (strict) throw new Error("Invalid work state");
+        return [];
+      }
+      const items = body.busy.filter((item): item is WorkItem => {
         if (!item || typeof item !== "object") return false;
         const kind = (item as WorkItem).kind;
         return typeof kind === "string" && KINDS.has(kind) && typeof (item as WorkItem).label === "string";
       });
+      if (strict && items.length !== body.busy.length) throw new Error("Invalid work item");
+      return items;
     } catch (exc) {
+      if (strict) throw exc;
       this.options.log(`work: the Host's work check did not parse: ${message(exc)}`);
       return [];
     }
   }
 
   /** Open or close the gate: closed, the plugin refuses new tasks and stops turns that open all the same. */
-  async setGate(open: boolean): Promise<void> {
-    await this.request(`${WORK_PREFIX}/gate`, { method: "POST", body: JSON.stringify({ open }) });
+  async setGate(open: boolean, strict = false): Promise<void> {
+    const res = await this.request(`${WORK_PREFIX}/gate`, { method: "POST", body: JSON.stringify({ open }) });
+    if (strict && (!res?.ok || ((await res.json()) as { open?: unknown }).open !== open)) throw new Error("The Host did not acknowledge the work gate");
   }
 
   /** End the work in progress (the exit was confirmed); the Host answers once the work has ended. */
-  async stopAll(): Promise<void> {
-    await this.request(`${WORK_PREFIX}/stop`, { method: "POST" });
+  async stopAll(strict = false): Promise<void> {
+    const res = await this.request(`${WORK_PREFIX}/stop`, { method: "POST" });
+    if (strict) {
+      if (!res?.ok) throw new Error("The Host did not complete the stop");
+      const body = (await res.json()) as { busy?: unknown };
+      if (!Array.isArray(body.busy) || body.busy.length) throw new Error("The Host still has work after the stop");
+    }
   }
 }
 
