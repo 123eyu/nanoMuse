@@ -357,6 +357,8 @@
     <string name="nm_own_clip_choose">動画を選ぶ</string>
     <string name="nm_own_clip_replace">動画を差し替える</string>
     <string name="nm_own_clip_default">標準の顔</string>
+    <!-- The per-mood row of the own clip: takes that mood's clip away, the others stay -->
+    <string name="nm_own_clip_mood_remove">削除</string>
     <string name="nm_own_clip_menu">自分の動画…</string>
     <string name="nm_own_clip_preview_title">プレビュー</string>
     <string name="nm_own_clip_preview_body">顔として再生されるとこうなります: 無音、ループ、円形に切り抜き。</string>

@@ -357,6 +357,8 @@
     <string name="nm_own_clip_choose">เลือกคลิป</string>
     <string name="nm_own_clip_replace">เปลี่ยนคลิป</string>
     <string name="nm_own_clip_default">ใบหน้าเริ่มต้น</string>
+    <!-- The per-mood row of the own clip: takes that mood's clip away, the others stay -->
+    <string name="nm_own_clip_mood_remove">เอาออก</string>
     <string name="nm_own_clip_menu">คลิปของคุณเอง…</string>
     <string name="nm_own_clip_preview_title">ดูตัวอย่าง</string>
     <string name="nm_own_clip_preview_body">เมื่อเป็นใบหน้าจะเล่นแบบนี้: ปิดเสียง วนซ้ำ ตัดเป็นวงกลม</string>

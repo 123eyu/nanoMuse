@@ -424,7 +424,7 @@ fun AvatarStudioScreen(onBack: () -> Unit, onOpenSoul: () -> Unit, onOpenMediaMo
                             }
                             if (ownMoods.containsKey(state)) {
                                 TextButton(onClick = { io.github.nanomuse.avatar.OwnClip.clear(state) }) {
-                                    Text(stringResource(R.string.nm_own_clip_default))
+                                    Text(stringResource(R.string.nm_own_clip_mood_remove))
                                 }
                             }
                         }

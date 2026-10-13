@@ -366,6 +366,8 @@
     <string name="nm_own_clip_choose">Выбрать клип</string>
     <string name="nm_own_clip_replace">Заменить клип</string>
     <string name="nm_own_clip_default">Лицо по умолчанию</string>
+    <!-- The per-mood row of the own clip: takes that mood's clip away, the others stay -->
+    <string name="nm_own_clip_mood_remove">Убрать</string>
     <string name="nm_own_clip_menu">Ваш собственный клип…</string>
     <string name="nm_own_clip_preview_title">Предпросмотр</string>
     <string name="nm_own_clip_preview_body">Так он играет как лицо: без звука, по кругу, обрезанный до круга.</string>

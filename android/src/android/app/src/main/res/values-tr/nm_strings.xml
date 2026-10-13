@@ -360,6 +360,8 @@
     <string name="nm_own_clip_choose">Klip seç</string>
     <string name="nm_own_clip_replace">Klibi değiştir</string>
     <string name="nm_own_clip_default">Varsayılan yüz</string>
+    <!-- The per-mood row of the own clip: takes that mood's clip away, the others stay -->
+    <string name="nm_own_clip_mood_remove">Kaldır</string>
     <string name="nm_own_clip_menu">Kendi klibiniz…</string>
     <string name="nm_own_clip_preview_title">Önizleme</string>
     <string name="nm_own_clip_preview_body">Yüz olarak böyle oynar: sessiz, döngüde, daireye kırpılmış.</string>

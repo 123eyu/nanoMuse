@@ -357,6 +357,8 @@
     <string name="nm_own_clip_choose">Pilih klip</string>
     <string name="nm_own_clip_replace">Ganti klip</string>
     <string name="nm_own_clip_default">Wajah bawaan</string>
+    <!-- The per-mood row of the own clip: takes that mood's clip away, the others stay -->
+    <string name="nm_own_clip_mood_remove">Hapus</string>
     <string name="nm_own_clip_menu">Klip Anda sendiri…</string>
     <string name="nm_own_clip_preview_title">Pratinjau</string>
     <string name="nm_own_clip_preview_body">Beginilah klip diputar sebagai wajah: tanpa suara, berulang, dipotong ke lingkaran.</string>

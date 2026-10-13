@@ -366,6 +366,8 @@
     <string name="nm_own_clip_choose">Wybierz klip</string>
     <string name="nm_own_clip_replace">Zamień klip</string>
     <string name="nm_own_clip_default">Domyślna twarz</string>
+    <!-- The per-mood row of the own clip: takes that mood's clip away, the others stay -->
+    <string name="nm_own_clip_mood_remove">Usuń</string>
     <string name="nm_own_clip_menu">Twój własny klip…</string>
     <string name="nm_own_clip_preview_title">Podgląd</string>
     <string name="nm_own_clip_preview_body">Tak gra jako twarz: bez dźwięku, w pętli, przycięty do koła.</string>

@@ -360,6 +360,8 @@
     <string name="nm_own_clip_choose">Pumili ng clip</string>
     <string name="nm_own_clip_replace">Palitan ang clip</string>
     <string name="nm_own_clip_default">Default na mukha</string>
+    <!-- The per-mood row of the own clip: takes that mood's clip away, the others stay -->
+    <string name="nm_own_clip_mood_remove">Alisin</string>
     <string name="nm_own_clip_menu">Ang sarili mong clip…</string>
     <string name="nm_own_clip_preview_title">Preview</string>
     <string name="nm_own_clip_preview_body">Ganito ito tumutugtog bilang mukha: naka-mute, paulit-ulit, pinutol sa bilog.</string>
