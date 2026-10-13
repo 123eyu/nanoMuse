@@ -6,6 +6,24 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Cloud
 
+### Runtime
+
+### Web
+
+### Desktop
+
+### Android
+
+### iOS
+
+### Project
+
+## [1.0.5] - 2026-10-14 · Lookout
+
+Lookout: the day after Compass, a second health check of the whole project together with the day's reports and pull requests. Nine passes read the relay, the runtime, the web console, the desktop, the Android and iPhone apps, the showcase, the docs and the CI once more ([#444](https://github.com/nano-muse/nanoMuse/pull/444) to [#455](https://github.com/nano-muse/nanoMuse/pull/455)); what they found is below, by area. The relay is 0.26.0: the operator's console searches people, statements and events ([#440](https://github.com/nano-muse/nanoMuse/pull/440)), and a disabled account can no longer be probed through the sign-in routes ([#447](https://github.com/nano-muse/nanoMuse/pull/447), [#455](https://github.com/nano-muse/nanoMuse/pull/455)); a 1.0.4 client works against it unchanged. The daily feed is written out of sight on the phones and the desktop, and a routine's turn opens with the result ([#437](https://github.com/nano-muse/nanoMuse/pull/437)). On the desktop eight buttons that reached nothing post again ([#438](https://github.com/nano-muse/nanoMuse/pull/438)), @jiangkaiqi2005's quit protects the work in progress ([#442](https://github.com/nano-muse/nanoMuse/pull/442)) and the Windows release carries the files an in-app update needs ([#443](https://github.com/nano-muse/nanoMuse/pull/443)), which the download mirror serves at `dl/win` ([#454](https://github.com/nano-muse/nanoMuse/pull/454)). @cutey-none brought DeepSeek Harness to the runtime ([#433](https://github.com/nano-muse/nanoMuse/pull/433)) and @Mola-maker's two Android fixes are in ([#429](https://github.com/nano-muse/nanoMuse/pull/429), [#431](https://github.com/nano-muse/nanoMuse/pull/431)); the Android approval card fits the screen ([#436](https://github.com/nano-muse/nanoMuse/issues/436), reported by @HBSTAR0501) and the ChatGPT sign-in has a way through a proxy ([#441](https://github.com/nano-muse/nanoMuse/issues/441), reported by @Kooooooo-G), both in [#449](https://github.com/nano-muse/nanoMuse/pull/449); the iPhone's conversation scrolls under the header ([#432](https://github.com/nano-muse/nanoMuse/pull/432)), Siri hears its phrases in nine languages ([#451](https://github.com/nano-muse/nanoMuse/pull/451)) and an emoji face set on another device shows ([#435](https://github.com/nano-muse/nanoMuse/issues/435), reported by @Yousanflics, in [#453](https://github.com/nano-muse/nanoMuse/pull/453)). The docs describe nanoMuse in its own words ([#445](https://github.com/nano-muse/nanoMuse/pull/445)).
+
+### Cloud
+
 - **The operator's console searches and filters further.** On *People* the search has a row of its own above the filters and reaches the number or e-mail, the account id, both addresses, device names, the client and its version, the region, the inviter and the invite code, several words at once; three filters joined it (*Joined*, *Came* through an invite or not, *Version*); `/` on any page starts a search; the CSV gained `version`, `invited_by` and `invites`. The account drawer's statement and timeline each have kind chips and a text box that the relay answers (`?kind=&q=` on `/v1/admin/accounts/{id}/ledger` and `/events`), so the count is of what matches and the filter holds across pages; an account that never made a request gets one line instead of three empty tables; opening another page closes the drawer, which used to stay over it. *Activity* reads on past its first page (`?before=` on `/v1/admin/events`), the visitors table on *Demo* and the by-account table of *Data controls* have a search box, *Stats* opens with a jump list of its metrics and a KPI's second figure wraps instead of being cut off.
 - **A sign-in code asked for a disabled account is refused quietly.** `POST /v1/auth/code` used to answer `403 account_disabled`, which told anyone with a number whether it had an account and whether the operator had switched it off. It now answers the same `204` as for anyone, counts towards the same limits and sends nothing; the person still hears `403 account_disabled` when they sign in with a code or a password. A `tokens` on the grant route or an `n` on the image route that is not a number is a `400` instead of a `500`, the GitHub stars collector no longer stays marked as running after a failed write, and the hub's log lines carry the first twelve characters of a device id and no device name.
 - **A disabled account is told so only with its password.** `POST /v1/auth/login` answered `403 account_disabled` before looking at the password, so a probe with any password learned that the account exists and is off; the check now comes after the password, and a wrong one gets the usual `401 bad_credentials` and counts towards the lockout. The relay's shutdown waits for its two background loops, so no cancellation lands after the database is closed.
@@ -35,8 +53,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Android
 
-- Removed terminal color and title codes before carriage-return updates, so styled shell output no longer left broken escape fragments or lost the untouched tail of a shorter rewrite.
-- Translated the font-size labels in Appearance into the app's language, including the default label on all three sliders.
+- **Styled shell output stays whole.** Terminal colour and title codes are removed before carriage-return updates, so styled output no longer leaves broken escape fragments or loses the untouched tail of a shorter rewrite (by @Mola-maker, #429).
+- **The font-size labels speak the app's language.** The labels under Appearance, the default label on all three sliders included, are translated (by @Mola-maker, #431).
 - **The daily feed is written quietly.** Its conversation no longer appears in the drawer, the chat list or as the main chat, and *Write today's feed.* no longer stands anywhere as a message in your voice; when posts were written while the app was in the background, one notification names them and opens the Feed tab, in place of the generic task notice that quoted the model's text and opened the conversation.
 - **A scheduled task speaks first.** The prompt a routine sends is shown as one quiet line, *Routine · 〈label〉 · 08:00*, instead of a bubble in your voice, and the agent is told the turn is the routine's, so it opens with the result rather than thanking you for asking.
 - **The approval card fits the screen.** A long command made the card taller than the screen: Allow, Deny and the composer were pushed below the bottom edge and the chat looked frozen. The card now takes at most two thirds of the screen, a command longer than six lines is folded behind *Show all (N lines)*, the description and the preview scroll in the middle and the buttons stay in view (reported by @HBSTAR0501, #436).
