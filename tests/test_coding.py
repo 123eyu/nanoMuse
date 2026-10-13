@@ -31,6 +31,21 @@ def _jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
     path.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n")
 
 
+def _zstd_frames(path: Path, groups: list[list[dict[str, Any]]]) -> None:
+    """A dsh session file the way the harness writes it: one zstd frame per write."""
+    import zstandard
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    c = zstandard.ZstdCompressor()
+    frames = [
+        c.compress(
+            ("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n").encode("utf-8")
+        )
+        for rows in groups
+    ]
+    path.write_bytes(b"".join(frames))
+
+
 @pytest.fixture()
 def coding_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """A home with one session of each agent, as the tools write them."""
@@ -170,6 +185,87 @@ def coding_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
             },
         ],
     )
+    # dsh: the harness's own store, one zstd frame per write (a long chat is many frames
+    # appended, which a single decompression stops at the end of), with runtime context
+    # arriving as a user message
+    _zstd_frames(
+        home / ".dsh" / "sessions" / slug / "session-d1" / "session.v4.jsonl.zstd",
+        [
+            [
+                {
+                    "type": "session",
+                    "version": 4,
+                    "id": "session-d1",
+                    "createdAt": 1790000000000,
+                    "cwd": str(ws),
+                }
+            ],
+            [
+                {
+                    "type": "user/message",
+                    "seq": 1,
+                    "data": {
+                        "content": [{"type": "text", "text": "Refactor the loader"}],
+                        "source": {"kind": "user"},
+                        "role": "user",
+                    },
+                },
+                {"type": "session/title", "seq": 2, "data": {"title": "Refactor the loader"}},
+            ],
+            [
+                {
+                    "type": "user/message",
+                    "seq": 3,
+                    "data": {
+                        "content": [
+                            {"type": "text", "text": "Current DSH file policy: workspace-write"}
+                        ],
+                        "source": {"kind": "runtime-context"},
+                    },
+                },
+                {
+                    "type": "assistant/message",
+                    "seq": 4,
+                    "data": {
+                        "message": {
+                            "role": "assistant",
+                            "content": [
+                                {"type": "reasoning", "text": "hmm"},
+                                {"type": "text", "text": "The loader is now two functions."},
+                            ],
+                        }
+                    },
+                },
+                {"type": "turn/end", "seq": 5, "data": {"turn": 1}},
+            ],
+        ],
+    )
+    # a subagent session is the harness's own working session, not a chat the person had
+    _zstd_frames(
+        home / ".dsh" / "sessions" / slug / "session-d2" / "session.v4.jsonl.zstd",
+        [
+            [
+                {
+                    "type": "session",
+                    "version": 4,
+                    "id": "session-d2",
+                    "cwd": str(ws),
+                    "origin": "subagent",
+                    "parentSession": "session-d1",
+                }
+            ],
+            [
+                {
+                    "type": "user/message",
+                    "seq": 1,
+                    "data": {
+                        "content": [{"type": "text", "text": "You are researching something"}],
+                        "source": {"kind": "user"},
+                    },
+                }
+            ],
+        ],
+    )
     monkeypatch.setenv("NANOMUSE_CODING_HOME", str(home))
     return home
 
@@ -184,6 +280,7 @@ def test_sessions_are_read_from_each_agents_store(coding_home: Path, tmp_path: P
         ("cursor", "c2"),
         ("codex", "01a0c858-5820-7853-ba4c-dee7f183169c"),
         ("claude", "s9"),
+        ("dsh", "session-d1"),
     }
 
     c1 = by[("cursor", "c1")]
@@ -208,12 +305,26 @@ def test_sessions_are_read_from_each_agents_store(coding_home: Path, tmp_path: P
         and cl.last_assistant == "[tool: Read] It uses hatch."
     )
 
+    # dsh: every zstd frame is read, not only the first, and the runtime-context message
+    # that arrives as a user message is not the person's words
+    ds = by[("dsh", "session-d1")]
+    assert ds.title == "Refactor the loader"
+    assert ds.workspace == ws and ds.messages == 2
+    assert ds.last_user == "Refactor the loader"
+    assert ds.created_at == 1790000000.0 and ds.resumable is True
+    assert ("dsh", "session-d2") not in by  # a subagent session is not one of the person's chats
+
     # filters
     assert [s.id for s in agents.sessions("cursor")] == ["c2", "c1"] or {
         s.id for s in agents.sessions("cursor")
     } == {"c1", "c2"}
     assert agents.sessions(workspace=str(tmp_path / "elsewhere")) == []
-    assert {s.agent for s in agents.sessions(workspace=ws)} == {"cursor", "codex", "claude"}
+    assert {s.agent for s in agents.sessions(workspace=ws)} == {
+        "cursor",
+        "codex",
+        "claude",
+        "dsh",
+    }
 
 
 def test_read_session_has_the_transcript(coding_home: Path) -> None:
@@ -229,6 +340,14 @@ def test_read_session_has_the_transcript(coding_home: Path) -> None:
     assert agents.read_session("codex", "nope") is None
     assert agents.read_session("cursor", "../c1") is None
     assert agents.read_session("claude", "s9") is not None
+    # dsh: the whole file, across every frame
+    ds = agents.read_session("dsh", "session-d1")
+    assert ds is not None
+    assert [m["text"] for m in ds.transcript] == [
+        "Refactor the loader",
+        "The loader is now two functions.",
+    ]
+    assert agents.read_session("dsh", "session-d2") is None  # a subagent session, not a chat
 
 
 def test_detect_reports_installs_without_running_anything(
@@ -347,6 +466,76 @@ def test_normalise_codex_and_claude() -> None:
     assert [e.kind for e in evs] == ["tool", "text"] and evs[0].text == "Bash: make"
     evs = _normalise("claude", {"type": "result", "result": "Built.", "session_id": "C1"}, run)
     assert evs[0].kind == "done" and run.result_session_id == "C1" and run.output == "Built."
+
+
+def test_dsh_store_cut_short_keeps_the_frames_before(tmp_path: Path) -> None:
+    """A last frame cut short (the harness mid-write) loses that frame, not the whole chat."""
+    f = tmp_path / "session.v4.jsonl.zstd"
+    _zstd_frames(f, [[{"type": "a"}], [{"type": "b"}], [{"type": "c", "pad": "x" * 4000}]])
+    whole = f.read_bytes()
+    f.write_bytes(whole[: len(whole) - 20])
+    assert [o["type"] for o in agents._read_zstd_lines(f)][:2] == ["a", "b"]
+
+
+def test_normalise_dsh_headless_json() -> None:
+    """The lines `dsh --profile headless --json` prints, as a real run spelled them."""
+    run = Run(id="r", agent="dsh", session_id="", workspace="", text="hi")
+    evs = _normalise("dsh", {"type": "session", "sessionId": "session-abc", "cwd": "/w"}, run)
+    assert evs[0].kind == "started" and run.result_session_id == "session-abc"
+    assert evs[0].extra["cwd"] == "/w"
+    # the status lines carry no words of their own, and reasoning is not the answer
+    assert _normalise("dsh", {"type": "status", "phase": "turn_start", "turn": 1}, run) == []
+    assert _normalise("dsh", {"type": "thinking", "text": "let me look"}, run) == []
+    evs = _normalise("dsh", {"type": "text", "text": "Two files changed."}, run)
+    assert evs[0].kind == "text" and run.output == "Two files changed."
+    evs = _normalise(
+        "dsh",
+        {"type": "tool_call", "callId": "c1", "tool": "bash", "input": {"command": "ls -la"}},
+        run,
+    )
+    assert evs[0].kind == "tool" and evs[0].text == "bash: ls -la" and run.tools == 1
+    evs = _normalise("dsh", {"type": "tool_result", "callId": "c1", "status": "completed"}, run)
+    assert evs[0].kind == "tool" and evs[0].extra["phase"] == "completed"
+    evs = _normalise("dsh", {"type": "final", "text": "Two files changed."}, run)
+    assert evs[0].kind == "done" and evs[0].extra["session_id"] == "session-abc"
+    assert run.output == "Two files changed."  # the final text is not appended twice
+    # a failed turn reports its reason on the status line
+    evs = _normalise(
+        "dsh",
+        {
+            "type": "status",
+            "phase": "turn_end",
+            "turn": 1,
+            "reason": {
+                "kind": "error",
+                "error": {"code": "MISSING_CREDENTIAL", "message": "no API key"},
+            },
+        },
+        Run(id="r2", agent="dsh", session_id="", workspace="", text="x"),
+    )
+    assert evs[0].kind == "error" and evs[0].text == "no API key"
+
+
+def test_command_for_dsh(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`dsh` has no `-C`: it runs in the process's directory, so the run's cwd is what
+    makes a resumed session match its recorded one."""
+    monkeypatch.setattr(runner, "which", lambda agent: "/u/dsh")
+    assert runner.command_for("dsh", "session-1", "/w", "go", True) == [
+        "/u/dsh",
+        "--profile",
+        "headless",
+        "--json",
+        "--session-id",
+        "session-1",
+        "go",
+    ]
+    assert runner.command_for("dsh", "", "/w", "go", False) == [
+        "/u/dsh",
+        "--profile",
+        "headless",
+        "--json",
+        "go",
+    ]
 
 
 @pytest.fixture()
@@ -636,3 +825,13 @@ def test_coding_clis_get_a_scrubbed_environment_plus_their_own_keys() -> None:
 
     cursor = agent_env("cursor", parent)
     assert cursor["CURSOR_API_KEY"] == "cursor-key" and "ANTHROPIC_API_KEY" not in cursor
+
+    # dsh's own credentials reach it; the other agents' do not
+    dsh = agent_env("dsh", parent)
+    assert dsh["DEEPSEEK_API_KEY"] == "model-key"
+    assert "OPENAI_API_KEY" not in dsh and "ANTHROPIC_API_KEY" not in dsh
+    assert "NANOMUSE_CLOUD_TOKEN" not in dsh and dsh["CI"] == "1"
+    # and it runs in the store the readers list, whatever DSH_HOME it inherited (the desktop
+    # app points it at its own home)
+    moved = agent_env("dsh", {**parent, "DSH_HOME": "/app/home", "NANOMUSE_CODING_HOME": "/h"})
+    assert moved["DSH_HOME"] == str(Path("/h") / ".dsh")
