@@ -37,7 +37,7 @@ import type {} from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-settings'
 import type { ToolDispatchExecution, ToolExecutionResult } from '@deepseek-ai/dsh-tools'
 import { createUserMessage, type ContentBlock, type StreamChunk } from '@deepseek-ai/dsh-llm'
-import type { Session, SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
+import type { Session, SessionEvent, SessionId, AgentCancelCause } from '@deepseek-ai/dsh-session'
 import type { SessionCreateRequest } from '@deepseek-ai/dsh-api-session-controller/types'
 import type {} from '@deepseek-ai/dsh-api-session-controller'
 import type {} from '@deepseek-ai/dsh-user-approval'
@@ -50,6 +50,7 @@ import { ProfileStore, type Profile } from './profile.ts'
 import { cloudOffFailure, relayFailure, transportFailure, type RelayRefusal } from './refusals.ts'
 import { Relay, RelayError, type Account, type Estimate, type Invite, type ProfileWrite, type RelayModel, type SignIn } from './relay.ts'
 import { TaskRunner, textOf } from './task.ts'
+import { Turns, aggregateWork, type WorkItem } from './work.ts'
 import { SCREEN_RUN_IDLE_MS, ScreenRuns, Trajectory, type ScreenRun, type StepAction, type TrajectoryView } from './trajectory.ts'
 import { RemoteStore, SyncEngine, SyncRelay, type RemoteLine, type SessionInfo, type SessionLine, type SyncState } from './sync.ts'
 import { AvatarMotion, ANIMATED, type MotionMood, type MotionView } from './motion.ts'
@@ -604,6 +605,10 @@ export default class NanomuseCloud extends Service {
   private readonly trajectory = new Trajectory()
   /** Which session has this computer's screen right now, for the glow and the capsule. */
   private readonly screenRuns = new ScreenRuns()
+  /** The turns open on every session, for the exit's aggregate (src/work.ts). */
+  private readonly turns = new Turns()
+  /** The exit's gate: closed while the desktop shell hands over, new tasks refused and turns that open are stopped at once. */
+  private gateClosed = false
   private runTimer: NodeJS.Timeout | undefined
   private stageTimer: NodeJS.Timeout | undefined
   private signedInCache = false
@@ -756,6 +761,7 @@ export default class NanomuseCloud extends Service {
           this.state.taskSessions = { ...this.state.taskSessions, [key]: sessionId }
           void this.writeState().catch((error: unknown) => this.ctx.logger.warn('nanomuse: state write failed: %s', message(error)))
         },
+        closed: () => this.gateClosed,
       })
       this.tasks = runner
       ctx.effect(() => runner.attach(), 'nanomuse cloud: tasks')
@@ -930,6 +936,21 @@ export default class NanomuseCloud extends Service {
           }
         }),
       'nanomuse cloud: trajectory',
+    )
+    // The turns of every session, for the desktop shell's protected exit (src/work.ts): a chat
+    // reply, a goal's automation or a task another device asked for is a turn here. While the
+    // exit hands over (the gate closed), a turn that opens all the same is stopped at once;
+    // nothing runs under the hand-over, and what the asker sent comes back as refused.
+    this.ctx.effect(
+      () =>
+        this.ctx.on('session/event', (session: Session, event: SessionEvent) => {
+          const id = String(session.id)
+          if (event.type === 'turn/start') {
+            this.turns.began(id)
+            if (this.gateClosed) void this.abortSession(id, { kind: 'hook', reason: 'this computer is ending its work; nothing starts under the hand-over' })
+          } else if (event.type === 'turn/end') this.turns.ended(id)
+        }),
+      'nanomuse cloud: turns for the protected exit',
     )
     // The relay's refusals, read on their way back (C12): a spent allowance, a request too large,
     // a retired key, a relay that did not answer — as a card in the chat, not the wire's text,
@@ -1384,6 +1405,59 @@ export default class NanomuseCloud extends Service {
   handsBusy(): boolean {
     for (const call of this.calls.values()) if (call.name.startsWith('mcp__nanomuse__')) return true
     return false
+  }
+
+  // ---- the work a protected exit ends (src/work.ts) ------------------------------------
+
+  /**
+   * The work a real quit (later, a restart-update) would end, over every source there is:
+   * the turns of all sessions, the hands' calls, the tasks other devices asked for and the
+   * approvals waiting on this screen, one line per kind (src/work.ts's aggregateWork).
+   */
+  private workBusy(): WorkItem[] {
+    return aggregateWork({
+      turnSessions: this.turns.sessions(),
+      taskRuns: this.tasks?.origins() ?? [],
+      handsBusy: this.handsBusy(),
+      approvals: this.approvalDesk.list().length,
+    })
+  }
+
+  /**
+   * The gate for new work while the exit hands over: closed, a task another device sends is
+   * refused with the usual `busy` error and a turn that opens all the same is stopped at once.
+   */
+  setWorkGate(open: boolean): boolean {
+    this.gateClosed = !open
+    this.ctx.logger.info('nanomuse cloud: the exit gate is %s', this.gateClosed ? 'closed; new work is refused until it opens' : 'open')
+    return !this.gateClosed
+  }
+
+  /** Stop the turn on one session, whatever it is, and wait for the agent to go quiet. */
+  private async abortSession(sessionId: string, cause: AgentCancelCause): Promise<void> {
+    const controller = this.sessionCtx?.sessionController
+    if (!controller) return
+    const resolved = await controller.resolveAgent(sessionId as SessionId).catch(() => undefined)
+    if (!resolved || !('agent' in resolved)) return
+    resolved.agent.cancel(cause)
+    await resolved.agent.whenIdle().catch(() => undefined)
+  }
+
+  /**
+   * End the work in progress (the person confirmed the exit): every turn is cancelled,
+   * which settles the tasks' hub calls, the hands' holds and the approvals waiting, and
+   * the aggregate is checked again until it is empty or the rounds run out. The shell's
+   * exit waits for this, and only then stops the Host.
+   */
+  async stopAllWork(): Promise<WorkItem[]> {
+    this.gateClosed = true
+    for (let round = 0; round < 5; round++) {
+      const busy = this.workBusy()
+      if (busy.length === 0) return []
+      if (round > 0) this.ctx.logger.warn('nanomuse cloud: work still on for the exit (round %d): %s', round, busy.map((item) => item.kind).join(', '))
+      for (const sessionId of this.turns.sessions()) await this.abortSession(sessionId, { kind: 'user' })
+    }
+    return this.workBusy()
   }
 
   /**
@@ -3263,6 +3337,14 @@ export default class NanomuseCloud extends Service {
       if (req.method === 'GET' && route === '/status') return send(res, 200, await this.status())
       if (req.method === 'GET' && route === '/events') return this.stream(req, res)
       if (req.method === 'GET' && route === '/live') return send(res, 200, this.live())
+      // the desktop shell's protected exit (src/work.ts): the aggregate a real quit would end,
+      // the gate new work respects while it hands over, and the confirmed stop of the work
+      if (req.method === 'GET' && route === '/work') return send(res, 200, { busy: this.workBusy() })
+      if (req.method === 'POST' && route === '/work/gate') {
+        const body = await json(req)
+        return send(res, 200, { open: this.setWorkGate(body.open !== false) })
+      }
+      if (req.method === 'POST' && route === '/work/stop') return send(res, 200, { busy: await this.stopAllWork() })
       if (req.method === 'GET' && route === '/stage/frame') {
         // `seq` names a step's picture (0.1.40); without it, the newest
         const frame = this.trajectory.frameOf(Number(url.searchParams.get('seq') ?? 0) || 0)
