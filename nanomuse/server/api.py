@@ -216,6 +216,29 @@ class MediaBody(BaseModel):
     endpoint: str | None = None
 
 
+class GuiBody(BaseModel):
+    """The phone operator: its switch and its model. ``provider`` is a protocol or a
+    catalogue id, as for the chat model; ``api_key`` goes into the vault, "" removes it,
+    None keeps it; ``endpoint`` names one of the endpoint list instead (#294)."""
+
+    enabled: bool | None = None
+    provider: str | None = Field(default=None, max_length=200)
+    model: str | None = Field(default=None, max_length=200)
+    base_url: str | None = Field(default=None, max_length=2000)
+    api_key: str | None = Field(default=None, max_length=4000)
+    endpoint: str | None = Field(default=None, max_length=200)
+
+
+class HandsBody(BaseModel):
+    """This computer's own screen and hands: the switch, which backend drives them and
+    whether the operator sees the whole screen or one window. An unknown ``backend`` or
+    ``mode`` is 400 with the choices (checked in :meth:`Connections.set_hands`)."""
+
+    enabled: bool | None = None
+    backend: str | None = Field(default=None, max_length=40)
+    mode: str | None = Field(default=None, max_length=40)
+
+
 class LLMModelsBody(BaseModel):
     preset: str = ""
     base_url: str = ""
@@ -956,21 +979,27 @@ def create_app(settings: Settings, service: MuseService | None = None) -> FastAP
     @app.post("/api/connections/endpoints", dependencies=dep)
     async def add_endpoint(body: EndpointBody) -> dict[str, Any]:
         """A custom OpenAI-compatible endpoint added to the list: its models are asked for
-        (``GET /models``) unless typed; 400 when there is neither."""
+        (``GET /models``) unless typed; 400 when there is neither, 409 for an address
+        another endpoint already has."""
         try:
             return await conn.endpoints.add(body.model_dump(exclude_none=True))
         except ValueError as exc:
-            raise HTTPException(400, str(exc)) from exc
+            raise HTTPException(_endpoint_status(exc), str(exc)) from exc
+
+    def _endpoint_status(exc: ValueError) -> int:
+        text = str(exc)
+        if text.startswith("no endpoint"):
+            return 404
+        return 409 if text.startswith("that address is already") else 400
 
     @app.put("/api/connections/endpoints/{endpoint_id}", dependencies=dep)
     async def update_endpoint(endpoint_id: str, body: EndpointBody) -> dict[str, Any]:
         """Rename, change the key or the address, retype the models; the slots that use the
-        endpoint follow a new address or key."""
+        endpoint follow a new address or key. 409 for an address another endpoint has."""
         try:
             return await conn.endpoints.update(endpoint_id, body.model_dump(exclude_none=True))
         except ValueError as exc:
-            status = 404 if str(exc).startswith("no endpoint") else 400
-            raise HTTPException(status, str(exc)) from exc
+            raise HTTPException(_endpoint_status(exc), str(exc)) from exc
 
     @app.delete("/api/connections/endpoints/{endpoint_id}", dependencies=dep)
     async def remove_endpoint(endpoint_id: str) -> dict[str, Any]:
@@ -1072,9 +1101,9 @@ def create_app(settings: Settings, service: MuseService | None = None) -> FastAP
         return await conn.test_email()
 
     @app.put("/api/connections/gui", dependencies=dep)
-    async def set_gui(body: dict[str, Any]) -> dict[str, Any]:
+    async def set_gui(body: GuiBody) -> dict[str, Any]:
         try:
-            return svc.connections.set_gui(body)
+            return svc.connections.set_gui(body.model_dump())
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
 
@@ -1109,9 +1138,9 @@ def create_app(settings: Settings, service: MuseService | None = None) -> FastAP
         return svc.hands_view()
 
     @app.put("/api/connections/hands", dependencies=dep)
-    async def set_hands(body: dict[str, Any]) -> dict[str, Any]:
+    async def set_hands(body: HandsBody) -> dict[str, Any]:
         try:
-            return svc.connections.set_hands(body)
+            return svc.connections.set_hands(body.model_dump())
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
 
