@@ -104,6 +104,20 @@ async def test_every_operator_action_writes_the_audit_log_and_the_timeline():
     assert any(e["kind"] == "member.set" for e in detail["events"])
 
 
+async def test_a_figure_that_is_not_a_number_is_a_400_not_a_500():
+    """`tokens` on the grant route and `n` on the image route were cast with a bare `int()`;
+    a string that is not a number raised ValueError and the person saw a 500."""
+    app, client, sender, up, cloud, settings = make()
+    me = await sign_up(client, sender)
+    r = await client.post("/v1/admin/grant", headers=ADMIN, json={"account_id": me["account"]["id"], "tokens": "many"})
+    assert r.status_code == 400 and r.json()["error"]["code"] == "bad_request", r.text
+    r = await client.post(
+        "/v1/images/generations", headers=auth(me["api_key"]), json={"model": "qwen-image-3.0", "prompt": "a cat", "n": "two"}
+    )
+    assert r.status_code == 400 and r.json()["error"]["code"] == "bad_request", r.text
+    assert cloud.db.account(me["account"]["id"])["granted"] == 0
+
+
 async def test_the_operator_deleting_an_account_forgets_its_live_state_and_counts_the_deletion():
     app, client, sender, up, cloud, settings = make()
     me = await sign_up(client, sender)

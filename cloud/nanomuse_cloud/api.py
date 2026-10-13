@@ -978,7 +978,10 @@ def create_app(
         prompt = str(body.get("prompt", "")).strip()
         if not prompt:
             raise CloudError(400, "bad_request", "prompt is required")
-        n = int(body.get("n") or 1)
+        try:
+            n = int(body.get("n") or 1)
+        except (TypeError, ValueError) as e:
+            raise CloudError(400, "bad_request", "n is a whole number") from e
         if n != 1:
             raise CloudError(400, "bad_request", "nanoMuse Cloud draws one picture per request")
         params = {"size": size, "watermark": False}
@@ -1531,7 +1534,11 @@ def create_app(
     async def admin_grant(request: Request) -> dict:
         body = await _json(request)
         account_id = cloud.admin_resolve(str(body.get("account_id", "")), str(body.get("identifier", "")))
-        return cloud.admin_grant(account_id, int(body.get("tokens", 0)), actor=_actor(request))
+        try:
+            tokens = int(body.get("tokens", 0))
+        except (TypeError, ValueError) as e:
+            raise CloudError(400, "bad_request", "tokens is a whole number") from e
+        return cloud.admin_grant(account_id, tokens, actor=_actor(request))
 
     @app.post("/v1/admin/credit", dependencies=[Depends(admin_dep)])
     async def admin_credit(request: Request) -> dict:
