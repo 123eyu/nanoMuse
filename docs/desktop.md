@@ -93,7 +93,8 @@ speaking as nanoMuse through the `nanomuse` preset, with:
   shown masked). Everything the dsh Host sends goes through it: your own keys, the ChatGPT
   sign-in's calls, *List models*, the pages the tools read, connectors, the update check,
   and the hands' runtime (`nanomuse mcp` inherits the same variables). nanoMuse Cloud (the relay, the hub's WebSocket, the sync) and loopback never
-  do. The shell keeps it in `desktop.json` next to *open at login* and puts it on the dsh
+  do. The shell keeps it in `desktop.json` (mode 0600, since the address may carry a
+  password) next to *open at login* and puts it on the dsh
   Host's environment at start (`HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY` for SOCKS, `NO_PROXY`
   with `localhost,127.0.0.1,::1`, `cloud.nanomuse.cn` and the relay the plugin talks to, and
   `NODE_USE_ENV_PROXY=1`, which is what makes Node's fetch read them), so it takes effect

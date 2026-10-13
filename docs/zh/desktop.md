@@ -75,7 +75,7 @@ harness 构建以 *nanoMuse Harness* 的名字另放在旁边；从 0.1.30 起�
   `https://`、`socks5://` 或 `socks5h://`，可以带 `user:pass@`，显示时会遮住）。dsh Host 发出的请求
   都经过它：你自己的 key、ChatGPT 登录的调用、「列出模型」、工具读取的网页、连接的服务、更新检查，
   还有手的运行时（`nanomuse mcp` 继承同一组变量）。nanoMuse Cloud（中继、hub 的 WebSocket、同步）和本机回环永远不经过。
-  外壳把它存在 `desktop.json` 里，和「登录时启动」放在一起，启动 dsh Host 时写进它的环境
+  外壳把它存在 `desktop.json` 里（权限 0600，因为地址里可能带密码），和「登录时启动」放在一起，启动 dsh Host 时写进它的环境
   （`HTTP_PROXY`、`HTTPS_PROXY`、SOCKS 时还有 `ALL_PROXY`，`NO_PROXY` 带着
   `localhost,127.0.0.1,::1`、`cloud.nanomuse.cn` 和插件所连的中继，以及让 Node 的 fetch 读这些
   变量的 `NODE_USE_ENV_PROXY=1`），所以重启后生效；这一行下面的「立即重启」会在窗口不关的

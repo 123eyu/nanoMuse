@@ -301,7 +301,7 @@ Anything that speaks the OpenAI API works; choose *Custom*:
 
 | Field | Value |
 |---|---|
-| Base URL | the provider's address, usually ending in `/v1` |
+| Base URL | the provider's address, usually ending in `/v1`; the runtime, the web console and the desktop refuse an address with `user:pass@` in it (the key has its own field) |
 | API key | the key made in the provider's console (a local server may leave it empty) |
 | Model | pick from the list after saving; if the endpoint does not list its models, the form asks for their ids (comma-separated) and saves with those |
 

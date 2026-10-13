@@ -339,6 +339,62 @@ export function keyRefFor(providerId: string): string {
   return `NANOMUSE_KEY_${providerId.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`
 }
 
+/** What an address typed with `user:pass@` in it is told (the runtime's `check_base_url` says the same). */
+export const USERINFO_TEXT = 'The address must not carry a user name or password (user:pass@host); put the key in the key field instead'
+
+/**
+ * Whether a URL carries `user:pass@` before its host. Such an address would be stored, shown
+ * back and logged as typed, so the fields that take an address refuse it; a key has its own
+ * field. An address that does not parse is not one with a user in it.
+ */
+export function hasUserinfo(url: string): boolean {
+  try {
+    const parsed = new URL(url.includes('://') ? url : `https://${url.trim()}`)
+    return parsed.username !== '' || parsed.password !== ''
+  } catch {
+    return false
+  }
+}
+
+/** The most redirects `listModelRows` follows. */
+export const MAX_MODELS_REDIRECTS = 5
+
+/**
+ * Whether a redirect from `from` to `to` stays on the endpoint's own origin: the same host and
+ * port, with an `http` to `https` step on the same host allowed (the default ports).
+ */
+export function sameEndpointOrigin(from: URL, to: URL): boolean {
+  if (from.hostname !== to.hostname) return false
+  if (from.protocol === to.protocol) return from.port === to.port
+  return from.protocol === 'http:' && to.protocol === 'https:' && from.port === '' && to.port === ''
+}
+
+/**
+ * `fetch` with redirects followed by hand: at most `MAX_MODELS_REDIRECTS` hops, never to an
+ * address with `user:pass@` or a scheme other than http(s), and, while the request carries a
+ * key, only to the endpoint's own origin. A gateway that answers with a `Location` elsewhere
+ * cannot have the key sent there; that redirect is the answer returned, so the caller reads
+ * it as a list that did not come.
+ */
+async function fetchSameOrigin(fetchImpl: typeof fetch, url: string, init: RequestInit, carriesKey: boolean): Promise<Response> {
+  let current = url
+  for (let hop = 0; ; hop++) {
+    const res = await fetchImpl(current, { ...init, redirect: 'manual' })
+    const location = res.headers.get('location')
+    if (!(res.status >= 300 && res.status < 400) || !location) return res
+    if (hop >= MAX_MODELS_REDIRECTS) return res
+    let target: URL
+    try {
+      target = new URL(location, current)
+    } catch {
+      return res
+    }
+    if ((target.protocol !== 'http:' && target.protocol !== 'https:') || target.username || target.password) return res
+    if (carriesKey && !sameEndpointOrigin(new URL(current), target)) return res
+    current = target.toString()
+  }
+}
+
 /**
  * The models an endpoint lists, by protocol: `GET /models` with the key (OpenAI's shape, which
  * the compatible providers speak), `/v1/models` with `x-api-key` for Anthropic, `/models?key=`
@@ -351,6 +407,7 @@ export async function listModels(protocol: Protocol, baseURL: string, apiKey: st
 /** `listModels` with what the list said about each model's thinking levels (OpenRouter's `reasoning` object), sorted by id. */
 export async function listModelRows(protocol: Protocol, baseURL: string, apiKey: string, fetchImpl: typeof fetch = fetch, timeoutMs = 8000): Promise<ListedModel[]> {
   const base = baseURL.replace(/\/+$/, '')
+  if (hasUserinfo(base)) return []
   const signal = AbortSignal.timeout(timeoutMs)
   let timer: ReturnType<typeof setTimeout> | undefined
   // the timer stays referenced: it is cleared in `finally`, and an unreferenced one lets Node 22
@@ -361,11 +418,11 @@ export async function listModelRows(protocol: Protocol, baseURL: string, apiKey:
   try {
     let request: Promise<Response>
     if (protocol === 'anthropic') {
-      request = fetchImpl(`${base}/v1/models?limit=200`, { headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' }, signal })
+      request = fetchSameOrigin(fetchImpl, `${base}/v1/models?limit=200`, { headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' }, signal }, Boolean(apiKey))
     } else if (protocol === 'gemini' && apiOf(protocol, base) === 'google-generative-ai') {
-      request = fetchImpl(`${base}/models?pageSize=200&key=${encodeURIComponent(apiKey)}`, { signal })
+      request = fetchSameOrigin(fetchImpl, `${base}/models?pageSize=200&key=${encodeURIComponent(apiKey)}`, { signal }, Boolean(apiKey))
     } else {
-      request = fetchImpl(`${base}/models`, { headers: apiKey ? { authorization: `Bearer ${apiKey}` } : {}, signal })
+      request = fetchSameOrigin(fetchImpl, `${base}/models`, { headers: apiKey ? { authorization: `Bearer ${apiKey}` } : {}, signal }, Boolean(apiKey))
     }
     const res = await Promise.race([request, late])
     if (!res.ok) return []
