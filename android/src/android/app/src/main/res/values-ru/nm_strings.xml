@@ -654,7 +654,6 @@
     <string name="nm_welcome_skip">Пока пропустить</string>
     <string name="nm_welcome_hands_fine_print">Всё остальное работает и без них. Они находятся в Настройки → Руки, когда понадобятся.</string>
     <string name="nm_welcome_meet_fine_print">Перед всем, что нельзя отменить (удалить, отправить, заплатить,) он останавливается и сначала спрашивает вас.</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">Начните с nanoMuse Cloud</string>
     <string name="nm_cloud_signin_subtitle">Код на телефон или почту, или ваш пароль, когда вы его зададите.</string>
     <string name="nm_cloud_mode_code">По коду</string>
@@ -662,7 +661,7 @@
     <string name="nm_cloud_password">Пароль</string>
     <string name="nm_cloud_forgot_password">Забыли пароль? Войдите по коду</string>
     <string name="nm_cloud_identifier">Номер телефона материкового Китая или e-mail</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · you@example.com</string>
+    <string name="nm_cloud_identifier_hint">you@example.com</string>
     <string name="nm_cloud_code">Код</string>
     <string name="nm_cloud_send_code">Отправить код</string>
     <string name="nm_cloud_resend">Отправить снова</string>
@@ -672,7 +671,6 @@
     <!-- Your own relay (0.1.38): the sign-in screen's server form and the account page's row -->
     <string name="nm_cloud_other_server">Использовать другой сервер</string>
     <string name="nm_cloud_server_url">Адрес релея</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
     <string name="nm_cloud_server_check">Проверить</string>
     <string name="nm_cloud_server_use">Использовать этот сервер</string>
     <string name="nm_cloud_server_now">Сервер: %1$s</string>

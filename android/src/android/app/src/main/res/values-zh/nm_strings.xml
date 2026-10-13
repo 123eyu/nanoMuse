@@ -630,7 +630,6 @@
     <string name="nm_welcome_skip">暂时跳过</string>
     <string name="nm_welcome_hands_fine_print">不开也不影响其他功能。之后随时可以在「设置 → Hands」里开启。</string>
     <string name="nm_welcome_meet_fine_print">凡是无法撤回的事（删除、发送、付款）它都会先停下来问你。</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">用 nanoMuse Cloud 开始</string>
     <string name="nm_cloud_signin_subtitle">手机号或邮箱收一个验证码；设过密码的话也可以直接用密码。</string>
     <string name="nm_cloud_mode_code">验证码登录</string>
@@ -638,7 +637,7 @@
     <string name="nm_cloud_password">密码</string>
     <string name="nm_cloud_forgot_password">忘了密码？用验证码登录</string>
     <string name="nm_cloud_identifier">中国大陆手机号或邮箱</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · you@example.com</string>
+    <string name="nm_cloud_identifier_hint">you@example.com</string>
     <string name="nm_cloud_code">验证码</string>
     <string name="nm_cloud_send_code">发送验证码</string>
     <string name="nm_cloud_resend">重新发送</string>
@@ -647,7 +646,6 @@
     <!-- 自建中继服务器（0.1.38）：登录页的服务器表单与账号页的那一行 -->
     <string name="nm_cloud_other_server">使用其他服务器</string>
     <string name="nm_cloud_server_url">服务器地址</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
     <string name="nm_cloud_server_check">检查</string>
     <string name="nm_cloud_server_use">使用这个服务器</string>
     <string name="nm_cloud_server_now">服务器：%1$s</string>

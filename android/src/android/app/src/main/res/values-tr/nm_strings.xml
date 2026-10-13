@@ -648,7 +648,6 @@
     <string name="nm_welcome_skip">Şimdilik atla</string>
     <string name="nm_welcome_hands_fine_print">Geri kalan her şey bunlar olmadan da çalışır. İstediğinde Ayarlar → Eller altındalar.</string>
     <string name="nm_welcome_meet_fine_print">Geri alamayacağı her şeyden önce (silme, gönderme, ödeme) durur ve önce sana sorar.</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">nanoMuse Cloud ile başla</string>
     <string name="nm_cloud_signin_subtitle">Telefonuna ya da e-postana bir kod, ya da belirlediysen parolan.</string>
     <string name="nm_cloud_mode_code">Kodla</string>
@@ -656,7 +655,7 @@
     <string name="nm_cloud_password">Parola</string>
     <string name="nm_cloud_forgot_password">Parolayı mı unuttun? Kodla oturum aç</string>
     <string name="nm_cloud_identifier">Çin anakarası telefon numarası ya da e-posta</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · sen@example.com</string>
+    <string name="nm_cloud_identifier_hint">sen@example.com</string>
     <string name="nm_cloud_code">Kod</string>
     <string name="nm_cloud_send_code">Kod gönder</string>
     <string name="nm_cloud_resend">Yeniden gönder</string>
@@ -666,7 +665,6 @@
     <!-- Your own relay (0.1.38): the sign-in screen's server form and the account page's row -->
     <string name="nm_cloud_other_server">Başka bir sunucu kullan</string>
     <string name="nm_cloud_server_url">Relay adresi</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
     <string name="nm_cloud_server_check">Denetle</string>
     <string name="nm_cloud_server_use">Bu sunucuyu kullan</string>
     <string name="nm_cloud_server_now">Sunucu: %1$s</string>

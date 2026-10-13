@@ -645,7 +645,6 @@
     <string name="nm_welcome_skip">今はスキップ</string>
     <string name="nm_welcome_hands_fine_print">これらがなくてもほかの機能はすべて使えます。必要になったら設定 → ハンズにあります。</string>
     <string name="nm_welcome_meet_fine_print">取り消せない操作（削除、送信、支払い）の前には、立ち止まってまずあなたに確認します。</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">nanoMuse Cloud で始める</string>
     <string name="nm_cloud_signin_subtitle">スマートフォンかメールにコードを送ります。パスワードを設定済みならそれでも。</string>
     <string name="nm_cloud_mode_code">コードで</string>
@@ -653,7 +652,7 @@
     <string name="nm_cloud_password">パスワード</string>
     <string name="nm_cloud_forgot_password">パスワードを忘れた場合はコードでサインイン</string>
     <string name="nm_cloud_identifier">中国本土の電話番号またはメールアドレス</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · you@example.com</string>
+    <string name="nm_cloud_identifier_hint">you@example.com</string>
     <string name="nm_cloud_code">コード</string>
     <string name="nm_cloud_send_code">コードを送信</string>
     <string name="nm_cloud_resend">再送信</string>
@@ -663,7 +662,6 @@
     <!-- Your own relay (0.1.38): the sign-in screen's server form and the account page's row -->
     <string name="nm_cloud_other_server">別のサーバーを使う</string>
     <string name="nm_cloud_server_url">リレーのアドレス</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
     <string name="nm_cloud_server_check">確認</string>
     <string name="nm_cloud_server_use">このサーバーを使う</string>
     <string name="nm_cloud_server_now">サーバー: %1$s</string>

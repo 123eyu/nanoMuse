@@ -645,7 +645,6 @@
     <string name="nm_welcome_skip">Lewati dulu</string>
     <string name="nm_welcome_hands_fine_print">Yang lain tetap berfungsi tanpa ini. Keduanya ada di Pengaturan → Tangan kapan pun kamu mau.</string>
     <string name="nm_welcome_meet_fine_print">Sebelum hal yang tidak bisa ditarik kembali (menghapus, mengirim, membayar) ia berhenti dan bertanya dulu padamu.</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">Mulai dengan nanoMuse Cloud</string>
     <string name="nm_cloud_signin_subtitle">Kode ke ponsel atau kotak masukmu, atau kata sandimu, setelah kamu mengaturnya.</string>
     <string name="nm_cloud_mode_code">Dengan kode</string>
@@ -653,7 +652,7 @@
     <string name="nm_cloud_password">Kata sandi</string>
     <string name="nm_cloud_forgot_password">Lupa kata sandi? Masuk dengan kode</string>
     <string name="nm_cloud_identifier">Nomor ponsel Tiongkok daratan atau e-mail</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · kamu@example.com</string>
+    <string name="nm_cloud_identifier_hint">kamu@example.com</string>
     <string name="nm_cloud_code">Kode</string>
     <string name="nm_cloud_send_code">Kirim kode</string>
     <string name="nm_cloud_resend">Kirim lagi</string>
@@ -663,7 +662,6 @@
     <!-- Your own relay (0.1.38): the sign-in screen's server form and the account page's row -->
     <string name="nm_cloud_other_server">Gunakan server lain</string>
     <string name="nm_cloud_server_url">Alamat relay</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
     <string name="nm_cloud_server_check">Periksa</string>
     <string name="nm_cloud_server_use">Gunakan server ini</string>
     <string name="nm_cloud_server_now">Server: %1$s</string>

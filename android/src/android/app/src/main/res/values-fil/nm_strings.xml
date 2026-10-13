@@ -648,7 +648,6 @@
     <string name="nm_welcome_skip">Laktawan muna</string>
     <string name="nm_welcome_hands_fine_print">Gumagana ang lahat ng iba pa kahit wala ang mga ito. Nasa Mga setting → Mga kamay ang mga ito kapag gusto mo.</string>
     <string name="nm_welcome_meet_fine_print">Bago ang anumang hindi na nito mababawi (pagbura, pagpapadala, pagbabayad) humihinto ito at nagtatanong muna sa iyo.</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">Magsimula sa nanoMuse Cloud</string>
     <string name="nm_cloud_signin_subtitle">Isang code sa telepono o inbox mo, o ang password mo, kapag nakapagtakda ka na.</string>
     <string name="nm_cloud_mode_code">Gamit ang code</string>
@@ -656,7 +655,7 @@
     <string name="nm_cloud_password">Password</string>
     <string name="nm_cloud_forgot_password">Nakalimutan ang password? Mag-sign in gamit ang code</string>
     <string name="nm_cloud_identifier">Numero ng telepono sa mainland China o e-mail</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · you@example.com</string>
+    <string name="nm_cloud_identifier_hint">you@example.com</string>
     <string name="nm_cloud_code">Code</string>
     <string name="nm_cloud_send_code">Ipadala ang code</string>
     <string name="nm_cloud_resend">Ipadala ulit</string>
@@ -666,7 +665,6 @@
     <!-- Your own relay (0.1.38): the sign-in screen's server form and the account page's row -->
     <string name="nm_cloud_other_server">Gumamit ng ibang server</string>
     <string name="nm_cloud_server_url">Address ng relay</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
     <string name="nm_cloud_server_check">Suriin</string>
     <string name="nm_cloud_server_use">Gamitin ang server na ito</string>
     <string name="nm_cloud_server_now">Server: %1$s</string>
