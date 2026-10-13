@@ -38,7 +38,8 @@ class OAuthRedirectActivity : Activity() {
                         val port = uri.port.takeIf { it > 0 } ?: 54545
                         val localUrl = "http://127.0.0.1:$port${uri.path}?${uri.query}"
                         Log.d(TAG, "Forwarding to local server: $localUrl")
-                        val conn = java.net.URL(localUrl).openConnection() as java.net.HttpURLConnection
+                        // nanoMuse: never through the system proxy; a VPN or proxy app would swallow the loopback request (#441).
+                        val conn = java.net.URL(localUrl).openConnection(java.net.Proxy.NO_PROXY) as java.net.HttpURLConnection
                         conn.connectTimeout = 5000
                         conn.readTimeout = 5000
                         conn.requestMethod = "GET"

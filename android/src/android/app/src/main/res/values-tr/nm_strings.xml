@@ -613,6 +613,8 @@
     <string name="nm_risk_title_device">“%1$s” bu telefonu kullansın mı?</string>
     <string name="nm_risk_desc_device">Hesabındaki başka bir cihaz olan “%1$s”, bu telefonda %2$s istiyor. Tam olarak ne istediği aşağıda. “Her zaman”, o cihazın burada böyle şeyleri sormadan yapmasına izin verir; İzinler altından geri al.</string>
     <string name="nm_risk_preview_device">Cihazın istediği</string>
+    <string name="nm_risk_preview_show_all">Tümünü göster (%1$d satır)</string>
+    <string name="nm_risk_preview_show_less">Daha az göster</string>
     <string name="nm_risk_class_remote">Uzaktan denetim</string>
     <string name="nm_hub_remote_reason">%1$s bu telefonu kullanabilir</string>
 
@@ -646,7 +648,6 @@
     <string name="nm_welcome_skip">Şimdilik atla</string>
     <string name="nm_welcome_hands_fine_print">Geri kalan her şey bunlar olmadan da çalışır. İstediğinde Ayarlar → Eller altındalar.</string>
     <string name="nm_welcome_meet_fine_print">Geri alamayacağı her şeyden önce (silme, gönderme, ödeme) durur ve önce sana sorar.</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">nanoMuse Cloud ile başla</string>
     <string name="nm_cloud_signin_subtitle">Telefonuna ya da e-postana bir kod, ya da belirlediysen parolan.</string>
     <string name="nm_cloud_mode_code">Kodla</string>
@@ -654,7 +655,7 @@
     <string name="nm_cloud_password">Parola</string>
     <string name="nm_cloud_forgot_password">Parolayı mı unuttun? Kodla oturum aç</string>
     <string name="nm_cloud_identifier">Çin anakarası telefon numarası ya da e-posta</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · sen@example.com</string>
+    <string name="nm_cloud_identifier_hint">sen@example.com</string>
     <string name="nm_cloud_code">Kod</string>
     <string name="nm_cloud_send_code">Kod gönder</string>
     <string name="nm_cloud_resend">Yeniden gönder</string>
@@ -664,7 +665,6 @@
     <!-- Your own relay (0.1.38): the sign-in screen's server form and the account page's row -->
     <string name="nm_cloud_other_server">Başka bir sunucu kullan</string>
     <string name="nm_cloud_server_url">Relay adresi</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
     <string name="nm_cloud_server_check">Denetle</string>
     <string name="nm_cloud_server_use">Bu sunucuyu kullan</string>
     <string name="nm_cloud_server_now">Sunucu: %1$s</string>
@@ -1142,6 +1142,11 @@
     <string name="nm_a11y_not_liked">Beğenilmedi</string>
     <string name="nm_a11y_post_details">Gönderi ayrıntıları</string>
     <string name="nm_claude_sign_in_unavailable">Bu sürüm Claude ile oturum açmayı kullanamaz. Bunun yerine Anthropic’i bir API anahtarıyla ekleyin.</string>
+    <string name="nm_oauth_rescue_hint">Tarayıcı localhost adresinde bir hata sayfası gösteriyorsa proxy\'niz veya VPN\'iniz geri çağrıyı yutuyor demektir. localhost\'u onun istisna listesine ekleyin ya da sayfanın adresini kopyalayıp buraya yapıştırın.</string>
+    <string name="nm_oauth_rescue_placeholder">Adresi buraya yapıştırın</string>
+    <string name="nm_oauth_rescue_continue">Devam</string>
+    <string name="nm_oauth_rescue_no_code">Bu adreste oturum açma kodu yok.</string>
+    <string name="nm_oauth_rescue_failed">Oturum açma artık bu adresi beklemiyor. Oturum aç\'a dokunup yeniden deneyin.</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">Çok küçük</string>
     <string name="nm_font_scale_small">Küçük</string>

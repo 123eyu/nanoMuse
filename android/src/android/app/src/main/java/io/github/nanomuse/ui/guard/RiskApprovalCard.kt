@@ -11,17 +11,21 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.DeleteOutline
@@ -38,18 +42,23 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isFinite
 import androidx.compose.ui.unit.sp
 import com.openminis.app.R
 import com.openminis.app.ui.theme.ChatColors
@@ -105,96 +114,123 @@ private fun RiskApprovalCard(request: RiskRequest) {
         request.assessment.riskClass == RiskClass.MONEY -> Icons.Outlined.Payments
         else -> Icons.AutoMirrored.Outlined.Send
     }
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-            .shadow(6.dp, RoundedCornerShape(22.dp), clip = false, ambientColor = Color.Black.copy(alpha = 0.12f)),
-        shape = RoundedCornerShape(22.dp),
-        color = MuseTones.surface,
-    ) {
-        Column(Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier.size(40.dp).clip(CircleShape).background(MuseTones.fill),
-                    contentAlignment = Alignment.Center,
+    // The card never grows past two thirds of the room it is given (#436): a long command
+    // used to push Allow, Deny and the composer below the screen's bottom edge, which looked
+    // like a frozen chat. The header stays at the top and the buttons at the bottom; the
+    // description and the preview scroll in between. The room is what the footer has after
+    // the window insets and the keyboard, with the screen height as the fallback when the
+    // host does not bound it.
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    var previewExpanded by remember(request.id) { mutableStateOf(false) }
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val room = if (maxHeight.isFinite) maxHeight else screenHeight
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = room * 2 / 3)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .shadow(6.dp, RoundedCornerShape(22.dp), clip = false, ambientColor = Color.Black.copy(alpha = 0.12f)),
+            shape = RoundedCornerShape(22.dp),
+            color = MuseTones.surface,
+        ) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier.size(40.dp).clip(CircleShape).background(MuseTones.fill),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp))
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        RiskText.title(context, request, name),
+                        fontSize = 17.sp,
+                        lineHeight = 22.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
+                Column(
+                    Modifier
+                        .weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState()),
                 ) {
-                    Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp))
-                }
-                Spacer(Modifier.width(12.dp))
-                Text(
-                    RiskText.title(context, request, name),
-                    fontSize = 17.sp,
-                    lineHeight = 22.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            Spacer(Modifier.height(10.dp))
-            Text(
-                RiskText.description(context, request, name),
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Spacer(Modifier.height(10.dp))
-            Preview(request)
-            if (queued > 0) {
-                Spacer(Modifier.height(6.dp))
-                Text(stringResource(R.string.nm_risk_queued, queued), fontSize = 12.sp, color = ChatColors.secondaryText)
-            }
-            Spacer(Modifier.height(14.dp))
-            Button(
-                onClick = { RiskGate.decide(request.id, RiskDecision.ALLOW_ONCE) },
-                modifier = Modifier.fillMaxWidth().height(46.dp),
-                shape = CircleShape,
-                colors = ButtonDefaults.buttonColors(containerColor = MuseTones.action, contentColor = Color.White),
-            ) { Text(stringResource(R.string.nm_risk_allow_once), fontSize = 15.sp, fontWeight = FontWeight.SemiBold) }
-            if (request.canSession) {
-                Spacer(Modifier.height(8.dp))
-                GreyPill(stringResource(R.string.nm_risk_allow_session)) { RiskGate.decide(request.id, RiskDecision.ALLOW_SESSION) }
-            }
-            if (request.canAlways) {
-                val target = RiskText.targetLabel(context, request) ?: ""
-                val remembered = stringResource(R.string.nm_risk_remembered_toast)
-                val always = {
-                    RiskGate.decide(request.id, RiskDecision.ALLOW_ALWAYS)
-                    android.widget.Toast.makeText(context, remembered, android.widget.Toast.LENGTH_LONG).show()
-                }
-                Spacer(Modifier.height(8.dp))
-                if (request.needsCredential && !DeviceCredential.available(context)) {
-                    // No screen lock: there is nothing to confirm the highest tier with, so it is
-                    // not offered; the card still allows this once.
                     Text(
-                        stringResource(R.string.nm_risk_remember_money_needs_lock),
-                        fontSize = 11.5.sp,
-                        lineHeight = 15.sp,
-                        color = ChatColors.secondaryText,
-                        modifier = Modifier.padding(top = 2.dp, start = 4.dp, end = 4.dp),
+                        RiskText.description(context, request, name),
+                        fontSize = 14.sp,
+                        lineHeight = 20.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
-                } else if (request.needsCredential) {
-                    // The highest tier: a deliberate choice, confirmed with the screen lock.
-                    RememberWithLockPill(
-                        label = stringResource(R.string.nm_risk_remember_money, target),
-                        title = stringResource(R.string.nm_risk_lock_title),
-                        subtitle = stringResource(R.string.nm_risk_lock_subtitle, target),
-                        onConfirmed = always,
-                    )
-                    Text(
-                        stringResource(R.string.nm_risk_remember_money_note),
-                        fontSize = 11.5.sp,
-                        lineHeight = 15.sp,
-                        color = ChatColors.secondaryText,
-                        modifier = Modifier.padding(top = 6.dp, start = 4.dp, end = 4.dp),
-                    )
-                } else {
-                    GreyPill(stringResource(R.string.nm_risk_allow_always, target), onClick = always)
+                    Spacer(Modifier.height(10.dp))
+                    Preview(request, expanded = previewExpanded, onToggle = { previewExpanded = !previewExpanded })
+                    if (queued > 0) {
+                        Spacer(Modifier.height(6.dp))
+                        Text(stringResource(R.string.nm_risk_queued, queued), fontSize = 12.sp, color = ChatColors.secondaryText)
+                    }
                 }
+                Spacer(Modifier.height(14.dp))
+                Decisions(request)
+            }
+        }
+    }
+}
+
+/** Allow, the remember pills and Deny: always at the bottom of the card, never scrolled away. */
+@Composable
+private fun Decisions(request: RiskRequest) {
+    val context = LocalContext.current
+    Column {
+        Button(
+            onClick = { RiskGate.decide(request.id, RiskDecision.ALLOW_ONCE) },
+            modifier = Modifier.fillMaxWidth().height(46.dp),
+            shape = CircleShape,
+            colors = ButtonDefaults.buttonColors(containerColor = MuseTones.action, contentColor = Color.White),
+        ) { Text(stringResource(R.string.nm_risk_allow_once), fontSize = 15.sp, fontWeight = FontWeight.SemiBold) }
+        if (request.canSession) {
+            Spacer(Modifier.height(8.dp))
+            GreyPill(stringResource(R.string.nm_risk_allow_session)) { RiskGate.decide(request.id, RiskDecision.ALLOW_SESSION) }
+        }
+        if (request.canAlways) {
+            val target = RiskText.targetLabel(context, request) ?: ""
+            val remembered = stringResource(R.string.nm_risk_remembered_toast)
+            val always = {
+                RiskGate.decide(request.id, RiskDecision.ALLOW_ALWAYS)
+                android.widget.Toast.makeText(context, remembered, android.widget.Toast.LENGTH_LONG).show()
             }
             Spacer(Modifier.height(8.dp))
-            GreyPill(stringResource(R.string.nm_risk_deny)) { RiskGate.decide(request.id, RiskDecision.DENY) }
+            if (request.needsCredential && !DeviceCredential.available(context)) {
+                // No screen lock: there is nothing to confirm the highest tier with, so it is
+                // not offered; the card still allows this once.
+                Text(
+                    stringResource(R.string.nm_risk_remember_money_needs_lock),
+                    fontSize = 11.5.sp,
+                    lineHeight = 15.sp,
+                    color = ChatColors.secondaryText,
+                    modifier = Modifier.padding(top = 2.dp, start = 4.dp, end = 4.dp),
+                )
+            } else if (request.needsCredential) {
+                // The highest tier: a deliberate choice, confirmed with the screen lock.
+                RememberWithLockPill(
+                    label = stringResource(R.string.nm_risk_remember_money, target),
+                    title = stringResource(R.string.nm_risk_lock_title),
+                    subtitle = stringResource(R.string.nm_risk_lock_subtitle, target),
+                    onConfirmed = always,
+                )
+                Text(
+                    stringResource(R.string.nm_risk_remember_money_note),
+                    fontSize = 11.5.sp,
+                    lineHeight = 15.sp,
+                    color = ChatColors.secondaryText,
+                    modifier = Modifier.padding(top = 6.dp, start = 4.dp, end = 4.dp),
+                )
+            } else {
+                GreyPill(stringResource(R.string.nm_risk_allow_always, target), onClick = always)
+            }
         }
+        Spacer(Modifier.height(8.dp))
+        GreyPill(stringResource(R.string.nm_risk_deny)) { RiskGate.decide(request.id, RiskDecision.DENY) }
     }
 }
 
@@ -240,8 +276,14 @@ private fun android.content.Context.findActivity(): android.app.Activity? {
     return null
 }
 
+/**
+ * The grey box with the command, the page or the step. A shell command longer than
+ * [PreviewLines.COLLAPSED] lines is folded with a "Show all (N lines)" button; [expanded]
+ * shows it whole inside the card's scrolling part. The text wraps inside the box, a long
+ * token without spaces included, so the card never grows sideways.
+ */
 @Composable
-private fun Preview(request: RiskRequest) {
+private fun Preview(request: RiskRequest, expanded: Boolean, onToggle: () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -265,15 +307,32 @@ private fun Preview(request: RiskRequest) {
         )
         Spacer(Modifier.height(4.dp))
         if (request.kind == GuardKind.SHELL) {
+            val folded = PreviewLines.hasMore(request.preview)
             Text(
-                request.preview,
+                if (expanded || !folded) request.preview else PreviewLines.collapsed(request.preview),
                 fontFamily = FontFamily.Monospace,
                 fontSize = 12.5.sp,
                 lineHeight = 17.sp,
                 color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 8,
-                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth(),
             )
+            if (folded) {
+                Text(
+                    if (expanded) {
+                        stringResource(R.string.nm_risk_preview_show_less)
+                    } else {
+                        stringResource(R.string.nm_risk_preview_show_all, PreviewLines.count(request.preview))
+                    },
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MuseTones.action,
+                    modifier = Modifier
+                        .padding(top = 4.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable(onClick = onToggle)
+                        .padding(horizontal = 4.dp, vertical = 4.dp),
+                )
+            }
         } else {
             Text(request.preview, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface, maxLines = 2, overflow = TextOverflow.Ellipsis)
             request.pageUrl?.let {
