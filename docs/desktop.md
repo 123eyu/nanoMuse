@@ -107,6 +107,16 @@ speaking as nanoMuse through the `nanomuse` preset, with:
   what puts a row here. The Computer use page and the profile drawer keep their own shorter
   lists; this one is the complete one. The host answers `GET /nanomuse/cloud/grants` with
   the list and `POST /grants/revoke {id}` for any row of it.
+- **A real quit protects the work in progress.** Quit (the menu's Quit, Ctrl+Q, the tray's
+  Quit, or closing the last window when there is no tray) first asks the Host what is still
+  on: a reply being written, the hands on the screen, a task another device asked for, an
+  approval waiting on you. The question names that work and *Keep running* is the default;
+  only an explicit confirmation ends it, and the quit waits for the work to end before it
+  stops the Host. A task that arrives while the quit hands over is refused with the usual
+  busy answer, so the asking device can send it again. Closing the window with the menu-bar
+  switch on stays in the tray and has never been a quit. The routes are the plugin's
+  `GET /nanomuse/cloud/work` (the aggregate), `POST /work/gate {open}` (the hand-over) and
+  `POST /work/stop` (the confirmed end).
 
 ## When the allowance is used up, and the relay's other answers
 
