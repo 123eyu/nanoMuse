@@ -520,12 +520,12 @@ async function restartHost(): Promise<void> {
 
 // ---- the protected exit ---------------------------------------------------------------------
 //
-// A real exit — the menu's Quit, the tray's Quit, closing the last window — never just quits:
+// A real exit (the menu's Quit, the tray's Quit, closing the last window) never just quits:
 // the Host is asked what work is on (src/host-work.ts, the plugin's src/work.ts), the gate
 // closes so nothing new starts under the hand-over, and work that is on is named first, with
 // keeping it running as the default; an explicit confirmation ends it, and the stop is waited
 // for before the Host goes. Closing the window to stay in the tray, idling, a crash and the
-// system switching off never come through here, and `approval` stays `none` for them — the
+// system switching off never come through here, and `approval` stays `none` for them: the
 // later install-on-exit change reads that flag and nothing else.
 
 /** The Host's work routes, once the Host is up; until then nothing answers and the exit reads as idle. */
@@ -580,7 +580,11 @@ function protectedQuit(intent: ExitIntent = "quit"): void {
     app.quit();
     return;
   }
-  void exitGuard.requestExit(intent);
+  void exitGuard.requestExit(intent).then((went) => {
+    // Keep running after the last window closed with no tray to come back through: the
+    // window comes back, or the app would stay alive with nothing on screen to reach it by.
+    if (!went && !mainWindow && !tray) void showWindow();
+  });
 }
 
 function details(message: string): string {

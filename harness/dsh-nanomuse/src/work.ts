@@ -16,7 +16,7 @@ export interface WorkItem {
 }
 
 /**
- * The turns in progress, by session, across every session of the host — the
+ * The turns in progress, by session, across every session of the host: the
  * chat replies, the goals' automations and the tasks other devices asked for
  * are all turns here. Fed from `session/event` (`turn/start`, `turn/end`).
  */

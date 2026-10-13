@@ -52,7 +52,7 @@ export interface TaskRunnerOptions {
   remember?(key: string, sessionId: string): void
   /**
    * Whether this computer is handing over (a protected exit, later a restart-update):
-   * while it says true, a task is refused with the usual `busy` error — the asker sees
+   * while it says true, a task is refused with the usual `busy` error: the asker sees
    * the refusal and can ask again; nothing is taken and dropped.
    */
   closed?: () => boolean

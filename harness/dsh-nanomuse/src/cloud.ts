@@ -939,7 +939,7 @@ export default class NanomuseCloud extends Service {
     )
     // The turns of every session, for the desktop shell's protected exit (src/work.ts): a chat
     // reply, a goal's automation or a task another device asked for is a turn here. While the
-    // exit hands over (the gate closed), a turn that opens all the same is stopped at once —
+    // exit hands over (the gate closed), a turn that opens all the same is stopped at once;
     // nothing runs under the hand-over, and what the asker sent comes back as refused.
     this.ctx.effect(
       () =>
@@ -1410,9 +1410,9 @@ export default class NanomuseCloud extends Service {
   // ---- the work a protected exit ends (src/work.ts) ------------------------------------
 
   /**
-   * The work a real quit (later, a restart-update) would end, over every source there is —
+   * The work a real quit (later, a restart-update) would end, over every source there is:
    * the turns of all sessions, the hands' calls, the tasks other devices asked for and the
-   * approvals waiting on this screen — one line per kind (src/work.ts's aggregateWork).
+   * approvals waiting on this screen, one line per kind (src/work.ts's aggregateWork).
    */
   private workBusy(): WorkItem[] {
     return aggregateWork({
@@ -1444,8 +1444,8 @@ export default class NanomuseCloud extends Service {
   }
 
   /**
-   * End the work in progress (the person confirmed the exit): every turn is cancelled —
-   * which settles the tasks' hub calls, the hands' holds and the approvals waiting — and
+   * End the work in progress (the person confirmed the exit): every turn is cancelled,
+   * which settles the tasks' hub calls, the hands' holds and the approvals waiting, and
    * the aggregate is checked again until it is empty or the rounds run out. The shell's
    * exit waits for this, and only then stops the Host.
    */

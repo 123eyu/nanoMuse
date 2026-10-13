@@ -9,7 +9,7 @@
  * A Host that is down, or an older plugin without these routes, answers
  * nothing: the check then reads as idle and the quit proceeds as it did before
  * this existed. That is safe to accept because the plugin ships in the same
- * installer as the shell — the pairing is the norm, the mismatch the dev case.
+ * installer as the shell: the pairing is the norm, the mismatch the dev case.
  */
 
 import type { WorkItem } from "./protected-exit";

@@ -2,17 +2,17 @@
  * The protected exit: what runs between a person asking to quit (later, to
  * restart for an update) and the quit itself. One flow, one busy judgment, for
  * both: close the gate so no new work starts under the hand-over, ask before
- * ending what is running — with keeping it running as the default — and only
+ * ending what is running, with keeping it running as the default, and only
  * on an explicit confirmation end the work, wait for it to end, and complete
  * the exit. Cancelling opens the gate again and nothing has stopped.
  *
  * Closing the window to stay in the tray, sitting idle, a crash and the system
  * switching off never come through here: they are not an exit request, and
- * `approval` stays `none` for them — the property a later install-on-exit
+ * `approval` stays `none` for them: the property a later install-on-exit
  * change must not talk itself out of. `approval` says only that the person
  * confirmed this exit; it does not say the stop finished every piece of work.
  * When the stop's deadline or the rounds ran out with work still on, the log
- * carries "work still on after the stop" — the install-on-exit change reads
+ * carries "work still on after the stop": the install-on-exit change reads
  * that situation as the person having confirmed ending it, not as quiet.
  */
 
@@ -81,7 +81,7 @@ export class ProtectedExit {
   /**
    * Ask to exit with the work protected: the gate closes first, the work is
    * named and, unless the person keeps running, ended and waited for. True
-   * when the exit proceeds — `finish` has run by then.
+   * when the exit proceeds, `finish` has run by then.
    */
   async requestExit(intent: ExitIntent): Promise<boolean> {
     if (this.phase !== "idle") {
