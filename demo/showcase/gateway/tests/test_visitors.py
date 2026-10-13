@@ -7,7 +7,7 @@ import pytest
 
 from showcase_gateway.app import create_app
 from showcase_gateway.sessions import SessionManager
-from showcase_gateway.visitors import VisitorBook, VisitorStore
+from showcase_gateway.visitors import Visitor, VisitorBook, VisitorStore
 
 from .conftest import Clock, FakeRunner, Upstream, make_settings
 
@@ -265,3 +265,73 @@ async def test_switched_off_means_the_old_way(showcase):
         assert info["signin_required"] is False
         r = await c.post("/api/demo/session", json={}, headers={"x-forwarded-for": "1.2.3.4"})
         assert r.status_code == 201
+
+
+@pytest.mark.parametrize(
+    ("status", "text", "code", "message"),
+    [
+        # the relay's own shape
+        (
+            400,
+            '{"error": {"code": "code_wrong", "message": "That code is not right"}}',
+            "code_wrong",
+            "That code is not right",
+        ),
+        # a JSON list, a string, a bare message and FastAPI's detail: no code to pass on, and
+        # no AttributeError on this side of the wire
+        (400, "[1, 2]", "relay_error", "nanoMuse Cloud refused the request."),
+        (400, '"nope"', "relay_error", "nanoMuse Cloud refused the request."),
+        (400, '{"error": "nope"}', "relay_error", "nope"),
+        (422, '{"detail": "identifier: too short"}', "relay_error", "identifier: too short"),
+        (
+            422,
+            '{"detail": [{"loc": ["body"]}]}',
+            "relay_error",
+            "nanoMuse Cloud refused the request.",
+        ),
+        (502, "<html>bad gateway</html>", "relay_error", "nanoMuse Cloud refused the request."),
+    ],
+)
+async def test_a_refusal_of_any_shape_reaches_the_browser_as_a_refusal(status, text, code, message):
+    """relay.py read ``r.json().get("error", {})``: a body that is JSON but not an object
+    raised AttributeError in the handler, and the visitor got a 500 in place of the refusal."""
+    settings = make_settings(demo_signin_required=True)
+    runner = FakeRunner()
+    upstream = Upstream()
+    clock = Clock()
+
+    def odd_relay(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "cloud.example":
+            return httpx.Response(status, text=text)
+        return upstream.handler(request)
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(odd_relay))
+    manager = SessionManager(settings, runner, http=client, clock=clock)
+    book = VisitorBook(settings, VisitorStore(":memory:"), http=client, clock=clock)
+    app = create_app(settings, manager, client=client, visitors=book)
+    async with await client_for(app) as c:
+        r = await c.post("/api/demo/signin/code", json={"identifier": "someone@example.com"})
+    # a 5xx of the relay's is a 502 here; a 4xx keeps its status
+    assert r.status_code == (status if status < 500 else 502)
+    assert r.json() == {"error": code, "message": message}
+
+
+def test_a_demo_from_a_peer_without_an_address_leaves_the_address_empty():
+    """The gateway names a peer it cannot see "?"; the visitor's book must not write that
+    string down as an address, in the visit row (it did not) or on the visitor (it did)."""
+    settings = make_settings(demo_signin_required=True)
+    clock = Clock()
+    book = VisitorBook(settings, VisitorStore(":memory:"), clock=clock)
+    visitor = Visitor(id="acct-1", hint="so…", channel="email", first_seen=1.0, last_seen=1.0)
+    book.store.put(visitor)
+
+    class Sess:
+        id = "abc"
+        ip = "?"
+        byok = None
+
+    book.started(visitor, Sess(), ua="Mozilla/5.0")
+    row = book.admin("acct-1")
+    assert row["visitor"]["first_ip"] == "" and row["visitor"]["last_ip"] == ""
+    assert row["visits"][0]["ip"] == ""
+    assert row["visitor"]["sessions"] == 1 and row["visitor"]["last_ua"] == "Mozilla/5.0"

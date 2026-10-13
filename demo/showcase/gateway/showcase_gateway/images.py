@@ -47,6 +47,17 @@ def _size(raw: object) -> str:
     return text if "*" in text else "1024*1024"
 
 
+def provider_message(r: httpx.Response) -> str:
+    """Model Studio's ``message`` from an error body, or "" when the body is not JSON or
+    not an object (a list or a string would otherwise turn the refusal into a 500 here)."""
+    try:
+        body = r.json()
+    except ValueError:
+        return ""
+    message = body.get("message") if isinstance(body, dict) else None
+    return str(message) if message else ""
+
+
 def _reply(exc: Refused) -> JSONResponse:
     return JSONResponse(
         {"error": {"message": exc.message, "type": exc.code, "code": exc.code}},
@@ -157,12 +168,8 @@ class Pictures:
         if r.status_code == 429:
             raise Refused(429, "provider_busy", "The image provider is busy; try again shortly.")
         if r.status_code >= 400:
-            message = ""
-            try:
-                message = str(r.json().get("message", ""))
-            except ValueError:
-                pass
             log.warning("image provider HTTP %s: %s", r.status_code, r.text[:300])
+            message = provider_message(r)
             detail = f": {message}" if message else ""
             raise Refused(502, "upstream", f"The image provider refused ({r.status_code}{detail})")
         try:
@@ -176,7 +183,8 @@ class Pictures:
             img = await self.http.get(str(image_url))
         except httpx.HTTPError as exc:
             raise Refused(502, "upstream", "The picture could not be fetched.") from exc
-        if img.status_code >= 400:
+        # the client follows no redirects: a 3xx would be an empty body, not a picture
+        if img.status_code != 200 or not img.content:
             raise Refused(502, "upstream", "The picture could not be fetched.")
         return img.content
 
