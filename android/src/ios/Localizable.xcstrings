@@ -9921,6 +9921,596 @@
         }
       }
     },
+    "Not connected to the hub right now." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gerade nicht mit dem Hub verbunden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not connected to the hub right now."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin conexión con el hub ahora mismo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pas connecté au hub pour le moment."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今はハブに接続していません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지금 허브에 연결되어 있지 않습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сейчас нет подключения к хабу."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "现在没有连上中继。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在沒有連上中繼。"
+          }
+        }
+      }
+    },
+    "The computer did not answer in time." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Computer hat nicht rechtzeitig geantwortet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The computer did not answer in time."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La computadora no respondió a tiempo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’ordinateur n’a pas répondu à temps."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コンピューターが時間内に応答しませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "컴퓨터가 제때 응답하지 않았습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Компьютер не ответил вовремя."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "电脑没有及时回应。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "電腦沒有及時回應。"
+          }
+        }
+      }
+    },
+    "That computer is offline." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Computer ist offline."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That computer is offline."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esa computadora está sin conexión."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cet ordinateur est hors ligne."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "そのコンピューターはオフラインです。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "그 컴퓨터는 오프라인입니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот компьютер не в сети."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "那台电脑不在线。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "那台電腦不在線上。"
+          }
+        }
+      }
+    },
+    "The computer is busy with another run; try again in a moment." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Computer ist mit einem anderen Lauf beschäftigt; versuche es gleich noch einmal."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The computer is busy with another run; try again in a moment."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La computadora está ocupada con otra ejecución; inténtalo de nuevo en un momento."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’ordinateur est occupé par une autre exécution ; réessayez dans un instant."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コンピューターは別の実行で手一杯です。少ししてからもう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "컴퓨터가 다른 실행으로 바쁩니다. 잠시 후 다시 시도하세요."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Компьютер занят другим запуском; попробуйте чуть позже."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "电脑正忙着另一个任务，稍后再试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "電腦正忙著另一個任務，稍後再試。"
+          }
+        }
+      }
+    },
+    "That device cannot be asked to do things." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gerät kann nicht um Aufgaben gebeten werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That device cannot be asked to do things."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A ese dispositivo no se le pueden pedir cosas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On ne peut pas demander à cet appareil de faire des choses."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "そのデバイスには用事を頼めません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "그 기기에는 일을 부탁할 수 없습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это устройство нельзя просить что-то делать."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "那个设备不能接受操作。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "那個裝置不能接受操作。"
+          }
+        }
+      }
+    },
+    "That coding agent is not on the computer." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Coding-Agent ist nicht auf dem Computer."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That coding agent is not on the computer."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ese agente de código no está en la computadora."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cet agent de code n’est pas sur l’ordinateur."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "そのコーディングエージェントはコンピューターにありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "그 코딩 에이전트는 컴퓨터에 없습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этого агента для кода нет на компьютере."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "电脑上没有这个编程助手。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "電腦上沒有這個程式設計助手。"
+          }
+        }
+      }
+    },
+    "That session is not on the computer any more." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Sitzung ist nicht mehr auf dem Computer."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That session is not on the computer any more."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esa sesión ya no está en la computadora."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette session n’est plus sur l’ordinateur."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "そのセッションはもうコンピューターにありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "그 세션은 더 이상 컴퓨터에 없습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этой сессии больше нет на компьютере."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这个会话已经不在电脑上了。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個會話已經不在電腦上了。"
+          }
+        }
+      }
+    },
+    "The computer runs an older nanoMuse that does not know this action." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf dem Computer läuft ein älteres nanoMuse, das diese Aktion nicht kennt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The computer runs an older nanoMuse that does not know this action."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La computadora ejecuta un nanoMuse más antiguo que no conoce esta acción."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’ordinateur fait tourner un nanoMuse plus ancien qui ne connaît pas cette action."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コンピューターの nanoMuse が古く、この操作を知りません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "컴퓨터가 이 동작을 모르는 이전 버전의 nanoMuse를 실행하고 있습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "На компьютере более старый nanoMuse, которому это действие незнакомо."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "电脑上的 nanoMuse 版本较旧，不认识这个操作。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "電腦上的 nanoMuse 版本較舊，不認識這個操作。"
+          }
+        }
+      }
+    },
+    "Signed out on the relay; sign in again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beim Relay abgemeldet; melde dich erneut an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signed out on the relay; sign in again."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesión cerrada en el relay; inicia sesión de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déconnecté du relais ; reconnectez-vous."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リレーでサインアウトされました。もう一度サインインしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "릴레이에서 로그아웃되었습니다. 다시 로그인하세요."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выход выполнен на релее; войдите снова."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中继上已退出登录，请重新登录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中繼上已登出，請重新登入。"
+          }
+        }
+      }
+    },
+    "The computer could not do it." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Computer konnte es nicht erledigen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The computer could not do it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La computadora no pudo hacerlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’ordinateur n’a pas pu le faire."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コンピューターで実行できませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "컴퓨터가 처리하지 못했습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Компьютер не смог это сделать."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "电脑没能完成。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "電腦沒能完成。"
+          }
+        }
+      }
+    },
     "Reply failed" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -147606,120 +148196,120 @@
         }
       }
     },
-    "A notification is how the agent reaches you when the app is closed: a routine finished, a computer answered, a reply came in on another device." : {
+    "A notification is how the agent gets your attention: a routine came due and waits for you to open the app, or another of your devices sent a note through the hub." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Über eine Mitteilung erreicht dich der Agent, wenn die App geschlossen ist: Eine Routine ist fertig, ein Computer hat geantwortet, auf einem anderen Gerät kam eine Antwort an."
+            "value" : "Über eine Mitteilung macht sich der Agent bemerkbar: Eine Routine ist fällig und wartet darauf, dass du die App öffnest, oder ein anderes deiner Geräte hat über den Hub eine Notiz geschickt."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A notification is how the agent reaches you when the app is closed: a routine finished, a computer answered, a reply came in on another device."
+            "value" : "A notification is how the agent gets your attention: a routine came due and waits for you to open the app, or another of your devices sent a note through the hub."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Una notificación es la forma en que el agente te avisa cuando la app está cerrada: una rutina terminó, una computadora respondió, llegó una respuesta en otro dispositivo."
+            "value" : "Una notificación es la forma en que el agente te avisa: una rutina llegó a su hora y espera a que abras la app, u otro de tus dispositivos envió una nota a través del hub."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Une notification est la façon dont l’agent vous joint quand l’app est fermée : une routine terminée, un ordinateur qui a répondu, une réponse arrivée sur un autre appareil."
+            "value" : "Une notification est la façon dont l’agent vous fait signe : une routine est arrivée à son heure et attend que vous ouvriez l’app, ou un autre de vos appareils a envoyé une note par le hub."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "通知は、アプリを閉じているときにエージェントがあなたに連絡する手段です: ルーティンが終わった、コンピューターが応答した、別のデバイスに返信が届いた、など。"
+            "value" : "通知はエージェントがあなたに知らせる手段です: ルーティンの時刻になってアプリを開くのを待っているとき、または別のデバイスがハブ経由でメモを送ってきたときに届きます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "앱이 닫혀 있을 때 에이전트는 알림으로 연락합니다. 루틴이 끝났거나, 컴퓨터가 응답했거나, 다른 기기에 답장이 왔을 때."
+            "value" : "알림은 에이전트가 당신에게 알리는 방법입니다. 루틴 시간이 되어 앱을 열기를 기다리거나, 다른 기기가 허브를 통해 메모를 보냈을 때 옵니다."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Через уведомление агент связывается с вами, когда приложение закрыто: рутина завершилась, компьютер ответил, на другом устройстве пришёл ответ."
+            "value" : "Уведомление: так агент привлекает ваше внимание. Пришло время рутины, и она ждёт, когда вы откроете приложение, или другое ваше устройство прислало заметку через хаб."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "通知是 App 关着时智能体找到你的方式：一个例行任务做完了、一台电脑回话了、另一台设备上来了回复。"
+            "value" : "通知是智能体引起你注意的方式：某个例程到点了，等你打开 App 再运行；或者你的另一台设备通过 Hub 发来了一条提醒。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "通知是 App 關著時智慧體找到你的方式：一個例行任務做完了、一台電腦回話了、另一台裝置上來了回覆。"
+            "value" : "通知是智慧體引起你注意的方式：某個例程到點了，等你打開 App 再執行；或者你的另一台裝置透過 Hub 傳來了一則提醒。"
           }
         }
       }
     },
-    "iOS pauses apps that are not on screen. With Background App Refresh on, the app gets short slots to check the hub and finish a routine; without it, work resumes when you open the app." : {
+    "iOS pauses apps that are not on screen. With Background App Refresh on, iOS can wake the app for a moment around a routine's due time to post the reminder; the routine itself still waits for you to open the app." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iOS pausiert Apps, die nicht auf dem Bildschirm sind. Mit eingeschalteter Hintergrundaktualisierung bekommt die App kurze Zeitfenster, um den Hub zu prüfen und eine Routine abzuschließen; ohne sie geht die Arbeit weiter, wenn du die App öffnest."
+            "value" : "iOS pausiert Apps, die nicht auf dem Bildschirm sind. Mit eingeschalteter Hintergrundaktualisierung kann iOS die App um die fällige Zeit einer Routine herum kurz wecken, um die Erinnerung zu zeigen; die Routine selbst wartet weiter, bis du die App öffnest."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iOS pauses apps that are not on screen. With Background App Refresh on, the app gets short slots to check the hub and finish a routine; without it, work resumes when you open the app."
+            "value" : "iOS pauses apps that are not on screen. With Background App Refresh on, iOS can wake the app for a moment around a routine's due time to post the reminder; the routine itself still waits for you to open the app."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iOS pausa las apps que no están en pantalla. Con la actualización en segundo plano activada, la app recibe breves intervalos para consultar el hub y terminar una rutina; sin ella, el trabajo se reanuda cuando abres la app."
+            "value" : "iOS pausa las apps que no están en pantalla. Con la actualización en segundo plano activada, iOS puede despertar la app un momento cerca de la hora de una rutina para mostrar el recordatorio; la rutina en sí sigue esperando a que abras la app."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iOS met en pause les apps qui ne sont pas à l’écran. Avec l’actualisation en arrière-plan activée, l’app obtient de courts créneaux pour consulter le hub et finir une routine ; sans elle, le travail reprend quand vous ouvrez l’app."
+            "value" : "iOS met en pause les apps qui ne sont pas à l’écran. Avec l’actualisation en arrière-plan activée, iOS peut réveiller l’app un instant autour de l’heure d’une routine pour afficher le rappel ; la routine elle-même attend toujours que vous ouvriez l’app."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iOS は画面に出ていないアプリを一時停止します。「Appのバックグラウンド更新」がオンなら、アプリはハブを確認しルーティンを終えるための短い時間を得られます。オフなら、アプリを開いたときに作業が再開されます。"
+            "value" : "iOS は画面に出ていないアプリを一時停止します。「Appのバックグラウンド更新」がオンだと、iOS はルーティンの時刻の前後にアプリを少しだけ起こしてリマインダーを出せます。ルーティンそのものは、アプリを開くまで実行されません。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iOS는 화면에 없는 앱을 멈춥니다. 백그라운드 앱 새로 고침이 켜져 있으면 앱이 짧은 시간을 얻어 허브를 확인하고 루틴을 마칩니다. 꺼져 있으면 앱을 열 때 작업이 이어집니다."
+            "value" : "iOS는 화면에 없는 앱을 멈춥니다. 백그라운드 앱 새로 고침이 켜져 있으면 iOS가 루틴 시각 즈음에 앱을 잠깐 깨워 알림을 보낼 수 있습니다. 루틴 자체는 앱을 열 때까지 기다립니다."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iOS приостанавливает приложения, которых нет на экране. С включённым «Обновлением контента» приложение получает короткие окна, чтобы проверить хаб и завершить рутину; без него работа возобновляется, когда вы открываете приложение."
+            "value" : "iOS приостанавливает приложения, которых нет на экране. При включённом «Обновлении контента» iOS может ненадолго разбудить приложение около времени рутины, чтобы показать напоминание; сама рутина по-прежнему ждёт, пока вы откроете приложение."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iOS 会暂停不在屏幕上的 App。开着后台 App 刷新时，App 能得到一些短暂的时间去查看中枢、把例行任务做完；关着时，要等你打开 App 才会继续。"
+            "value" : "iOS 会暂停不在屏幕上的 App。打开「后台 App 刷新」后，iOS 可以在例程到点前后把 App 唤醒片刻来发出提醒；例程本身仍要等你打开 App 才运行。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iOS 會暫停不在螢幕上的 App。開著背景 App 重新整理時，App 能得到一些短暫的時間去查看中樞、把例行任務做完；關著時，要等你打開 App 才會繼續。"
+            "value" : "iOS 會暫停不在螢幕上的 App。打開「背景 App 重新整理」後，iOS 可以在例程到點前後把 App 喚醒片刻來發出提醒；例程本身仍要等你打開 App 才執行。"
           }
         }
       }

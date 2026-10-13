@@ -161,11 +161,12 @@ struct NanoMuseAccountSections: View {
     private var usageSection: some View {
         if let sheet {
             Section {
-                Picker("", selection: $usageScope) {
+                Picker(AppLocalized("Usage"), selection: $usageScope) {
                     Text(AppLocalized("Today")).tag(0)
                     Text(AppLocalized("All time")).tag(1)
                 }
                 .pickerStyle(.segmented)
+                .labelsHidden()
                 let rows = usageScope == 0 ? sheet.today : sheet.total
                 if rows.isEmpty {
                     Text(AppLocalized("Nothing used yet.")).foregroundStyle(.secondary).font(.subheadline)

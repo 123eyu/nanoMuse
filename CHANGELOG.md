@@ -44,6 +44,12 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 - **The conversation scrolls under the header now.** The rows pass under the face and fade in the scrim behind it, as they do under the composer and the pill bar, and as on Android; in 1.0.3 and 1.0.4 the list ended right under the header and the top row was cut at a hard edge there. The shell hands the header's measured height to the chat (`nmTopOverlay`), and the message list extends under it with that much top inset. A side chat opened from the drawer runs under its system bar the same way.
 - **On an iPad the agent's replies line up with the composer.** The agent's rows padded outside the 760 pt column while the user's rows padded inside it, so the reply pill began 16 pt left of the composer's and the pill bar's edge; the three assistant cells now pad inside the column too.
+- **Siri understands the app's shortcuts in all nine languages.** The phrases for *Ask nanoMuse*, *New nanoMuse chat*, *Voice prompt to nanoMuse* and the rest existed in English and the two Chinese tables only; a phone set to Japanese, Korean, German, Spanish, French or Russian had to be spoken to in English.
+- **Page titles and the agent's name grow with the text size.** The Muse pages' titles and the name in the drawer and on the agent's page follow Dynamic Type, capped at 1.35 times their base as the header's lines already were; they were fixed at 17 and 24 pt.
+- **Create routine on an idea opens the editor.** The routine was created at the idea's time and nothing opened, since the editor was asked of the Goals room, which is not on screen while Ideas is; the shell shows it now.
+- **Background & notifications says what the phone does.** A notification is a routine's reminder or a note from another device, and Background App Refresh lets iOS post the reminder, never run the routine; the page used to say the app got slots to finish a routine.
+- **Hub failures read as a sentence in your language.** When a computer is offline, busy, out of time or runs an older nanoMuse, Coding agents, the Reach sheet and an `@device` message say so in the phone's language, as Android does; they showed the English line the relay or the runtime sent.
+- **VoiceOver names the Library's and the usage pickers and the ••• menus.** The Artifacts/Media and Today/All time segments and the menus on a goal, a routine and a feed post had no label.
 
 ### Project
 
