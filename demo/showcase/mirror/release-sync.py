@@ -4,8 +4,9 @@
 Asks the GitHub API for the repository's releases, takes the newest KEEP that are neither
 drafts nor pre-releases, and fetches every asset of each into WWW_ROOT/dl/<tag>/<name> —
 Caddy serves that directory at https://nanomuse.cn/dl/ (mirror/nanomuse.cn.caddy). A file
-is downloaded to a `.part` next to it and renamed once whole, so a visitor never gets half
-a package; one already present with the right size is left alone. Each download is checked
+is downloaded to a dot-file next to it (`.<name>.part`, which the site block's `hide .*`
+keeps out of the listing) and renamed once whole, so a visitor never gets, or sees, half a
+package; one already present with the right size is left alone. Each download is checked
 against the SHA-256 GitHub records for the asset (the `digest` field), or against the
 `<name>.sha256` file the release ships, or — when there is neither — recorded as unverified
 in the log. `dl/latest` is a symlink to the newest tag; `dl/index.json` lists what is here.
@@ -57,7 +58,16 @@ def get(url: str, accept: str = "application/octet-stream") -> urllib.request.Re
 def releases() -> list[dict]:
     with urllib.request.urlopen(get(API, "application/vnd.github+json"), timeout=30) as r:
         data = json.load(r)
-    good = [x for x in data if not x.get("draft") and not x.get("prerelease") and x.get("tag_name")]
+    if not isinstance(data, list):
+        raise ValueError(f"the releases API answered with {type(data).__name__}, not a list")
+    good = [
+        x
+        for x in data
+        if isinstance(x, dict)
+        and not x.get("draft")
+        and not x.get("prerelease")
+        and x.get("tag_name")
+    ]
     good.sort(key=lambda x: x.get("published_at") or "", reverse=True)
     return good[:KEEP]
 
@@ -70,15 +80,25 @@ def sha256_of(path: Path) -> str:
     return h.hexdigest()
 
 
+def part_of(dst: Path) -> Path:
+    """Where ``dst`` is written while it downloads: a dot-file beside it, so the listing and
+    the file server (``hide .*``) never show a package that is not whole yet."""
+    return dst.with_name(f".{dst.name}.part")
+
+
 def download(url: str, dst: Path, size: int) -> None:
-    part = dst.with_name(dst.name + ".part")
-    with urllib.request.urlopen(get(url), timeout=60) as r, part.open("wb") as f:
-        shutil.copyfileobj(r, f, CHUNK)
-    if size and part.stat().st_size != size:
+    part = part_of(dst)
+    try:
+        with urllib.request.urlopen(get(url), timeout=60) as r, part.open("wb") as f:
+            shutil.copyfileobj(r, f, CHUNK)
+        got = part.stat().st_size
+        if size and got != size:
+            raise OSError(f"{dst.name}: got {got} bytes, expected {size}")
+    except BaseException:
+        # a broken download (the network, a size that does not match, a stop) leaves no
+        # half file behind; the next run fetches the asset again from the start
         part.unlink(missing_ok=True)
-        raise OSError(
-            f"{dst.name}: got {part.stat().st_size if part.exists() else 0} bytes, expected {size}"
-        )
+        raise
     part.replace(dst)
 
 
@@ -102,6 +122,13 @@ def sync_release(rel: dict, root: Path) -> list[dict]:
     tag = rel["tag_name"]
     folder = root / tag
     folder.mkdir(parents=True, exist_ok=True)
+    # no other run is on this folder (the lock), so a .part here is a run that was killed
+    # before it could clean up, or one left by an older version of this script that wrote
+    # `<name>.part` in the open: gone before the listing is served again
+    for stale in folder.glob("*.part"):
+        stale.unlink(missing_ok=True)
+    for stale in folder.glob(".*.part"):
+        stale.unlink(missing_ok=True)
     assets = [a for a in rel.get("assets", []) if a.get("name") and a.get("browser_download_url")]
     by_name = {a["name"]: a for a in assets}
     listing: list[dict] = []
@@ -174,8 +201,9 @@ def main() -> int:
         tmp.symlink_to(newest)
         tmp.replace(latest)
         print(f"latest -> {newest}")
-    (root / "index.json.tmp").write_text(json.dumps({"repo": REPO, "releases": index}, indent=1))
-    (root / "index.json.tmp").replace(root / "index.json")
+    # written as a dot-file and renamed into place, so the listing never shows the half-written one
+    (root / ".index.json.tmp").write_text(json.dumps({"repo": REPO, "releases": index}, indent=1))
+    (root / ".index.json.tmp").replace(root / "index.json")
     return 0
 
 
