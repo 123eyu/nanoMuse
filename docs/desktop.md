@@ -19,7 +19,10 @@ beside them). Windows releases also carry the update metadata electron-updater r
 which names the installer and its SHA-512, and the installer's `.exe.blockmap`. CI checks the set with electron-updater itself before
 anything is attached: it must find the candidate version in `latest.yml`, download the
 installer from a test feed and verify it, and refuse one whose bytes do not match
-(`harness/desktop/scripts/update-feed-check.mjs`). The code is under
+(`harness/desktop/scripts/update-feed-check.mjs`). The feed the metadata is built for is the
+download mirror's [nanomuse.cn/dl/win/](https://nanomuse.cn/dl/win/), which moves to a new
+release only once its `latest.yml`, installer and `.blockmap` are all there and the installer's
+bytes match; until then it serves the previous release. The code is under
 [`harness/`](../harness/): the bundle of plugins in
 `harness/dsh-nanomuse`, the Electron shell in `harness/desktop`; how to build it yourself is
 in [harness/README.md](../harness/README.md). Up to 0.1.29 the same installers wrapped the

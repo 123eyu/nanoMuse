@@ -3,8 +3,11 @@ every line across a roll of the log, and the release mirror never shows half a p
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import importlib.util
 import io
+import json
 import os
 import sqlite3
 import sys
@@ -169,3 +172,84 @@ def test_the_releases_list_must_be_a_list(monkeypatch):
         ),
     )
     assert [r["tag_name"] for r in rs.releases()] == ["v2"]
+
+
+LATEST_YML = """version: {version}
+files:
+  - url: {name}
+    sha512: {sha512}
+    size: {size}
+path: {name}
+sha512: {sha512}
+releaseDate: '2026-10-14T00:00:00.000Z'
+"""
+
+
+def windows_set(folder: Path, version: str, installer: bytes, blockmap: bool = True) -> str:
+    """What the Windows build attaches to a release, written into a tag's folder: the
+    installer, its .blockmap and latest.yml with the installer's SHA-512. Returns the name."""
+    name = f"nanoMuse-Desktop-{version}-win-x64.exe"
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / name).write_bytes(installer)
+    if blockmap:
+        (folder / f"{name}.blockmap").write_bytes(b"blocks")
+    sha512 = base64.b64encode(hashlib.sha512(installer).digest()).decode()
+    yml = LATEST_YML.format(version=version, name=name, sha512=sha512, size=len(installer))
+    (folder / "latest.yml").write_text(yml)
+    return name
+
+
+def test_the_update_metadata_is_read_in_both_shapes():
+    rs = load("release-sync")
+    text = LATEST_YML.format(version="1.0.5", name="a%20b.exe", sha512="c2hh", size=3)
+    assert rs.update_metadata(text) == ("a b.exe", "c2hh")
+    assert rs.update_metadata("path: only.exe\nsha512: 'YWJj'\n") == ("only.exe", "YWJj")
+    assert rs.update_metadata("version: 1.0.5\nfiles: []\n") is None
+    assert rs.update_metadata("<html>not found</html>") is None
+
+
+def test_the_windows_feed_moves_only_to_a_complete_set(tmp_path: Path, monkeypatch, capsys):
+    monkeypatch.setenv("WWW_ROOT", str(tmp_path))
+    rs = load("release-sync")
+    root = tmp_path / "dl"
+    tags: list[str] = []
+    monkeypatch.setattr(
+        rs, "releases", lambda: [{"tag_name": t, "published_at": f"2026-{t[1:]}"} for t in tags]
+    )
+    monkeypatch.setattr(rs, "sync_release", lambda rel, root: [])
+
+    def index() -> dict:
+        return json.loads((root / "index.json").read_text())
+
+    # one release with the whole set: the feed is it
+    tags[:] = ["v1"]
+    windows_set(root / "v1", "1.0.1", b"ONE")
+    assert rs.main() == 0
+    assert os.readlink(root / "latest") == "v1" and os.readlink(root / "win") == "v1"
+    assert index()["win"] == "v1"
+    # a newer release whose Windows build has not finished (no blockmap yet): latest moves,
+    # the feed stays on the release whose set is whole
+    tags[:] = ["v2", "v1"]
+    windows_set(root / "v2", "1.0.2", b"TWO", blockmap=False)
+    assert rs.main() == 0
+    assert os.readlink(root / "latest") == "v2" and os.readlink(root / "win") == "v1"
+    assert index()["win"] == "v1"
+    # the blockmap arrives: the feed moves
+    (root / "v2" / "nanoMuse-Desktop-1.0.2-win-x64.exe.blockmap").write_bytes(b"blocks")
+    assert rs.main() == 0
+    assert os.readlink(root / "win") == "v2" and index()["win"] == "v2"
+    # a release whose installer is not the one latest.yml promises never becomes the feed,
+    # and the journal says so; v1 is gone (older than the two kept) and the feed is still v2
+    tags[:] = ["v3", "v2"]
+    name = windows_set(root / "v3", "1.0.3", b"THREE")
+    (root / "v3" / name).write_bytes(b"THREE?")
+    capsys.readouterr()
+    assert rs.main() == 0
+    assert os.readlink(root / "win") == "v2" and not (root / "v1").exists()
+    assert "v3/nanoMuse-Desktop-1.0.3-win-x64.exe: not the SHA-512" in capsys.readouterr().err
+    # nothing kept carries a set any more: the link goes rather than dangling
+    tags[:] = ["v4", "v3"]
+    (root / "v4").mkdir()
+    assert rs.main() == 0
+    assert not (root / "win").is_symlink() and index()["win"] is None
+    assert os.readlink(root / "latest") == "v4"

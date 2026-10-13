@@ -17,7 +17,9 @@ Muse 桌面版（[desktop-muse.md](desktop-muse.md)），账号、形象、在�
 Windows 版本还带着 electron-updater 要读的更新元数据：`latest.yml` 写着安装包的名字和它的
 SHA-512，旁边是安装包的 `.exe.blockmap`。CI 在把它们附上 release 之前，会先让 electron-updater
 亲自检查这一套：它必须能在 `latest.yml` 里找到候选版本、从测试源下载安装包并校验通过，字节对不上
-的会被拒绝（`harness/desktop/scripts/update-feed-check.mjs`）。
+的会被拒绝（`harness/desktop/scripts/update-feed-check.mjs`）。这套元数据对应的更新源是下载镜像的
+[nanomuse.cn/dl/win/](https://nanomuse.cn/dl/win/)：只有当一个版本的 `latest.yml`、安装包和 `.blockmap`
+三个都到齐、安装包的字节也对得上时，它才切到这个版本；在那之前继续提供上一个版本。
 代码在 [`harness/`](../../harness/) 下：插件包在 `harness/dsh-nanomuse`，Electron 外壳在
 `harness/desktop`；自己怎么构建见 [harness/README.md](../../harness/README.md)。到 0.1.29 为止，
 同名的安装包装的是 Python 运行时和网页版，套在它们自己的 Electron 外壳里（`desktop/app`），
