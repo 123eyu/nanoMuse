@@ -33,6 +33,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Project
 
+- **The READMEs' News notes the thousandth star.** The ten READMEs gained a 2026-10-13 line: 1,000 stars on GitHub eighteen days after the first release, the four days on GitHub Trending's Swift list (seventh on October 7, fourth on October 10, as Trendshift records it), a thank-you, and the plan to keep going with a version every few days and the roadmap for what comes next.
 - **The Intel Mac installer builds again.** The desktop workflow installs pnpm from npm instead of letting `pnpm/action-setup` self-update to the newest 11, whose native binary pnpm no longer publishes for Intel Macs; the 1.0.4 run's `macos-x64` job stopped at that step, and the `mac-x64` files are attached to the 1.0.4 release by a rerun of the workflow.
 
 ## [1.0.4] - 2026-10-13 · Compass
