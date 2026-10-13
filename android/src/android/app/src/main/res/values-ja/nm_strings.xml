@@ -127,6 +127,8 @@
     <string name="nm_routine_run_now">今すぐ実行</string>
     <string name="nm_routine_delete">削除</string>
     <string name="nm_routine_paused">オフ</string>
+    <!-- The chat row a routine sent: its label and the clock time it fired -->
+    <string name="nm_routine_wake_caption">ルーティン · %1$s · %2$s</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">アイデア</string>

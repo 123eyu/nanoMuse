@@ -14,12 +14,18 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Desktop
 
+- **The feed is written out of sight.** The chat the daily feed is written in no longer shows in the chats column or in search while the batch runs, and the request goes into it as a one-line notice (*Writing today's feed*) instead of a message in your voice; the posts arrive in the Feed as before.
+
 ### Android
 
 - Removed terminal color and title codes before carriage-return updates, so styled shell output no longer left broken escape fragments or lost the untouched tail of a shorter rewrite.
 - Translated the font-size labels in Appearance into the app's language, including the default label on all three sliders.
+- **The daily feed is written quietly.** Its conversation no longer appears in the drawer, the chat list or as the main chat, and *Write today's feed.* no longer stands anywhere as a message in your voice; when posts were written while the app was in the background, one notification names them and opens the Feed tab, in place of the generic task notice that quoted the model's text and opened the conversation.
+- **A scheduled task speaks first.** The prompt a routine sends is shown as one quiet line, *Routine · 〈label〉 · 08:00*, instead of a bubble in your voice, and the agent is told the turn is the routine's, so it opens with the result rather than thanking you for asking.
 
 ### iOS
+
+- **The daily feed is written quietly and a routine speaks first.** The feed's conversation no longer appears in the drawer or the chat lists, the prompt a routine sends is shown as one quiet line, *Routine · 〈label〉 · 08:00*, instead of a bubble in your voice, and the agent is told the turn is the routine's, so it opens with the result rather than thanking you for asking.
 
 - **The conversation scrolls under the header now.** The rows pass under the face and fade in the scrim behind it, as they do under the composer and the pill bar, and as on Android; in 1.0.3 and 1.0.4 the list ended right under the header and the top row was cut at a hard edge there. The shell hands the header's measured height to the chat (`nmTopOverlay`), and the message list extends under it with that much top inset. A side chat opened from the drawer runs under its system bar the same way.
 - **On an iPad the agent's replies line up with the composer.** The agent's rows padded outside the 760 pt column while the user's rows padded inside it, so the reply pill began 16 pt left of the composer's and the pill bar's edge; the three assistant cells now pad inside the column too.

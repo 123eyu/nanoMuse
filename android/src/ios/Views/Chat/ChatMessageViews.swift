@@ -379,7 +379,9 @@ struct ChatMessageRow: View {
                     QueuedAttachmentPreview(attachments: message.inputAttachments)
                 }
 
-                if !userDisplayText.isEmpty {
+                if let wake = message.nmRoutine { // nanoMuse: a routine's prompt is one quiet line, not a bubble in the person's voice
+                    NanoMuseRoutineWakeRow(label: wake.label, at: wake.at)
+                } else if !userDisplayText.isEmpty {
                     HStack(spacing: 6) {
                         Text(userDisplayText)
                             .font(.system(size: FontSettings.shared.scaledMessage(16.5)))

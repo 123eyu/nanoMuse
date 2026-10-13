@@ -7012,6 +7012,7 @@ class ChatViewModel(
             )
             val persistedUser = chatRepository.appendMessage(activeSessionId, "user", userPartsJson)
             io.github.nanomuse.sync.ConversationSync.sent(activeSessionId) // nanoMuse: the person's line reaches the other devices at send (C8), then "working" (C9)
+            io.github.nanomuse.chat.RoutineWakes.claim(activeSessionId, persistedUser.id) // nanoMuse: a routine's prompt is marked as such on its row
 
             val userMsg = ChatMessage(
                 id = persistedUser.id,

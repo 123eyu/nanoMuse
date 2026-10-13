@@ -133,6 +133,8 @@
     <string name="nm_routine_run_now">Rulează acum</string>
     <string name="nm_routine_delete">Șterge</string>
     <string name="nm_routine_paused">Oprit</string>
+    <!-- The chat row a routine sent: its label and the clock time it fired -->
+    <string name="nm_routine_wake_caption">Rutină · %1$s · %2$s</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">Idei</string>

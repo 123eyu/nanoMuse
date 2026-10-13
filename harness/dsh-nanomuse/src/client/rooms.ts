@@ -190,6 +190,8 @@ export interface Rooms {
   activity: ActivityRecord[]
   introducedAt: number
   busy: { feed: boolean; ideas: boolean }
+  /** The chats of the batches running right now (the feed's): not listed, not searched. */
+  batches: string[]
   automations: Record<string, GoalAutomation[]>
   ready: boolean
   studio: { description: string; style: string; at: number }
@@ -214,6 +216,7 @@ const INITIAL: Rooms = {
   activity: [],
   introducedAt: 0,
   busy: { feed: false, ideas: false },
+  batches: [],
   automations: {},
   ready: false,
   studio: { description: '', style: 'muse', at: 0 },
@@ -243,8 +246,8 @@ function open(): void {
   es.onmessage = (event: MessageEvent<string>) => {
     try {
       const data = JSON.parse(event.data) as Omit<Rooms, 'streaming'>
-      // an older host sends no first run, nudges or routine: the defaults stand in
-      publish({ ...snapshot, ...data, feed: { ...INITIAL.feed, ...data.feed, routine: data.feed?.routine ?? INITIAL.feed.routine }, firstRun: data.firstRun ?? FIRST_RUN_INITIAL, nudges: data.nudges ?? NUDGES_INITIAL, streaming: true })
+      // an older host sends no first run, nudges, routine or batches: the defaults stand in
+      publish({ ...snapshot, ...data, feed: { ...INITIAL.feed, ...data.feed, routine: data.feed?.routine ?? INITIAL.feed.routine }, firstRun: data.firstRun ?? FIRST_RUN_INITIAL, nudges: data.nudges ?? NUDGES_INITIAL, batches: data.batches ?? [], streaming: true })
       // The host writes the rooms in the person's language; tell it once which that is.
       if (!langSent && typeof navigator !== 'undefined' && navigator.language && data.lang !== navigator.language) {
         langSent = true

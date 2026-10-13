@@ -127,6 +127,8 @@
     <string name="nm_routine_run_now">รันตอนนี้</string>
     <string name="nm_routine_delete">ลบ</string>
     <string name="nm_routine_paused">ปิด</string>
+    <!-- The chat row a routine sent: its label and the clock time it fired -->
+    <string name="nm_routine_wake_caption">กิจวัตร · %1$s · %2$s</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">ไอเดีย</string>
