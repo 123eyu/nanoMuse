@@ -1144,6 +1144,11 @@
     <string name="nm_a11y_not_liked">Hindi nagustuhan</string>
     <string name="nm_a11y_post_details">Mga detalye ng post</string>
     <string name="nm_claude_sign_in_unavailable">Hindi magagamit ng build na ito ang pag-sign in sa Claude. Idagdag na lang ang Anthropic gamit ang API key.</string>
+    <string name="nm_oauth_rescue_hint">Kung nagpapakita ang browser ng error page sa localhost, kinukuha ng proxy o VPN mo ang callback. Idagdag ang localhost sa bypass list nito, o kopyahin ang address ng page at i-paste dito.</string>
+    <string name="nm_oauth_rescue_placeholder">I-paste ang address dito</string>
+    <string name="nm_oauth_rescue_continue">Magpatuloy</string>
+    <string name="nm_oauth_rescue_no_code">Walang sign-in code ang address na iyan.</string>
+    <string name="nm_oauth_rescue_failed">Hindi na hinihintay ng sign-in ang address na iyan. I-tap ang Mag-sign in at subukan ulit.</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">Napakaliit</string>
     <string name="nm_font_scale_small">Maliit</string>

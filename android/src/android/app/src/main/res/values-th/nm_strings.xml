@@ -1140,6 +1140,11 @@
     <string name="nm_a11y_not_liked">ยังไม่ถูกใจ</string>
     <string name="nm_a11y_post_details">รายละเอียดโพสต์</string>
     <string name="nm_claude_sign_in_unavailable">บิลด์นี้ใช้การลงชื่อเข้าใช้ด้วย Claude ไม่ได้ ให้เพิ่ม Anthropic ด้วยคีย์ API แทน</string>
+    <string name="nm_oauth_rescue_hint">ถ้าเบราว์เซอร์แสดงหน้าข้อผิดพลาดที่ localhost แสดงว่าพร็อกซีหรือ VPN ในเครื่องดักการเรียกกลับไว้ ให้เพิ่ม localhost ในรายการยกเว้นของมัน หรือคัดลอกที่อยู่ของหน้านั้นมาวางที่นี่</string>
+    <string name="nm_oauth_rescue_placeholder">วางที่อยู่ที่นี่</string>
+    <string name="nm_oauth_rescue_continue">ดำเนินการต่อ</string>
+    <string name="nm_oauth_rescue_no_code">ที่อยู่นี้ไม่มีรหัสลงชื่อเข้าใช้</string>
+    <string name="nm_oauth_rescue_failed">การลงชื่อเข้าใช้ไม่ได้รอที่อยู่นี้แล้ว แตะ ลงชื่อเข้าใช้ แล้วลองอีกครั้ง</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">เล็กมาก</string>
     <string name="nm_font_scale_small">เล็ก</string>

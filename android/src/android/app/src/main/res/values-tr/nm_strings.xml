@@ -1144,6 +1144,11 @@
     <string name="nm_a11y_not_liked">Beğenilmedi</string>
     <string name="nm_a11y_post_details">Gönderi ayrıntıları</string>
     <string name="nm_claude_sign_in_unavailable">Bu sürüm Claude ile oturum açmayı kullanamaz. Bunun yerine Anthropic’i bir API anahtarıyla ekleyin.</string>
+    <string name="nm_oauth_rescue_hint">Tarayıcı localhost adresinde bir hata sayfası gösteriyorsa proxy\'niz veya VPN\'iniz geri çağrıyı yutuyor demektir. localhost\'u onun istisna listesine ekleyin ya da sayfanın adresini kopyalayıp buraya yapıştırın.</string>
+    <string name="nm_oauth_rescue_placeholder">Adresi buraya yapıştırın</string>
+    <string name="nm_oauth_rescue_continue">Devam</string>
+    <string name="nm_oauth_rescue_no_code">Bu adreste oturum açma kodu yok.</string>
+    <string name="nm_oauth_rescue_failed">Oturum açma artık bu adresi beklemiyor. Oturum aç\'a dokunup yeniden deneyin.</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">Çok küçük</string>
     <string name="nm_font_scale_small">Küçük</string>

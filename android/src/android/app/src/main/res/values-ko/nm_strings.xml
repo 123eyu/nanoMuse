@@ -1140,6 +1140,11 @@
     <string name="nm_a11y_not_liked">좋아요 없음</string>
     <string name="nm_a11y_post_details">게시물 세부정보</string>
     <string name="nm_claude_sign_in_unavailable">이 빌드에서는 Claude 로그인을 사용할 수 없습니다. 대신 API 키로 Anthropic을 추가하세요.</string>
+    <string name="nm_oauth_rescue_hint">브라우저가 localhost에서 오류 페이지를 보여 주면 휴대폰의 프록시나 VPN이 콜백을 가로채고 있는 것입니다. localhost를 그 우회 목록에 추가하거나, 그 페이지의 주소를 복사해 여기에 붙여 넣으세요.</string>
+    <string name="nm_oauth_rescue_placeholder">여기에 주소를 붙여 넣으세요</string>
+    <string name="nm_oauth_rescue_continue">계속</string>
+    <string name="nm_oauth_rescue_no_code">그 주소에는 로그인 코드가 없습니다.</string>
+    <string name="nm_oauth_rescue_failed">로그인이 더 이상 그 주소를 기다리지 않습니다. 로그인을 탭해 다시 시도하세요.</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">매우 작게</string>
     <string name="nm_font_scale_small">작게</string>

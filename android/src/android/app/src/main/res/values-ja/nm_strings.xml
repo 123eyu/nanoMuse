@@ -1140,6 +1140,11 @@
     <string name="nm_a11y_not_liked">いいねしていません</string>
     <string name="nm_a11y_post_details">投稿の詳細</string>
     <string name="nm_claude_sign_in_unavailable">このビルドでは Claude アカウントでのサインインは使えません。代わりに API キーで Anthropic を追加してください。</string>
+    <string name="nm_oauth_rescue_hint">ブラウザが localhost でエラーページを表示する場合、端末のプロキシや VPN がコールバックを横取りしています。localhost をその除外リストに加えるか、そのページのアドレスをコピーしてここに貼り付けてください。</string>
+    <string name="nm_oauth_rescue_placeholder">ここにアドレスを貼り付け</string>
+    <string name="nm_oauth_rescue_continue">続ける</string>
+    <string name="nm_oauth_rescue_no_code">このアドレスにはサインインコードが含まれていません。</string>
+    <string name="nm_oauth_rescue_failed">サインインはもうこのアドレスを待っていません。「サインイン」をタップしてやり直してください。</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">とても小さい</string>
     <string name="nm_font_scale_small">小さい</string>

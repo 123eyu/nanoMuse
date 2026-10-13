@@ -1144,6 +1144,11 @@
     <string name="nm_a11y_not_liked">Gefällt mir nicht</string>
     <string name="nm_a11y_post_details">Beitragsdetails</string>
     <string name="nm_claude_sign_in_unavailable">Diese Version kann keine Claude-Anmeldung verwenden. Füge Anthropic stattdessen mit einem API-Schlüssel hinzu.</string>
+    <string name="nm_oauth_rescue_hint">Zeigt der Browser eine Fehlerseite unter localhost, schluckt dein Proxy oder VPN die Rückmeldung. Nimm localhost in seine Ausnahmeliste auf oder kopiere die Adresse der Seite und füge sie hier ein.</string>
+    <string name="nm_oauth_rescue_placeholder">Adresse hier einfügen</string>
+    <string name="nm_oauth_rescue_continue">Weiter</string>
+    <string name="nm_oauth_rescue_no_code">Diese Adresse enthält keinen Anmeldecode.</string>
+    <string name="nm_oauth_rescue_failed">Die Anmeldung wartet nicht mehr auf diese Adresse. Tippe auf Anmelden und versuche es noch einmal.</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">Sehr klein</string>
     <string name="nm_font_scale_small">Klein</string>

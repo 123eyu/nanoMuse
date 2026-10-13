@@ -1152,6 +1152,11 @@
     <string name="nm_a11y_not_liked">Не отмечено</string>
     <string name="nm_a11y_post_details">Сведения о записи</string>
     <string name="nm_claude_sign_in_unavailable">Эта сборка не может использовать вход через Claude. Добавьте Anthropic с API-ключом.</string>
+    <string name="nm_oauth_rescue_hint">Если браузер показывает страницу ошибки на localhost, ваш прокси или VPN перехватывает ответ. Добавьте localhost в его список исключений или скопируйте адрес страницы и вставьте его сюда.</string>
+    <string name="nm_oauth_rescue_placeholder">Вставьте адрес сюда</string>
+    <string name="nm_oauth_rescue_continue">Продолжить</string>
+    <string name="nm_oauth_rescue_no_code">В этом адресе нет кода входа.</string>
+    <string name="nm_oauth_rescue_failed">Вход больше не ждёт этот адрес. Нажмите «Войти» и попробуйте ещё раз.</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">Очень мелкий</string>
     <string name="nm_font_scale_small">Мелкий</string>

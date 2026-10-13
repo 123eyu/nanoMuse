@@ -1148,6 +1148,11 @@
     <string name="nm_a11y_not_liked">Neapreciat</string>
     <string name="nm_a11y_post_details">Detaliile postării</string>
     <string name="nm_claude_sign_in_unavailable">Această versiune nu poate folosi autentificarea cu Claude. Adaugă Anthropic cu o cheie API.</string>
+    <string name="nm_oauth_rescue_hint">Dacă browserul arată o pagină de eroare la localhost, proxy-ul sau VPN-ul tău înghite răspunsul. Adaugă localhost în lista lui de excepții, sau copiază adresa paginii și lipește-o aici.</string>
+    <string name="nm_oauth_rescue_placeholder">Lipește adresa aici</string>
+    <string name="nm_oauth_rescue_continue">Continuă</string>
+    <string name="nm_oauth_rescue_no_code">Adresa aceea nu conține niciun cod de autentificare.</string>
+    <string name="nm_oauth_rescue_failed">Autentificarea nu mai așteaptă adresa aceea. Atinge Conectare și încearcă din nou.</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">Foarte mic</string>
     <string name="nm_font_scale_small">Mic</string>

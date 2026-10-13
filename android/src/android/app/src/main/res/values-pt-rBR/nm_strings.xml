@@ -1145,6 +1145,11 @@
     <string name="nm_a11y_not_liked">Não curtido</string>
     <string name="nm_a11y_post_details">Detalhes da publicação</string>
     <string name="nm_claude_sign_in_unavailable">Esta versão não pode usar o login com Claude. Adicione a Anthropic com uma chave de API.</string>
+    <string name="nm_oauth_rescue_hint">Se o navegador mostra uma página de erro em localhost, seu proxy ou VPN está engolindo o retorno. Adicione localhost à lista de exceções dele, ou copie o endereço da página e cole aqui.</string>
+    <string name="nm_oauth_rescue_placeholder">Cole o endereço aqui</string>
+    <string name="nm_oauth_rescue_continue">Continuar</string>
+    <string name="nm_oauth_rescue_no_code">Esse endereço não tem um código de login.</string>
+    <string name="nm_oauth_rescue_failed">O login não está mais esperando esse endereço. Toque em Entrar e tente de novo.</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">Muito pequeno</string>
     <string name="nm_font_scale_small">Pequeno</string>

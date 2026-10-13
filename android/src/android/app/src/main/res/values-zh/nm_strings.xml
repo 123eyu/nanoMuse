@@ -1117,6 +1117,11 @@
     <string name="nm_a11y_not_liked">未喜欢</string>
     <string name="nm_a11y_post_details">帖子详情</string>
     <string name="nm_claude_sign_in_unavailable">这个版本不能用 Claude 账号登录。请改用 API key 添加 Anthropic。</string>
+    <string name="nm_oauth_rescue_hint">如果浏览器在 localhost 停在一个错误页，是手机上的代理或 VPN 吞掉了回调。把 localhost 加进它的直连（绕过）列表，或者把那个页面的地址复制下来贴到这里。</string>
+    <string name="nm_oauth_rescue_placeholder">把地址贴到这里</string>
+    <string name="nm_oauth_rescue_continue">继续</string>
+    <string name="nm_oauth_rescue_no_code">这个地址里没有登录码。</string>
+    <string name="nm_oauth_rescue_failed">这次登录已经不再等待这个地址了。点「登录」再试一次。</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">特小</string>
     <string name="nm_font_scale_small">小</string>

@@ -1121,6 +1121,11 @@
     <string name="nm_a11y_not_liked">Not liked</string>
     <string name="nm_a11y_post_details">Post details</string>
     <string name="nm_claude_sign_in_unavailable">This build cannot use a Claude sign-in. Add Anthropic with an API key instead.</string>
+    <string name="nm_oauth_rescue_hint">If the browser shows an error page at localhost, your proxy or VPN is swallowing the callback. Add localhost to its bypass list, or copy the page\'s address and paste it here.</string>
+    <string name="nm_oauth_rescue_placeholder">Paste the address here</string>
+    <string name="nm_oauth_rescue_continue">Continue</string>
+    <string name="nm_oauth_rescue_no_code">That address has no sign-in code.</string>
+    <string name="nm_oauth_rescue_failed">The sign-in is no longer waiting for that address. Tap Sign in and try again.</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">XS</string>
     <string name="nm_font_scale_small">Small</string>

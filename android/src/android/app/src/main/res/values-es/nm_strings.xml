@@ -1144,6 +1144,11 @@
     <string name="nm_a11y_not_liked">No te gusta</string>
     <string name="nm_a11y_post_details">Detalles de la publicación</string>
     <string name="nm_claude_sign_in_unavailable">Esta versión no puede usar el inicio de sesión con Claude. Añade Anthropic con una clave de API.</string>
+    <string name="nm_oauth_rescue_hint">Si el navegador muestra una página de error en localhost, tu proxy o VPN se está quedando con la respuesta. Añade localhost a su lista de exclusiones, o copia la dirección de la página y pégala aquí.</string>
+    <string name="nm_oauth_rescue_placeholder">Pega la dirección aquí</string>
+    <string name="nm_oauth_rescue_continue">Continuar</string>
+    <string name="nm_oauth_rescue_no_code">Esa dirección no contiene ningún código de inicio de sesión.</string>
+    <string name="nm_oauth_rescue_failed">El inicio de sesión ya no espera esa dirección. Toca Iniciar sesión e inténtalo de nuevo.</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">Muy pequeño</string>
     <string name="nm_font_scale_small">Pequeño</string>

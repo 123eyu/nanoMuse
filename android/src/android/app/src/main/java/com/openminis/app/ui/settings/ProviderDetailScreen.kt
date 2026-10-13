@@ -955,6 +955,8 @@ private fun OAuthCredentialBlock(
         ) {
             Text(stringResource(R.string.provider_detail_sign_in))
         }
+        // nanoMuse: a proxy or VPN can swallow the localhost callback; after ten seconds the person can paste the address (#441).
+        io.github.nanomuse.oauth.OAuthCallbackRescue(active = isAuthenticating, providerType = instance.providerType)
     }
 }
 

@@ -1152,6 +1152,11 @@
     <string name="nm_a11y_not_liked">Niepolubione</string>
     <string name="nm_a11y_post_details">Szczegóły wpisu</string>
     <string name="nm_claude_sign_in_unavailable">Ta wersja nie obsługuje logowania przez Claude. Dodaj Anthropic z kluczem API.</string>
+    <string name="nm_oauth_rescue_hint">Jeśli przeglądarka pokazuje stronę błędu pod localhost, twój proxy lub VPN przechwytuje odpowiedź. Dodaj localhost do jego listy wyjątków albo skopiuj adres tej strony i wklej go tutaj.</string>
+    <string name="nm_oauth_rescue_placeholder">Wklej adres tutaj</string>
+    <string name="nm_oauth_rescue_continue">Dalej</string>
+    <string name="nm_oauth_rescue_no_code">Ten adres nie zawiera kodu logowania.</string>
+    <string name="nm_oauth_rescue_failed">Logowanie nie czeka już na ten adres. Stuknij Zaloguj się i spróbuj ponownie.</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">Bardzo mały</string>
     <string name="nm_font_scale_small">Mały</string>

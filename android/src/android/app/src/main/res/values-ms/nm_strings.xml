@@ -1140,6 +1140,11 @@
     <string name="nm_a11y_not_liked">Belum disukai</string>
     <string name="nm_a11y_post_details">Butiran kiriman</string>
     <string name="nm_claude_sign_in_unavailable">Binaan ini tidak boleh menggunakan log masuk Claude. Tambah Anthropic dengan kunci API sebagai ganti.</string>
+    <string name="nm_oauth_rescue_hint">Jika pelayar menunjukkan halaman ralat di localhost, proksi atau VPN anda menelan panggilan balik itu. Tambahkan localhost ke senarai pengecualiannya, atau salin alamat halaman itu dan tampal di sini.</string>
+    <string name="nm_oauth_rescue_placeholder">Tampal alamat di sini</string>
+    <string name="nm_oauth_rescue_continue">Teruskan</string>
+    <string name="nm_oauth_rescue_no_code">Alamat itu tiada kod log masuk.</string>
+    <string name="nm_oauth_rescue_failed">Log masuk tidak lagi menunggu alamat itu. Ketik Log masuk dan cuba lagi.</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">Sangat kecil</string>
     <string name="nm_font_scale_small">Kecil</string>

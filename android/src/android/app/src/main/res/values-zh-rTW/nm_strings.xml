@@ -1110,6 +1110,11 @@
     <string name="nm_a11y_not_liked">未喜歡</string>
     <string name="nm_a11y_post_details">貼文詳情</string>
     <string name="nm_claude_sign_in_unavailable">這個版本不能用 Claude 帳號登入。請改用 API key 新增 Anthropic。</string>
+    <string name="nm_oauth_rescue_hint">如果瀏覽器在 localhost 停在一個錯誤頁，是手機上的代理或 VPN 吞掉了回呼。把 localhost 加進它的直連（略過）清單，或者把那個頁面的網址複製下來貼到這裡。</string>
+    <string name="nm_oauth_rescue_placeholder">把網址貼到這裡</string>
+    <string name="nm_oauth_rescue_continue">繼續</string>
+    <string name="nm_oauth_rescue_no_code">這個網址裡沒有登入碼。</string>
+    <string name="nm_oauth_rescue_failed">這次登入已經不再等待這個網址了。點「登入」再試一次。</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">特小</string>
     <string name="nm_font_scale_small">小</string>
