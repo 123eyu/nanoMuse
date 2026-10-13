@@ -292,6 +292,12 @@ def now() -> int:
     return int(time.time())
 
 
+def _like(text: str) -> str:
+    """`text` as a LIKE pattern that matches it anywhere, its own wildcards escaped (ESCAPE '\\')."""
+    t = text.strip()[:80].replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{t}%"
+
+
 class Database:
     def __init__(self, path: str):
         self.path = path
@@ -1387,32 +1393,55 @@ class Database:
                 (account_id or "", now(), kind, (detail or "")[:200], who.ip, who.ua),
             )
 
-    def events_for(self, account_id: str, limit: int = 50, before_id: int = 0) -> list[sqlite3.Row]:
-        """Newest first; ``before_id`` (an event id) pages further back."""
+    @staticmethod
+    def _event_where(kinds: tuple[str, ...] | None, q: str) -> tuple[str, list]:
+        """The operator's filter on a timeline: these kinds (any of them) and a text that the
+        kind name or the detail contains. Empty means everything."""
+        where, args = "", []
+        if kinds:
+            where += f" AND kind IN ({','.join('?' * len(kinds))})"
+            args.extend(kinds)
+        if q:
+            where += " AND (kind LIKE ? ESCAPE '\\' OR detail LIKE ? ESCAPE '\\')"
+            args.extend([_like(q), _like(q)])
+        return where, args
+
+    def events_for(
+        self,
+        account_id: str,
+        limit: int = 50,
+        before_id: int = 0,
+        kinds: tuple[str, ...] | None = None,
+        q: str = "",
+    ) -> list[sqlite3.Row]:
+        """Newest first; ``before_id`` (an event id) pages further back; ``kinds`` and ``q``
+        (0.26) narrow it the way the operator's page does, so a filter holds across pages."""
         with self._lock:
-            q = "SELECT id, ts, kind, detail, ip, ua FROM events WHERE account_id=?"
-            args: list = [account_id]
+            where, fargs = self._event_where(kinds, q)
+            sql = "SELECT id, ts, kind, detail, ip, ua FROM events WHERE account_id=?" + where
+            args: list = [account_id, *fargs]
             if before_id:
-                q += " AND id<?"
+                sql += " AND id<?"
                 args.append(before_id)
             args.append(max(1, min(limit, 1000)))
-            return self._conn.execute(q + " ORDER BY id DESC LIMIT ?", args).fetchall()
+            return self._conn.execute(sql + " ORDER BY id DESC LIMIT ?", args).fetchall()
 
-    def event_count(self, account_id: str) -> int:
+    def event_count(self, account_id: str, kinds: tuple[str, ...] | None = None, q: str = "") -> int:
         with self._lock:
-            row = self._conn.execute("SELECT COUNT(*) AS n FROM events WHERE account_id=?", (account_id,)).fetchone()
+            where, fargs = self._event_where(kinds, q)
+            row = self._conn.execute("SELECT COUNT(*) AS n FROM events WHERE account_id=?" + where, (account_id, *fargs)).fetchone()
         return int(row["n"]) if row else 0
 
-    def events_recent(self, limit: int = 100, kinds: tuple[str, ...] | None = None) -> list[sqlite3.Row]:
+    def events_recent(self, limit: int = 100, kinds: tuple[str, ...] | None = None, before_id: int = 0) -> list[sqlite3.Row]:
+        """Everyone's timeline, newest first; ``before_id`` (0.26) reads on past the last row shown."""
         with self._lock:
-            if kinds:
-                marks = ",".join("?" * len(kinds))
-                return self._conn.execute(
-                    f"SELECT account_id, ts, kind, detail, ip, ua FROM events WHERE kind IN ({marks}) ORDER BY id DESC LIMIT ?",
-                    (*kinds, limit),
-                ).fetchall()
+            where, args = self._event_where(kinds, "")
+            if before_id:
+                where += " AND id<?"
+                args.append(before_id)
             return self._conn.execute(
-                "SELECT account_id, ts, kind, detail, ip, ua FROM events ORDER BY id DESC LIMIT ?", (limit,)
+                f"SELECT id, account_id, ts, kind, detail, ip, ua FROM events WHERE 1=1{where} ORDER BY id DESC LIMIT ?",
+                (*args, limit),
             ).fetchall()
 
     def event_counts(self, since: int) -> dict[str, int]:
@@ -1676,20 +1705,46 @@ class Database:
             ).fetchone()
         return int(r[0])
 
-    def recent_ledger(self, account_id: str, limit: int = 30, before_id: int = 0) -> list[sqlite3.Row]:
-        """Newest first; ``before_id`` (a ledger id) pages further back, to the first line."""
+    @staticmethod
+    def _ledger_where(kinds: tuple[str, ...] | None, q: str) -> tuple[str, list]:
+        """The operator's filter on a statement: these kinds (any of them) and a text the model
+        name or the line's note contains. Empty means every line."""
+        where, args = "", []
+        if kinds:
+            where += f" AND kind IN ({','.join('?' * len(kinds))})"
+            args.extend(kinds)
+        if q:
+            where += " AND (model LIKE ? ESCAPE '\\' OR extra LIKE ? ESCAPE '\\')"
+            args.extend([_like(q), _like(q)])
+        return where, args
+
+    def recent_ledger(
+        self,
+        account_id: str,
+        limit: int = 30,
+        before_id: int = 0,
+        kinds: tuple[str, ...] | None = None,
+        q: str = "",
+    ) -> list[sqlite3.Row]:
+        """Newest first; ``before_id`` (a ledger id) pages further back, to the first line;
+        ``kinds`` and ``q`` (0.26) narrow it so a filter holds across pages."""
         with self._lock:
-            q = "SELECT id, ts, kind, model, prompt_tokens, completion_tokens, charged, cost_uy, extra, ip, ua FROM ledger WHERE account_id=?"
-            args: list = [account_id]
+            where, fargs = self._ledger_where(kinds, q)
+            sql = (
+                "SELECT id, ts, kind, model, prompt_tokens, completion_tokens, charged, cost_uy, extra, ip, ua "
+                "FROM ledger WHERE account_id=?" + where
+            )
+            args: list = [account_id, *fargs]
             if before_id:
-                q += " AND id<?"
+                sql += " AND id<?"
                 args.append(before_id)
             args.append(max(1, min(limit, 1000)))
-            return self._conn.execute(q + " ORDER BY id DESC LIMIT ?", args).fetchall()
+            return self._conn.execute(sql + " ORDER BY id DESC LIMIT ?", args).fetchall()
 
-    def ledger_count(self, account_id: str) -> int:
+    def ledger_count(self, account_id: str, kinds: tuple[str, ...] | None = None, q: str = "") -> int:
         with self._lock:
-            row = self._conn.execute("SELECT COUNT(*) AS n FROM ledger WHERE account_id=?", (account_id,)).fetchone()
+            where, fargs = self._ledger_where(kinds, q)
+            row = self._conn.execute("SELECT COUNT(*) AS n FROM ledger WHERE account_id=?" + where, (account_id, *fargs)).fetchone()
         return int(row["n"]) if row else 0
 
     def addresses_for(self, account_id: str) -> list[sqlite3.Row]:

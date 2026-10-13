@@ -189,3 +189,60 @@ def test_web_console_prints_the_relays_code_lifetime_and_password_length():
     assert "8 个字符" not in source and "8 位" not in source and "8 characters" not in source
     # the default stands for a relay that does not send the fields yet
     assert "code_ttl_s: 600" in source and "password_min_len: 8" in source
+
+
+def test_admin_console_searches_and_filters_further():
+    """0.26: the People search reaches more fields and takes several words, three filters
+    joined it, the drawer's statement and timeline filter through the relay (`?kind=&q=`),
+    the Activity feed pages with `before`, the Demo and Data tables search, and every new
+    string is in the 简体中文 table and in the English one. A new page closes the drawer."""
+    source = (CONSOLE / "admin" / "admin.js").read_text(encoding="utf-8")
+    keys = (
+        "searchHint",
+        "searchKeys",
+        "fJoined",
+        "joinedIn",
+        "fSource",
+        "cameVia",
+        "fVersion",
+        "lgCredits",
+        "lgSearch",
+        "tlSearch",
+        "noRequestsYet",
+        "dvSearch",
+        "bSearch",
+        "feedLoaded",
+    )
+    for key in keys:
+        assert source.count(f"{key}:") == 2, f"{key} is in one table only"
+        assert f"T.{key}" in source, f"nothing draws {key}"
+    assert 'fJoined: "注册时间"' in source and 'fJoined: "Joined"' in source
+    people = source[source.index("function peopleView()") : source.index("function exportCsv(")]
+    # the search: every word, anywhere in the account's text, which includes the devices and the inviter
+    assert "matches(haystack(a), ts)" in people and 'class: "toolbar lead"' in people and 'class: "search wide"' in people
+    hay = source[source.index("const haystack = ") : source.index("const terms = ")]
+    for field in ("a.identifier", "a.id", "a.first_ip", "a.last_ip", "a.last_version", "d.name", "a.invite_code", "identOf(a.invited_by"):
+        assert field in hay, f"the search does not reach {field}"
+    assert "joinedOf(a) === f.joined" in people and "sourceOk(a, f.source)" in people and "f.version" in people
+    for key in ("joined", "source", "version"):
+        assert f'{key}: g("{key}")' in source, f"{key} is not a hash parameter"
+    assert '"invited_by"' in source[source.index("function exportCsv(") :] and '"version"' in source[source.index("function exportCsv(") :]
+    # the drawer's lists filter on the relay, and the filter outlives a redraw
+    drawer = source[source.index("function drawDrawer()") : source.index("function ledgerLine(")]
+    assert "filteredList(`${a.id}:ledger`" in drawer and "filteredList(`${a.id}:events`" in drawer
+    assert "/ledger?limit=200&before=${before}&kind=${encodeURIComponent(kind)}&q=${encodeURIComponent(q)}" in drawer
+    assert "/events?limit=200&before=${before}&kind=${encodeURIComponent(kind)}&q=${encodeURIComponent(q)}" in drawer
+    assert "T.noRequestsYet" in drawer
+    assert (
+        "const LISTF = new Map()" in source
+        and "LISTF.clear()" in source[source.index("function closeDrawer()") : source.index("function closeDrawer()") + 200]
+    )
+    # a new view closes the drawer; "/" starts a search
+    assert 'window.addEventListener("hashchange", () => { closeDrawer(); route(); draw(); })' in source
+    assert 'e.key !== "/"' in source
+    # the Activity feed reads on with before=
+    assert "/v1/admin/events?limit=200&kind=${encodeURIComponent(filter)}&before=${last}" in source
+    # the Demo visitors and the Data by-account tables search
+    assert 'params.get("dq")' in source and 'params.get("bq")' in source
+    # the Stats page's jump list
+    assert "p.id = `st-${m.id}`" in source and "scrollIntoView" in source
