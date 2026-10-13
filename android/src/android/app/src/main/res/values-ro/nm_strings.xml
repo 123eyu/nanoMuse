@@ -1144,4 +1144,10 @@
     <string name="nm_a11y_not_liked">Neapreciat</string>
     <string name="nm_a11y_post_details">Detaliile postării</string>
     <string name="nm_claude_sign_in_unavailable">Această versiune nu poate folosi autentificarea cu Claude. Adaugă Anthropic cu o cheie API.</string>
+    <!-- Font scale labels -->
+    <string name="nm_font_scale_extra_small">Foarte mic</string>
+    <string name="nm_font_scale_small">Mic</string>
+    <string name="nm_font_scale_medium">Mediu</string>
+    <string name="nm_font_scale_large">Mare</string>
+    <string name="nm_font_scale_extra_large">Foarte mare</string>
 </resources>

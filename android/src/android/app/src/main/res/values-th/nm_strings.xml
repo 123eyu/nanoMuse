@@ -1136,4 +1136,10 @@
     <string name="nm_a11y_not_liked">ยังไม่ถูกใจ</string>
     <string name="nm_a11y_post_details">รายละเอียดโพสต์</string>
     <string name="nm_claude_sign_in_unavailable">บิลด์นี้ใช้การลงชื่อเข้าใช้ด้วย Claude ไม่ได้ ให้เพิ่ม Anthropic ด้วยคีย์ API แทน</string>
+    <!-- Font scale labels -->
+    <string name="nm_font_scale_extra_small">เล็กมาก</string>
+    <string name="nm_font_scale_small">เล็ก</string>
+    <string name="nm_font_scale_medium">ปานกลาง</string>
+    <string name="nm_font_scale_large">ใหญ่</string>
+    <string name="nm_font_scale_extra_large">ใหญ่มาก</string>
 </resources>

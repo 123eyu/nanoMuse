@@ -116,6 +116,8 @@ Play 商店：「设置 → 版本」把已安装的构建和最新版本并排�
 同一个账号的网页控制台在中继上（`/app`），桌面版见 [desktop.md](desktop.md)；手机、桌面和网页共用
 [brand.md](brand.md) 里描述的设计语言。
 
+在「设置 → 外观」中，「聊天输入」「消息文本」和「应用基础」的字号标签会跟随应用语言。
+
 ## 自己的 key {#your-own-key}
 
 App 认识的厂商在一个文件里，`assets/nanomuse/providers.json`，运行时的

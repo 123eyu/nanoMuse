@@ -147,6 +147,8 @@ The web console of the same account is at the relay (`/app`), the desktop app in
 [desktop.md](desktop.md); the phone, the desktop and the web share the design language
 described in [brand.md](brand.md).
 
+Under **Settings → Appearance**, the font-size labels for **Chat Input**, **Message Text** and **App Base** follow the app's language.
+
 ## Your own key
 
 The vendors the app knows are one file, `assets/nanomuse/providers.json`, a copy of the

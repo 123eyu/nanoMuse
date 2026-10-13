@@ -1136,4 +1136,10 @@
     <string name="nm_a11y_not_liked">좋아요 없음</string>
     <string name="nm_a11y_post_details">게시물 세부정보</string>
     <string name="nm_claude_sign_in_unavailable">이 빌드에서는 Claude 로그인을 사용할 수 없습니다. 대신 API 키로 Anthropic을 추가하세요.</string>
+    <!-- Font scale labels -->
+    <string name="nm_font_scale_extra_small">매우 작게</string>
+    <string name="nm_font_scale_small">작게</string>
+    <string name="nm_font_scale_medium">중간</string>
+    <string name="nm_font_scale_large">크게</string>
+    <string name="nm_font_scale_extra_large">매우 크게</string>
 </resources>

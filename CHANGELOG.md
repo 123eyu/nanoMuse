@@ -14,6 +14,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Android
 
+- Translated the font-size labels in Appearance into the app's language, including the default label on all three sliders.
+
 ### iOS
 
 ### Project

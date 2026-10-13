@@ -1140,4 +1140,10 @@
     <string name="nm_a11y_not_liked">Beğenilmedi</string>
     <string name="nm_a11y_post_details">Gönderi ayrıntıları</string>
     <string name="nm_claude_sign_in_unavailable">Bu sürüm Claude ile oturum açmayı kullanamaz. Bunun yerine Anthropic’i bir API anahtarıyla ekleyin.</string>
+    <!-- Font scale labels -->
+    <string name="nm_font_scale_extra_small">Çok küçük</string>
+    <string name="nm_font_scale_small">Küçük</string>
+    <string name="nm_font_scale_medium">Orta</string>
+    <string name="nm_font_scale_large">Büyük</string>
+    <string name="nm_font_scale_extra_large">Çok büyük</string>
 </resources>
