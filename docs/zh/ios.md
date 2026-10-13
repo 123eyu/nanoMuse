@@ -82,7 +82,9 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   （`NanoMuseHeader.swift`）：有问题或审批等着你时状态是 *等你回复*，然后是正在运行的工具的
   `tool_title`（模型自己对这一步的描述，比如 *打开携程网站*），然后是 *正在写回复*，然后是
   *正在处理：〈简述〉*，空闲时是模型的名字；正在画新形象时，显示的是形象流程那边的那行字。
-  形象（`NanoMuseFaces.swift`：Application Support 里画出来的脸，或者 bundle 里的小龙，五种
+  形象（`NanoMuseFaces.swift`：Application Support 里画出来的脸；没有的话，桌面或网页控制台设的
+  emoji 配底色（存在 `avatar/emoji.json`，渲染成一张静态图；手机上还没有选它的界面）；再没有就是
+  bundle 里的小龙，五种
   状态，带着其他客户端那样的呼吸、浮动、歪头、弹出和抖动；开了「减弱动态效果」静态图就不动了，
   只剩状态切换时的淡入淡出）点一下进入**智能体的页面**。
   也可以换成一段你自己的短视频来当形象（`NanoMuseOwnClip.swift`：智能体页面钢笔菜单和形象

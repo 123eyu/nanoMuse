@@ -34,6 +34,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 - **The conversation scrolls under the header now.** The rows pass under the face and fade in the scrim behind it, as they do under the composer and the pill bar, and as on Android; in 1.0.3 and 1.0.4 the list ended right under the header and the top row was cut at a hard edge there. The shell hands the header's measured height to the chat (`nmTopOverlay`), and the message list extends under it with that much top inset. A side chat opened from the drawer runs under its system bar the same way.
 - **On an iPad the agent's replies line up with the composer.** The agent's rows padded outside the 760 pt column while the user's rows padded inside it, so the reply pill began 16 pt left of the composer's and the pill bar's edge; the three assistant cells now pad inside the column too.
+- **An emoji face set elsewhere shows on the iPhone.** A face set to an emoji on a colour on the desktop or in the web console showed the dragon on the iPhone; it now shows the emoji on its colour in the header, on the agent page and at launch, after a drawn face and before the dragon. This phone's own resets and drawn faces push as before, and never put the dragon over an emoji chosen on another device (reported by @Yousanflics, #435).
 
 ### Project
 
