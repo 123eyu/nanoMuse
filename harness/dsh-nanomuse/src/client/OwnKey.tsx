@@ -189,7 +189,7 @@ export function ChatGptRow({ t, view, onChanged }: { t: Translate; view: Provide
   const signIn = () => {
     setBusy(true)
     setError(undefined)
-    call<{ url: string }>('chatgpt/login')
+    call<{ url: string }>('chatgpt/login', {})
       .then((r) => { if (r.url) openLink(r.url) })
       // `no_runtime` reaches the row through the live state's `login.error` already
       .catch((err: unknown) => { if ((err as Error).message !== 'no_runtime') setError(failureText(t, err)) })
@@ -197,9 +197,9 @@ export function ChatGptRow({ t, view, onChanged }: { t: Translate; view: Provide
   }
   const signOut = () => {
     setBusy(true)
-    call('chatgpt/logout').then(() => onChanged()).catch((err: unknown) => setError(failureText(t, err))).finally(() => setBusy(false))
+    call('chatgpt/logout', {}).then(() => onChanged()).catch((err: unknown) => setError(failureText(t, err))).finally(() => setBusy(false))
   }
-  const cancel = () => { void call('chatgpt/cancel').catch(() => undefined) }
+  const cancel = () => { void call('chatgpt/cancel', {}).catch(() => undefined) }
   const login = cg.login
   let state: ReactNode
   if (cg.signedIn) {

@@ -84,11 +84,11 @@ export function DataRows({ t }: { t: Translate }): ReactNode {
   const download = () => {
     setBusy(true)
     setNotice(undefined)
-    roomsCall<{ path: string }>('data/export').then((r) => setNotice(t('dataExported', { path: r.path }))).catch((err: unknown) => setNotice(failureText(t, err))).finally(() => setBusy(false))
+    roomsCall<{ path: string }>('data/export', {}).then((r) => setNotice(t('dataExported', { path: r.path }))).catch((err: unknown) => setNotice(failureText(t, err))).finally(() => setBusy(false))
   }
   const reset = () => {
     setBusy(true)
-    roomsCall('data/reset').then(() => window.location.reload()).catch((err: unknown) => { setNotice(failureText(t, err)); setBusy(false) })
+    roomsCall('data/reset', {}).then(() => window.location.reload()).catch((err: unknown) => { setNotice(failureText(t, err)); setBusy(false) })
   }
   return h(Fragment, null,
     h('div', { className: 'nm-card' },
