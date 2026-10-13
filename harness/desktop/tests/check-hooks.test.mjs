@@ -86,6 +86,19 @@ test("an attribute the bundle stops setting itself is missing too", () => {
   }
 });
 
+test("a selector in the stylesheet is not a setter: a hook only styles.ts mentions is missing", () => {
+  // the real run points `oursDirs` at dsh-nanomuse/src, where styles.ts lives and names every
+  // hook it leans on; only a quoted name or a `dataset` form counts as the bundle setting it
+  const f = fixture(DSH_ALL, "document.querySelector('[data-nm-muse]'); el.dataset['nmPlatform'] = p");
+  try {
+    const out = checkHooks({ ...f, oursDirs: [f.dir] });
+    assert.deepEqual(out.missing, ["data-nm-muse"]);
+    assert.deepEqual(out.own, ["data-nm-platform"]);
+  } finally {
+    rmSync(f.dir, { recursive: true, force: true });
+  }
+});
+
 test("the real stylesheet's hooks are the kind the check reads", async () => {
   const { readFileSync } = await import("node:fs");
   const real = hooksOf(readFileSync(new URL("../../dsh-nanomuse/src/client/styles.ts", import.meta.url), "utf8"));

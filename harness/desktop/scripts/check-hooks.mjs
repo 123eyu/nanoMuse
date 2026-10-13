@@ -54,9 +54,11 @@ function* textFiles(dir) {
 
 /**
  * Which of `needles` the files under `roots` mention, as a set. Each file is read once and
- * every needle still missing is tried on it; the walk stops once all are found.
+ * every needle still missing is tried on it; the walk stops once all are found. A needle
+ * with an entry in `spellings` counts as mentioned when any of those texts is, and not by
+ * its own literal.
  */
-export function findIn(roots, needles) {
+export function findIn(roots, needles, spellings = new Map()) {
   const found = new Set();
   const missing = new Set(needles);
   for (const root of roots) {
@@ -70,7 +72,7 @@ export function findIn(roots, needles) {
         continue;
       }
       for (const needle of missing) {
-        if (text.includes(needle)) {
+        if ((spellings.get(needle) ?? [needle]).some((s) => text.includes(s))) {
           found.add(needle);
           missing.delete(needle);
         }
@@ -78,6 +80,17 @@ export function findIn(roots, needles) {
     }
   }
   return found;
+}
+
+/**
+ * The ways a source of ours *sets* a `data-*` attribute, as opposed to styling it: the name
+ * quoted (`setAttribute('data-nm-muse'`, `'data-nm-muse': ''` in JSX) or the camel-cased
+ * `dataset` form (`dataset.nmMuse`, `dataset['nmMuse']`). A selector (`[data-nm-muse]`) is
+ * neither, so the stylesheet, which names every hook it leans on, vouches for none of them.
+ */
+export function setterSpellings(attribute) {
+  const camel = attribute.slice("data-".length).replace(/-([a-z0-9])/g, (_, c) => c.toUpperCase());
+  return [`'${attribute}'`, `"${attribute}"`, `\`${attribute}\``, `dataset.${camel}`, `dataset['${camel}']`, `dataset["${camel}"]`];
 }
 
 /**
@@ -91,8 +104,10 @@ export function checkHooks({ styles, dshNodeModules, oursDirs }) {
   const dshRoots = existsSync(scoped) ? readdirSync(scoped).map((name) => join(scoped, name)) : [];
   const needles = [...attributes, ...testIds, ...stems];
   const inDsh = findIn(dshRoots, needles);
-  // what the bundle sets itself: its client sources, and the shell's (`data-nm-platform` comes from the preload)
-  const ours = findIn(oursDirs, attributes.filter((a) => !inDsh.has(a)));
+  // what the bundle sets itself: its client sources, and the shell's (`data-nm-platform` comes
+  // from the preload); a selector in the stylesheet is not a setter, so it does not count
+  const unseen = attributes.filter((a) => !inDsh.has(a));
+  const ours = findIn(oursDirs, unseen, new Map(unseen.map((a) => [a, setterSpellings(a)])));
   const missing = needles.filter((n) => !inDsh.has(n) && !ours.has(n));
   return { checked: needles.length, missing, own: [...ours].sort() };
 }
