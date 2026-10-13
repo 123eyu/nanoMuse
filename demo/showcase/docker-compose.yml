@@ -122,6 +122,14 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - control
+    # the image is HAProxy on Alpine, so busybox wget is there; /_ping is allowed by default
+    # (PING=1) and answers through the proxy only while the daemon's socket answers behind it
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2375/_ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 networks:
   edge: {}

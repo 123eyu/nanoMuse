@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import time
 from dataclasses import replace
+from typing import Any
 
 import httpx
 import pytest
@@ -79,9 +80,9 @@ class Clock:
         return self.now
 
 
-def make_settings(**over) -> Settings:
+def make_settings(**over: Any) -> Settings:
     base = Settings.from_env()
-    values = dict(
+    values: dict[str, Any] = dict(
         public_scheme="http",
         site_host="localhost",
         session_domain="s.localhost",
@@ -171,6 +172,7 @@ class Upstream:
         self.invites: list[str] = []  # the invite field of each verify, "" when none
         self.drawn: list[dict] = []  # Model Studio's picture requests
         self.draw_busy = 0  # how many 429s the drawing endpoint answers first
+        self.draw_refusal: tuple[int, str] | None = None  # a status and body to answer instead
         self.animated: list[httpx.Request] = []  # Model Studio's video tasks, as submitted
         self.down = False  # the containers do not answer (a session whose runtime died)
         self.polls: dict[str, int] = {}  # task id → how often it was asked about
@@ -280,6 +282,9 @@ class Upstream:
         if not request.url.path.endswith("/services/aigc/multimodal-generation/generation"):
             return wire(404, "{}")
         self.drawn.append(json.loads(request.content))
+        if self.draw_refusal is not None:
+            status, text = self.draw_refusal
+            return wire(status, text, **{"content-type": "application/json"})
         if self.draw_busy:
             self.draw_busy -= 1
             return wire(429, json.dumps({"message": "Throttling.RateQuota"}))

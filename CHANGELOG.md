@@ -39,6 +39,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 - **The READMEs' News notes the thousandth star.** The ten READMEs gained a 2026-10-13 line: 1,000 stars on GitHub eighteen days after the first release, the four days on GitHub Trending's Swift list (seventh on October 7, fourth on October 10, as Trendshift records it), a thank-you, and the plan to keep going with a version every few days and the roadmap for what comes next.
 - **The Intel Mac installer builds again.** The desktop workflow installs pnpm from npm instead of letting `pnpm/action-setup` self-update to the newest 11, whose native binary pnpm no longer publishes for Intel Macs; the 1.0.4 run's `macos-x64` job stopped at that step, and the `mac-x64` files are attached to the 1.0.4 release by a rerun of the workflow.
+- **The showcase's refusals reach the browser whole.** A sign-in or a picture request that nanoMuse Cloud or the image provider refused with a body of an unexpected shape (a list, a plain string, a `detail` field) used to come back from the showcase gateway as a 500; it now comes back as the refusal it was, with the provider's status and message. A demo opened from a peer whose address is unknown is no longer recorded under a `?`.
+- **The download mirror never lists half a package.** `nanomuse.cn/dl/` showed a `<name>.part` file for the minutes a release asset took to arrive; the mirror now downloads to a dot-file the listing hides, removes it when a download breaks, and the traffic tally no longer loses a day's log file when Caddy rolled the log twice between two runs.
 
 ## [1.0.4] - 2026-10-13 · Compass
 
