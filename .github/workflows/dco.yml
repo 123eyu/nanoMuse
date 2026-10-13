@@ -7,6 +7,12 @@ on:
 permissions:
   contents: read
 
+# a newer push to the same pull request cancels the check of the commit it replaced; the new
+# commit gets its own run, so the required check never goes missing
+concurrency:
+  group: dco-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   dco:
     name: Signed-off-by on every commit
