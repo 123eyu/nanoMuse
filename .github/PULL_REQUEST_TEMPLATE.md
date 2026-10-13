@@ -6,7 +6,7 @@
 
 ## Why
 
-<!-- The problem this solves, or the Muse behaviour it brings in. -->
+<!-- The problem this solves, or what a person can do afterwards that they could not before. -->
 
 ## Checks
 

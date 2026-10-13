@@ -6,10 +6,8 @@ is derived from the icon so the whole app matches the tile on the home screen.
 ## The mark
 
 One continuous pen stroke that reads as an **N**: a hooked entry, one rounded peak, a long
-diagonal, a tight valley, and an upward exit. It follows the same visual grammar as Muse's
-single-stroke mark (Muse's is an M with three arches; ours is an N with one), the same way
-OpenManus rhymes with Manus while being a different gesture. The mark is abstract on purpose:
-it is a gesture first and a letter second.
+diagonal, a tight valley, and an upward exit: an N with one arch, drawn without lifting the
+pen. The mark is abstract on purpose: it is a gesture first and a letter second.
 
 - Source of truth: `assets/brand/nanomuse-icon-source-1024.png` (final render, white squircle on
   brand blue). Everything else is derived from it.
@@ -86,4 +84,4 @@ colours.
 - Don't recolour the mark outside the blue gradient / flat white / flat black.
 - Don't rotate, outline, or add a shadow to the stroke.
 - Don't place the mark on the brand blue without the white tile (contrast).
-- Don't use Meta's Muse mark, name or blue as an asset; the kinship is in the gesture only.
+- Don't use another product's mark, name or blue as an asset; the only mark is ours.
