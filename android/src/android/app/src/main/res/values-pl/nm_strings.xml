@@ -1148,4 +1148,10 @@
     <string name="nm_a11y_not_liked">Niepolubione</string>
     <string name="nm_a11y_post_details">Szczegóły wpisu</string>
     <string name="nm_claude_sign_in_unavailable">Ta wersja nie obsługuje logowania przez Claude. Dodaj Anthropic z kluczem API.</string>
+    <!-- Font scale labels -->
+    <string name="nm_font_scale_extra_small">Bardzo mały</string>
+    <string name="nm_font_scale_small">Mały</string>
+    <string name="nm_font_scale_medium">Średni</string>
+    <string name="nm_font_scale_large">Duży</string>
+    <string name="nm_font_scale_extra_large">Bardzo duży</string>
 </resources>

@@ -1140,4 +1140,10 @@
     <string name="nm_a11y_not_liked">Hindi nagustuhan</string>
     <string name="nm_a11y_post_details">Mga detalye ng post</string>
     <string name="nm_claude_sign_in_unavailable">Hindi magagamit ng build na ito ang pag-sign in sa Claude. Idagdag na lang ang Anthropic gamit ang API key.</string>
+    <!-- Font scale labels -->
+    <string name="nm_font_scale_extra_small">Napakaliit</string>
+    <string name="nm_font_scale_small">Maliit</string>
+    <string name="nm_font_scale_medium">Katamtaman</string>
+    <string name="nm_font_scale_large">Malaki</string>
+    <string name="nm_font_scale_extra_large">Napakalaki</string>
 </resources>

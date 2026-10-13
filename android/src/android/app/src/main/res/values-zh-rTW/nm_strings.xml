@@ -1106,4 +1106,10 @@
     <string name="nm_a11y_not_liked">未喜歡</string>
     <string name="nm_a11y_post_details">貼文詳情</string>
     <string name="nm_claude_sign_in_unavailable">這個版本不能用 Claude 帳號登入。請改用 API key 新增 Anthropic。</string>
+    <!-- Font scale labels -->
+    <string name="nm_font_scale_extra_small">特小</string>
+    <string name="nm_font_scale_small">小</string>
+    <string name="nm_font_scale_medium">中</string>
+    <string name="nm_font_scale_large">大</string>
+    <string name="nm_font_scale_extra_large">特大</string>
 </resources>

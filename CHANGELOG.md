@@ -15,6 +15,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 ### Android
 
 - Removed terminal color and title codes before carriage-return updates, so styled shell output no longer left broken escape fragments or lost the untouched tail of a shorter rewrite.
+- Translated the font-size labels in Appearance into the app's language, including the default label on all three sliders.
 
 ### iOS
 

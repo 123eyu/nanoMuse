@@ -1136,4 +1136,10 @@
     <string name="nm_a11y_not_liked">いいねしていません</string>
     <string name="nm_a11y_post_details">投稿の詳細</string>
     <string name="nm_claude_sign_in_unavailable">このビルドでは Claude アカウントでのサインインは使えません。代わりに API キーで Anthropic を追加してください。</string>
+    <!-- Font scale labels -->
+    <string name="nm_font_scale_extra_small">とても小さい</string>
+    <string name="nm_font_scale_small">小さい</string>
+    <string name="nm_font_scale_medium">中</string>
+    <string name="nm_font_scale_large">大きい</string>
+    <string name="nm_font_scale_extra_large">とても大きい</string>
 </resources>

@@ -1136,4 +1136,10 @@
     <string name="nm_a11y_not_liked">Belum disukai</string>
     <string name="nm_a11y_post_details">Detail kiriman</string>
     <string name="nm_claude_sign_in_unavailable">Versi ini tidak bisa memakai masuk dengan Claude. Tambahkan Anthropic dengan kunci API saja.</string>
+    <!-- Font scale labels -->
+    <string name="nm_font_scale_extra_small">Sangat kecil</string>
+    <string name="nm_font_scale_small">Kecil</string>
+    <string name="nm_font_scale_medium">Sedang</string>
+    <string name="nm_font_scale_large">Besar</string>
+    <string name="nm_font_scale_extra_large">Sangat besar</string>
 </resources>
