@@ -107,7 +107,7 @@ if [ "$check" = 1 ]; then
   echo "check only: every pattern matches once; nothing written"
   exit 0
 fi
-mode=write
+mode="write"
 plan
 
 echo "lock files: $(git diff --numstat -- web/package-lock.json harness/desktop/package-lock.json | awk '{print $1" lines in "$3}' | paste -sd ',' -) (expect 2 each)"

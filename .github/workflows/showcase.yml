@@ -40,6 +40,8 @@ jobs:
       - run: pip install -e './demo/showcase/gateway[dev]'
       # the gateway, the mirror's scripts and the tests: the same lint the runtime gets
       - run: ruff check demo && ruff format --check demo
+      # the type check the runtime gets too (gateway/pyproject.toml lists the files)
+      - run: cd demo/showcase/gateway && mypy
       - run: pytest -q demo/showcase/gateway/tests
 
   publish:

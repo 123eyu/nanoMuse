@@ -249,7 +249,7 @@ destination. The same words appear under a denied step in today's record. A
 shape it does not know is shown as it came.
 
 **Permissions you granted** (avatar → Permissions) are listed by the risk class
-of the tool they cover, the gravest first: sensitive, moderate, low, safe (the
+of the tool they cover, the gravest first: sensitive, moderate, safe (the
 class comes from `GET /api/state` → `settings.tools`); each row says the tool,
 how long the grant lasts and when it was given, and can be revoked on its own.
 

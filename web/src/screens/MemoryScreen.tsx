@@ -122,12 +122,14 @@ export function MemoryScreen() {
             onChange={(e) => setContent(e.target.value)}
             rows={2}
             placeholder={t("Tell {name} something to remember, e.g. “I'm vegetarian” or “My sister's birthday is 14 May”", { name })}
+            aria-label={t("Tell {name} something to remember", { name })}
             className="w-full resize-none rounded-2xl bg-surface-2 px-3.5 py-2.5 text-[14.5px] outline-none focus:ring-2 focus:ring-accent/40"
           />
           <div className="flex items-center gap-2">
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
+              aria-label={t("Category")}
               className="rounded-2xl bg-surface-2 px-3 py-2 text-[13.5px] outline-none"
             >
               {CATEGORIES.map((c) => (

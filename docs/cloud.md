@@ -373,8 +373,11 @@ making or unmaking a member, a grant, a credit, a pool change, a settings change
 and a deletion each write a line in the audit log of the Controls section (who,
 from where, which account by the first eight characters of its id) and, where the
 account keeps a timeline, a line on it too; a deletion is counted on the Stats
-page. A disabled account is refused a sign-in code (`403 account_disabled`) before
-any message is sent.
+page. A disabled account that asks for a sign-in code gets the same `204` as anyone
+and no message is sent: the request counts towards the usual limits, nothing goes
+out, and the route says nothing about whether the number has an account or whether
+it is off; the person is told `403 account_disabled` when they try to sign in with
+a code or a password.
 
 nanoMuse asks for one thing in return: a star on
 [GitHub](https://github.com/nano-muse/nanoMuse), which is what helps the
@@ -478,8 +481,8 @@ The app's calls, all JSON:
 ```
 GET  /healthz                                                 → {ok, version, models[], paused[]}; no key
 GET  /v1/config                                               → {version, signup_open, paused[], allowance_cny, allowance_usd, invite_bonus_cny, invitee_bonus_cny, usd_cny, invite_url, own_key_docs, openrouter_url, privacy_url, repo_url, improve_default, code_ttl_s, password_min_len}; no key, a minute's cache
-POST /v1/auth/code          {identifier}                      → 204; 400 phone_region, 403 not_invited | signup_closed | account_disabled, 429 code_too_often | domain_limited, 502 send_failed
-POST /v1/auth/verify        {identifier, code, device, invite?} → {api_key, base_url, account, tokens, models, created, region}; 400 code_wrong | code_expired
+POST /v1/auth/code          {identifier}                      → 204 (a disabled account gets the same 204 and nothing is sent); 400 phone_region, 403 not_invited | signup_closed, 429 code_too_often | domain_limited, 502 send_failed
+POST /v1/auth/verify        {identifier, code, device, invite?} → {api_key, base_url, account, tokens, models, created, region}; 400 code_wrong | code_expired, 403 account_disabled
 POST /v1/auth/login         {identifier, password, device}    → the same; 401 bad_credentials, 429 locked, 400 no_password
 POST /v1/auth/password      Bearer  {password, current?}      → 204; "" with current removes it; 400 password_short | password_long | password_weak | password_wrong | password_required
 POST /v1/auth/session-key   Bearer  {device?, ttl_s?}         → {api_key, expires_at}; a key that lapses on its own (90 days at most); 403 session_from_session

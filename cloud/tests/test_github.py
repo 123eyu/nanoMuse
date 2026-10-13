@@ -134,6 +134,32 @@ async def test_snapshots_deltas_and_a_failure_that_keeps_the_last_one():
     db.close()
 
 
+async def test_a_failed_write_does_not_leave_the_collector_marked_running():
+    """An error past the fetch (here the database refusing the snapshot) used to leave
+    `running` set, and every run after it, the six-hourly one and *Refresh now*, answered
+    "already running" until a restart. The flag is let go whatever happens."""
+    gh = FakeGitHub()
+    db = Database(":memory:")
+    c = GitHubCollector(db, "nano-muse/nanoMuse", transport=gh.transport(), clock=lambda: 1_800_000_000)
+    kept = db.daily_set
+
+    def refuse(*a, **k):
+        raise RuntimeError("database is locked")
+
+    db.daily_set = refuse  # type: ignore[method-assign]
+    try:
+        await c.collect()
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("the write's error reaches the caller")
+    assert c.running is False
+    db.daily_set = kept  # type: ignore[method-assign]
+    out = await c.collect()
+    assert out["ok"] is True and out["stars"] == 120
+    db.close()
+
+
 async def test_no_repository_means_no_collector():
     db = Database(":memory:")
     c = GitHubCollector(db, "", transport=httpx.MockTransport(lambda r: httpx.Response(500)))

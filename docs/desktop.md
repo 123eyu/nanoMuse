@@ -19,7 +19,10 @@ beside them). Windows releases also carry the update metadata electron-updater r
 which names the installer and its SHA-512, and the installer's `.exe.blockmap`. CI checks the set with electron-updater itself before
 anything is attached: it must find the candidate version in `latest.yml`, download the
 installer from a test feed and verify it, and refuse one whose bytes do not match
-(`harness/desktop/scripts/update-feed-check.mjs`). The code is under
+(`harness/desktop/scripts/update-feed-check.mjs`). The feed the metadata is built for is the
+download mirror's [nanomuse.cn/dl/win/](https://nanomuse.cn/dl/win/), which moves to a new
+release only once its `latest.yml`, installer and `.blockmap` are all there and the installer's
+bytes match; until then it serves the previous release. The code is under
 [`harness/`](../harness/): the bundle of plugins in
 `harness/dsh-nanomuse`, the Electron shell in `harness/desktop`; how to build it yourself is
 in [harness/README.md](../harness/README.md). Up to 0.1.29 the same installers wrapped the
@@ -107,6 +110,16 @@ speaking as nanoMuse through the `nanomuse` preset, with:
   what puts a row here. The Computer use page and the profile drawer keep their own shorter
   lists; this one is the complete one. The host answers `GET /nanomuse/cloud/grants` with
   the list and `POST /grants/revoke {id}` for any row of it.
+- **A real quit protects the work in progress.** Quit (the menu's Quit, Ctrl+Q, the tray's
+  Quit, or closing the last window when there is no tray) first asks the Host what is still
+  on: a reply being written, the hands on the screen, a task another device asked for, an
+  approval waiting on you. The question names that work and *Keep running* is the default;
+  only an explicit confirmation ends it, and the quit waits for the work to end before it
+  stops the Host. A task that arrives while the quit hands over is refused with the usual
+  busy answer, so the asking device can send it again. Closing the window with the menu-bar
+  switch on stays in the tray and has never been a quit. The routes are the plugin's
+  `GET /nanomuse/cloud/work` (the aggregate), `POST /work/gate {open}` (the hand-over) and
+  `POST /work/stop` (the confirmed end).
 
 ## When the allowance is used up, and the relay's other answers
 

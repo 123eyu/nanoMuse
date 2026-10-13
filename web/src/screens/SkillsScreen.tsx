@@ -362,6 +362,7 @@ function SkillEditor({ initial, onCancel, onSaved }: { initial?: SkillDetail; on
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://github.com/…/skills/pdf"
+                aria-label={t("From a link")}
                 inputMode="url"
                 autoComplete="off"
                 className="flex-1 min-w-0 rounded-2xl bg-surface-2 px-3.5 py-2.5 text-[14px] outline-none focus:ring-2 focus:ring-accent/40"

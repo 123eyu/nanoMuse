@@ -305,8 +305,10 @@ class Database:
             Path(path).parent.mkdir(parents=True, exist_ok=True)
         # One connection behind one lock serialises the relay's own writes; the busy timeout
         # is for the other writers that open the same file (a backup taken with the backup
-        # API, the admin CLI, a checkpoint by another process). The default is 0: the first
-        # locked write would raise "database is locked" instead of waiting a moment.
+        # API, the admin CLI, a checkpoint by another process). Python's `timeout` already
+        # defaults to five seconds; the SQLite library's own default is 0, so the PRAGMA
+        # below says the same figure in one place for both, and a change here is the whole
+        # change.
         self._conn = sqlite3.connect(path, check_same_thread=False, isolation_level=None, timeout=BUSY_TIMEOUT_S)
         self._conn.row_factory = sqlite3.Row
         self._lock = threading.RLock()
