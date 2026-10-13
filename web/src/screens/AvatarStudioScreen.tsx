@@ -221,6 +221,7 @@ export function AvatarStudioScreen() {
             rows={2}
             maxLength={200}
             placeholder={t(DEFAULT_DESCRIPTION)}
+            aria-label={t("Describe a new look")}
             className="w-full resize-none rounded-2xl bg-surface-2 px-3.5 py-2.5 text-[14.5px] outline-none focus:ring-2 focus:ring-accent/40"
           />
           <div className="flex flex-wrap gap-1.5">

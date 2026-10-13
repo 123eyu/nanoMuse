@@ -15,6 +15,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Web
 
+- **Small text reads better and the form controls have names.** The faint red, amber and grey used for *overdue*, *blocked*, *failed*, a mailbox error, the goal cadence line and the device section labels fell short of the contrast a screen needs for small text; they are darker in the light theme and lighter in the dark one now. The reminder, routine, trigger, goal, memory, coding, password and side-chat fields are announced by a screen reader with what they are for instead of nothing. A hands step that pressed the middle mouse button said *Right-clicked*; the permission log showed an approval's scope as its id (*24h*) instead of the words. The chat's picture previews are released when their chip goes rather than on every change to the attachments, and the app's hashed script and style files are cached by the browser for a year since a new build gets new names.
+
 ### Desktop
 
 - **Eight buttons reach the host again.** *Default face* (in the avatar studio and in the profile menu), the clip preview's *Cancel*, Media's *Check which models answer*, the ChatGPT *Open the sign-in page*, *Sign out* and *Cancel*, and *Download* and *Reset* under Memory called the host without a body, which the window sends as a GET; the host serves those routes to POST only, so each click ended in a quiet 404 and nothing happened. They post now, and a test checks every body-less call against the routes the host serves to GET.

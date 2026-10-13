@@ -250,7 +250,7 @@ export function FeedScreen() {
                   toast((e as Error).message);
                 }
               }}
-              className="w-full rounded-full bg-surface-2 py-2.5 text-[15px] font-medium text-rose-500"
+              className="w-full rounded-full bg-surface-2 py-2.5 text-[15px] font-medium text-rose-600 dark:text-rose-300"
             >
               {t("Delete this post")}
             </button>
@@ -561,7 +561,7 @@ function NextUp({
                 : t("Soon")}
           : <span className="font-medium">{next.title}</span>
           {next.next_step && <span className="text-muted"> · {next.next_step}</span>}
-          {next.overdue && <span className="text-rose-500 font-medium"> · {t("overdue")}</span>}
+          {next.overdue && <span className="text-rose-600 dark:text-rose-300 font-medium"> · {t("overdue")}</span>}
           {data.queue.length > 1 && <span className="text-muted"> · {t("{n} more in line", { n: data.queue.length - 1 })}</span>}
         </div>
       )}
@@ -622,7 +622,7 @@ function TodayBlock({ data, onAsk }: { data: CalendarData; onAsk: () => void }) 
           ))}
         </ul>
       )}
-      {broken.length > 0 && <div className="mt-1.5 text-[12px] text-rose-500">{t("{name} could not be read", { name: broken.map((f) => f.name).join(", ") })}</div>}
+      {broken.length > 0 && <div className="mt-1.5 text-[12px] text-rose-600 dark:text-rose-300">{t("{name} could not be read", { name: broken.map((f) => f.name).join(", ") })}</div>}
       <button type="button" onClick={onAsk} className="mt-2 text-[12.5px] text-accent font-medium">
         {t("Ask about your week")}
       </button>

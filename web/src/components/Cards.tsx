@@ -773,8 +773,9 @@ export function describeHandsStep(last: NonNullable<HandsEvent["last"]>, t: (s: 
     case "double_click":
       return label ? t("Double-clicked {label}", { label }) : t("Double-clicked");
     case "right_click":
-    case "middle_click":
       return label ? t("Right-clicked {label}", { label }) : t("Right-clicked");
+    case "middle_click":
+      return label ? t("Middle-clicked {label}", { label }) : t("Middle-clicked");
     case "move":
       return label ? t("Pointed at {label}", { label }) : t("Moved the mouse");
     case "type":

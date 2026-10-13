@@ -423,9 +423,9 @@ function Password({ account, onChanged }: { account: CloudAccount | null; onChan
             void save();
           }}
         >
-          {has && <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} placeholder={t("Current password")} autoComplete="current-password" className={inputCls} />}
-          <input type="password" value={next} onChange={(e) => setNext(e.target.value)} placeholder={t("New password (8 characters or more)")} autoComplete="new-password" autoFocus className={inputCls} />
-          <input type="password" value={again} onChange={(e) => setAgain(e.target.value)} placeholder={t("Once more")} autoComplete="new-password" className={inputCls} />
+          {has && <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} placeholder={t("Current password")} aria-label={t("Current password")} autoComplete="current-password" className={inputCls} />}
+          <input type="password" value={next} onChange={(e) => setNext(e.target.value)} placeholder={t("New password (8 characters or more)")} aria-label={t("New password (8 characters or more)")} autoComplete="new-password" autoFocus className={inputCls} />
+          <input type="password" value={again} onChange={(e) => setAgain(e.target.value)} placeholder={t("Once more")} aria-label={t("Once more")} autoComplete="new-password" className={inputCls} />
           {again && next !== again && <p className="text-[12px] text-rose-600 dark:text-rose-300">{t("The two do not match.")}</p>}
           {error && <p className="rounded-2xl bg-rose-500/12 px-3 py-2 text-[12.5px] text-rose-700 dark:text-rose-300">{error}</p>}
           <div className="flex flex-wrap gap-2">
