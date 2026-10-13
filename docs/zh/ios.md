@@ -517,6 +517,16 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   系统栏，这个值是 0，它改为像上游 iOS 26 的布局那样把内容一直延伸到系统栏下面
   （`NavBarStyleModifier`）；系统栏是 UIKit 的，列表自己的内边距调整会让第一行停在栏下面，它的行
   也会在栏后面的遮罩里淡化。
+- **动态静静地写，例程先开口**（`NanoMuseRoutineWakes.swift`；`NanoMuseSync.shows`、
+  `NanoMuseHeadless.run`，以及 `ChatModels.swift`、`AIChatViewModel.swift`、
+  `AIChatViewModel+Persistence.swift`、`ChatMessageViews.swift` 里的 `nmRoutine` 改动处）。到 1.0.4
+  为止，每日动态是抽屉里一个叫「动态」的会话，里面有一条以本人口吻发出的「写今天的动态。」气泡，
+  下面是模型的回答；用户自己建的每条例程也都这样开始一轮。现在动态的会话是智能体的工作间，列表
+  不再列出它（`shows` 对它说不，就像对另一个账号的聊天那样）；帖子照旧出现在动态页。例程的一轮
+  会被标成例程的：承载提示词的那一行只是一行安静的小字「例程 · 〈名称〉 · 08:00」
+  （`NanoMuseRoutineWakeRow`，按行的 id 记住，重新加载后还在），模型则收到一条只管这一轮的附言
+  （`NanoMuseSessionAddenda`），说明这不是本人打的字，于是它直接从结果说起，而不是感谢对方的
+  提问。提示词本身没有变，这一轮照原样跑。
 
 ## 用操作按钮说一句 {#voice-prompts-from-the-action-button}
 

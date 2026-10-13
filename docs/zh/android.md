@@ -284,6 +284,8 @@ keytool -genkeypair -keystore ~/.nanomuse-release/nanomuse.jks -alias nanomuse \
 | `models/` | 「设置 → 模型」背后的逻辑：`ModelSlots`（四个槽位、各自设成了什么、存在哪里、选择页列出的分组、对话默认的 `followPick`、「用它来做什么」卡片的 `applyProvider`），`SlotOrder`（解析顺序和目录默认，纯 Kotlin，有单元测试），`PickerList`（选择页每组 8 行的折叠、排序和搜索过滤，纯 Kotlin，有单元测试） |
 | `ui/models/` | 「模型」页、每一行背后的选择页、「用它来做什么」卡片（`minis://settings/models`） |
 | `chat/CloudRetry.kt` | 「这次改用 nanoMuse Cloud」：卡片何时提供它，以及 `ChatViewModel.retryLast` 这一轮用的服务商 |
+| `chat/RoutineWakes.kt`、`ui/chat/NmRoutineWakeRow.kt` | 定时任务的一轮是例程的，不是本人的：`ScheduledAgentRunner` 在提示词发出前先登记一次唤醒，`ChatViewModel` 把它绑到落库的那一行，聊天里这一行只画成一行安静的小字「例程 · 〈名称〉 · 08:00」，而不是一条以本人口吻发出的气泡；模型收到一条只管这一轮的 `SessionAddenda`，说明情况，于是它直接从结果说起，不感谢谁的提问。到 1.0.4 为止，提示词就像本人打的字一样立在聊天里 |
+| `feed/` | 动态：`FeedFlow` 维护每日定时任务和它写作所在的会话，这个会话是智能体的工作间，不进抽屉、聊天列表和主聊天的回退（`FeedFlow.hidden`，由 `ChatRepository.observeSessions()`、`MainChat` 和「移到会话」面板读取）；`FeedStore` 存帖子。任务在 App 退到后台时写出了帖子，就发一条点出帖子标题的通知，点开进动态页（`minis://feed`），取代 1.0.4 之前那条带着模型原文、点开进会话的通用「任务完成」通知 |
 | `hands/` | 作为手的无障碍服务、舞台和胶囊、屏幕读取器；`Hands.screenModel` 选屏幕模型（已选的 → 对话服务商自己的默认，当它能看图 → Cloud 的 `qwen3.8-27b` → 你自己 key 下的同一个 → 一个能看图的聊天模型 → Vision Group） |
 | `ui/coding/` | 你电脑上的编程助手 |
 | `connectors/`、`ui/connectors/` | 连接器目录（`ConnectorsCatalogue` 读取资源文件）、MCP 授权发现与注册（`McpAuthDiscovery`）、连接和令牌刷新（`Connectors`）、这台手机连接了什么并发布到 profile、其他设备连接了什么（`SharedConnectors`）、「设置 → 连接器」页面 |

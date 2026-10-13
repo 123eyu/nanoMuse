@@ -4249,6 +4249,8 @@ fun ChatScreen(
                             is FlatChatItem.UserBubble -> Column { // nanoMuse: a column, for the sync caption over the bubble
                                 // nanoMuse: "From Pixel 8" when the line was written on another device (C8)
                                 io.github.nanomuse.ui.chat.NmSyncCaption(item.message.id.substringBefore('#'), end = true)
+                                // nanoMuse: a row a routine sent is one quiet line, not a bubble in the person's voice
+                                io.github.nanomuse.ui.chat.NmRoutineWakeRow(item.message.id.substringBefore('#')) {
                                 // User bubbles intentionally don't register
                                 // MinisTextKit shards — long-press on a user
                                 // bubble shows its own action menu (Copy /
@@ -4324,6 +4326,7 @@ fun ChatScreen(
                                     }
                                 },
                             )
+                            } // nanoMuse: close NmRoutineWakeRow
                             } // close UserBubble SideEffect + UserMessageBubble block
                             // nanoMuse: in the home shell the agent's reply is Muse's —
                             // grey bubbles per block, no name above each turn (the face

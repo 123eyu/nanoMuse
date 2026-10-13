@@ -126,6 +126,8 @@
     <string name="nm_routine_run_now">立即运行</string>
     <string name="nm_routine_delete">删除</string>
     <string name="nm_routine_paused">已关闭</string>
+    <!-- The chat row a routine sent: its label and the clock time it fired -->
+    <string name="nm_routine_wake_caption">例程 · %1$s · %2$s</string>
 
     <!-- 点子 -->
     <string name="nm_ideas_title">点子</string>

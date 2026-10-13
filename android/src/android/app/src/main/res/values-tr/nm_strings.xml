@@ -130,6 +130,8 @@
     <string name="nm_routine_run_now">Şimdi çalıştır</string>
     <string name="nm_routine_delete">Sil</string>
     <string name="nm_routine_paused">Kapalı</string>
+    <!-- The chat row a routine sent: its label and the clock time it fired -->
+    <string name="nm_routine_wake_caption">Rutin · %1$s · %2$s</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">Fikirler</string>

@@ -130,6 +130,8 @@
     <string name="nm_routine_run_now">Patakbuhin ngayon</string>
     <string name="nm_routine_delete">Burahin</string>
     <string name="nm_routine_paused">Naka-off</string>
+    <!-- The chat row a routine sent: its label and the clock time it fired -->
+    <string name="nm_routine_wake_caption">Routine · %1$s · %2$s</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">Mga Ideya</string>

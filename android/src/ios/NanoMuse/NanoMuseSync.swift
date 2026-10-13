@@ -261,9 +261,11 @@ final class NanoMuseSync: ObservableObject {
     }
 
     /// Whether the lists show this session right now: C10 (`visible(owner:current:)` over the
-    /// sync tables) and C12 (the owner row, `NanoMuseAccountData.shows`) both agree.
+    /// sync tables) and C12 (the owner row, `NanoMuseAccountData.shows`) both agree, and it is
+    /// not the feed's working conversation, which is the agent's and no chat of the person's.
     func shows(_ sessionId: String) -> Bool {
-        Self.visible(owner: owner(of: sessionId), current: accountKey) && NanoMuseAccountData.shared.shows(sessionId)
+        !NanoMuseFeedFlow.isFeedSession(sessionId)
+            && Self.visible(owner: owner(of: sessionId), current: accountKey) && NanoMuseAccountData.shared.shows(sessionId)
     }
 
     /// C12: the account's table goes with its chats (a sign-out without *Keep*, *Delete

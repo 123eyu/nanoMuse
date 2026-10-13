@@ -282,7 +282,7 @@ final class NanoMuseScheduler: ObservableObject {
         r.lastFiredAt = startedAt
         update(r)
 
-        let outcome = await NanoMuseHeadless.run(prompt: prompt(for: r), sessionId: r.sessionId, title: r.label, source: "nanomuse-routine")
+        let outcome = await NanoMuseHeadless.run(prompt: prompt(for: r), sessionId: r.sessionId, title: r.label, source: "nanomuse-routine", routine: r.label)
         guard var fresh = routine(id: id) else { return outcome.ok }
         if fresh.sessionId == nil, let sid = outcome.sessionId { fresh.sessionId = sid }
         fresh.runs.insert(NanoMuseRoutine.Run(at: startedAt, ok: outcome.ok, note: outcome.note), at: 0)
@@ -396,8 +396,11 @@ enum NanoMuseHeadless {
     }
 
     /// Creates the session when `sessionId` is nil or gone; the turn's last assistant text comes back.
+    /// With `routine` (the routine's label) the turn is marked as the routine's, not the person's:
+    /// its row is a quiet line in the chat and the model is told so for this one turn
+    /// (`NanoMuseRoutineWakes`).
     @MainActor
-    static func run(prompt: String, sessionId: String?, title: String?, source: String, timeout: TimeInterval = 10 * 60) async -> Outcome {
+    static func run(prompt: String, sessionId: String?, title: String?, source: String, routine: String? = nil, timeout: TimeInterval = 10 * 60) async -> Outcome {
         guard ProviderConfigStore.shared.defaultPrimaryGroupId != nil || !ProviderConfigStore.shared.modelEntries.isEmpty else {
             return Outcome(ok: false, sessionId: sessionId, text: "", note: AppLocalized("Add a model first; routines are run by your agent."))
         }
@@ -421,8 +424,23 @@ enum NanoMuseHeadless {
         if vm.isProcessing {
             for await processing in vm.$isProcessing.values where !processing { break }
         }
+        let wake = routine.map { NanoMuseRoutineWakes.Wake(label: String($0.trimmingCharacters(in: .whitespaces).prefix(60)), at: Date()) }
+        if let wake, let session = sid {
+            NanoMuseSessionAddenda.add(session: session, tag: NanoMuseRoutineWakes.addendumTag, text: NanoMuseRoutineWakes.framing(label: wake.label, at: wake.at), turns: 1)
+        }
         vm.inputText = prompt
         vm.send()
+        // `send` appends the user row before it suspends: mark it now, so it is drawn as the
+        // routine's line from its first frame and remembered under its row id once persisted.
+        // A send that did not start (the guard in `send`) leaves no mark and no framing.
+        if let wake, let session = sid {
+            let trimmed = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+            if vm.isProcessing, let row = vm.messages.last(where: { $0.role == .user }), row.nmRoutine == nil, row.content == trimmed {
+                row.nmRoutine = wake
+            } else if !vm.isProcessing {
+                NanoMuseSessionAddenda.remove(session: session, tag: NanoMuseRoutineWakes.addendumTag)
+            }
+        }
         // Wait for the loop to end, with a ceiling.
         let deadline = Date().addingTimeInterval(timeout)
         var finished = !vm.isProcessing

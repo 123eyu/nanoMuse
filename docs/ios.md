@@ -633,6 +633,19 @@ Ours, in `NanoMuse/`:
   at 0 and instead runs its content up under the bar the way upstream's iOS 26 layout does
   (`NavBarStyleModifier`); the bar is UIKit's, so the list's own inset adjustment keeps the
   first row below it, and its rows fade under the scrim behind the bar too.
+- **The feed is written quietly, and a routine speaks first** (`NanoMuseRoutineWakes.swift`;
+  `NanoMuseSync.shows`, `NanoMuseHeadless.run`, the `nmRoutine` spots of `ChatModels.swift`,
+  `AIChatViewModel.swift`, `AIChatViewModel+Persistence.swift` and `ChatMessageViews.swift`).
+  Up to 1.0.4 the daily feed was a conversation titled *Feed* in the drawer, with *Write
+  today's feed.* as a bubble in the person's voice and the model's answer under it, and every
+  routine the person set up began its turn the same way. The feed's conversation is the agent's
+  working room now and the lists leave it out (`shows` says no to it, as it does to another
+  account's chats); the posts arrive in the Feed room as before. A routine's turn is marked as the
+  routine's: the row that carried its prompt is one quiet line, *Routine · 〈label〉 · 08:00*
+  (`NanoMuseRoutineWakeRow`, kept under the row's id so it stays after a reload), and the model
+  gets a one-turn addendum (`NanoMuseSessionAddenda`) saying the person did not type it, so it
+  opens with the result instead of thanking them for asking. The prompt's text is unchanged, so
+  the turn runs as it did.
 
 ## Voice prompts from the Action Button
 
