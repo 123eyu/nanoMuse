@@ -178,7 +178,8 @@ httpx's) carries the value: it is rewritten to `token=[redacted]` before it is w
 ## What the gateway enforces
 
 - **One container per visitor**, `--read-only`, no capabilities, `no-new-privileges`, 512 MB,
-  one CPU, 256 processes, tmpfs for `/data` and `/workspace`. Gone after `SESSION_TTL_S`
+  one CPU, 256 processes, tmpfs for `/data`, `/workspace`, `/home/muse` and `/tmp` (the only
+  places it can write). Gone after `SESSION_TTL_S`
   (30 min) or `IDLE_TTL_S` (10 min) without traffic, and everything in it with it.
 - **No network** from the containers except to the gateway (`docker network --internal`). The
   web fetch and shell tools cannot reach the internet from a demo session; the phone can.
@@ -359,8 +360,9 @@ docker compose up -d --build
 docker compose logs -f gateway
 ```
 
-Open `https://demo.nanomuse.dev`, find nanoMuse in the launcher (search works), and it starts.
-`curl https://demo.nanomuse.dev/api/demo/info` shows sessions in use and today's spend.
+Open `https://demo.nanomuse.dev`: the phone turns itself on with nanoMuse in front, and a
+Muse starts after the sign-in (or by itself once the page has been in view for a while, see
+above). `curl https://demo.nanomuse.dev/api/demo/info` shows sessions in use and today's spend.
 
 Updating: `git pull && docker pull ghcr.io/nano-muse/nanomuse:latest && docker compose pull && docker compose up -d`.
 Sessions in flight end when the gateway restarts; visitors get *Your Muse on the showcase server
@@ -388,9 +390,10 @@ the header (`proxy_headers=False`), so its access log carries Caddy's address an
 visitor's. A front other than this compose file's Caddy goes into `TRUSTED_PROXIES`; `*`
 believes any peer, which is the old behaviour and not advisable.
 
-The two long-lived containers carry a health check (`docker compose ps` shows `healthy` or
+The three long-lived containers carry a health check (`docker compose ps` shows `healthy` or
 `unhealthy`): Caddy answers its admin endpoint on localhost while its config is loaded, the
-gateway answers `GET /api/demo/info`. Docker does not restart an unhealthy container by
+gateway answers `GET /api/demo/info`, and the Docker socket proxy answers `GET /_ping` only
+while the daemon behind it does. Docker does not restart an unhealthy container by
 itself; `restart: unless-stopped` covers a process that exits, and the state is there for the
 operator (or a watcher such as autoheal) to act on.
 
