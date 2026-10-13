@@ -132,9 +132,10 @@ export function FirstSignInSteps() {
                 autoComplete="new-password"
                 autoFocus
                 placeholder={t("At least 8 characters")}
+                aria-label={t("Password")}
                 className={inputCls}
               />
-              <input type="password" value={again} onChange={(e) => setAgain(e.target.value)} autoComplete="new-password" placeholder={t("Once more")} className={cx(inputCls, mismatch && "border-rose-400")} />
+              <input type="password" value={again} onChange={(e) => setAgain(e.target.value)} autoComplete="new-password" placeholder={t("Once more")} aria-label={t("Once more")} className={cx(inputCls, mismatch && "border-rose-400")} />
               {mismatch && <p className="text-[12px] text-rose-600 dark:text-rose-300">{t("The two do not match.")}</p>}
             </div>
             {error && <div className="rounded-2xl bg-rose-500/12 px-3 py-2 text-[12.5px] text-rose-700 dark:text-rose-300">{error}</div>}

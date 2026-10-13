@@ -67,7 +67,7 @@
 
 **哨兵为什么询问**由运行时根据它的设置写出（`'shell' is in always_ask_tools`、`risk level is 'sensitive' (mode=ask)`、`covered by your 'always' permission for shell:ls`、污点那句）；`web/src/i18n/index.ts` 里的 `localReason()` 认识这些形状，把每一条按控制台的语言写成一句话，保留工具、风险和目的地。今日记录里被拒绝的一步下面是同样的话。不认识的形状原样显示。
 
-**你授予的权限**（头像 → 权限）按它覆盖的工具的风险等级列出，最重的在前：敏感、中等、低、安全（等级来自 `GET /api/state` → `settings.tools`）；每一行写明工具、授权持续多久、什么时候给的，可以单独撤销。
+**你授予的权限**（头像 → 权限）按它覆盖的工具的风险等级列出，最重的在前：敏感、中等、安全（等级来自 `GET /api/state` → `settings.tools`）；每一行写明工具、授权持续多久、什么时候给的，可以单独撤销。
 
 ## 检查 {#checks}
 

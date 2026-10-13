@@ -67,11 +67,12 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import mimetypes
+import os
 import secrets
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -92,6 +93,9 @@ from nanomuse.server.channels_api import install_channels
 from nanomuse.server.events import MAIN_THREAD
 from nanomuse.server.service import MuseService, goal_to_dict
 from nanomuse.server.update import UpdateCheck
+
+if TYPE_CHECKING:
+    from starlette.types import Scope
 
 STATIC_DIR = Path(__file__).parent / "static"
 # Said to a client that still puts the token in the URL (taken until 0.1.32).
@@ -1976,9 +1980,27 @@ def create_app(settings: Settings, service: MuseService | None = None) -> FastAP
         # nanoMuse: the avatars are WebP; older Python mimetypes tables do not know it
         mimetypes.add_type("image/webp", ".webp")
 
+        class HashedAssets(StaticFiles):
+            """The build's files under /assets carry a content hash in their names.
+
+            A new build gets new names, so a browser may keep a copy for a year without
+            ever asking again; index.html (``no-cache``) is what names the current set.
+            """
+
+            def file_response(
+                self,
+                full_path: str | os.PathLike[str],
+                stat_result: os.stat_result,
+                scope: Scope,
+                status_code: int = 200,
+            ) -> Response:
+                response = super().file_response(full_path, stat_result, scope, status_code)
+                response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+                return response
+
         assets = STATIC_DIR / "assets"
         if assets.is_dir():
-            app.mount("/assets", StaticFiles(directory=assets), name="assets")
+            app.mount("/assets", HashedAssets(directory=assets), name="assets")
 
         @app.get("/{full_path:path}", include_in_schema=False)
         async def spa(full_path: str) -> Response:

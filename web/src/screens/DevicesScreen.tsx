@@ -84,7 +84,7 @@ export function DevicesScreen() {
         <div className="px-5 pb-4 pt-1">
           <p className="text-[14px] leading-[20px] text-muted">{t("Every device signed in to your account is a Muse of its own, on the same conversations. Type @ and a device's name in the chat to hand it work; a computer lends its hands.")}</p>
           {hub && signedIn && total > 0 && (
-            <p className="mt-1.5 text-[12.5px] font-medium uppercase tracking-wide text-muted/80">
+            <p className="mt-1.5 text-[12.5px] font-medium uppercase tracking-wide text-muted">
               {total === 1 ? t("1 device") : t("{n} devices", { n: total })} · {t("{n} online", { n: online })}
             </p>
           )}
@@ -130,7 +130,7 @@ export function DevicesScreen() {
 }
 
 function SectionLabel({ children }: { children: ReactNode }) {
-  return <p className="px-1 pb-2 text-[12.5px] font-medium uppercase tracking-wide text-muted/80">{children}</p>;
+  return <p className="px-1 pb-2 text-[12.5px] font-medium uppercase tracking-wide text-muted">{children}</p>;
 }
 
 /** The small grey line under a switch row inside a card. */
