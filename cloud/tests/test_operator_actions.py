@@ -25,20 +25,34 @@ def timeline(cloud, account_id: str) -> list[tuple[str, str]]:
     return [(r["kind"], r["detail"]) for r in cloud.db.events_for(account_id, 50)]
 
 
-async def test_a_disabled_account_gets_no_code_and_no_message_is_sent():
+async def test_a_disabled_account_gets_no_code_and_the_answer_says_nothing():
+    """A disabled account's code request is refused quietly: the same 204 as anyone's, no
+    SMS or mail sent, and the per-identifier limit counting as it does for an enabled
+    account, so a probe at /v1/auth/code learns neither that the number has an account nor
+    that the operator switched it off. The person who holds the account is told at
+    /v1/auth/verify, as before."""
     app, client, sender, up, cloud, settings = make()
     me = await sign_up(client, sender)
     sent = len(sender.sent)
     r = await client.post("/v1/admin/disable", headers=ADMIN, json={"account_id": me["account"]["id"]})
     assert r.status_code == 204, r.text
+    cloud.db._conn.execute("DELETE FROM codes")  # the sign-up's own code, so the count below starts at zero
+    # the same limit as an enabled account: `code_per_identifier_10m` quiet 204s, then 429
+    for _ in range(settings.code_per_identifier_10m):
+        r = await client.post("/v1/auth/code", json={"identifier": "13800138000"})
+        assert r.status_code == 204 and r.content == b"", r.text
     r = await client.post("/v1/auth/code", json={"identifier": "13800138000"})
-    assert r.status_code == 403 and r.json()["error"]["code"] == "account_disabled"
+    assert r.status_code == 429 and r.json()["error"]["code"] == "code_too_often"
     assert len(sender.sent) == sent, "no code left the relay"
-    # a stranger's number is not told anything about being disabled
+    # a stranger's number gets the very same answers
     r = await client.post("/v1/auth/code", json={"identifier": "13900001111"})
-    assert r.status_code == 204
+    assert r.status_code == 204 and r.content == b""
+    # a code that was never sent cannot be guessed into a sign-in
+    r = await client.post("/v1/auth/verify", json={"identifier": "13800138000", "code": "000000", "device": "t"})
+    assert r.status_code == 400 and r.json()["error"]["code"] == "code_wrong"
     # enabled again, the code comes
     await client.post("/v1/admin/disable", headers=ADMIN, json={"account_id": me["account"]["id"], "disabled": False})
+    cloud.db._conn.execute("DELETE FROM codes")
     r = await client.post("/v1/auth/code", json={"identifier": "13800138000"})
     assert r.status_code == 204 and len(sender.sent) == sent + 2
 

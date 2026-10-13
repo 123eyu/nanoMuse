@@ -79,7 +79,7 @@ Errors carry a stable `code` the app can turn into a sentence:
 | 401 | `bad_key` | unknown or revoked key — the phone keeps the account's data aside for the next sign-in |
 | 401 | `account_deleted` | the key's account was deleted (0.1.40; remembered for 90 days) — the phone may delete the account's data |
 | 402 | `out_of_tokens` | grant used up — top up with the admin endpoint |
-| 403 | `account_disabled` | the operator switched the account off: its keys answer `401 bad_key`, and `POST /v1/auth/code` answers this before any code is sent |
+| 403 | `account_disabled` | the operator switched the account off: its keys answer `401 bad_key`, and `POST /v1/auth/verify` and `/v1/auth/login` answer this. `POST /v1/auth/code` answers the same `204` as for anyone, counts towards the same limits and sends nothing, so a request there learns neither that the number has an account nor that it is off |
 | 403 | `session_from_session` | `POST /v1/auth/session-key` was called with a session key; only a device's standing key may mint one, so a leaked short-lived key cannot renew itself |
 | 404 | `model_not_offered` | not on the menu |
 | 400 | `no_secrets_in_profile` | a profile `connectors` entry carried a key named like a credential; nothing was stored |

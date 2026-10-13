@@ -2,7 +2,7 @@
 
     GET  /healthz                                               → {ok, version, models, paused}
     GET  /v1/config                                             → the public figures the apps print (allowance, bonus, links, code_ttl_s, password_min_len); a minute's cache
-    POST /v1/auth/code        {identifier}                      → 204 (400 phone_region: a number the SMS sender cannot reach; 403 account_disabled before any code is sent; 429 domain_limited: a new address of a domain at its day's sign-up limit)
+    POST /v1/auth/code        {identifier}                      → 204 (400 phone_region: a number the SMS sender cannot reach; a disabled account gets the same 204 and no code is sent; 429 domain_limited: a new address of a domain at its day's sign-up limit)
     POST /v1/auth/verify      {identifier, code, device, invite?} → {api_key, base_url, account, tokens, models}
     POST /v1/auth/login       {identifier, password, device}    → the same, for accounts that set a password
     POST /v1/auth/password    {password, current?}              → 204 (set / change; "" + current removes)
