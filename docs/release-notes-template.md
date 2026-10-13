@@ -28,7 +28,7 @@
 ## Upgrade Notes
 
 - **Android installs over <previous> and keeps your data.** `nanoMuse-<version>-arm64.apk` (Android 8.0+, arm64; versionCode <n>) is signed with the same key as every version before it. Verify with `sha256sum -c nanoMuse-<version>-arm64.apk.sha256`.
-- **The desktop installers are not notarised.** On macOS open the app once from *System Settings → Privacy & Security → Open Anyway* (or right-click → *Open*); on Windows click *Run anyway*. They arrive a little after the APK (CI builds them from the tag), and `SHA256SUMS-desktop.txt` lists every checksum.
+- **The desktop installers are not notarised.** On macOS open the app once from *System Settings → Privacy & Security → Open Anyway* (or right-click → *Open*); on Windows click *Run anyway*. They arrive a little after the APK (CI builds them from the tag), and `SHA256SUMS-desktop.txt` lists every checksum, the Windows update metadata included (`latest.yml` and the installer's `.exe.blockmap`).
 - <Anything a person upgrading must know: a setting that moved, a relay version an operator needs, a platform that needs a newer build.>
 - **Where to get it.**
 
@@ -69,7 +69,7 @@ Based on [OpenMinis](https://github.com/OpenMinis/OpenMinis) 1.13 (GPL-3.0), mod
 ### 升级说明
 
 - **Android 覆盖安装 <previous>，数据保留。** `nanoMuse-<version>-arm64.apk`（Android 8.0+，arm64；versionCode <n>）和之前每个版本用同一把签名。校验：`sha256sum -c nanoMuse-<version>-arm64.apk.sha256`。
-- **桌面安装包没有经过公证。** macOS 第一次在「系统设置 → 隐私与安全性」里点「仍要打开」（或右键 → 「打开」），Windows 点「仍要运行」。安装包会比 APK 晚一点到（CI 从 tag 构建它们）；`SHA256SUMS-desktop.txt` 列出了所有校验值。
+- **桌面安装包没有经过公证。** macOS 第一次在「系统设置 → 隐私与安全性」里点「仍要打开」（或右键 → 「打开」），Windows 点「仍要运行」。安装包会比 APK 晚一点到（CI 从 tag 构建它们）；`SHA256SUMS-desktop.txt` 列出了所有校验值，也包括 Windows 的更新元数据（`latest.yml` 和安装包的 `.exe.blockmap`）。
 - <升级的人必须知道的事：挪了位置的设置、运维者需要的中转版本、需要新构建的平台。>
 - **去哪下载。**
 
