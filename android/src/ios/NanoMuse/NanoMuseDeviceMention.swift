@@ -101,7 +101,7 @@ enum NanoMuseDeviceMention {
                 }
                 vm.nmLocalTurn(assistant: String(format: AppLocalized("%@ answered:"), device.name) + "\n\n" + answer)
             } catch {
-                let reason = (error as? HubError)?.message ?? error.localizedDescription
+                let reason = NanoMuseHubErrors.describe(error)
                 vm.nmLocalTurn(assistant: String(format: AppLocalized("%@ did not answer: %@"), device.name, reason))
             }
         }

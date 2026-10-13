@@ -501,6 +501,7 @@ struct NanoMuseGoalsRoom: View {
                     .frame(width: 28, height: 28)
                     .contentShape(Rectangle())
             }
+            .accessibilityLabel(Text(AppLocalized("More")))
         }
         .padding(.vertical, 10)
         .contentShape(Rectangle())
@@ -587,6 +588,7 @@ struct NanoMuseGoalsRoom: View {
                     .frame(width: 28, height: 28)
                     .contentShape(Rectangle())
             }
+            .accessibilityLabel(Text(AppLocalized("More")))
         }
         .padding(.vertical, 10)
     }

@@ -626,6 +626,7 @@ struct NanoMusePostCard: View {
                 } label: {
                     Image(systemName: "ellipsis").foregroundStyle(.secondary).frame(width: 24, height: 24).contentShape(Rectangle())
                 }
+                .accessibilityLabel(Text(AppLocalized("More")))
             }
         }
         .padding(14)
