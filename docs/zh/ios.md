@@ -527,6 +527,20 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   （`NanoMuseRoutineWakeRow`，按行的 id 记住，重新加载后还在），模型则收到一条只管这一轮的附言
   （`NanoMuseSessionAddenda`），说明这不是本人打的字，于是它直接从结果说起，而不是感谢对方的
   提问。提示词本身没有变，这一轮照原样跑。
+- **第四轮审计（1.0.x）**（`*.lproj/AppShortcuts.strings`、`NanoMuseChrome.swift`、
+  `NanoMuseShell.swift`、`NanoMuseAgentPage.swift`、`NanoMuseHub.swift`、
+  `NanoMuseBackgroundSettings.swift`、`Localizable.xcstrings`）：Siri 唤起短语补齐了九种语言
+  （此前只有英文和两种中文，日语、韩语、德语、西班牙语、法语、俄语的手机拿到的是英文短语）。
+  Muse 页面的标题、抽屉里和智能体页面上的名字跟随「动态字体」放大，和头部两行一样最多到基准的
+  1.35 倍（`NanoMuseHeaderMetrics`）；此前固定在 17 pt 和 24 pt。点子上的 *创建例程* 现在真的会
+  打开例程编辑器：这张表单改由外壳自己持有；此前是让目标页去打开，而看点子页时目标页并不在
+  屏幕上，于是例程按点子的时间建好了，却什么也没弹出来。*后台与通知* 页说的就是手机实际做的事：
+  通知要么是例程到点的提醒，要么是另一台设备发来的消息；「后台 App 刷新」只让 iOS 发出提醒，
+  从不运行例程（此前写的是 App 会得到时间片把例程做完）。来自 Hub 或电脑的失败（*编程助手*、
+  Reach 面板、`@设备` 消息）按 Hub 的错误码变成一句本机语言的话，和 Android 的
+  `HubErrors.describe` 一样（`NanoMuseHubErrors`）：*那台电脑不在线。*、*电脑没有及时回应。*、
+  *电脑上的 nanoMuse 版本较旧，不认识这个操作。*；此前直接显示中继或运行时发来的英文原句。
+  资源库和账号页的分段选择器、目标、例程、动态帖子的 ••• 菜单都带上了 VoiceOver 标签。
 
 ## 用操作按钮说一句 {#voice-prompts-from-the-action-button}
 
@@ -545,8 +559,9 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
 麦克风，走 `VoiceInputViewModel.handleMainButtonTap` 和它的权限流程。只有一条录音路径、一套识别
 栈；转写文字照常进入 `inputText`。超过 30 秒没人接的请求会被丢弃。iOS 不让 App Intent 接收自由
 语音，所以这是一个语音入口，而不是一口气说完的「问 nanoMuse 某件事」；App 之所以要打开，是因为
-屏幕上什么都没有而麦克风在转，看起来就像出了故障。Siri 的唤起短语在三张 `AppShortcuts.strings`
-表里（英文、简体中文、繁体中文），意图自己的字符串在 `Localizable.xcstrings`（#296、#298）。
+屏幕上什么都没有而麦克风在转，看起来就像出了故障。Siri 的唤起短语在九张 `AppShortcuts.strings`
+表里（每个 `<lang>.lproj` 一张，因为部署目标是 iOS 16 所以用旧式 `.strings`），意图自己的字符串在
+`Localizable.xcstrings`（#296、#298）。
 
 ## 在 Mac 上构建 {#building-on-a-mac}
 
