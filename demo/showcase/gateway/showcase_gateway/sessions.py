@@ -131,7 +131,7 @@ def _day_key(now: float) -> str:
 
 
 def _resolve(host: str, port: int) -> list[str]:
-    return [info[4][0] for info in socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)]
+    return [str(info[4][0]) for info in socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)]
 
 
 def check_provider(base_url: str, allowed_hosts: tuple[str, ...], resolve=_resolve) -> str:

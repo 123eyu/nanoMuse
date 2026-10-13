@@ -257,7 +257,7 @@ def create_app(
             )
         except Refused as exc:
             # with the CORS headers too, so the phone's page reads the reason, not a bare failure
-            response = _refused(exc)
+            response: Response = _refused(exc)
             for name, value in cors.items():
                 response.headers[name] = value
             return response

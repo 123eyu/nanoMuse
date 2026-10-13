@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6"]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6", "mypy>=1.10"]
 
 [project.scripts]
 showcase-gateway = "showcase_gateway.__main__:main"
@@ -36,3 +36,13 @@ ignore = ["E501", "B008"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+# the same strictness as the runtime's root pyproject.toml; the mirror's two scripts next door
+# are checked with the gateway (`mypy` from this directory, as .github/workflows/showcase.yml runs it)
+[tool.mypy]
+python_version = "3.11"
+files = ["showcase_gateway", "tests", "../mirror/traffic.py", "../mirror/release-sync.py"]
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_redundant_casts = true
+warn_unreachable = true

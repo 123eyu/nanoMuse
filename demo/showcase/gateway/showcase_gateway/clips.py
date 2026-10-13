@@ -24,6 +24,7 @@ import logging
 import re
 import secrets
 from dataclasses import dataclass
+from typing import Any
 from urllib.parse import urlsplit
 
 import httpx
@@ -31,6 +32,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from .config import Settings
+from .images import provider_message
 from .sessions import Refused, Session, SessionManager
 
 log = logging.getLogger("showcase.clips")
@@ -206,7 +208,8 @@ class Clips:
             raise Refused(400, "bad_request", "The request is not JSON.") from exc
         if not isinstance(body, dict):
             raise Refused(400, "bad_request", "The request is not JSON.")
-        inp = body.get("input") if isinstance(body.get("input"), dict) else {}
+        raw_input = body.get("input")
+        inp: dict[str, Any] = raw_input if isinstance(raw_input, dict) else {}
         prompt = str(inp.get("prompt", "")).strip()[:800]
         img = str(inp.get("img_url", ""))
         if not prompt or not img.startswith("oss://"):
@@ -217,7 +220,8 @@ class Clips:
                 400, "no_frame", "The frame is not here (uploaded, and not too long ago?)"
             )
         manager.check_clips(sess)
-        given = body.get("parameters") if isinstance(body.get("parameters"), dict) else {}
+        raw_parameters = body.get("parameters")
+        given: dict[str, Any] = raw_parameters if isinstance(raw_parameters, dict) else {}
         parameters = {k: v for k, v in given.items() if k in PARAMETERS}
         if isinstance(parameters.get("duration"), (int, float)):
             parameters["duration"] = min(int(parameters["duration"]), MAX_SECONDS)
@@ -315,12 +319,8 @@ class Clips:
 
     @staticmethod
     def _detail(r: httpx.Response) -> str:
-        message = ""
-        try:
-            message = str(r.json().get("message", ""))
-        except ValueError:
-            pass
         log.warning("video provider HTTP %s: %s", r.status_code, r.text[:300])
+        message = provider_message(r)
         return f": {message}" if message else ""
 
     def _own_host(self, url: str) -> bool:

@@ -302,7 +302,8 @@ class VisitorBook:
         return await self._admit(data, ip, ua)
 
     async def _admit(self, data: dict[str, Any], ip: str, ua: str = "") -> tuple[str, Visitor]:
-        info = data.get("account") if isinstance(data.get("account"), dict) else {}
+        raw_account = data.get("account")
+        info: dict[str, Any] = raw_account if isinstance(raw_account, dict) else {}
         visitor_id = str(info.get("id") or "")
         if not visitor_id:
             raw = f"{info.get('channel')}|{info.get('hint')}|{info.get('created_at')}"
@@ -354,16 +355,20 @@ class VisitorBook:
         """A demo Muse started: the visitor's count and whereabouts, and a visit row — also
         for a demo without a sign-in (``visitor`` None), which the operator still sees."""
         now = self.clock()
+        # "?" is the gateway's word for a peer it could not name: no address, not that string
+        ip = str(getattr(sess, "ip", "") or "") if sess is not None else ""
+        if ip == "?":
+            ip = ""
         if visitor is not None:
             visitor.sessions += 1
-            visitor.seen(getattr(sess, "ip", "") if sess is not None else "", ua, now)
+            visitor.seen(ip, ua, now)
             self.store.put(visitor)
         if sess is not None:
             self.store.visit_started(
                 sess.id,
                 visitor.id if visitor else "",
                 visitor.hint if visitor else "",
-                "" if sess.ip == "?" else sess.ip,
+                ip,
                 ua,
                 now,
                 bool(getattr(sess, "byok", None)),

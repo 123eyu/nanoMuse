@@ -138,6 +138,17 @@ async def test_the_days_share_and_a_busy_provider(world):
         # and no prompt is no picture
         r = await c.post(f"{base}/images/generations", json={"model": "m"}, headers=auth)
         assert r.status_code == 400
+        # a refusal whose body is JSON but not an object (a list, a string) is still a
+        # refusal here, with the status in it, not a 500 from reading .get on a list
+        for text in ("[]", '"quota"', '{"message": "Arrearage"}'):
+            upstream.draw_refusal = (403, text)
+            r = await c.post(
+                f"{base}/images/generations", json={"model": "m", "prompt": "x"}, headers=auth
+            )
+            assert r.status_code == 502, r.text
+            assert body(r)["error"]["message"].startswith("The image provider refused (403")
+        assert body(r)["error"]["message"].endswith(": Arrearage)")
+        upstream.draw_refusal = None
 
 
 async def test_no_pictures_without_a_model_or_on_your_own_key(world):
