@@ -45,6 +45,7 @@ https://github.com/user-attachments/assets/c7694d5a-9450-4f99-9254-5d70560d7565
 
 ## 🗞️ Kabar
 
+- `2026-10-13` ⭐ 1.000 bintang di GitHub, delapan belas hari setelah rilis pertama, dengan empat hari di daftar Swift GitHub Trending di sepanjang jalan ([Trendshift](https://trendshift.io/repositories/286894): ketujuh pada 7 Oktober, keempat pada 10 Oktober). Terima kasih untuk setiap percobaan, setiap laporan, dan setiap pull request. Kami terus berjalan: satu versi setiap beberapa hari, dan [peta jalan](../roadmap.md) menyebutkan apa yang berikutnya.
 - `2026-10-09` 🚀 Versi [1.0.0 Keel](https://github.com/nano-muse/nanoMuse/releases/tag/v1.0.0) sudah tersedia, untuk ponsel, desktop, dan peramban; dipasang di atas versi sebelumnya dengan data tetap utuh, dan catatan rilisnya memuat setiap perubahan.
 - `2026-10-08` 🤗 Makalah kami masuk [Hugging Face Daily Papers](https://huggingface.co/papers/2610.08699), peringkat ketiga di daftar 8 Oktober; pertanyaan dan komentar silakan disampaikan di halaman makalah.
 - `2026-10-07` 📄 Makalah kami tersedia di [arXiv](https://arxiv.org/abs/2610.08699): *nanoMuse: An Open-Source Personal Agent for Every Device You Own*, oleh Guangyi Liu, Yong Liu, dan Jiangning Zhang (Universitas Zhejiang); sitasinya ada di akhir halaman ini.

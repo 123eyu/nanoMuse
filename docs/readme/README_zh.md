@@ -45,6 +45,7 @@ https://github.com/user-attachments/assets/bf0ec2ae-59aa-4358-9dd0-c9d045ee7bee
 
 ## 🗞️ 动态
 
+- `2026-10-13` ⭐ GitHub 上 1000 个 star，距首发十八天，期间连续四天进入 GitHub Trending 的 Swift 榜（[Trendshift](https://trendshift.io/repositories/286894) 的记录：10 月 7 日第七，10 月 10 日第四）。谢谢每一次试用、每一个问题报告和每一个 pull request。我们会继续做下去：每隔几天一个版本，下一步做什么写在[路线图](../roadmap.md)里。
 - `2026-10-09` 🚀 版本 [1.0.0 Keel](https://github.com/nano-muse/nanoMuse/releases/tag/v1.0.0) 发布，手机、电脑和浏览器都有；装在上一版之上，数据保留，每一处改动都写在发布说明里。
 - `2026-10-08` 🤗 我们的论文登上 [Hugging Face Daily Papers](https://huggingface.co/papers/2610.08699)，在 10 月 8 日的榜单上排第三；欢迎到论文页提问和留言。
 - `2026-10-07` 📄 我们的论文已发布在 [arXiv](https://arxiv.org/abs/2610.08699)：《nanoMuse: An Open-Source Personal Agent for Every Device You Own》，作者 Guangyi Liu、Yong Liu、Jiangning Zhang（浙江大学）；引用格式见本页末尾。
