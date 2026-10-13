@@ -610,6 +610,8 @@
     <string name="nm_risk_title_device">Benarkan “%1$s” mengendalikan telefon ini?</string>
     <string name="nm_risk_desc_device">“%1$s”, peranti lain pada akaun anda, mahu %2$s di telefon ini. Butirannya ditunjukkan di bawah. “Sentiasa” membenarkan peranti itu melakukan perkara sebegini di sini tanpa bertanya; tarik balik di bawah Kebenaran.</string>
     <string name="nm_risk_preview_device">Apa yang diminta peranti</string>
+    <string name="nm_risk_preview_show_all">Tunjukkan semua (%1$d baris)</string>
+    <string name="nm_risk_preview_show_less">Tunjukkan kurang</string>
     <string name="nm_risk_class_remote">Kawalan jauh</string>
     <string name="nm_hub_remote_reason">%1$s boleh mengendalikan telefon ini</string>
 

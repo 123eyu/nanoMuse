@@ -610,6 +610,8 @@
     <string name="nm_risk_title_device">Izinkan “%1$s” mengoperasikan ponsel ini?</string>
     <string name="nm_risk_desc_device">“%1$s”, perangkat lain di akunmu, ingin %2$s di ponsel ini. Detailnya ditampilkan di bawah. “Selalu” membiarkan perangkat itu melakukan hal seperti ini di sini tanpa bertanya; tarik kembali di bagian Izin.</string>
     <string name="nm_risk_preview_device">Yang diminta perangkat itu</string>
+    <string name="nm_risk_preview_show_all">Tampilkan semua (%1$d baris)</string>
+    <string name="nm_risk_preview_show_less">Tampilkan lebih sedikit</string>
     <string name="nm_risk_class_remote">Kendali jarak jauh</string>
     <string name="nm_hub_remote_reason">%1$s boleh mengoperasikan ponsel ini</string>
 

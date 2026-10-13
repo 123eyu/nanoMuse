@@ -614,6 +614,8 @@
     <string name="nm_risk_title_device">Autoriser « %1$s » à piloter ce téléphone ?</string>
     <string name="nm_risk_desc_device">« %1$s », un autre appareil de votre compte, veut %2$s sur ce téléphone. Le détail est ci-dessous. « Toujours » laisse cet appareil faire ce genre de choses ici sans demander ; revenez dessus sous Permissions.</string>
     <string name="nm_risk_preview_device">Ce que l’appareil a demandé</string>
+    <string name="nm_risk_preview_show_all">Tout afficher (%1$d lignes)</string>
+    <string name="nm_risk_preview_show_less">Réduire</string>
     <string name="nm_risk_class_remote">Contrôle à distance</string>
     <string name="nm_hub_remote_reason">%1$s peut piloter ce téléphone</string>
 

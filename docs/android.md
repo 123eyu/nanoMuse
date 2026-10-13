@@ -137,7 +137,10 @@ capsules stack with one edge. While the agent uses tools,
 the step bar sits above the composer; the latest message and tool pills can scroll fully
 above both. The conversation still scrolls behind the navigation pill for its frosted blur.
 The spacing follows the actual footer height when the composer expands or a tool preview
-or approval card appears. When reading older messages, a slightly lighter fade follows
+or approval card appears. The approval card itself takes at most two thirds of the screen:
+a command longer than six lines is folded behind *Show all*, the description and the
+preview scroll in the middle, and Allow and Deny stay in view at the bottom. When reading
+older messages, a slightly lighter fade follows
 the composer's rounded outline. Live browser controls hide it; historical tool pills and
 other tools keep it. In dark-mode home and side chats, pure black surrounds the navigation
 pill and fills the gap below the composer. Its glass stays open to the scrolling content

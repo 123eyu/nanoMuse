@@ -613,6 +613,8 @@
     <string name="nm_risk_title_device">¿Permitir que “%1$s” maneje este teléfono?</string>
     <string name="nm_risk_desc_device">“%1$s”, otro dispositivo de tu cuenta, quiere %2$s en este teléfono. Abajo se muestra exactamente qué. “Siempre” deja que ese dispositivo haga estas cosas aquí sin preguntar; retíralo en Permisos.</string>
     <string name="nm_risk_preview_device">Qué pidió el dispositivo</string>
+    <string name="nm_risk_preview_show_all">Mostrar todo (%1$d líneas)</string>
+    <string name="nm_risk_preview_show_less">Mostrar menos</string>
     <string name="nm_risk_class_remote">Control remoto</string>
     <string name="nm_hub_remote_reason">%1$s puede manejar este teléfono</string>
 

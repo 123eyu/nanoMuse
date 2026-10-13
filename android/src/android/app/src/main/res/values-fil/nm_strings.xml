@@ -613,6 +613,8 @@
     <string name="nm_risk_title_device">Payagan ang “%1$s” na patakbuhin ang teleponong ito?</string>
     <string name="nm_risk_desc_device">Gusto ng “%1$s”, isa pang device sa account mo, na %2$s sa teleponong ito. Nasa ibaba kung ano nga ba ito. Hinahayaan ng “Lagi” ang device na iyon na gawin ang mga ganitong bagay dito nang hindi nagtatanong; bawiin ito sa ilalim ng Mga pahintulot.</string>
     <string name="nm_risk_preview_device">Ang hiniling ng device</string>
+    <string name="nm_risk_preview_show_all">Ipakita lahat (%1$d linya)</string>
+    <string name="nm_risk_preview_show_less">Ipakita nang mas kaunti</string>
     <string name="nm_risk_class_remote">Remote na kontrol</string>
     <string name="nm_hub_remote_reason">Maaaring patakbuhin ng %1$s ang teleponong ito</string>
 

@@ -610,6 +610,8 @@
     <string name="nm_risk_title_device">「%1$s」にこの端末の操作を許可しますか？</string>
     <string name="nm_risk_desc_device">アカウント上の別のデバイス「%1$s」が、この端末で次の操作をしようとしています: %2$s。具体的な内容は下に表示されています。「常に」を選ぶと、そのデバイスは確認なしでここでこうした操作ができます。取り消すには権限から。</string>
     <string name="nm_risk_preview_device">デバイスからの依頼内容</string>
+    <string name="nm_risk_preview_show_all">すべて表示（%1$d 行）</string>
+    <string name="nm_risk_preview_show_less">折りたたむ</string>
     <string name="nm_risk_class_remote">リモート操作</string>
     <string name="nm_hub_remote_reason">%1$s はこの端末を操作できます</string>
 

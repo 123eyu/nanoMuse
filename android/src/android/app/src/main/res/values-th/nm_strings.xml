@@ -610,6 +610,8 @@
     <string name="nm_risk_title_device">อนุญาตให้ “%1$s” ควบคุมโทรศัพท์เครื่องนี้ไหม</string>
     <string name="nm_risk_desc_device">“%1$s” อุปกรณ์อีกเครื่องในบัญชีของคุณ ต้องการ%2$sบนโทรศัพท์เครื่องนี้ รายละเอียดแสดงอยู่ด้านล่าง “เสมอ” จะให้อุปกรณ์นั้นทำสิ่งแบบนี้ที่นี่ได้โดยไม่ถาม เพิกถอนได้ใต้ สิทธิ์</string>
     <string name="nm_risk_preview_device">สิ่งที่อุปกรณ์ขอ</string>
+    <string name="nm_risk_preview_show_all">แสดงทั้งหมด (%1$d บรรทัด)</string>
+    <string name="nm_risk_preview_show_less">แสดงน้อยลง</string>
     <string name="nm_risk_class_remote">ควบคุมระยะไกล</string>
     <string name="nm_hub_remote_reason">%1$s ควบคุมโทรศัพท์เครื่องนี้ได้</string>
 

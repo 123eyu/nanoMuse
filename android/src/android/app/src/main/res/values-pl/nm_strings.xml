@@ -619,6 +619,8 @@
     <string name="nm_risk_title_device">Zezwolić „%1$s” na sterowanie tym telefonem?</string>
     <string name="nm_risk_desc_device">„%1$s”, inne urządzenie na twoim koncie, chce %2$s na tym telefonie. Co dokładnie, widać poniżej. „Zawsze” pozwala temu urządzeniu robić tu takie rzeczy bez pytania; cofniesz to w Uprawnieniach.</string>
     <string name="nm_risk_preview_device">O co poprosiło urządzenie</string>
+    <string name="nm_risk_preview_show_all">Pokaż wszystko (%1$d wierszy)</string>
+    <string name="nm_risk_preview_show_less">Pokaż mniej</string>
     <string name="nm_risk_class_remote">Zdalne sterowanie</string>
     <string name="nm_hub_remote_reason">%1$s może sterować tym telefonem</string>
 

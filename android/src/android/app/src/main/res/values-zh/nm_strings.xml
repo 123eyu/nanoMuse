@@ -596,6 +596,8 @@
     <string name="nm_risk_title_device">允许「%1$s」操作这台手机吗？</string>
     <string name="nm_risk_desc_device">「%1$s」是你账号下的另一台设备，想在这台手机上 %2$s。具体内容见下方。选「始终」后，那台设备以后在这里做这类事不再询问；可在「权限」里收回。</string>
     <string name="nm_risk_preview_device">那台设备的请求</string>
+    <string name="nm_risk_preview_show_all">全部显示（%1$d 行）</string>
+    <string name="nm_risk_preview_show_less">收起</string>
     <string name="nm_risk_class_remote">远程控制</string>
     <string name="nm_hub_remote_reason">%1$s 可以操作这台手机</string>
 

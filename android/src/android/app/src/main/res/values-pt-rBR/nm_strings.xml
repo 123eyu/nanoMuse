@@ -614,6 +614,8 @@
     <string name="nm_risk_title_device">Permitir que “%1$s” opere este celular?</string>
     <string name="nm_risk_desc_device">“%1$s”, outro dispositivo da sua conta, quer %2$s neste celular. O que exatamente está abaixo. “Sempre” deixa esse dispositivo fazer coisas assim aqui sem perguntar; desfaça em Permissões.</string>
     <string name="nm_risk_preview_device">O que o dispositivo pediu</string>
+    <string name="nm_risk_preview_show_all">Mostrar tudo (%1$d linhas)</string>
+    <string name="nm_risk_preview_show_less">Mostrar menos</string>
     <string name="nm_risk_class_remote">Controle remoto</string>
     <string name="nm_hub_remote_reason">%1$s pode operar este celular</string>
 

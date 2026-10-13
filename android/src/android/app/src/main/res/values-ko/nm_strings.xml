@@ -610,6 +610,8 @@
     <string name="nm_risk_title_device">“%1$s”이(가) 이 휴대전화를 조작하도록 허용할까요?</string>
     <string name="nm_risk_desc_device">내 계정의 다른 기기 “%1$s”이(가) 이 휴대전화에서 %2$s하려고 합니다. 정확한 내용은 아래에 있습니다. “항상”을 고르면 그 기기는 묻지 않고 여기서 이런 일을 할 수 있습니다. 권한에서 되돌릴 수 있습니다.</string>
     <string name="nm_risk_preview_device">기기가 요청한 내용</string>
+    <string name="nm_risk_preview_show_all">모두 표시(%1$d줄)</string>
+    <string name="nm_risk_preview_show_less">접기</string>
     <string name="nm_risk_class_remote">원격 제어</string>
     <string name="nm_hub_remote_reason">%1$s이(가) 이 휴대전화를 조작할 수 있음</string>
 
