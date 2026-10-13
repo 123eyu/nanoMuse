@@ -44,6 +44,17 @@ def _b64url(raw: bytes) -> str:
     return base64.urlsafe_b64encode(raw).decode().rstrip("=")
 
 
+def _write_private(path: Path, text: str) -> None:
+    """Write ``text`` to a file only its owner can read: created with mode 0600 before any
+    content lands in it, so there is no moment with the secrets world-readable."""
+    path.touch(mode=0o600, exist_ok=True)
+    try:
+        path.chmod(0o600)  # an older file written without the mode
+    except OSError:
+        pass
+    path.write_text(text, encoding="utf-8")
+
+
 class PushService:
     def __init__(self, data_dir: Path, contact: str = "mailto:nanomuse@localhost"):
         self.data_dir = data_dir
@@ -59,7 +70,7 @@ class PushService:
     def _load(self) -> None:
         if self._vapid.is_file():
             try:
-                data = json.loads(self._vapid.read_text())
+                data = json.loads(self._vapid.read_text(encoding="utf-8"))
                 self.private_key_pem = data["private_key_pem"]
                 self.public_key = data["public_key"]
             except (ValueError, KeyError, TypeError, OSError):
@@ -70,7 +81,7 @@ class PushService:
             try:
                 self.subscriptions = [
                     s
-                    for s in json.loads(self._subs_file.read_text())
+                    for s in json.loads(self._subs_file.read_text(encoding="utf-8"))
                     if isinstance(s, dict) and s.get("endpoint")
                 ]
             except (ValueError, TypeError, OSError):
@@ -91,17 +102,16 @@ class PushService:
             v.public_key.public_bytes(Encoding.X962, PublicFormat.UncompressedPoint)
         )
         self.data_dir.mkdir(parents=True, exist_ok=True)
-        self._vapid.write_text(
-            json.dumps({"private_key_pem": self.private_key_pem, "public_key": self.public_key})
+        _write_private(
+            self._vapid,
+            json.dumps({"private_key_pem": self.private_key_pem, "public_key": self.public_key}),
         )
-        try:
-            self._vapid.chmod(0o600)
-        except OSError:
-            pass
 
     def _save_subscriptions(self) -> None:
+        # a subscription carries the browser's p256dh and auth secrets: whoever holds them
+        # and the VAPID key can send that browser notifications, so the file is ours only
         self.data_dir.mkdir(parents=True, exist_ok=True)
-        self._subs_file.write_text(json.dumps(self.subscriptions, indent=1))
+        _write_private(self._subs_file, json.dumps(self.subscriptions, indent=1))
 
     # ------------------------------------------------------------------ subscriptions
     @property

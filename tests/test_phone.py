@@ -1066,3 +1066,8 @@ def test_gui_switch_and_device_handshake(settings: Settings):
         assert "phone_task" not in names
         assert "The phone" not in service.threads["main"].agent.build_system_prompt("hi")
         assert client.put("/api/connections/gui", json={"provider": "x"}).status_code == 400
+        # the body is typed: a model that is not a string, or a switch that is not a
+        # boolean, is 422 before anything is changed
+        assert client.put("/api/connections/gui", json={"model": ["a"]}).status_code == 422
+        assert client.put("/api/connections/gui", json={"enabled": "maybe"}).status_code == 422
+        assert client.get("/api/connections").json()["gui"]["enabled"] is False

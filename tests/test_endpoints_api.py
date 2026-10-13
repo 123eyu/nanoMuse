@@ -388,3 +388,63 @@ def test_a_catalogue_slot_or_a_config_slot_is_not_migrated(settings: Settings, t
     client2, _ = _make(other)
     with client2:
         assert _endpoints(client2) == []
+
+
+def test_an_address_belongs_to_one_endpoint(server, listed):
+    client, _ = server
+    first = client.post(
+        "/api/connections/endpoints", json={"base_url": GATEWAY, "label": "Gateway"}
+    ).json()
+    # the same address again, with or without the trailing slash, is refused and the
+    # answer names the endpoint that has it; the list does not grow
+    again = client.post("/api/connections/endpoints", json={"base_url": GATEWAY + "/"})
+    assert again.status_code == 409 and "Gateway" in again.json()["detail"]
+    assert len(_endpoints(client)) == 1
+    second = client.post(
+        "/api/connections/endpoints", json={"base_url": SECOND, "models": "s-1"}
+    ).json()
+    # moving the second onto the first's address is refused the same way; its own address
+    # and a plain rename are not a move
+    moved = client.put(f"/api/connections/endpoints/{second['id']}", json={"base_url": GATEWAY})
+    assert moved.status_code == 409 and "Gateway" in moved.json()["detail"]
+    assert client.get("/api/connections").json()["endpoints"][1]["base_url"] == SECOND
+    same = client.put(f"/api/connections/endpoints/{second['id']}", json={"base_url": SECOND + "/"})
+    assert same.status_code == 200
+    assert (
+        client.put(f"/api/connections/endpoints/{first['id']}", json={"label": "G"}).status_code
+        == 200
+    )
+    assert client.put("/api/connections/endpoints/ep-nope", json={"label": "x"}).status_code == 404
+
+
+def test_two_changes_at_once_both_land(settings: Settings, monkeypatch: pytest.MonkeyPatch):
+    """A rekey (which asks the endpoint for its models, a slow network call) and a rename
+    sent while it waits: the list is changed one request at a time, so neither is lost."""
+    import asyncio
+
+    _, service = _make(settings)
+    gate = asyncio.Event()
+
+    async def slow(base_url: str, key: str = "") -> tuple[list[str], str]:
+        if key:
+            await gate.wait()
+        return (["m-1"], "")
+
+    monkeypatch.setattr(conn_module, "fetch_models", slow)
+
+    async def scenario() -> dict:
+        eps = service.connections.endpoints
+        first = await eps.add({"base_url": GATEWAY})
+        rekey = asyncio.ensure_future(eps.update(first["id"], {"api_key": "sk-new"}))
+        await asyncio.sleep(0)  # the rekey is now waiting on the endpoint
+        rename = asyncio.ensure_future(eps.update(first["id"], {"label": "Renamed"}))
+        await asyncio.sleep(0)
+        assert not rename.done()  # it waits for the rekey instead of writing past it
+        gate.set()
+        await asyncio.gather(rekey, rename)
+        return eps.get(first["id"]) or {}
+
+    row = asyncio.run(scenario())
+    assert row["label"] == "Renamed"
+    assert row["api_key"] == "{{vault:" + key_name(row["id"]) + "}}"
+    assert service.app.vault.get(key_name(row["id"])) == "sk-new"

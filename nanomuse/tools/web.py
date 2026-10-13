@@ -219,7 +219,9 @@ class WebFetch(BaseTool):
         except httpx.HTTPError as exc:
             return ToolResult.fail(f"request failed: {exc}")
         ctype = resp.headers.get("content-type", "")
-        text = _to_text(resp, ctype)
+        # parsing a page of a few megabytes takes seconds; off the loop so the server
+        # keeps answering meanwhile
+        text = await asyncio.to_thread(_to_text, resp, ctype)
         if resp.status_code >= 400:
             return ToolResult(output=text[:max_chars], error=f"HTTP {resp.status_code}")
         if len(text) > max_chars:

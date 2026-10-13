@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import threading
 import time
 from collections.abc import Iterator
@@ -1905,6 +1906,10 @@ def test_push_keys_subscriptions_and_gone_endpoints(settings: Settings, monkeypa
     assert svc.subscribe({**FAKE_SUB, "endpoint": "https://push.example/sub/2"}) == 2
     assert svc.subscribe(FAKE_SUB) == 2  # re-subscribing the same endpoint replaces it
     assert PushService(settings.data_dir).view()["subscriptions"] == 2
+    # the key pair and the subscriptions (a browser's p256dh and auth) are the owner's only
+    if os.name == "posix":
+        for name in ("push-vapid.json", "push-subscriptions.json"):
+            assert (settings.data_dir / name).stat().st_mode & 0o777 == 0o600, name
 
     sent: list[tuple[str, dict[str, Any]]] = []
 

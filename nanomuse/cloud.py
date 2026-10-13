@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import platform
 from typing import Any
+from urllib.parse import urlencode
 
 import httpx
 
@@ -261,16 +262,18 @@ class CloudClient:
     ) -> dict[str, Any]:
         """What ``images`` pictures and ``clips`` short videos would cost against the pool
         (``cny``, ``left_cny``, ``affordable``, ``unlimited``); nothing is charged."""
-        q = f"/v1/estimate?images={int(images)}"
+        params: dict[str, str] = {"images": str(int(images))}
         if image_model:
-            q += f"&image_model={image_model}"
+            params["image_model"] = image_model
         if size:
-            q += f"&size={size}"
+            params["size"] = size
         if clips:
-            q += f"&clips={int(clips)}"
+            params["clips"] = str(int(clips))
             if video_model:
-                q += f"&video_model={video_model}"
-        return await self._request("GET", q)
+                params["video_model"] = video_model
+        # model ids and sizes are typed by people and relayed by the app: encoded, so an
+        # "&" or a space in one cannot change the question asked
+        return await self._request("GET", "/v1/estimate?" + urlencode(params))
 
     @staticmethod
     def models_for(models: list[dict[str, Any]], purpose: str = "chat") -> list[dict[str, Any]]:

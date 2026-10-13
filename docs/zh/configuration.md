@@ -450,7 +450,7 @@ update_check     = true          # Settings → About says when a newer release 
 start_grace      = 4             # seconds the services may take before the app answers anyway
 ```
 
-`update_check` 每天一次（点「现在检查」时提前）先问下载镜像的索引（`nanomuse.cn/dl/index.json`），
+`update_check` 每天一次（点「现在检查」时提前；查询失败时，比如运行时比网络先起来，一小时后再试）先问下载镜像的索引（`nanomuse.cn/dl/index.json`），
 它不答再问 `api.github.com` 最新版本，并在「设置 → 关于」下显示版本号和指向发布页的链接；什么都不下载，
 除了请求 `User-Agent` 里的运行时版本号，也不发送任何关于这次安装的信息。
 `NANOMUSE_NO_UPDATE_CHECK=1` 同样能关掉它；托管的网页会话（用 `NANOMUSE_CLOUD_KEY`
