@@ -18,6 +18,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 - **Eight buttons reach the host again.** *Default face* (in the avatar studio and in the profile menu), the clip preview's *Cancel*, Media's *Check which models answer*, the ChatGPT *Open the sign-in page*, *Sign out* and *Cancel*, and *Download* and *Reset* under Memory called the host without a body, which the window sends as a GET; the host serves those routes to POST only, so each click ended in a quiet 404 and nothing happened. They post now, and a test checks every body-less call against the routes the host serves to GET.
 - **The feed is written out of sight.** The chat the daily feed is written in no longer shows in the chats column or in search while the batch runs, and the request goes into it as a one-line notice (*Writing today's feed*) instead of a message in your voice; the posts arrive in the Feed as before.
+- **The Windows release carries the files an in-app update needs.** Beside the installer, the release now has `latest.yml`, which names the installer and its SHA-512, and the installer's `.exe.blockmap`, and `SHA256SUMS-desktop.txt` covers them. Before anything is attached, CI hands the set to electron-updater itself: it must find the new version in the metadata, download the installer from a test feed and verify it, and refuse one that is corrupted or missing.
 
 ### Android
 

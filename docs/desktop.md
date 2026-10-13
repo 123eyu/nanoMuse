@@ -15,7 +15,12 @@ runtime for the hands are inside.
 | Linux | `nanoMuse-Desktop-<version>-linux-x64.deb` (preferred) / `.AppImage` / `.tar.gz`; see [Linux notes](#linux-notes) |
 
 Every release carries them (`.github/workflows/desktop-app.yml`; `SHA256SUMS-desktop.txt`
-beside them). The code is under [`harness/`](../harness/): the bundle of plugins in
+beside them). Windows releases also carry the update metadata electron-updater reads: `latest.yml`,
+which names the installer and its SHA-512, and the installer's `.exe.blockmap`. CI checks the set with electron-updater itself before
+anything is attached: it must find the candidate version in `latest.yml`, download the
+installer from a test feed and verify it, and refuse one whose bytes do not match
+(`harness/desktop/scripts/update-feed-check.mjs`). The code is under
+[`harness/`](../harness/): the bundle of plugins in
 `harness/dsh-nanomuse`, the Electron shell in `harness/desktop`; how to build it yourself is
 in [harness/README.md](../harness/README.md). Up to 0.1.29 the same installers wrapped the
 Python runtime and the web app in an Electron shell of their own (`desktop/app`) and the
