@@ -120,6 +120,21 @@
 .admin .search { display: flex; align-items: center; gap: 8px; }
 .admin .search input { border: 0; background: var(--fill); border-radius: 10px; padding: 6px 10px; font-size: 13px; width: 200px; outline: none; }
 .admin .search input:focus { box-shadow: 0 0 0 2px rgba(10, 102, 228, 0.25); }
+/* 0.26: the People page's search on a row of its own, as wide as the row allows */
+.admin .toolbar.lead { padding-bottom: 6px; border-bottom: 0; }
+.admin .toolbar.lead + .toolbar { padding-top: 4px; }
+.admin .search.wide { flex: 1 1 300px; min-width: 0; }
+.admin .search.wide input { width: 100%; padding: 8px 12px; font-size: 14px; }
+.admin .toolbar.lead .fine { flex: 1 1 220px; min-width: 0; font-size: 12px; }
+/* 0.26: a statement or a timeline in the drawer with its own kind chips and text box */
+.drawer .listf { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; padding: 8px 12px 8px; border-bottom: 1px solid var(--hairline); }
+.drawer .listf .filter { padding: 0; border: 0; flex: 1 1 auto; }
+.drawer .listf .search input { width: 150px; padding: 4px 9px; font-size: 12.5px; }
+.admin .subhead { display: flex; align-items: center; gap: 10px; padding: 0 16px; }
+.admin .subhead h3 { flex: 1; min-width: 0; }
+.admin .subhead .search input { width: 180px; padding: 4px 9px; }
+/* 0.26: a KPI's second figure wraps under the first instead of being cut off */
+.admin .kpi .v small { display: block; margin: 1px 0 0; white-space: normal; }
 /* trends and the site: a total and a bar a day per metric, ranked lists */
 .admin .sparks { padding: 8px 16px 6px; }
 .admin .spark { display: grid; grid-template-columns: minmax(110px, 160px) 56px 1fr; align-items: center; gap: 12px; padding: 5px 0; font-size: 13px; }
@@ -179,7 +194,7 @@ table.places tr.country td { border-top: 1px solid var(--line, var(--fill)); }
 .drawer .lines .line:last-child { border-bottom: 0; }
 .drawer .lines .c { white-space: nowrap; }
 .drawer .lines .c.when { color: var(--ink-3); min-width: 92px; }
-.drawer .lines .c.grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.drawer .lines .c.grow { flex: 1; min-width: 96px; overflow: hidden; text-overflow: ellipsis; }
 .drawer .lines .c.num { font-variant-numeric: tabular-nums; text-align: right; }
 .drawer .acts .btn.sm { padding: 5px 10px; font-size: 12px; }
 .drawer .row .s { white-space: normal; line-height: 1.5; }

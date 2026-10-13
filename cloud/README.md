@@ -665,6 +665,27 @@ downloads, what each day added, downloads by platform and by asset, and
 leaves the previous row and shows on the page, the relay runs on without
 GitHub.
 
+From 0.26 the console searches and filters further. On *People* the search
+has a row of its own above the filters and reaches the number or e-mail, the
+account id (anywhere in it), both addresses, device names, the client and its
+version, the region, the inviter and the account's invite code; several
+words, space-separated, must all match. Three filters joined the row below:
+*Joined* (24 h, 7 d, 30 d, longer ago), *Came* (through an invite, on their
+own, brought someone) and *Version* (the client versions seen, with counts).
+`/` on any page puts the cursor in that page's search box, on a page without
+one it opens *People*; the CSV gained `version`, `invited_by` and `invites`.
+The account drawer's statement and timeline each have kind chips (chat,
+pictures, video, calls, credits; sign-ins, refusals, errors, content checks,
+calls, passwords, invites, credits) and a text box (model or note; detail or
+kind name) sent to the relay as `?kind=&q=`, so the count is of what matches
+and the filter holds across pages; an account that never made a request gets
+one line instead of three empty tables. Opening another page closes the
+drawer, which used to stay over it. *Activity* reads on past its first page
+(`?before=`, 200 rows a time, the kind filter kept); the visitors table on
+*Demo* and the by-account table of *Data controls* have a search box; the
+*Stats* page opens with every metric's name as a jump to its panel; a KPI's
+second figure wraps under the first instead of being cut off.
+
 **Every operator route**, each under `X-Admin-Token` (401 `admin` without it;
 `X-Admin-Actor` names who did it for the audit log, else `console`). An account
 is named by `account_id` or by `identifier` (the number or address itself):
@@ -674,13 +695,13 @@ GET    /v1/admin/health                          → {ok, version, in_flight, hu
 GET    /v1/admin/overview        ?days=30        → the dashboard: accounts, today / week / period by kind and model, signals, events, geo, places
 GET    /v1/admin/accounts                        → {accounts: [{id, identifier, hint, channel, member, disabled, …, devices[]}], settings}
 GET    /v1/admin/accounts/{id}   ?days=30        → one account in full: usage by kind / model / day, sign-ins, devices, addresses, inviter, invitees, timeline
-GET    /v1/admin/accounts/{id}/ledger ?limit=&before=   → the statement, page by page (before = the last id shown)
-GET    /v1/admin/accounts/{id}/events ?limit=&before=   → the timeline, page by page
+GET    /v1/admin/accounts/{id}/ledger ?limit=&before=&kind=a,b&q=   → the statement, page by page (before = the last id shown); kind and q (model or note) narrow it and its total (0.26)
+GET    /v1/admin/accounts/{id}/events ?limit=&before=&kind=a,b&q=   → the timeline, page by page; kind and q (detail or kind name) the same way
 GET    /v1/admin/address         ?ip=            → the accounts seen from one address
 GET    /v1/admin/invites         ?limit=200&per=20      → the funnel and the inviters ranked by the accounts their code brought
 POST   /v1/admin/invites/abuse   {account_id | identifier, disable?, delete_unused?}  → {reclaimed_cny, disabled, deleted, kept}
 GET    /v1/admin/usage           ?days=14        → charged tokens and yuan per day and kind
-GET    /v1/admin/events          ?limit=200&kind=a,b    → the timeline across accounts (never message content)
+GET    /v1/admin/events          ?limit=200&kind=a,b&before=   → the timeline across accounts (never message content); before = the last id shown (0.26)
 GET    /v1/admin/series          ?days=30        → by day: sign-ins, new and active accounts, invites, data switches; devices by kind and system
 GET    /v1/admin/places          ?days=30        → accounts, new accounts, sign-ins, requests and demo visitors by country and province
 GET    /v1/admin/traffic         ?days=30        → the site's pages, visitors, downloads, referrers (TRAFFIC_DB)

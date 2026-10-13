@@ -2683,19 +2683,34 @@ class Cloud:
             )
         return out
 
-    def ledger_page(self, account_id: str, limit: int = 100, before_id: int = 0) -> dict:
+    def ledger_page(
+        self,
+        account_id: str,
+        limit: int = 100,
+        before_id: int = 0,
+        kinds: tuple[str, ...] | None = None,
+        q: str = "",
+    ) -> dict:
         """One page of an account's statement, newest first, with the count of the whole
-        — the operator's page reads it to the first line, page by page."""
-        rows = [self._ledger_row(r) for r in self.db.recent_ledger(account_id, limit=limit, before_id=before_id)]
-        return {"rows": rows, "total": self.db.ledger_count(account_id)}
+        — the operator's page reads it to the first line, page by page. `kinds` and `q`
+        (0.26) are the page's filter; the count is of what matches, so the pager is honest."""
+        rows = [self._ledger_row(r) for r in self.db.recent_ledger(account_id, limit, before_id, kinds, q)]
+        return {"rows": rows, "total": self.db.ledger_count(account_id, kinds, q)}
 
-    def events_page(self, account_id: str, limit: int = 100, before_id: int = 0) -> dict:
+    def events_page(
+        self,
+        account_id: str,
+        limit: int = 100,
+        before_id: int = 0,
+        kinds: tuple[str, ...] | None = None,
+        q: str = "",
+    ) -> dict:
         rows = []
-        for r in self.db.events_for(account_id, limit, before_id):
+        for r in self.db.events_for(account_id, limit, before_id, kinds, q):
             d = dict(r)
             d["platform"] = platform_of(d.get("ua") or "")
             rows.append(d)
-        return {"rows": rows, "total": self.db.event_count(account_id)}
+        return {"rows": rows, "total": self.db.event_count(account_id, kinds, q)}
 
     def admin_address(self, ip: str) -> dict:
         """One address: the accounts seen from it — for the operator checking whether two
@@ -2714,8 +2729,8 @@ class Cloud:
         ]
         return {"ip": ip, "accounts": rows}
 
-    def admin_events(self, limit: int = 200, kinds: tuple[str, ...] | None = None) -> list[dict]:
-        rows = self.db.events_recent(max(1, min(limit, 1000)), kinds)
+    def admin_events(self, limit: int = 200, kinds: tuple[str, ...] | None = None, before_id: int = 0) -> list[dict]:
+        rows = self.db.events_recent(max(1, min(limit, 1000)), kinds, max(0, before_id))
         hints, _ = self._labels([r["account_id"] for r in rows if r["account_id"]], decrypt=False)
         out = []
         for r in rows:
