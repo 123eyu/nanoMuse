@@ -50,6 +50,12 @@ export interface TaskRunnerOptions {
   /** The session a conversation lived in before (survives a restart); absent means remember in memory only. */
   recall?(key: string): string | undefined
   remember?(key: string, sessionId: string): void
+  /**
+   * Whether this computer is handing over (a protected exit, later a restart-update):
+   * while it says true, a task is refused with the usual `busy` error: the asker sees
+   * the refusal and can ask again; nothing is taken and dropped.
+   */
+  closed?: () => boolean
 }
 
 /** The text a task arrives as: the model learns where it came from and where it is, as the runtime's bubble says. */
@@ -114,8 +120,14 @@ export class TaskRunner {
     return this.byCall.size
   }
 
+  /** The runs on, as the session each lives in and the device that asked: the exit's aggregate names the work with them. */
+  origins(): { sessionId: string; from: string }[] {
+    return [...this.byCall.values()].map((run) => ({ sessionId: String(run.sessionId), from: run.call.from.name || run.call.from.id }))
+  }
+
   /** `task {text, from?, conversation?}` → `{text, conversation, thread, device}`. */
   async task(args: Record<string, unknown>, call: IncomingCall): Promise<Record<string, unknown>> {
+    if (this.options.closed?.()) throw new HubError('busy', 'this computer is ending its work; ask again in a moment')
     const text = String(args.text ?? '').trim()
     if (!text) throw new HubError('usage', 'text is required')
     const from = call.from
