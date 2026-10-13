@@ -370,6 +370,7 @@ extension AIChatViewModel {
             msg.sourceSortOrder = raw.sortOrder
             msg.lastSourceSortOrder = raw.sortOrder
             msg.nmFromDevice = NanoMuseSync.shared.fromDevice(mid: raw.id) // nanoMuse: C8 caption
+            msg.nmRoutine = NanoMuseRoutineWakes.shared.wake(mid: raw.id) // nanoMuse: a row a routine sent
             loadedUIMessages.append(msg)
         }
 

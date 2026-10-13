@@ -2668,8 +2668,17 @@ struct AIChatView: View {
                 },
                 maxContentWidth: maxContentWidth ?? 0,
                 floatingBarHeight: 0, // nanoMuse: the tool strip is part of the composer column, measured with it (NanoMuseComposerHost)
-                inputBarHeight: nmColumnHeight + nmBottomOverlay // nanoMuse: the column lies over the list's bottom edge and the shell's bottom bar under it; the rows scroll under both and the last one stops above the column
+                inputBarHeight: nmColumnHeight + nmBottomOverlay, // nanoMuse: the column lies over the list's bottom edge and the shell's bottom bar under it; the rows scroll under both and the last one stops above the column
+                topOverlay: nmTopOverlay // nanoMuse: the shell's Muse header over the list's top edge; the rows scroll under it and start below it
             )
+            // nanoMuse: with the shell's header over the chat, the list runs up under it (and the
+            // status bar, which UIKit's own safe area handles) and keeps its rows down by
+            // `topOverlay`, so they dissolve under the header's scrim instead of ending at a hard
+            // edge under the face. A `safeAreaInset` on a UIKit view shortens the view, unlike a
+            // SwiftUI ScrollView, which is why the list needs to ignore it. The chat's own banners
+            // (the error strip, a notice) stay a safe-area inset and lie over the list's top rows
+            // while they show. Without the shell nothing changes.
+            .ignoresSafeArea(.container, edges: nmTopOverlay > 0 ? Edge.Set.top : [])
             // Empty/loading overlay for tap-to-dismiss-keyboard.
             // Placed BEFORE the directory timeline in the ZStack so the
             // timeline can sit on top and receive its own taps (folder-card
@@ -3491,6 +3500,9 @@ struct AIChatView: View {
     // nanoMuse: the shell's floating bottom bar under this chat (0 without the shell, or while the
     // keyboard has it away): the composer column stands this much above the bottom edge.
     @Environment(\.nmBottomOverlay) private var nmBottomOverlay // nanoMuse:
+    // nanoMuse: the shell's Muse header over this chat's top edge (0 without the shell and in a
+    // pushed side chat): the message list extends under it and keeps its rows this much down.
+    @Environment(\.nmTopOverlay) private var nmTopOverlay // nanoMuse:
     // nanoMuse: the composer column's height as NanoMuseComposerHost measured it; with the bar it is
     // the list's bottom inset and the lift of the scroll buttons.
     @State private var nmColumnHeight: CGFloat = 0 // nanoMuse:
@@ -5018,6 +5030,10 @@ private struct NavBarStyleModifier: ViewModifier {
                 // system bar (NanoMuseHeaderScrim, docs/design.md): the bar's own background and
                 // its hairline go, and a zero-height inset's background fades the canvas colour
                 // down over the rows, as the Muse header's does. Upstream's bar stays opaque.
+                // The content runs up under the bar as in the iOS 26 branch, so the rows have
+                // somewhere to fade; the bar is UIKit's, so the list's `.automatic` adjustment
+                // keeps the first row below it, as there.
+                .ignoresSafeArea(.container, edges: systemBarScrim ? Edge.Set.top : []) // nanoMuse:
                 .toolbarBackground(systemBarScrim ? Visibility.hidden : Visibility.visible, for: .navigationBar) // nanoMuse:
                 .toolbarBackground(ChatColors.background, for: .navigationBar)
                 .safeAreaInset(edge: .top, spacing: 0) { // nanoMuse:

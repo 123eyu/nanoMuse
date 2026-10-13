@@ -130,6 +130,8 @@
     <string name="nm_routine_run_now">Ejecutar ahora</string>
     <string name="nm_routine_delete">Eliminar</string>
     <string name="nm_routine_paused">Desactivada</string>
+    <!-- The chat row a routine sent: its label and the clock time it fired -->
+    <string name="nm_routine_wake_caption">Rutina · %1$s · %2$s</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">Ideas</string>
@@ -1140,4 +1142,10 @@
     <string name="nm_a11y_not_liked">No te gusta</string>
     <string name="nm_a11y_post_details">Detalles de la publicación</string>
     <string name="nm_claude_sign_in_unavailable">Esta versión no puede usar el inicio de sesión con Claude. Añade Anthropic con una clave de API.</string>
+    <!-- Font scale labels -->
+    <string name="nm_font_scale_extra_small">Muy pequeño</string>
+    <string name="nm_font_scale_small">Pequeño</string>
+    <string name="nm_font_scale_medium">Mediano</string>
+    <string name="nm_font_scale_large">Grande</string>
+    <string name="nm_font_scale_extra_large">Muy grande</string>
 </resources>

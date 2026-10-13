@@ -55,6 +55,10 @@ struct CollectionViewMessageListV3: UIViewControllerRepresentable {
     var maxContentWidth: CGFloat
     var floatingBarHeight: CGFloat
     var inputBarHeight: CGFloat
+    /// nanoMuse: a header of the chat's own lying over the list's top edge (the Muse shell's,
+    /// `nmTopOverlay`), which the list extends under; added to `contentInset.top` so the first
+    /// row starts below it. 0 without such a header.
+    var topOverlay: CGFloat = 0
 
     func makeUIViewController(context: Context) -> MessageListViewController {
         let vc = MessageListViewController()
@@ -163,8 +167,19 @@ struct CollectionViewMessageListV3: UIViewControllerRepresentable {
         // room. iOS 26 returns 0 here (liquid-glass + .automatic adjustment
         // already position content), so this is a no-op there.
         let cvTop = vc.collectionView!
-        if abs(cvTop.contentInset.top - coord.baseContentInsetTop) > 0.5 {
-            cvTop.contentInset.top = coord.baseContentInsetTop
+        // nanoMuse: plus the header the list extends under (`topOverlay`), which UIKit's safe area
+        // knows nothing about: SwiftUI's `safeAreaInset` is not in `cv.safeAreaInsets`. Should a
+        // host ever fold it in (the view's safe area would then exceed its window's), it is not
+        // added twice.
+        let windowTop = cvTop.window?.safeAreaInsets.top ?? 0
+        let headerInSafeArea = cvTop.safeAreaInsets.top > windowTop + 0.5
+        let topInset = coord.baseContentInsetTop + (headerInSafeArea ? 0 : topOverlay)
+        if abs(cvTop.contentInset.top - topInset) > 0.5 {
+            // A list resting at its top keeps its first row in view when the header grows (a
+            // card comes in under the face): UIKit leaves the offset alone when an inset moves.
+            let wasAtTop = coord.isAtContentTop()
+            cvTop.contentInset.top = topInset
+            if wasAtTop { cvTop.contentOffset.y = -cvTop.adjustedContentInset.top }
         }
 
         coord.applySubViewportCompensation(caller: "updateUIVC")
@@ -277,10 +292,13 @@ private struct BridgedAssistantHeaderV3: View {
         }
         .padding(.top, 4)
         .padding(.bottom, 0)
+        // nanoMuse: the 16 pt sit inside the width cap, as in ChatMessageRow, so on an iPad the
+        // row's edges meet the composer's (NanoMuseColumn: 760 wide, 16 in); the height
+        // estimators already take width - 32 as the text width. No change without a cap.
+        .padding(.horizontal, 16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(maxWidth: maxWidth > 0 ? maxWidth : .infinity, alignment: .leading)
         .frame(maxWidth: .infinity)
-        .padding(.horizontal, 16)
         .opacity(message.isCompactedHistory ? 0.5 : 1.0)
         .accessibilityIdentifier("assistantHeader")
     }
@@ -330,9 +348,9 @@ private struct BridgedAssistantBlockV3: View {
             highlightedBlockId: .constant(nil),
             detailBlock: $bridge.detailBlock
         )
+        .padding(.horizontal, 16) // nanoMuse: inside the width cap, so the block's edges meet the composer's on an iPad (see BridgedAssistantHeaderV3)
         .frame(maxWidth: maxWidth > 0 ? maxWidth : nil, alignment: .leading)
         .frame(maxWidth: .infinity)
-        .padding(.horizontal, 16)
         .opacity(message.isCompactedHistory ? 0.5 : 1.0)
         .accessibilityIdentifier(blockAccessibilityId)
         // Context menu on zero-size overlay so it doesn't inflate self-sizing
@@ -485,10 +503,10 @@ private struct BridgedAssistantFooterV3: View {
                 }
             }
         }
+        .padding(.horizontal, hasFooterContent ? 16 : 0) // nanoMuse: inside the width cap, so the footer's edges meet the composer's on an iPad (see BridgedAssistantHeaderV3)
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(maxWidth: maxWidth > 0 ? maxWidth : nil, alignment: .leading)
         .frame(maxWidth: .infinity)
-        .padding(.horizontal, hasFooterContent ? 16 : 0)
         .padding(.vertical, hasFooterContent ? 2 : 0)
         .opacity(message.isCompactedHistory ? 0.5 : 1.0)
         .accessibilityIdentifier("assistantFooter")

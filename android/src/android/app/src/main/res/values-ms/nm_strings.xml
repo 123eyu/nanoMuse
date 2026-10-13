@@ -127,6 +127,8 @@
     <string name="nm_routine_run_now">Jalankan sekarang</string>
     <string name="nm_routine_delete">Padam</string>
     <string name="nm_routine_paused">Mati</string>
+    <!-- The chat row a routine sent: its label and the clock time it fired -->
+    <string name="nm_routine_wake_caption">Rutin · %1$s · %2$s</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">Idea</string>
@@ -1136,4 +1138,10 @@
     <string name="nm_a11y_not_liked">Belum disukai</string>
     <string name="nm_a11y_post_details">Butiran kiriman</string>
     <string name="nm_claude_sign_in_unavailable">Binaan ini tidak boleh menggunakan log masuk Claude. Tambah Anthropic dengan kunci API sebagai ganti.</string>
+    <!-- Font scale labels -->
+    <string name="nm_font_scale_extra_small">Sangat kecil</string>
+    <string name="nm_font_scale_small">Kecil</string>
+    <string name="nm_font_scale_medium">Sederhana</string>
+    <string name="nm_font_scale_large">Besar</string>
+    <string name="nm_font_scale_extra_large">Sangat besar</string>
 </resources>

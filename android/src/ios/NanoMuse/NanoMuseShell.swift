@@ -356,6 +356,8 @@ struct NanoMuseHomeView: View {
     @State private var tab: NanoMuseTab = .chat
     @State private var drawerOpen = false
     @State private var chatPath: [String] = []
+    /// The Muse header's measured height over the main chat (`nmTopOverlay`), without the status bar.
+    @State private var chatHeaderHeight: CGFloat = 0
     @State private var showClassic = false
     @State private var classicWantsSettings = false
     @State private var showNanoMuseSettings = false
@@ -612,10 +614,15 @@ struct NanoMuseHomeView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-            // Android: the header floats over the transcript, which scrolls under it. A safe-area
-            // inset (not a VStack row) so the message list keeps its full height and only its
-            // content inset moves; behind it a scrim of the canvas colour fading to clear, not a
-            // blur and not a bar, and there is no divider line (NanoMuseHeaderScrim).
+            // Android: the header floats over the transcript, which scrolls under it. The header
+            // is a safe-area inset with its measured height handed to the chat as `nmTopOverlay`:
+            // the chat lets its message list extend under the header and gives the list that
+            // much top content inset (AIChatView.messagesArea), so the rows pass under the face
+            // the way they pass under the composer and the bottom bar. Behind the header a scrim
+            // of the canvas colour fading to clear, not a blur and not a bar, and there is no
+            // divider line (NanoMuseHeaderScrim). Up to 1.0.4 the inset alone shortened the
+            // list, a UIKit view, and the rows stopped at a hard edge under the face.
+            .environment(\.nmTopOverlay, chatHeaderHeight)
             .safeAreaInset(edge: .top, spacing: 0) {
                 VStack(spacing: 0) {
                     // MuseHeader over the main chat — the face, the name pill, the drawer and ••• discs.
@@ -656,6 +663,11 @@ struct NanoMuseHomeView: View {
                         .transition(.move(edge: .top).combined(with: .opacity))
                     }
                 }
+                .onGeometryChange(for: CGFloat.self) { proxy in
+                    proxy.size.height
+                } action: { height in
+                    if abs(height - chatHeaderHeight) > 0.5 { chatHeaderHeight = height }
+                }
                 .background {
                     NanoMuseChatScrimHost(liveId: main.liveId)
                         .ignoresSafeArea(edges: .top)
@@ -674,8 +686,10 @@ struct NanoMuseHomeView: View {
                 let draft = id.hasPrefix(NanoMuseMainChat.draftPrefix)
                 AIChatView(sessionId: draft ? nil : id, draftId: draft ? id : nil)
                     .id(id)
-                    // The side chat keeps the system bar, with the main chat's scrim behind it.
+                    // The side chat keeps the system bar, with the main chat's scrim behind it,
+                    // and no Muse header over its list.
                     .environment(\.nmSystemBarScrim, true)
+                    .environment(\.nmTopOverlay, 0)
             }
         }
     }

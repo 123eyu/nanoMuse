@@ -72,6 +72,28 @@ object HomeShell {
     }
 
     /**
+     * Shows [tab] in the shell (the Feed, from the feed's notification), popping whatever sits on
+     * top. Returns false in wide windows, where there is no shell; the request stays on the bus
+     * for a shell that mounts later, which is what a cold start from the notification does.
+     */
+    fun openTab(nav: NavController, tab: HomeTab): Boolean {
+        HomeBus.showTab(tab)
+        if (!active) return false
+        val shellRoute = Routes.SESSION_LIST
+        val onStack = try {
+            nav.getBackStackEntry(shellRoute); true
+        } catch (_: IllegalArgumentException) {
+            false
+        }
+        if (onStack) {
+            nav.popBackStack(shellRoute, inclusive = false)
+        } else {
+            nav.navigate(shellRoute) { popUpTo(nav.graph.startDestinationId) { inclusive = true } }
+        }
+        return true
+    }
+
+    /**
      * Back to the main chat with [text] in the composer — Devices' "Ask this device" puts
      * "@Mac " there so the next message runs on that device (contract C7, rule 8). Returns
      * false in wide windows, where there is no shell to come back to.

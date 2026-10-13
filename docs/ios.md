@@ -617,7 +617,35 @@ Ours, in `NanoMuse/`:
   and the agent's pill grows to 600 pt, the web's wide value. A compact width, every iPhone and
   a narrow Split View pane, is unchanged. The cells of the message list are hosted by
   `UIHostingConfiguration`, which does not carry our environment objects but does carry the
-  size class from the cell's traits; the agent's pill reads it from there.
+  size class from the cell's traits; the agent's pill reads it from there. In 1.0.4 the
+  agent's rows alone padded outside the column, so their pill began 16 pt left of the
+  composer's edge; the three assistant cells in `CollectionViewMessageListV3.swift` (header,
+  block, footer) now pad inside it, as the user's rows always did.
+- **The rows pass under the header.** The shell measures its Muse header and hands the height
+  to the chat as the `nmTopOverlay` environment value (`NanoMuseChatModifiers.swift`); the
+  message list ignores the container safe area at its top and keeps its rows down by that much
+  (`topOverlay` on `CollectionViewMessageListV3`, added to `contentInset.top`), the way it
+  already runs under the composer and the pill bar. So the rows scroll under the face and the
+  scrim behind the header fades them, as on Android. 1.0.3 and 1.0.4 had the header as a
+  `safeAreaInset` and nothing more, which is enough for a SwiftUI `ScrollView` but shortens a
+  UIKit view: the list ended under the header and the rows were cut at a hard edge there,
+  with the scrim fading nothing. A pushed side chat, which keeps the system bar, has the value
+  at 0 and instead runs its content up under the bar the way upstream's iOS 26 layout does
+  (`NavBarStyleModifier`); the bar is UIKit's, so the list's own inset adjustment keeps the
+  first row below it, and its rows fade under the scrim behind the bar too.
+- **The feed is written quietly, and a routine speaks first** (`NanoMuseRoutineWakes.swift`;
+  `NanoMuseSync.shows`, `NanoMuseHeadless.run`, the `nmRoutine` spots of `ChatModels.swift`,
+  `AIChatViewModel.swift`, `AIChatViewModel+Persistence.swift` and `ChatMessageViews.swift`).
+  Up to 1.0.4 the daily feed was a conversation titled *Feed* in the drawer, with *Write
+  today's feed.* as a bubble in the person's voice and the model's answer under it, and every
+  routine the person set up began its turn the same way. The feed's conversation is the agent's
+  working room now and the lists leave it out (`shows` says no to it, as it does to another
+  account's chats); the posts arrive in the Feed room as before. A routine's turn is marked as the
+  routine's: the row that carried its prompt is one quiet line, *Routine · 〈label〉 · 08:00*
+  (`NanoMuseRoutineWakeRow`, kept under the row's id so it stays after a reload), and the model
+  gets a one-turn addendum (`NanoMuseSessionAddenda`) saying the person did not type it, so it
+  opens with the result instead of thanking them for asking. The prompt's text is unchanged, so
+  the turn runs as it did.
 
 ## Voice prompts from the Action Button
 

@@ -8,18 +8,29 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Runtime
 
+- **DeepSeek Harness is a coding agent on the runtime too.** A computer running `nanomuse serve` listed Cursor, Codex and Claude Code only, so the chats of `dsh web` and DeepSeek's desktop app under `~/.dsh` reached the phone and the web console only from a computer with the desktop app. The runtime now reads them, shows a transcript and sends into one with `dsh --profile headless --json`, always with `DSH_HOME=~/.dsh`, and the Muse's `coding_agents` tool takes `dsh`. dsh counts as installed when a `dsh` is on `PATH` or `~/.dsh` exists. Reading the store needs `zstandard`, a new dependency: the store is zstd written one frame at a time, every frame is read, and runtime context, the skill catalog, background-job notices and subagent sessions are left out.
+
 ### Web
 
 ### Desktop
 
+- **Eight buttons reach the host again.** *Default face* (in the avatar studio and in the profile menu), the clip preview's *Cancel*, Media's *Check which models answer*, the ChatGPT *Open the sign-in page*, *Sign out* and *Cancel*, and *Download* and *Reset* under Memory called the host without a body, which the window sends as a GET; the host serves those routes to POST only, so each click ended in a quiet 404 and nothing happened. They post now, and a test checks every body-less call against the routes the host serves to GET.
+- **The feed is written out of sight.** The chat the daily feed is written in no longer shows in the chats column or in search while the batch runs, and the request goes into it as a one-line notice (*Writing today's feed*) instead of a message in your voice; the posts arrive in the Feed as before.
 - **Custom videos for each avatar mood.** The avatar studio can assign a separate local clip to idle, working, waiting, happy or error, preview and replace it, and remove each override without changing the other clips or the original single-video setting.
 
 ### Android
 
+- Removed terminal color and title codes before carriage-return updates, so styled shell output no longer left broken escape fragments or lost the untouched tail of a shorter rewrite.
+- Translated the font-size labels in Appearance into the app's language, including the default label on all three sliders.
+- **The daily feed is written quietly.** Its conversation no longer appears in the drawer, the chat list or as the main chat, and *Write today's feed.* no longer stands anywhere as a message in your voice; when posts were written while the app was in the background, one notification names them and opens the Feed tab, in place of the generic task notice that quoted the model's text and opened the conversation.
+- **A scheduled task speaks first.** The prompt a routine sends is shown as one quiet line, *Routine · 〈label〉 · 08:00*, instead of a bubble in your voice, and the agent is told the turn is the routine's, so it opens with the result rather than thanking you for asking.
 - **Per-mood avatar clips.** The avatar studio now accepts an optional local video for each of the five moods. Moods without a video keep the existing single-video or built-in animation.
 
 ### iOS
 
+- **The daily feed is written quietly and a routine speaks first.** The feed's conversation no longer appears in the drawer or the chat lists, the prompt a routine sends is shown as one quiet line, *Routine · 〈label〉 · 08:00*, instead of a bubble in your voice, and the agent is told the turn is the routine's, so it opens with the result rather than thanking you for asking.
+- **The conversation scrolls under the header now.** The rows pass under the face and fade in the scrim behind it, as they do under the composer and the pill bar, and as on Android; in 1.0.3 and 1.0.4 the list ended right under the header and the top row was cut at a hard edge there. The shell hands the header's measured height to the chat (`nmTopOverlay`), and the message list extends under it with that much top inset. A side chat opened from the drawer runs under its system bar the same way.
+- **On an iPad the agent's replies line up with the composer.** The agent's rows padded outside the 760 pt column while the user's rows padded inside it, so the reply pill began 16 pt left of the composer's and the pill bar's edge; the three assistant cells now pad inside the column too.
 - **Per-mood avatar clips.** The avatar studio can choose and remove a separate local video for each mood without changing other moods or the existing single-video setting.
 
 ### Project

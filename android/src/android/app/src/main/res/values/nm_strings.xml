@@ -130,6 +130,8 @@
     <string name="nm_routine_run_now">Run now</string>
     <string name="nm_routine_delete">Delete</string>
     <string name="nm_routine_paused">Off</string>
+    <!-- The chat row a routine sent: its label and the clock time it fired -->
+    <string name="nm_routine_wake_caption">Routine · %1$s · %2$s</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">Ideas</string>
@@ -1117,4 +1119,10 @@
     <string name="nm_a11y_not_liked">Not liked</string>
     <string name="nm_a11y_post_details">Post details</string>
     <string name="nm_claude_sign_in_unavailable">This build cannot use a Claude sign-in. Add Anthropic with an API key instead.</string>
+    <!-- Font scale labels -->
+    <string name="nm_font_scale_extra_small">XS</string>
+    <string name="nm_font_scale_small">Small</string>
+    <string name="nm_font_scale_medium">Medium</string>
+    <string name="nm_font_scale_large">Large</string>
+    <string name="nm_font_scale_extra_large">XL</string>
 </resources>

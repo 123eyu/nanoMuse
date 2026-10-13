@@ -168,6 +168,9 @@ object ScheduledAgentRunner {
                 timeoutMs = RUN_TIMEOUT_MS,
             )
         } else {
+            // nanoMuse: the row this sends is the routine's, not the person's: the chat draws it as
+            // a quiet line and the model is told so for this one turn (RoutineWakes).
+            io.github.nanomuse.chat.RoutineWakes.arm(app, sessionId, task.label)
             HeadlessChatRunner.prompt(
                 context = app,
                 sessionId = sessionId,
@@ -185,7 +188,7 @@ object ScheduledAgentRunner {
             responseText = "Error: ${t.message}",
             timedOut = false,
         )
-    }
+    }.also { if (it.status == "Error") io.github.nanomuse.chat.RoutineWakes.disarm(sessionId) } // nanoMuse: a prompt that never went out leaves no mark
 
     private suspend fun resolveSessionId(app: MinisApp, task: ScheduledTask): String? {
         return when (val mode = task.targetMode) {
@@ -298,6 +301,8 @@ object ScheduledAgentRunner {
         sessionId: String,
         preview: String,
     ) {
+        // nanoMuse: the feed's routine tells of its posts itself (and opens the Feed, not a chat).
+        if (io.github.nanomuse.feed.FeedFlow.notifyIfFeed(context, task)) return
         val deepLink = Uri.parse("minis://session/$sessionId")
         // nanoMuse: to MainActivity by name; the manifest no longer registers the `minis` scheme
         val openIntent: Intent = io.github.nanomuse.deeplink.OwnScheme.intent(context, deepLink, flags = 0)

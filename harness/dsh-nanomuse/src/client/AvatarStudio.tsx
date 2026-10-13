@@ -240,7 +240,7 @@ export function AvatarStudioSheet({ t, initial, style: initialStyle, onClose }: 
         h('p', { className: 'nm-fine nm-oc-body' }, live.ownClip ? t('ocOn') : t('ocBody')),
         h('div', { className: 'nm-oc-row' },
           h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', disabled: clipChooser.busy, onClick: () => clipChooser.choose() }, live.ownClip ? t('ocReplace') : t('ocChoose')),
-          live.ownClip ? h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', onClick: () => void call('own-clip/clear').catch(() => undefined) }, t('ocDefault')) : null),
+          live.ownClip ? h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', onClick: () => void call('own-clip/clear', {}).catch(() => undefined) }, t('ocDefault')) : null),
         h('p', { className: 'nm-fine nm-oc-body' }, t('ocMoodIntro')),
         (['idle', 'working', 'waiting', 'happy', 'error'] as const).map((mood) =>
           h('div', { key: mood, className: 'nm-oc-row' },

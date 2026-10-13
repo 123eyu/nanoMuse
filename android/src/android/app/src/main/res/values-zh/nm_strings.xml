@@ -126,6 +126,8 @@
     <string name="nm_routine_run_now">立即运行</string>
     <string name="nm_routine_delete">删除</string>
     <string name="nm_routine_paused">已关闭</string>
+    <!-- The chat row a routine sent: its label and the clock time it fired -->
+    <string name="nm_routine_wake_caption">例程 · %1$s · %2$s</string>
 
     <!-- 点子 -->
     <string name="nm_ideas_title">点子</string>
@@ -1113,4 +1115,10 @@
     <string name="nm_a11y_not_liked">未喜欢</string>
     <string name="nm_a11y_post_details">帖子详情</string>
     <string name="nm_claude_sign_in_unavailable">这个版本不能用 Claude 账号登录。请改用 API key 添加 Anthropic。</string>
+    <!-- Font scale labels -->
+    <string name="nm_font_scale_extra_small">特小</string>
+    <string name="nm_font_scale_small">小</string>
+    <string name="nm_font_scale_medium">中</string>
+    <string name="nm_font_scale_large">大</string>
+    <string name="nm_font_scale_extra_large">特大</string>
 </resources>

@@ -99,7 +99,7 @@ fun MoveToSessionSheet(
 
     LaunchedEffect(Unit) {
         sessions = withContext(Dispatchers.IO) {
-            val hidden = io.github.nanomuse.sync.ConversationSync.hidden.value // nanoMuse: another account's chats are not a place to move a message to (contract C10)
+            val hidden = io.github.nanomuse.sync.ConversationSync.hidden.value + io.github.nanomuse.feed.FeedFlow.hidden.value // nanoMuse: another account's chats are not a place to move a message to (contract C10), nor is the feed's working conversation
             chatRepository.dao.listSessions().filter { it.id != currentSessionId && it.id !in hidden }
         }
     }

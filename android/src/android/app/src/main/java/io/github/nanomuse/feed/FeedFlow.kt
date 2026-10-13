@@ -1,6 +1,12 @@
 package io.github.nanomuse.feed
 
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.net.Uri
+import androidx.core.app.NotificationCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.openminis.app.MinisApp
 import com.openminis.app.R
 import com.openminis.app.logging.AppLogger
@@ -9,8 +15,10 @@ import com.openminis.app.scheduled.ScheduledRepeatMode
 import com.openminis.app.scheduled.ScheduledTargetMode
 import com.openminis.app.scheduled.ScheduledTask
 import com.openminis.app.scheduled.ScheduledTaskManager
+import io.github.nanomuse.deeplink.OwnScheme
 import io.github.nanomuse.goals.GoalSessions
 import io.github.nanomuse.goals.GoalStore
+import io.github.nanomuse.identity.NanoMuseIdentity
 import io.github.nanomuse.sysfiles.SystemFiles
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +41,11 @@ import java.util.Locale
  * That conversation's system prompt carries the user's feed preferences and a digest of what the
  * agent knows (GLOBAL.md, the last seven days of diary, USER.md, goals); the model answers with
  * `nanomuse-feed` blocks, which the app turns into files under `feed/YYYY-MM-DD/` and into cards.
+ *
+ * The conversation is the agent's workbench, not a chat of the person's: it is kept out of the
+ * drawer, the chat list, the search and the main-chat fallback ([hidden]), the posts show in the
+ * Feed tab, and when a run wrote something while the app was in the background, one notification
+ * says so and opens the Feed ([notifyIfFeed]).
  */
 object FeedFlow {
     private const val TAG = "Feed"
@@ -44,6 +57,7 @@ object FeedFlow {
     const val BLOCK = "nanomuse-feed"
     const val DEFAULT_HOUR = 8
     const val DEFAULT_MINUTE = 0
+    private const val NOTIFICATION_ID = 0x6E6D_4645 // "nmFE"
 
     private val block = Regex("```$BLOCK[ \\t]*\\r?\\n([\\s\\S]*?)```")
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -54,16 +68,30 @@ object FeedFlow {
     private val _generating = MutableStateFlow(false)
     val generating: StateFlow<Boolean> = _generating
 
+    private val _hidden = MutableStateFlow<Set<String>>(emptySet())
+    /** The feed's working conversation, which no list shows (`ChatRepository.observeSessions`, `MainChat`). */
+    val hidden: StateFlow<Set<String>> = _hidden
+
+    /** Titles the last feed run wrote, for the notification; cleared once told. */
+    @Volatile private var lastWritten: List<String> = emptyList()
+    @Volatile private var lastWrittenAt = 0L
+
     fun init(context: Context) {
         FeedStore.init(context)
         _introAcknowledged.value = prefs(context).getBoolean(KEY_INTRO_ACK, false)
+        publishSession(prefs(context).getString(KEY_SESSION, null))
         scope.launch { runCatching { ensureRoutine(context) }.onFailure { AppLogger.warning(TAG, "ensure failed: ${it.message}") } }
     }
 
     /** Another account's preferences and routine are in place (contract C12): read them again. */
     fun refresh(context: Context) {
         _introAcknowledged.value = prefs(context).getBoolean(KEY_INTRO_ACK, false)
+        publishSession(prefs(context).getString(KEY_SESSION, null))
         scope.launch { runCatching { ensureRoutine(context) }.onFailure { AppLogger.warning(TAG, "ensure failed: ${it.message}") } }
+    }
+
+    private fun publishSession(id: String?) {
+        _hidden.value = if (id.isNullOrEmpty()) emptySet() else setOf(id)
     }
 
     fun acknowledgeIntro(context: Context) {
@@ -94,6 +122,7 @@ object FeedFlow {
             sessionId = GoalSessions.create(app, app.getString(R.string.nm_feed_session_title)) ?: return null
             p.edit().putString(KEY_SESSION, sessionId).apply()
         }
+        publishSession(sessionId)
         val existing = p.getString(KEY_TASK, null)?.let { manager.get(it) }
         val prompt = app.getString(R.string.nm_feed_prompt)
         val label = app.getString(R.string.nm_feed_routine_label)
@@ -164,7 +193,46 @@ object FeedFlow {
         val written = FeedStore.append(drafts)
         if (written.isNotEmpty() && isFeedSession(context, sessionId)) {
             AppLogger.info(TAG, "feed run in $sessionId wrote ${written.size} post(s)")
+            lastWritten = written.map { it.title }
+            lastWrittenAt = System.currentTimeMillis()
         }
+    }
+
+    /**
+     * The scheduled runner finished [task]: when it is the feed's routine, this takes the
+     * completion notice over (true), so the generic "task done" with the model's raw reply never
+     * shows. With the app on screen the Feed tab already shows the posts; in the background, and
+     * only when the run wrote something, one notification names them and opens the Feed.
+     */
+    fun notifyIfFeed(context: Context, task: ScheduledTask): Boolean {
+        if (task.id != taskId(context)) return false
+        val titles = lastWritten.takeIf { it.isNotEmpty() && System.currentTimeMillis() - lastWrittenAt < 30 * 60_000L } ?: return true
+        lastWritten = emptyList()
+        if (ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) return true
+        val body = titles.take(3).joinToString(" · ")
+        val open = OwnScheme.intent(context, Uri.parse("minis://feed"), flags = 0)
+        val pending = PendingIntent.getActivity(
+            context,
+            NOTIFICATION_ID,
+            open,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val notification = NotificationCompat.Builder(context, ScheduledTaskManager.CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_stat_nanomuse)
+            .setLargeIcon(NanoMuseIdentity.face(context))
+            .setContentTitle("${NanoMuseIdentity.name(context)}: ${context.getString(R.string.nm_feed_session_title)}")
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setContentIntent(pending)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+        try {
+            (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).notify(NOTIFICATION_ID, notification)
+        } catch (_: SecurityException) {
+            AppLogger.warning(TAG, "POST_NOTIFICATIONS denied; the feed's notice was not shown")
+        }
+        return true
     }
 
     private fun parseDraft(json: String): FeedStore.Draft? {

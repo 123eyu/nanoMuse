@@ -127,6 +127,8 @@
     <string name="nm_routine_run_now">今すぐ実行</string>
     <string name="nm_routine_delete">削除</string>
     <string name="nm_routine_paused">オフ</string>
+    <!-- The chat row a routine sent: its label and the clock time it fired -->
+    <string name="nm_routine_wake_caption">ルーティン · %1$s · %2$s</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">アイデア</string>
@@ -1136,4 +1138,10 @@
     <string name="nm_a11y_not_liked">いいねしていません</string>
     <string name="nm_a11y_post_details">投稿の詳細</string>
     <string name="nm_claude_sign_in_unavailable">このビルドでは Claude アカウントでのサインインは使えません。代わりに API キーで Anthropic を追加してください。</string>
+    <!-- Font scale labels -->
+    <string name="nm_font_scale_extra_small">とても小さい</string>
+    <string name="nm_font_scale_small">小さい</string>
+    <string name="nm_font_scale_medium">中</string>
+    <string name="nm_font_scale_large">大きい</string>
+    <string name="nm_font_scale_extra_large">とても大きい</string>
 </resources>

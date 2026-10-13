@@ -21,6 +21,7 @@ import { call, type Translate } from './api.ts'
 import { IconMore, IconPlus, IconSearch } from './icons.tsx'
 import { composing } from './keys.ts'
 import { useLive } from './live.ts'
+import { useRooms } from './rooms.ts'
 
 const MAIN_KEY = 'nanomuse.mainChat'
 
@@ -233,10 +234,12 @@ export function MuseChats({ t, useSessions, useSessionStatus, useWorkspaces, act
   const archivedSet = new Set(archived)
   const pinnedSet = new Set(pinned)
   const sync = useSyncList()
+  // the rooms' running batches (the feed being written) are the agent's work, not chats of the person's
+  const batches = new Set(useRooms().batches)
   // signed in, the column shows this account's chats and the ones never synced (C10); another account's stay, hidden
   const visible = state.ids
     .map((id) => state.byId[id])
-    .filter((s): s is ChatSummary => s !== undefined && s.origin !== 'subagent' && !s.parentId && !archivedSet.has(s.id) && !sync.foreign.has(s.id))
+    .filter((s): s is ChatSummary => s !== undefined && s.origin !== 'subagent' && !s.parentId && !archivedSet.has(s.id) && !sync.foreign.has(s.id) && !batches.has(s.id))
   const current = Object.values(state.byId).find((s) => (s.retainedBy.mainView ?? 0) > 0)?.id
 
   // The main chat: the one the account's main conversation lives in (C8) while it exists, else

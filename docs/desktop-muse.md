@@ -624,10 +624,14 @@ serves `/nanomuse/rooms/*` and streams changes to the browser half:
   to the stock text asks first), pictures and media inline, *Open* / *Show in folder* for the rest. Everything the agent delivers with `present`
   lands here, and `library_add` lists a file without delivering it.
 
-Rooms need a model that answers; signed out, they say so. The hidden chat the feed is
-written in is archived once parsed, so the chats column stays yours. A `nanomuse-feed`
-fence the agent writes in any chat (the phone's way of posting) lands in the Feed too
-and shows as a *Posted to your feed* card.
+Rooms need a model that answers; signed out, they say so. The chat the feed is written in
+is the agent's working room: the chats column and search leave it out while it runs
+(`batches` in the rooms view) and it is archived once parsed, so the chats column stays
+yours; the request itself goes into that chat as a one-line notice (*Writing today's feed*),
+not as a message in your voice. Up to 1.0.4 the chat appeared in the column, with the batch's
+prompt as a user bubble, for as long as the batch ran. A `nanomuse-feed` fence the agent
+writes in any chat (the phone's way of posting) lands in the Feed too and shows as a
+*Posted to your feed* card.
 
 ## The hamburger
 

@@ -56,13 +56,15 @@ resumable turns out unknown to the CLI.
 
 dsh is [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness): the
 chats of `dsh web` and of DeepSeek's own desktop app, kept under `~/.dsh`. The
-nanoMuse desktop app reads and drives them; the Python runtime does not list them
-yet. nanoMuse's own desktop chats are kept in its own home and are not among them.
+runtime and the nanoMuse desktop app both read and drive them; the runtime reads
+the store with `zstandard`, one of its dependencies. nanoMuse's own desktop chats
+are kept in its own home and are not among them.
 
 dsh's store needs two things said: it is **zstd**, and it is **many zstd frames**
 appended as the session is written, so decompressing it once stops at the end of
 the first frame and a long chat loses everything after its opening lines. The
-frames are therefore cut at the magic and decompressed one by one. Two kinds of session are
+frames are therefore read one after another to the end, and a last frame cut short
+by a write in progress costs only that frame. Two kinds of session are
 also not chats the person had and are left out: a `user/message` whose
 `source.kind` is not `user` (runtime context, the skill catalog, background-job
 notices all arrive that way), and a session whose header says `origin:
@@ -77,9 +79,10 @@ node. A `dsh` installed on `PATH` is still used first, as for the other three.
 That fallback only sends: dsh counts as installed when a `dsh` is on `PATH` or
 `~/.dsh` exists, so a computer where nobody has used it does not list a fourth
 agent.
-Either way the run gets `DSH_HOME=~/.dsh`: the desktop app points `DSH_HOME` at its
-own home for the harness it runs, and a run there would neither find the chat it
-was asked to continue nor leave a new one where the list looks.
+Either way, and on the runtime too, the run gets `DSH_HOME=~/.dsh`: the desktop
+app points `DSH_HOME` at its own home for the harness it runs, and a run there
+would neither find the chat it was asked to continue nor leave a new one where the
+list looks.
 
 `running` on an agent is the number of its processes alive right now, read from
 `/proc` on Linux, `ps` on macOS and `tasklist` (plus the command lines of

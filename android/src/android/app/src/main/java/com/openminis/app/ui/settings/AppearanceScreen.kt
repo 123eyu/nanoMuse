@@ -171,7 +171,15 @@ fun showStepsEnabled(context: Context): Boolean =
  */
 private val APP_ICON_TILE_MAX_WIDTH = 192.dp
 
-private val fontScaleLabels = listOf("XS", "Small", "Default", "Medium", "Large", "XL")
+// nanoMuse: resolve font scale labels in the current app language.
+private val fontScaleLabelResIds = listOf(
+    R.string.nm_font_scale_extra_small,
+    R.string.nm_font_scale_small,
+    R.string.common_default,
+    R.string.nm_font_scale_medium,
+    R.string.nm_font_scale_large,
+    R.string.nm_font_scale_extra_large,
+)
 private val fontScaleValues = listOf(-2, -1, 0, 1, 2, 3)
 private val fontScaleMultipliers = listOf(0.88f, 0.94f, 1.0f, 1.06f, 1.12f, 1.21f)
 
@@ -852,7 +860,10 @@ private fun FontScaleSliderRow(
 ) {
     val idx = fontScaleValues.indexOf(level).coerceIn(0, fontScaleValues.lastIndex)
     var sliderPos by remember(level) { mutableFloatStateOf(idx.toFloat()) }
-    val currentLabel = fontScaleLabels.getOrElse(sliderPos.roundToInt()) { "Default" }
+    // nanoMuse: localize the selected label and the default fallback.
+    val currentLabel = stringResource(
+        fontScaleLabelResIds.getOrElse(sliderPos.roundToInt()) { R.string.common_default },
+    )
 
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
         Row(

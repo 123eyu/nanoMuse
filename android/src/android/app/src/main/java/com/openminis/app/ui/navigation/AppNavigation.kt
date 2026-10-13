@@ -318,6 +318,11 @@ fun AppNavigation(
             is DeepLinkAction.OpenPermissionSettings -> {
                 navController.safeNavigate(Routes.PERMISSIONS)
             }
+            // nanoMuse: a cold start from the feed's notification: the shell mounts on its own and
+            // picks the tab up from the bus
+            is DeepLinkAction.OpenHomeTab -> {
+                io.github.nanomuse.ui.home.HomeShell.openTab(navController, initialDeepLink.tab)
+            }
             // OpenHtmlPreview is handled by setting startDestination
             // (see below) so the NavHost mounts directly into the right
             // chat — no safeNavigate dance, no sessions-list flash.

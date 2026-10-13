@@ -505,7 +505,28 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   于是它们的边和气泡的边、和彼此的边对齐，智能体的胶囊放宽到 600 pt，即网页宽布局的值。compact
   宽度，也就是每一部 iPhone 和窄的分屏窗格，没有变化。消息列表的单元格由 `UIHostingConfiguration`
   承载，它不传我们的 environment object，但会从单元格的 traits 传 size class；智能体的胶囊从那里
-  读它。
+  读它。1.0.4 里只有智能体的行把内边距加在列的外面，于是它的胶囊比输入框的边往左多出
+  16 pt；`CollectionViewMessageListV3.swift` 里的三个智能体单元格（头部、块、尾部）现在和用户的行
+  一样把内边距放在列里面。
+- **行会滚到标题栏下面。** 外壳量出 Muse 标题栏的高度，作为环境值 `nmTopOverlay` 交给聊天
+  （`NanoMuseChatModifiers.swift`）；消息列表在顶部忽略容器的安全区，再把行往下留出这么多
+  （`CollectionViewMessageListV3` 的 `topOverlay`，加进 `contentInset.top`），就像它已经在输入框和
+  底栏胶囊下面延伸那样。于是行会滚到形象下面，被标题栏后面的遮罩淡化，和 Android 一样。1.0.3 和
+  1.0.4 只把标题栏做成了 `safeAreaInset`，这对 SwiftUI 的 `ScrollView` 够用，却会把一个 UIKit 视图
+  缩短：列表止于标题栏下面，行在那里被一条硬边切断，遮罩什么也没淡化。从抽屉推出的侧聊天保留
+  系统栏，这个值是 0，它改为像上游 iOS 26 的布局那样把内容一直延伸到系统栏下面
+  （`NavBarStyleModifier`）；系统栏是 UIKit 的，列表自己的内边距调整会让第一行停在栏下面，它的行
+  也会在栏后面的遮罩里淡化。
+- **动态静静地写，例程先开口**（`NanoMuseRoutineWakes.swift`；`NanoMuseSync.shows`、
+  `NanoMuseHeadless.run`，以及 `ChatModels.swift`、`AIChatViewModel.swift`、
+  `AIChatViewModel+Persistence.swift`、`ChatMessageViews.swift` 里的 `nmRoutine` 改动处）。到 1.0.4
+  为止，每日动态是抽屉里一个叫「动态」的会话，里面有一条以本人口吻发出的「写今天的动态。」气泡，
+  下面是模型的回答；用户自己建的每条例程也都这样开始一轮。现在动态的会话是智能体的工作间，列表
+  不再列出它（`shows` 对它说不，就像对另一个账号的聊天那样）；帖子照旧出现在动态页。例程的一轮
+  会被标成例程的：承载提示词的那一行只是一行安静的小字「例程 · 〈名称〉 · 08:00」
+  （`NanoMuseRoutineWakeRow`，按行的 id 记住，重新加载后还在），模型则收到一条只管这一轮的附言
+  （`NanoMuseSessionAddenda`），说明这不是本人打的字，于是它直接从结果说起，而不是感谢对方的
+  提问。提示词本身没有变，这一轮照原样跑。
 
 ## 用操作按钮说一句 {#voice-prompts-from-the-action-button}
 

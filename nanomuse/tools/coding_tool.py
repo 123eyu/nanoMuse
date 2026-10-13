@@ -31,8 +31,9 @@ class CodingAgents(BaseTool):
 
     name: str = "coding_agents"
     description: str = (
-        "The user's coding agents (Cursor, Codex, Claude Code) on this computer or on another "
-        "of their computers (`device`). Actions: `agents` (which are installed, how many are "
+        "The user's coding agents (Cursor, Codex, Claude Code, DeepSeek Harness as `dsh`) on "
+        "this computer or on another of their computers (`device`). Actions: `agents` (which "
+        "are installed, how many are "
         "running), `sessions` (recent chats: title, workspace, when, whether one is running now; "
         "optional `agent`, `workspace`), `session` (one chat's transcript; needs `agent` and "
         "`session_id`), `send` (a message into a chat: `agent`, `text`, and `session_id` to "
@@ -48,7 +49,7 @@ class CodingAgents(BaseTool):
                 "type": "string",
                 "enum": ["agents", "sessions", "session", "send", "runs", "stop"],
             },
-            "agent": {"type": "string", "enum": ["cursor", "codex", "claude"]},
+            "agent": {"type": "string", "enum": ["cursor", "codex", "claude", "dsh"]},
             "session_id": {"type": "string"},
             "workspace": {
                 "type": "string",
