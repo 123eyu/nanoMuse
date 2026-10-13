@@ -131,7 +131,7 @@ function OwnClipPreview({ t, pending, onDone, onUnplayable }: { t: Translate; pe
   const cancel = () => {
     if (decided.current) return
     decided.current = true
-    void call('own-clip/discard').catch(() => undefined)
+    void call('own-clip/discard', {}).catch(() => undefined)
     onDone()
   }
   // the browser has no decoder for the clip's video (HEVC on most Linux builds): the same
@@ -139,7 +139,7 @@ function OwnClipPreview({ t, pending, onDone, onUnplayable }: { t: Translate; pe
   const unplayable = () => {
     if (decided.current) return
     decided.current = true
-    void call('own-clip/discard').catch(() => undefined)
+    void call('own-clip/discard', {}).catch(() => undefined)
     onUnplayable()
   }
   const use = async () => {
@@ -156,7 +156,7 @@ function OwnClipPreview({ t, pending, onDone, onUnplayable }: { t: Translate; pe
     }
   }
   // closed any other way (Escape, the ×): the same as "Cancel"
-  useEffect(() => () => { if (!decided.current) void call('own-clip/discard').catch(() => undefined) }, [])
+  useEffect(() => () => { if (!decided.current) void call('own-clip/discard', {}).catch(() => undefined) }, [])
   const seconds = Math.round(pending.durationMs / 1000)
   const footer = h('div', { className: 'nm-sheet-actions' },
     h('span', { style: { flex: 1 } }),

@@ -126,7 +126,7 @@ function Drawer({ t, stop, openSchedules, useSessions, useSessionStatus }: Profi
               h('button', { type: 'button', role: 'menuitem', className: 'nm-menu-item', onClick: () => { setMenu(false); setEditing('name') } }, h('span', { className: 'nm-menu-item-label' }, t('pfEditName'))),
               h('button', { type: 'button', role: 'menuitem', className: 'nm-menu-item', disabled: clipChooser.busy, onClick: () => { setMenu(false); clipChooser.choose() } }, h('span', { className: 'nm-menu-item-label' }, t('pfOwnClip'))),
               live.ownClip
-                ? h('button', { type: 'button', role: 'menuitem', className: 'nm-menu-item', onClick: () => { setMenu(false); void call('own-clip/clear').catch(() => undefined) } }, h('span', { className: 'nm-menu-item-label' }, t('ocDefault')))
+                ? h('button', { type: 'button', role: 'menuitem', className: 'nm-menu-item', onClick: () => { setMenu(false); void call('own-clip/clear', {}).catch(() => undefined) } }, h('span', { className: 'nm-menu-item-label' }, t('ocDefault')))
                 : null,
               h('button', { type: 'button', role: 'menuitem', className: 'nm-menu-item', onClick: () => { setMenu(false); profileBus.close(); studioBus.open?.(live.profile.description || '', live.profile.style || 'muse') } }, h('span', { className: 'nm-menu-item-label' }, t('pfAvatarStudio'))),
               h('button', { type: 'button', role: 'menuitem', className: 'nm-menu-item', onClick: () => { setMenu(false); setEditing('look') } }, h('span', { className: 'nm-menu-item-label' }, t('pfChangeLook'))))
