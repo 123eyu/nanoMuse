@@ -134,7 +134,7 @@ Each file carries the attribution line; rewritten in nanoMuse's structure (the o
 
 ### Python and JavaScript dependencies
 
-Installed from PyPI and npm, not vendored; each carries its own license: openai, pydantic, httpx, typer, rich, loguru, cryptography, tenacity, ddgs, beautifulsoup4, html2text, mcp, fastapi, uvicorn, qrcode, pywebpush, python-dateutil, pillow, pypdf (Python); lark-oapi, dingtalk-stream, wecom-aibot-sdk-python when the `channels` extras are installed; react, react-dom, react-markdown, remark-gfm, lucide-react, tailwindcss, vite (web); `@computer-use/nut-js`, `@computer-use/node-mac-permissions`, `@computer-use/mac-screen-capture-permissions` (desktop, above). `pip show <name>` / `npm view <name> license` for any of them.
+Installed from PyPI and npm, not vendored; each carries its own license: openai, pydantic, httpx, typer, rich, loguru, cryptography, tenacity, ddgs, beautifulsoup4, html2text, mcp, fastapi, uvicorn, qrcode, pywebpush, python-dateutil, pillow, pypdf, zstandard (Python); lark-oapi, dingtalk-stream, wecom-aibot-sdk-python when the `channels` extras are installed; react, react-dom, react-markdown, remark-gfm, lucide-react, tailwindcss, vite (web); `@computer-use/nut-js`, `@computer-use/node-mac-permissions`, `@computer-use/mac-screen-capture-permissions` (desktop, above). `pip show <name>` / `npm view <name> license` for any of them.
 
 ### Tools called, not bundled
 
