@@ -115,6 +115,22 @@ async def test_password_set_login_change_and_lockout():
     assert all("detail" in e and len(e["detail"]) <= 200 for e in events)
 
 
+async def test_a_disabled_account_is_told_so_only_with_the_right_password():
+    """A probe at /v1/auth/login must not learn that an account exists and is disabled: a
+    wrong password gets the answer any wrong password gets, the right one hears disabled."""
+    app, client, sender, up, cloud, settings = make()
+    first = await sign_up(client, sender, "someone@example.com", "pixel")
+    r = await client.post("/v1/auth/password", json={"password": "correct horse 1"}, headers=auth(first["api_key"]))
+    assert r.status_code == 204
+    admin = {"X-Admin-Token": "admin"}
+    r = await client.post("/v1/admin/disable", headers=admin, json={"identifier": "someone@example.com"})
+    assert r.status_code == 204
+    r = await client.post("/v1/auth/login", json={"identifier": "someone@example.com", "password": "nope nope nope"})
+    assert r.status_code == 401 and r.json()["error"]["code"] == "bad_credentials"
+    r = await client.post("/v1/auth/login", json={"identifier": "someone@example.com", "password": "correct horse 1"})
+    assert r.status_code == 403 and r.json()["error"]["code"] == "account_disabled"
+
+
 async def test_sessions_can_be_listed_and_revoked():
     app, client, sender, up, cloud, settings = make()
     a = await sign_up(client, sender, "dev-a@example.com", "pixel")

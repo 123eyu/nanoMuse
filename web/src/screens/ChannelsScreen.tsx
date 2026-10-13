@@ -248,7 +248,7 @@ function ChannelCard({
           }
           if (r.status === "failed" || Date.now() - started > session.expires_in * 1000) {
             setLogin(null);
-            setLoginNote(t("The login did not finish ({error}).", { error: r.error ?? "expired" }));
+            setLoginNote(t("The login did not finish ({error}).", { error: r.error ?? t("the session expired") }));
             return;
           }
         } catch (e) {

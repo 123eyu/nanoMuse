@@ -33,6 +33,8 @@ MESSAGES = {
     "code_expired": "That code has expired; ask for a new one.",
     "code_too_often": "Too many codes were sent; wait a few minutes.",
     "not_invited": "This relay is private; that address is not on its list.",
+    "domain_limited": "Today's sign-up limit for addresses at that domain is reached on this relay. Try again tomorrow, or use another address.",
+    "channel_unsupported": "This relay does not send codes to that kind of address. Use the other kind (e-mail or phone number), or sign in with a password.",
     "send_failed": "The code could not be sent; try again in a moment.",
     "bad_key": "Sign in again.",
     "out_of_tokens": "This account has used its tokens.",

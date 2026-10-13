@@ -223,7 +223,7 @@ enum NanoMuseGoalFlow {
         """
         ## Creating a goal (nanoMuse)
         The user just chose to create a goal in the "\(category.rawValue)" category from the Goals tab.
-        Shape it together, like Muse does: ask at most three short questions, ONE message at a time,
+        Shape it together: ask at most three short questions, ONE message at a time,
         in the user's language: (1) what exactly they want to achieve, (2) why it matters and by
         when, (3) how often you should check in (every N hours, or daily at a time). Two or three
         sentences per message; if the user already answered something, skip that question.

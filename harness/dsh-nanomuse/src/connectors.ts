@@ -275,7 +275,7 @@ export default class NanomuseConnectors extends Service {
     const url = existing?.url ?? entry?.url ?? String(input.url ?? '').trim()
     if (!/^https:\/\/[^\s/]+/.test(url) && !/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?/.test(url)) throw new RelayError(400, 'bad_url', 'The server address has to be an https URL')
     // `user:pass@` would sit in connectors.json, in the profile the other devices read and on screen
-    if (hasUserinfo(url)) throw new RelayError(400, 'bad_url', USERINFO_TEXT)
+    if (hasUserinfo(url)) throw new RelayError(400, 'url_userinfo', USERINFO_TEXT)
     const label = existing?.label ?? entry?.name ?? (String(input.label ?? '').trim() || hostOf(url))
     // the tools are named mcp__<serverName>__<tool> in a chat: the catalogue id, else the label, else the host
     const serverName = existing?.serverName ?? this.uniqueServerName(entry?.id ?? input.serverName ?? slug(String(input.label ?? '').trim() || hostOf(url).replace(/:\d+$/, '')), existing?.id)

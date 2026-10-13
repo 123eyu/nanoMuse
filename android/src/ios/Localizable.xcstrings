@@ -11456,6 +11456,124 @@
         }
       }
     },
+    "Today's sign-up limit for addresses at that domain is reached on this relay. Try again tomorrow, or use another address." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für Adressen dieser Domain ist das heutige Anmeldelimit auf diesem Relay erreicht. Versuche es morgen noch einmal oder nimm eine andere Adresse."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today's sign-up limit for addresses at that domain is reached on this relay. Try again tomorrow, or use another address."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las direcciones de ese dominio han alcanzado hoy el límite de registros en este relay. Inténtalo mañana o usa otra dirección."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les adresses de ce domaine ont atteint la limite d’inscriptions du jour sur ce relais. Réessayez demain ou utilisez une autre adresse."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このドメインのアドレスは、このリレーでの本日の登録上限に達しました。明日もう一度試すか、別のアドレスを使ってください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "해당 도메인의 주소는 이 릴레이에서 오늘의 가입 한도에 도달했습니다. 내일 다시 시도하거나 다른 주소를 사용하세요."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Адреса этого домена исчерпали дневной лимит регистраций на этом релее. Попробуйте завтра или используйте другой адрес."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这个域名的邮箱今天在这台中继上的注册名额已经用完。明天再试，或者换一个地址。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個網域的信箱今天在這台中繼上的註冊名額已經用完。明天再試，或者換一個地址。"
+          }
+        }
+      }
+    },
+    "This relay does not send codes to that kind of address. Use the other kind (e-mail or phone number), or sign in with a password." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Relay sendet an diese Art von Adresse keine Codes. Nimm die andere Art (E-Mail oder Telefonnummer) oder melde dich mit dem Passwort an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This relay does not send codes to that kind of address. Use the other kind (e-mail or phone number), or sign in with a password."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este relay no envía códigos a ese tipo de dirección. Usa el otro tipo (correo o número de teléfono) o inicia sesión con tu contraseña."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce relais n’envoie pas de code à ce type d’adresse. Utilisez l’autre type (e-mail ou numéro de téléphone) ou connectez-vous avec votre mot de passe."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このリレーはその種類のアドレスには確認コードを送りません。別の種類（メールアドレスか電話番号）を使うか、パスワードでサインインしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 릴레이는 그런 종류의 주소로는 인증 코드를 보내지 않습니다. 다른 종류(이메일 또는 전화번호)를 사용하거나 비밀번호로 로그인하세요."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот релей не отправляет коды на такой тип адреса. Используйте другой тип (e-mail или номер телефона) или войдите по паролю."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这台中继不会给这类地址发送验证码。换另一类地址（邮箱或手机号），或者用密码登录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這台中繼不會給這類地址發送驗證碼。換另一類地址（信箱或手機號），或者用密碼登入。"
+          }
+        }
+      }
+    },
     "Start Restore" : {
       "extractionState" : "manual",
       "localizations" : {

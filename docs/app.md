@@ -227,7 +227,7 @@ Everything the app does goes through this API, so another front-end (a Telegram 
 | GET | `/api/cloud/me` | the account as the relay sees it now (`/v1/me`), nudges policy refreshed on the way |
 | GET · DELETE | `/api/cloud/sessions` · `/api/cloud/sessions/{prefix}` | the account's sign-ins on every device / revoke one by the prefix the list shows; both answer `{sessions}` |
 | POST | `/api/cloud/sign-out` · `/api/cloud/sign-out-all` `{all}` | sign this device out / revoke every other device's sign-in (`all: true` this one too, `{signed_out}` with the account view) |
-| GET | `/api/cloud/events?limit=` | the account's activity log from the relay: `{events}` |
+| GET | `/api/cloud/events?limit=` | the account's activity log from the relay: `{events}`; `limit` 1 to 200, 50 by default |
 | POST | `/api/cloud/models` `{on}` | *Use nanoMuse Cloud models*: off, the account's models leave the automatic order of the hands, pictures and clips and the providers' listing; the sign-in stays. 409 `chat_on_cloud` while the chat model is the account's |
 | POST | `/api/cloud/use-as-model` `{model?}` | make the account the chat model: the recommended model unless one is named, the Cloud key from the vault; switches the account's models back on. Answers the connections view's `llm` |
 | POST · DELETE | `/api/cloud/contribute` `{on}` · `/api/cloud/samples` | data controls: *Help improve nanoMuse's AI models* on or off (the relay keeps chat turns only while it is on) / delete what it kept, `{deleted}` |

@@ -712,6 +712,8 @@
     <string name="nm_cloud_err_password_short">The password needs at least 8 characters.</string>
     <string name="nm_cloud_err_password_weak">That password is too easy to guess.</string>
     <string name="nm_cloud_err_signup_closed">Sign-ups are paused on this relay for now. An account that already exists can still sign in.</string>
+    <string name="nm_cloud_err_domain_limited">Today\'s sign-up limit for addresses at that domain is reached on this relay. Try again tomorrow, or use another address.</string>
+    <string name="nm_cloud_err_channel_unsupported">This relay does not send codes to that kind of address. Use the other kind (e-mail or phone number), or sign in with a password.</string>
     <string name="nm_cloud_err_too_large">That message is too large for the model. Shorten it, leave out some attachments, or start a new chat.</string>
     <string name="nm_cloud_err_content_rejected">The model provider\'s content check declined this request. Try different words, or start a new chat if it keeps happening: the words it objects to can be earlier in the conversation.</string>
     <string name="nm_cloud_err_provider_busy">The model provider is busy right now. Try again in a moment.</string>

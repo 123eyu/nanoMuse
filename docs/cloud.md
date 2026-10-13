@@ -376,8 +376,8 @@ account keeps a timeline, a line on it too; a deletion is counted on the Stats
 page. A disabled account that asks for a sign-in code gets the same `204` as anyone
 and no message is sent: the request counts towards the usual limits, nothing goes
 out, and the route says nothing about whether the number has an account or whether
-it is off; the person is told `403 account_disabled` when they try to sign in with
-a code or a password.
+it is off; the person is told `403 account_disabled` when they sign in with a code,
+or with the right password (a wrong one is answered like any wrong password).
 
 nanoMuse asks for one thing in return: a star on
 [GitHub](https://github.com/nano-muse/nanoMuse), which is what helps the

@@ -1323,7 +1323,7 @@ def create_app(settings: Settings, service: MuseService | None = None) -> FastAP
         return {"signed_out": n, **svc.hub.account_view()}
 
     @app.get("/api/cloud/events", dependencies=dep)
-    async def cloud_events(limit: int = 50) -> dict[str, Any]:
+    async def cloud_events(limit: int = Query(50, ge=1, le=200)) -> dict[str, Any]:
         try:
             return {"events": await svc.hub.events(limit)}
         except CloudError as exc:

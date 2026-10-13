@@ -187,8 +187,10 @@ test('shared connectors carry what and where, never how', () => {
   const rows = sharedConnectors([
     { service: 'notion', id: 'cn_1', label: 'Notion', url: 'https://mcp.notion.com/mcp', auth: 'oauth', state: 'ok', connectedAt: 1, updatedAt: 2 },
     { service: 'custom', id: 'cn_2', label: 'My server', url: 'https://x.example/mcp', auth: 'header', state: 'error', connectedAt: 3, updatedAt: 0 },
+    // saved before addresses with a user in them were refused: the profile never carries it
+    { service: 'custom', id: 'cn_3', label: 'Old one', url: 'https://me:s3cret@y.example:8443/mcp?x=1', auth: 'header', state: 'ok', connectedAt: 4, updatedAt: 0 },
   ], 'Office PC', 'pc-dsh-abc')
-  assert.equal(rows.length, 2)
+  assert.equal(rows.length, 3)
   assert.equal(rows[0].id, 'notion')
   assert.equal(rows[0].auth, 'oauth')
   assert.equal(rows[0].enabled, true)
@@ -196,10 +198,13 @@ test('shared connectors carry what and where, never how', () => {
   assert.equal(rows[1].auth, 'key')
   assert.equal(rows[1].enabled, false)
   assert.equal(rows[1].device_id, 'pc-dsh-abc')
+  assert.equal(rows[1].url, 'https://x.example/mcp')
+  assert.equal(rows[2].url, 'https://y.example:8443/mcp?x=1')
   for (const row of rows) for (const field of Object.keys(row)) assert.doesNotMatch(field, /token|secret|key|authorization|password/i)
+  assert.doesNotMatch(JSON.stringify(rows), /s3cret/)
   const back = readSharedConnectors([...rows, { nope: true }, { id: 'x', auth: 'weird' }])
-  assert.equal(back.length, 3)
-  assert.equal(back[2].auth, 'open')
+  assert.equal(back.length, 4)
+  assert.equal(back[3].auth, 'open')
 })
 
 test('the chat and hands defaults follow the relay\'s `for`, with the 0.1.34 names first', () => {

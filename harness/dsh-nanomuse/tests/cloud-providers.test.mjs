@@ -206,7 +206,7 @@ test('POST /providers/save: the key goes to the credential store under its name;
     // an address with user:pass@ would be kept and shown as typed: refused with the reason, nothing written
     const userinfo = await out.api('POST', '/providers/save', { id: 'bailian', apiKey: 'sk-x', baseURL: server.url.replace('://', '://user:pass@') })
     assert.equal(userinfo.status, 400)
-    assert.equal(userinfo.body.error.code, 'bad_url')
+    assert.equal(userinfo.body.error.code, 'url_userinfo')
     assert.match(userinfo.body.error.message, /user name or password/)
     const saved = await out.api('POST', '/providers/save', { id: 'bailian', apiKey: 'sk-secret-1234', baseURL: server.url, lang: 'zh' })
     assert.equal(saved.status, 200)
