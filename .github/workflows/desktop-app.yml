@@ -2,6 +2,9 @@
 # dsh and the nanoMuse bundle staged inside and the runtime for the hands bundled:
 #
 #   Windows  nanoMuse-Desktop-<v>-win-x64.exe        (NSIS installer)
+#            + latest.yml and the .exe.blockmap      (what electron-updater reads: the
+#                                                     desktop's in-app update, from the
+#                                                     release or the download mirror)
 #   macOS    nanoMuse-Desktop-<v>-mac-arm64.dmg / -x64.dmg  (+ .zip)
 #   Linux    nanoMuse-Desktop-<v>-linux-x64.AppImage / .deb / .tar.gz
 #
@@ -17,6 +20,9 @@
 # secrets; docs/desktop.md says how they are made) and writes the zip and an APFS dmg.
 # No Windows certificate: Windows asks for "Run anyway"; without the Apple secrets the macOS
 # bundle is ad-hoc signed and macOS asks for Open Anyway in System Settings → Privacy & Security.
+# The Windows build also writes its update metadata (latest.yml, .exe.blockmap) and checks, with
+# electron-updater itself, that the set it built can be found, downloaded and verified; a
+# release goes out with them attached only then (scripts/update-feed-check.mjs).
 # A push that touches harness/desktop builds Linux only; "Run workflow" and the release tags
 # `v*` build all four, and a tag uploads the installers to the release of the same name (the
 # one scripts/release-apk.sh creates with the APK), retrying until it exists; the platforms
@@ -213,10 +219,21 @@ jobs:
             grep -Eq "dsh-nanomuse[/\\\\]assets[/\\\\]dragon-$mood\.mp4" nsis-check/list.txt || { echo "the installer's archive lacks dsh-nanomuse/assets/dragon-$mood.mp4" >&2; exit 1; }
           done
           echo "the installer's archive carries the four clips"
+      # The update assets the release must carry (electron-builder.yml, win.publish: latest.yml,
+      # the installer, the .exe.blockmap) consumed the way the app's updater will: electron-updater
+      # itself finds the candidate in latest.yml, downloads the installer from a loopback feed
+      # serving this dist, verifies its SHA-512, and refuses a corrupted or missing installer.
+      # Nothing installs and nothing is uploaded by the check; the assets reach the release only
+      # through the release job below, from which the download mirror takes the same set.
+      - name: The update library takes and verifies the update assets (Windows)
+        if: runner.os == 'Windows'
+        working-directory: harness/desktop
+        shell: bash
+        run: node scripts/update-feed-check.mjs
       - name: What was built
         shell: bash
         working-directory: harness/desktop
-        run: ls -la dist | grep -Ev "^total|builder-|\.blockmap|\.yml$" || true
+        run: ls -la dist | grep -Ev "^total|builder-" || true
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: nanomuse-desktop-${{ matrix.label }}
@@ -225,6 +242,8 @@ jobs:
             harness/desktop/dist/*.deb
             harness/desktop/dist/*.tar.gz
             harness/desktop/dist/*.exe
+            harness/desktop/dist/*.exe.blockmap
+            harness/desktop/dist/latest.yml
             harness/desktop/dist/*.dmg
             harness/desktop/dist/*.zip
           if-no-files-found: error
@@ -265,5 +284,7 @@ jobs:
             sleep 10
           done
           gh release view "$TAG" -R "$REPO" >/dev/null
+          # packages/* carries the Windows update assets with the installers (latest.yml, the
+          # .exe.blockmap); SHA256SUMS-desktop.txt covers them the same way
           (cd packages && sha256sum * > SHA256SUMS-desktop.txt && cat SHA256SUMS-desktop.txt)
           gh release upload "$TAG" packages/* -R "$REPO" --clobber
