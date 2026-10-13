@@ -74,11 +74,11 @@ win:
       arch: [x64]
   icon: resources/app-icon.png
   # electron-updater's feed: with a publish config in place electron-builder writes the update
-  # metadata (latest.yml — the version, the installer's name and its SHA-512) and the
+  # metadata (latest.yml: the version, the installer's name and its SHA-512) and the
   # .exe.blockmap next to the installer, and `npm run dist` passes --publish never so nothing
   # is uploaded from the build: the workflow attaches the three files to the GitHub release,
   # from which the download mirror picks them up.
-  # The generic provider only shapes the metadata — the file URLs in latest.yml are relative
+  # The generic provider only shapes the metadata: the file URLs in latest.yml are relative
   # names, so the same pair serves from GitHub and from nanomuse.cn/dl/win alike. Never a
   # publisher certificate (docs/desktop.md): the SHA-512 is the installer's own integrity.
   publish:

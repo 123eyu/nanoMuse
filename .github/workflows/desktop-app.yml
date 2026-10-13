@@ -222,7 +222,7 @@ jobs:
       # The update assets the release must carry (electron-builder.yml, win.publish: latest.yml,
       # the installer, the .exe.blockmap) consumed the way the app's updater will: electron-updater
       # itself finds the candidate in latest.yml, downloads the installer from a loopback feed
-      # serving this dist, verifies its SHA-512 — and refuses a corrupted or missing installer.
+      # serving this dist, verifies its SHA-512, and refuses a corrupted or missing installer.
       # Nothing installs and nothing is uploaded by the check; the assets reach the release only
       # through the release job below, from which the download mirror takes the same set.
       - name: The update library takes and verifies the update assets (Windows)

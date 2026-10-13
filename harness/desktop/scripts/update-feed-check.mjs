@@ -1,25 +1,25 @@
 // Consumes the Windows update assets the way the app's updater will: electron-updater itself
 // (NsisUpdater) reads latest.yml from a loopback feed seeded with what electron-builder
-// generated, finds the candidate version, downloads the installer it names and verifies it —
+// generated, finds the candidate version, downloads the installer it names and verifies it;
 // and refuses an installer whose bytes do not match latest.yml's SHA-512, or whose file is
 // missing. This is the "build assets → the update library can take and verify them" check
 // release maintenance relies on (the release's update assets and SHA256SUMS-desktop.txt);
 // it asserts the behaviour, not the build configuration.
 //
-// The library's whole download path — latest.yml parsing, the file the metadata names, the
-// SHA-512 digest transform that decides "downloaded" — is its own; only the transport socket
+// The library's whole download path (latest.yml parsing, the file the metadata names, the
+// SHA-512 digest transform that decides "downloaded") is its own; only the transport socket
 // is ours, a thin HttpExecutor over node:http where the app would use electron's net (the
 // base class drives redirects, timeouts and the digest the same way either way). That keeps
 // the check a plain Node run: no window, no GPU, nothing GUI to depend on.
 //
 // Run after `npm run dist` on Windows (`.github/workflows/desktop-app.yml` does, and CI keeps
-// the run green from there): `node scripts/update-feed-check.mjs` — dist is the build output
+// the run green from there): `node scripts/update-feed-check.mjs`; dist is the build output
 // beside this script; `--dist=<path>` points it elsewhere.
 //
 // Isolation: the feed is a throwaway HTTP server on 127.0.0.1 serving the dist directory
 // as-is; the updater's cache and config live in a fresh temp directory per scenario; the app
 // adapter it gets is a stub with no real app behind it. autoDownload and autoInstallOnAppQuit
-// are off and quit() is recorded — a run of this check must never install anything, whatever
+// are off and quit() is recorded: a run of this check must never install anything, whatever
 // it finds or fails to find. Nothing is uploaded anywhere: consuming the assets locally is not
 // a licence to publish them (that stays the release recipe's job).
 
@@ -43,7 +43,7 @@ const TIMEOUT_MS = 10 * 60 * 1000; // the installer is a couple of hundred megab
 
 /** latest.yml, electron-builder's update metadata: the version and the files it promises. */
 function readMetadata() {
-  if (!existsSync(YML)) throw new Error(`no update metadata: ${YML} is missing — the win publish config did not take`);
+  if (!existsSync(YML)) throw new Error(`no update metadata: ${YML} is missing; the win publish config did not take`);
   const text = readFileSync(YML, "utf8");
   const version = /^version:\s*(\S+)\s*$/m.exec(text)?.[1];
   const files = /^files:\s*$/m.exec(text);
@@ -97,7 +97,7 @@ class NodeHttpExecutor extends HttpExecutor {
   }
 }
 
-/** The app adapter electron-updater gets: a stub — no window, no real app, a temp home. */
+/** The app adapter electron-updater gets: a stub (no window, no real app, a temp home). */
 class CheckApp {
   constructor(base) {
     this.base = base;
@@ -234,7 +234,7 @@ async function scenario(name, twist, meta) {
 
 const failures = [];
 function expect(ok, message) {
-  console.log(`  ${ok ? "ok" : "FAIL"} — ${message}`);
+  console.log(`  ${ok ? "ok" : "FAIL"}: ${message}`);
   if (!ok) failures.push(message);
 }
 
@@ -247,7 +247,7 @@ const installerPath = join(dist, meta.installer);
 const blockmapPath = `${installerPath}.blockmap`;
 const shellVersion = JSON.parse(readFileSync(join(dist, "..", "package.json"), "utf8")).version;
 
-console.log(`update feed check — dist ${dist}`);
+console.log(`update feed check: dist ${dist}`);
 console.log(`  metadata: version ${meta.version}, installer ${meta.installer}, sha512 ${meta.sha512.slice(0, 12)}…, ${meta.size} bytes`);
 
 // The set belongs to one version: the metadata, the installer it names and the blockmap the
@@ -267,7 +267,7 @@ expect(complete.resolvedInstaller, "the metadata names the installer the feed se
 expect(complete.verified === true, "the download completed and verified (byte-equal to the built installer)");
 expect(complete.quitCalls === 0 && complete.relaunchCalls === 0, `nothing was installed (quit ${complete.quitCalls}, relaunch ${complete.relaunchCalls})`);
 
-// 2. A corrupted installer: the library must refuse it — SHA-512 mismatch, not "downloaded".
+// 2. A corrupted installer: the library must refuse it (a SHA-512 mismatch, not "downloaded").
 const corrupt = await scenario("corrupted installer", (data) => ((data[data.length >> 1] ^= 0xff), data), meta);
 expect(corrupt.downloadError !== null, `the corrupted download was refused (${shorten(corrupt.downloadError)})`);
 expect(/checksum|mismatch|sha/i.test(corrupt.downloadError ?? ""), "the refusal names the checksum");

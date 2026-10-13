@@ -32,7 +32,7 @@ test("the NSIS installer puts every file in its archive, the face's clips includ
   assert.ok(nsis.includes("  preCompressedFileExtensions: []"), "nsis.preCompressedFileExtensions is an empty list");
 });
 
-// Auxiliary only — the real check is scripts/update-feed-check.mjs, where electron-updater
+// Auxiliary only: the real check is scripts/update-feed-check.mjs, where electron-updater
 // consumes what the build produced. This keeps the config from losing the publish entry that
 // makes electron-builder write latest.yml and the .exe.blockmap next to the Windows installer,
 // the assets the in-app update and the mirror's dl/win feed read.
