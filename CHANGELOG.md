@@ -51,6 +51,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 - **Background & notifications says what the phone does.** A notification is a routine's reminder or a note from another device, and Background App Refresh lets iOS post the reminder, never run the routine; the page used to say the app got slots to finish a routine.
 - **Hub failures read as a sentence in your language.** When a computer is offline, busy, out of time or runs an older nanoMuse, Coding agents, the Reach sheet and an `@device` message say so in the phone's language, as Android does; they showed the English line the relay or the runtime sent.
 - **VoiceOver names the Library's and the usage pickers and the ••• menus.** The Artifacts/Media and Today/All time segments and the menus on a goal, a routine and a feed post had no label.
+- **An emoji face set elsewhere shows on the iPhone.** A face set to an emoji on a colour on the desktop or in the web console showed the dragon on the iPhone; it now shows the emoji on its colour in the header, on the agent page and at launch, after a drawn face and before the dragon. This phone's own resets and drawn faces push as before, and never put the dragon over an emoji chosen on another device (reported by @Yousanflics, #435).
 
 ### Project
 

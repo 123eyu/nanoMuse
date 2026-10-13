@@ -90,7 +90,7 @@ Legend: **✓** done · **◐** partial (what is missing is in the note) · **�
 |---|---|---|---|---|
 | Avatar studio: generate, pick, pose; the face shared across devices | ✓ | ✓ 0.1.33 *(11)* | ✓ | ✓ |
 | Motion clips for a drawn face (idle · working · waiting · happy; `wan2.2-i2v-flash`; *Animate the avatar after a change*) | ✓ | ✓ 0.1.35 | ✓ 0.1.35 header, sidebar, capsule | — *(27)* |
-| Emoji faces | ◐ falls back to the dragon *(12)* | ◐ falls back to the dragon *(12)* | ✓ | ✓ |
+| Emoji faces | ◐ falls back to the dragon *(12)* | ✓ 1.0.5 *(12)* | ✓ | ✓ |
 | Theme colour swatches | — | — | — removed 0.1.33 *(13)* | — |
 | Accent follows the avatar | ✓ | ✓ | ✓ | ✓ |
 | Rooms: Feed · Ideas · Goals · Library | ✓ | ✓ 0.1.34 with a scheduler *(11)* | ✓ 0.1.34 on the phone's fence protocol | ✓ |
@@ -160,8 +160,8 @@ notes above; a settled item keeps its number and says how it went.
     computer of the account runs them) is still the sure one. The iPad's layout is the iPhone's,
     larger.
     Settled in 0.1.35: no split layout of its own.
-12. **Android and iOS · Emoji faces.** A face set to an emoji on the web or the desktop shows the
-    dragon on the phones. Small.
+12. **Android · Emoji faces.** A face set to an emoji on the web or the desktop shows the dragon
+    on Android. Small. iOS shows it since 1.0.5.
 13. **Theme colour swatches.** Settled in 0.1.33: removed from the desktop; one rule everywhere,
     the accent follows the avatar.
 14. **Android · Memory as a room.** It is a settings page on the phone, a room elsewhere. Design

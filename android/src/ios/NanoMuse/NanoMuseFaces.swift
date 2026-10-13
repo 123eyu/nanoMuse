@@ -19,9 +19,62 @@ enum NanoMuseMood: String, CaseIterable, Codable {
     case idle, working, waiting, happy, error
 }
 
-/// Which face the header wears: the bundled dragon, or the pictures the
-/// user drew. Pictures live under Application Support/nanomuse/avatar as
-/// PNG, one per mood, plus a small meta.json (description, style, when).
+/// An emoji on a colour: the look the desktop and the web console can set and the profile
+/// carries as `avatar: "emoji"` with `emoji` and `color` (#435). The phone cannot pick one
+/// yet; it wears the one another device chose. The fallbacks are the desktop's
+/// (`src/client/Avatar.tsx`): a sparkle for no emoji, the action blue for no colour.
+struct NanoMuseEmojiLook: Codable, Equatable {
+    var emoji: String
+    var color: String
+
+    static let defaultEmoji = "✨"
+    static let defaultColor = "#0064d4"
+
+    /// What is drawn: the emoji, or the sparkle when the profile carries none.
+    var shownEmoji: String {
+        let trimmed = emoji.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? Self.defaultEmoji : trimmed
+    }
+
+    /// The disc's colour, parsed from the profile's `#rrggbb`.
+    var uiColor: UIColor { Self.color(hex: color) }
+
+    /// `#rrggbb` (the `#` optional, either case) as a colour; anything else is the default blue.
+    static func color(hex: String) -> UIColor {
+        var digits = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if digits.hasPrefix("#") { digits.removeFirst() }
+        guard digits.count == 6, let value = UInt32(digits, radix: 16) else {
+            // #0064d4, the action blue
+            return UIColor(red: 0, green: 100.0 / 255.0, blue: 212.0 / 255.0, alpha: 1)
+        }
+        return UIColor(
+            red: CGFloat((value >> 16) & 0xff) / 255,
+            green: CGFloat((value >> 8) & 0xff) / 255,
+            blue: CGFloat(value & 0xff) / 255,
+            alpha: 1
+        )
+    }
+}
+
+/// Where the face comes from, in the order the store settles it: the pictures drawn in the
+/// studio or pulled from the profile, else the emoji look another device set, else the
+/// bundled dragon. A clip of the person's own (NanoMuseOwnClip, #324) sits above all three
+/// where clips play and is the view's business, not the store's.
+enum NanoMuseFaceSource: Equatable {
+    case drawn, emoji, dragon
+
+    static func of(hasDrawn: Bool, emoji: NanoMuseEmojiLook?) -> NanoMuseFaceSource {
+        if hasDrawn { return .drawn }
+        if emoji != nil { return .emoji }
+        return .dragon
+    }
+}
+
+/// Which face the header wears: the bundled dragon, the emoji look another
+/// device set, or the pictures the user drew. Pictures live under
+/// Application Support/nanomuse/avatar as PNG, one per mood, plus a small
+/// meta.json (description, style, when); the emoji look sits beside them in
+/// emoji.json.
 @MainActor
 final class NanoMuseFaceStore: ObservableObject {
     static let shared = NanoMuseFaceStore()
@@ -35,10 +88,18 @@ final class NanoMuseFaceStore: ObservableObject {
 
     @Published private(set) var custom: [NanoMuseMood: UIImage] = [:]
     @Published private(set) var meta = Meta()
+    /// The emoji on its colour the profile carries (#435), or nil. Worn only when nothing was
+    /// drawn: a drawn face replaces it, a reset to the dragon removes it.
+    @Published private(set) var emojiLook: NanoMuseEmojiLook?
 
     var hasCustomFace: Bool { custom[.idle] != nil }
 
+    /// The drawn face, the emoji look or the dragon, in that order.
+    var source: NanoMuseFaceSource { NanoMuseFaceSource.of(hasDrawn: hasCustomFace, emoji: emojiLook) }
+
     private static var dragonCache: [NanoMuseMood: UIImage] = [:]
+    /// Rendered emoji stills, keyed by emoji, colour and side.
+    private static var emojiCache: [String: UIImage] = [:]
 
     private init() {
         load()
@@ -58,16 +119,50 @@ final class NanoMuseFaceStore: ObservableObject {
     }
 
     private static var metaFile: URL { directory.appendingPathComponent("meta.json") }
+    /// The emoji look (#435), beside the stills so an account change (C12) takes it along.
+    private static var emojiFile: URL { directory.appendingPathComponent("emoji.json") }
 
     // MARK: Reading
 
     /// The picture for a mood: the drawn one, the drawn idle still when that
-    /// mood was never drawn, else the dragon. Nil only when the bundle lacks
+    /// mood was never drawn, else the emoji look on its colour (the same
+    /// still for every mood), else the dragon. Nil only when the bundle lacks
     /// the dragon files as well.
     func image(for mood: NanoMuseMood) -> UIImage? {
         if let own = custom[mood] { return own }
         if let idle = custom[.idle] { return idle }
+        if let look = emojiLook { return Self.emojiStill(look, side: 512) }
         return Self.dragon(mood)
+    }
+
+    /// The emoji centred on a square of its colour, `side` points at 1x, the glyph about 0.58
+    /// of the side as the desktop draws it (a longer run of emoji shrinks to fit). The views
+    /// clip it to their disc. Cached per look and side.
+    static func emojiStill(_ look: NanoMuseEmojiLook, side: CGFloat) -> UIImage {
+        let key = "\(look.shownEmoji)|\(look.color.lowercased())|\(Int(side))"
+        if let cached = emojiCache[key] { return cached }
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format)
+        let text = look.shownEmoji as NSString
+        let image = renderer.image { _ in
+            look.uiColor.setFill()
+            UIRectFill(CGRect(x: 0, y: 0, width: side, height: side))
+            var pointSize = side * 0.58
+            var attributes: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: pointSize)]
+            var bounds = text.size(withAttributes: attributes)
+            let widest = side * 0.86
+            if bounds.width > widest, bounds.width > 0 {
+                pointSize *= widest / bounds.width
+                attributes = [.font: UIFont.systemFont(ofSize: pointSize)]
+                bounds = text.size(withAttributes: attributes)
+            }
+            let origin = CGPoint(x: (side - bounds.width) / 2, y: (side - bounds.height) / 2)
+            text.draw(at: origin, withAttributes: attributes)
+        }
+        emojiCache[key] = image
+        return image
     }
 
     static func dragon(_ mood: NanoMuseMood) -> UIImage? {
@@ -98,6 +193,10 @@ final class NanoMuseFaceStore: ObservableObject {
            let m = try? JSONDecoder().decode(Meta.self, from: data) {
             meta = m
         }
+        if let data = try? Data(contentsOf: Self.emojiFile),
+           let look = try? JSONDecoder().decode(NanoMuseEmojiLook.self, from: data) {
+            emojiLook = look
+        }
     }
 
     // MARK: Writing
@@ -127,6 +226,8 @@ final class NanoMuseFaceStore: ObservableObject {
                     createdAt: Date().timeIntervalSince1970,
                     faceId: Self.faceId(of: idleBytes))
         saveMeta()
+        // a drawn face replaces an emoji look; the push below tells the account so
+        removeEmojiLook()
         NanoMuseProfileSync.shared.faceChanged()
     }
 
@@ -146,16 +247,18 @@ final class NanoMuseFaceStore: ObservableObject {
         NanoMuseAvatarMotion.shared.clear()
         custom = [:]
         meta = Meta()
+        emojiLook = nil
         load()
     }
 
-    /// Back to the dragon. The stills and the meta go; a clip of the person's own
-    /// (NanoMuseOwnClip, in the same folder) is not the drawn face's and stays.
+    /// Back to the dragon. The stills, the meta and the emoji look go; a clip of the person's
+    /// own (NanoMuseOwnClip, in the same folder) is not the drawn face's and stays.
     func reset(sync: Bool = true) {
         NanoMuseAvatarMotion.shared.clear()
         removeStills()
         custom = [:]
         meta = Meta()
+        removeEmojiLook()
         if sync { NanoMuseProfileSync.shared.faceChanged() }
     }
 
@@ -167,8 +270,14 @@ final class NanoMuseFaceStore: ObservableObject {
         try? fm.removeItem(at: Self.metaFile)
     }
 
+    private func removeEmojiLook() {
+        try? FileManager.default.removeItem(at: Self.emojiFile)
+        emojiLook = nil
+    }
+
     /// Wear a face that another device drew (pulled from the profile). Clips are per device:
     /// the old ones go, and the caller asks NanoMuseAvatarMotion for new ones when enabled.
+    /// An emoji look goes too: the profile carries one look at a time.
     func wear(remote stills: [NanoMuseMood: UIImage], faceId: String, description: String, style: String) {
         guard stills[.idle] != nil else { return }
         NanoMuseAvatarMotion.shared.clear()
@@ -186,6 +295,25 @@ final class NanoMuseFaceStore: ObservableObject {
         meta = Meta(description: description, style: style,
                     createdAt: Date().timeIntervalSince1970, faceId: faceId)
         saveMeta()
+        removeEmojiLook()
+    }
+
+    /// Wear the emoji look another device set (pulled from the profile, #435). The drawn
+    /// stills and their clips go, as they do when another device goes back to the dragon;
+    /// nothing is pushed, the account already has this look.
+    func wear(emoji look: NanoMuseEmojiLook) {
+        if hasCustomFace {
+            NanoMuseAvatarMotion.shared.clear()
+            removeStills()
+            custom = [:]
+            meta = Meta()
+        }
+        guard look != emojiLook else { return }
+        try? FileManager.default.createDirectory(at: Self.directory, withIntermediateDirectories: true)
+        if let data = try? JSONEncoder().encode(look) {
+            try? data.write(to: Self.emojiFile, options: .atomic)
+        }
+        emojiLook = look
     }
 
     private func saveMeta() {
@@ -267,17 +395,31 @@ struct NanoMuseFaceView: View {
     @State private var shake: CGFloat = 0
 
     /// The clip for this mood: the person's own, when one is set (#324), stands in for every
-    /// mood; else the drawn face's clip for this mood, or the dragon's.
+    /// mood; else the drawn face's clip for this mood, or the dragon's. An emoji look (#435)
+    /// has no clip: its still moves as the dragon's does.
     private var clip: URL? {
         if let ownClip = own.clip { return ownClip }
-        if faces.hasCustomFace { return motion.clips[mood] }
-        return NanoMuseAvatarMotion.dragonClip(mood)
+        switch faces.source {
+        case .drawn: return motion.clips[mood]
+        case .emoji: return nil
+        case .dragon: return NanoMuseAvatarMotion.dragonClip(mood)
+        }
+    }
+
+    /// Tells one still from the next so the crossfade runs: the mood, and which face it is.
+    private var stillID: String {
+        switch faces.source {
+        case .drawn: return mood.rawValue + "c"
+        case .emoji: return mood.rawValue + "e" + (faces.emojiLook?.shownEmoji ?? "") + (faces.emojiLook?.color ?? "")
+        case .dragon: return mood.rawValue + "d"
+        }
     }
 
     private var clipVersion: Int { own.clip != nil ? own.version : motion.clipVersion }
 
     /// The still under the clip, and the face itself when there is no clip: the drawn one for
-    /// this mood, or the own clip's first frame when nothing was drawn, else the dragon.
+    /// this mood, or the own clip's first frame when nothing was drawn, else the emoji look,
+    /// else the dragon.
     private var still: UIImage? {
         if !faces.hasCustomFace, own.clip != nil, let poster = own.poster { return poster }
         return faces.image(for: mood)
@@ -306,7 +448,7 @@ struct NanoMuseFaceView: View {
                     .frame(width: size, height: size)
                     .clipShape(Circle())
                     .transition(.opacity)
-                    .id(mood.rawValue + (faces.hasCustomFace ? "c" : "d"))
+                    .id(stillID)
             } else {
                 Image(systemName: "face.smiling")
                     .resizable()

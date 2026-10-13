@@ -91,7 +91,9 @@ Ours, in `NanoMuse/`:
   `tool_title` (the model's own words for the step, *打开携程网站*), then *writing the reply*,
   then *On it: 〈brief〉*, and the model's name when idle; while a new face is being drawn it
   reads the avatar flow's line. The face (`NanoMuseFaces.swift`, the drawn face from Application
-  Support or the dragon from the bundle, five moods with the breath, bob, tilt, pop and shake of
+  Support, else an emoji on its colour when the desktop or the web console set one (kept in
+  `avatar/emoji.json`, rendered as a still; the phone has no picker for it yet), else the dragon
+  from the bundle, five moods with the breath, bob, tilt, pop and shake of
   the other clients; with Reduce Motion on the still keeps still and only the mood's crossfade
   remains) is tapped into **the agent's page**. A short clip of your own can play as the
   face instead (`NanoMuseOwnClip.swift`: *Your own clip…* under the pen on the agent's page and in
