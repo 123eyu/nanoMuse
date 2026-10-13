@@ -24,11 +24,11 @@
 
 读取是尽力而为：解析不了的一行跳过，目录不存在就当这个助手没有会话。`~` 是用户的主目录，除非 `NANOMUSE_CODING_HOME` 指向了别的目录（比如一个把宿主机的 CLI 主目录挂到别处的容器，或者一个测试）。一个会话列出它的助手、id、标题（第一条用户消息）、工作区、时间戳、消息数、最后一轮对话，以及是否 `resumable`。Cursor 的 IDE 聊天能读但不能从 CLI 续上（`resumable: false`，`source: "ide"`）：发给它的消息会直接作为一个新的 CLI 聊天在同一个工作区里发出，引用旧聊天的标题和最后一轮对话，运行结果写明 `resumed: false`；App 会在输入框上方说明这一点。当一个被存储标为可续的聊天在 CLI 那里查无此号时，走的也是同样的回退。
 
-dsh 就是 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)：`dsh web` 和 DeepSeek 自己的桌面应用里的聊天，存在 `~/.dsh` 下。nanoMuse 桌面版读取并驱动它们，Python 运行时暂时还不会列出。nanoMuse 桌面版自己的聊天存在它自己的目录里，不在其中。
+dsh 就是 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)：`dsh web` 和 DeepSeek 自己的桌面应用里的聊天，存在 `~/.dsh` 下。运行时和 nanoMuse 桌面版都能读取并驱动它们；运行时用它的依赖 `zstandard` 读取这个存储。nanoMuse 桌面版自己的聊天存在它自己的目录里，不在其中。
 
-dsh 的存储有两点要说明：它是 **zstd** 压缩的，而且是随着会话写入**一帧帧追加**的，所以只解压一次会在第一帧结束处停下，长聊天会丢掉开头几行之后的所有内容。因此帧按魔数切开，逐帧解压。另有两种会话不是人聊过的对话，会被排除：`source.kind` 不是 `user` 的 `user/message`（运行时上下文、技能目录、后台任务通知都是以这种方式到达的），以及 header 里写着 `origin: "subagent"` 或带有 `parentSession` 的会话。
+dsh 的存储有两点要说明：它是 **zstd** 压缩的，而且是随着会话写入**一帧帧追加**的，所以只解压一次会在第一帧结束处停下，长聊天会丢掉开头几行之后的所有内容。因此会一帧接一帧地读到文件末尾；最后一帧如果正写到一半，只丢掉这一帧。另有两种会话不是人聊过的对话，会被排除：`source.kind` 不是 `user` 的 `user/message`（运行时上下文、技能目录、后台任务通知都是以这种方式到达的），以及 header 里写着 `origin: "subagent"` 或带有 `parentSession` 的会话。
 
-dsh 也是唯一不只从 `PATH` 上找命令行的助手：桌面版把 harness 打包在自己里面（`…/Resources/dsh/`），以 `node …/dsh/lib/bin.js <profile>` 启动，所以装了桌面版的电脑有 dsh 会话，`PATH` 上却没有 `dsh`。因此桌面版插件会回退到它自己正运行在其中的那个 harness（用它自己命令行里的入口），并通过 node 启动它。`PATH` 上装好的 `dsh` 仍然优先使用，和其他三个一样。这个回退只用于发送消息：只有 `PATH` 上有 `dsh` 或者 `~/.dsh` 存在时，dsh 才算已安装，没人用过它的电脑不会多列出一个助手。无论哪种，运行时都带上 `DSH_HOME=~/.dsh`：桌面版给它自己运行的 harness 设置的 `DSH_HOME` 指向它自己的目录，在那里运行既找不到要续上的聊天，新建的聊天也不会出现在列表里。
+dsh 也是唯一不只从 `PATH` 上找命令行的助手：桌面版把 harness 打包在自己里面（`…/Resources/dsh/`），以 `node …/dsh/lib/bin.js <profile>` 启动，所以装了桌面版的电脑有 dsh 会话，`PATH` 上却没有 `dsh`。因此桌面版插件会回退到它自己正运行在其中的那个 harness（用它自己命令行里的入口），并通过 node 启动它。`PATH` 上装好的 `dsh` 仍然优先使用，和其他三个一样。这个回退只用于发送消息：只有 `PATH` 上有 `dsh` 或者 `~/.dsh` 存在时，dsh 才算已安装，没人用过它的电脑不会多列出一个助手。无论哪种，运行时（`nanomuse serve`）上也一样，这次运行都带上 `DSH_HOME=~/.dsh`：桌面版给它自己运行的 harness 设置的 `DSH_HOME` 指向它自己的目录，在那里运行既找不到要续上的聊天，新建的聊天也不会出现在列表里。
 
 助手的 `running` 是它此刻还活着的进程数，Linux 上读 `/proc`，macOS 上用 `ps`，Windows 上用 `tasklist`（外加 `node.exe` 的命令行，因为 Cursor CLI 是随 node 打包的）；从不使用 `pgrep -f`，而且每两秒最多读一次。
 

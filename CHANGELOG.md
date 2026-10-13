@@ -8,6 +8,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Runtime
 
+- **DeepSeek Harness is a coding agent on the runtime too.** A computer running `nanomuse serve` listed Cursor, Codex and Claude Code only, so the chats of `dsh web` and DeepSeek's desktop app under `~/.dsh` reached the phone and the web console only from a computer with the desktop app. The runtime now reads them, shows a transcript and sends into one with `dsh --profile headless --json`, always with `DSH_HOME=~/.dsh`, and the Muse's `coding_agents` tool takes `dsh`. dsh counts as installed when a `dsh` is on `PATH` or `~/.dsh` exists. Reading the store needs `zstandard`, a new dependency: the store is zstd written one frame at a time, every frame is read, and runtime context, the skill catalog, background-job notices and subagent sessions are left out.
+
 ### Web
 
 ### Desktop
