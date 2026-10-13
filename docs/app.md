@@ -109,7 +109,7 @@ The page takes a few query parameters, which the Android app uses and a bookmark
 
 ## Background work
 
-Meta Muse "does things on its own, but not too much". The *Proactivity* dial in Settings sets how much:
+The agent does things on its own, but not too many. The *Proactivity* dial in Settings sets how much:
 
 | Level | Passes | Reaches out |
 |---|---|---|

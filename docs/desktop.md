@@ -2,7 +2,7 @@
 
 The computer's Muse, in a window: nanoMuse built on
 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`), laid out
-like the Muse desktop ([desktop-muse.md](desktop-muse.md)), with the account, the face,
+screen by screen in [desktop-muse.md](desktop-muse.md), with the account, the face,
 Hands on this computer's screen and Reach to every other device of the account as
 plugins ([harness.md](harness.md)). Windows 10+, macOS 12+ and Linux x64; one
 installer each, nothing to install first: the harness, the nanoMuse bundle and the
@@ -35,11 +35,11 @@ desktop, and it installs over the old one (same application id).
 A dsh Host started by the shell as a child process, showing the harness's web app in a
 window of ours: the rail (Chats, Search, Feed, Ideas, Goals, Library, Devices, the
 hamburger), the chats column with the main chat and the side chats, the face and name
-pinned over the conversation with a live status line and *Stop*, Muse's permission card
+pinned over the conversation with a live status line and *Stop*, the permission card
 over the harness's approvals, the trajectory of a hands run in the chat (each step's
 screenshot with the action drawn on it and the agent's words, to look back at during
 and after the run), the profile panel with memory,
-Muse's Settings pages (Connectors, Computer use, File system access, Dictation,
+the Settings pages (Connectors, Computer use, File system access, Dictation,
 Permissions, Data controls with export and reset), the full-window first run. The agent
 is dsh's (its agent loop, tools, skills, goals, plan mode, compaction, sub-agents, MCP),
 speaking as nanoMuse through the `nanomuse` preset, with:
@@ -73,7 +73,7 @@ speaking as nanoMuse through the `nanomuse` preset, with:
   The runtime's own backends remain the fallback when the app is not the one running it.
   The connectors the runtime's `config.toml` turns on (mailbox, calendar, address book)
   arrive over the same server, and Settings → Connectors shows how to set each one up;
-- **the rooms**: Feed, Ideas, Goals and Library as Muse has them, kept by the host in
+- **the rooms**: Feed, Ideas, Goals and Library as the phone has them, kept by the host in
   `nanomuse/rooms.json` and written by the agent in hidden chats (feed and ideas) or
   chats of their own (goals, with the harness's schedule plugin for their automations;
   Library creations under `~/nanoMuse/Library`), plus memory: what it remembers about

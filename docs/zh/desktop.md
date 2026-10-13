@@ -1,8 +1,8 @@
 # nanoMuse 桌面版
 
 电脑上的 Muse，装在一个窗口里：nanoMuse 建在
-[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（`dsh`）之上，布局照着
-Muse 桌面版（[desktop-muse.md](desktop-muse.md)），账号、形象、在这台电脑屏幕上动手的
+[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（`dsh`）之上，窗口的
+布局一屏一屏见 [desktop-muse.md](desktop-muse.md)，账号、形象、在这台电脑屏幕上动手的
 「手」（Hands）、够得着账号下每一台其他设备的 Reach，都以插件的形式加进来
 （[harness.md](harness.md)）。支持 Windows 10 以上、macOS 12 以上和 Linux x64；每个平台一个
 安装包，不需要先装别的：harness、nanoMuse 插件包和负责手的运行时都在里面。
@@ -30,9 +30,9 @@ harness 构建以 *nanoMuse Harness* 的名字另放在旁边；从 0.1.30 起�
 
 一个由外壳作为子进程启动的 dsh Host，把 harness 的网页应用显示在我们自己的窗口里：侧栏
 （聊天、搜索、动态、点子、目标、资源库、设备，还有汉堡菜单），放着主要聊天和旁聊的聊天列，
-钉在对话上方的形象和名字，带一行实时状态和「停止」，盖在 harness 审批之上的 Muse 式审批卡片，
+钉在对话上方的形象和名字，带一行实时状态和「停止」，盖在 harness 审批之上的权限卡片，
 聊天里手的一次运行的轨迹（每一步的截图、画在上面的动作和智能体说的话，运行中和运行后都能
-回看），带记忆的个人资料面板，Muse 的那些设置页（连接器、电脑操作、文件访问、听写、权限、
+回看），带记忆的个人资料面板，那些设置页（连接器、电脑操作、文件访问、听写、权限、
 带导出和重置的数据控制），以及占满整个窗口的第一次打开。智能体是 dsh 的（它的智能体循环、
 工具、技能、目标、计划模式、压缩、子智能体、MCP），通过 `nanomuse` 预设以 nanoMuse 的身份
 说话，再加上：
@@ -59,7 +59,7 @@ harness 构建以 *nanoMuse Harness* 的名字另放在旁边；从 0.1.30 起�
   那张图的像素（[gui.md](gui.md#hands-on-the-computer-the-picture-is-the-unit)）。不是由这个
   应用来跑运行时的时候，运行时自己的后端仍然是退路。运行时 `config.toml` 里打开的连接器
   （邮箱、日历、通讯录）经同一个服务器送过来，「设置 → 连接器」里有每一个的设置方法；
-- **房间**：动态、点子、目标和资源库，和 Muse 里的一样，由 Host 保存在
+- **房间**：动态、点子、目标和资源库，和手机上的一样，由 Host 保存在
   `nanomuse/rooms.json` 里，由智能体在隐藏聊天里写（动态和点子）或在各自的聊天里写（目标，
   自动化部分用 harness 的日程插件；资源库里的作品放在 `~/nanoMuse/Library` 下），再加上记忆：
   它对你的了解，每段聊天都会读进去（[desktop-muse.md](desktop-muse.md#rail-rooms)）；
