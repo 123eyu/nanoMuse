@@ -59,6 +59,7 @@ jobs:
   plan:
     name: which platforms
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       matrix: ${{ steps.pick.outputs.matrix }}
     steps:
@@ -75,6 +76,9 @@ jobs:
     name: ${{ matrix.label }}
     needs: plan
     runs-on: ${{ matrix.os }}
+    # a platform builds in about ten minutes; on macOS the notarization of the app and then of
+    # the dmg may each wait up to 45 minutes for Apple (scripts/desktop-app/package-mac.sh)
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
@@ -259,6 +263,8 @@ jobs:
     if: always() && (startsWith(github.ref, 'refs/tags/v') || inputs.release_tag != '') && (needs.build.result == 'success' || needs.build.result == 'failure')
     needs: build
     runs-on: ubuntu-latest
+    # waits up to fifteen minutes for the release below, then uploads
+    timeout-minutes: 30
     permissions:
       contents: write
     steps:

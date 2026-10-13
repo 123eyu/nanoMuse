@@ -26,8 +26,10 @@ LOCAL=0; BIND=127.0.0.1; PORT=8787; START=1
 while [ $# -gt 0 ]; do
   case "$1" in
     --local) LOCAL=1 ;;
-    --bind) BIND="$2"; shift ;;
-    --port) PORT="$2"; shift ;;
+    --bind) [ $# -ge 2 ] || { echo "--bind needs an address (try --help)" >&2; exit 2; }; BIND="$2"; shift ;;
+    --port)
+      [ $# -ge 2 ] && [[ "$2" =~ ^[0-9]+$ ]] || { echo "--port needs a number (try --help)" >&2; exit 2; }
+      PORT="$2"; shift ;;
     --no-start) START=0 ;;
     -h|--help) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "unknown option: $1 (try --help)" >&2; exit 2 ;;

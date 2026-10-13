@@ -5,6 +5,9 @@ config/*.local.toml
 .env.*
 *.env
 !.env.example
+# the phones' build-time values, copied from the .example beside each (docs/ios.md, android/BUILDING.md)
+android/src/ios/Configs/ProviderCustomization.xcconfig
+android/src/android/app/provider-customization.properties
 
 # runtime data
 workspace/
