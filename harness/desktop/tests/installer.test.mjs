@@ -32,6 +32,18 @@ test("the NSIS installer puts every file in its archive, the face's clips includ
   assert.ok(nsis.includes("  preCompressedFileExtensions: []"), "nsis.preCompressedFileExtensions is an empty list");
 });
 
+// Auxiliary only — the real check is scripts/update-feed-check.mjs, where electron-updater
+// consumes what the build produced. This keeps the config from losing the publish entry that
+// makes electron-builder write latest.yml and the .exe.blockmap next to the Windows installer,
+// the assets the in-app update and the mirror's dl/win feed read.
+test("the Windows build writes the update metadata electron-updater reads", () => {
+  const win = block("win").filter((line) => !line.trim().startsWith("#"));
+  assert.ok(win.includes("  publish:"), "win.publish is set");
+  const start = win.findIndex((line) => line === "  publish:");
+  assert.ok(win.slice(start, start + 4).includes("    provider: generic"), "win.publish.provider is generic");
+  assert.ok(win.slice(start, start + 4).includes('    url: "https://nanomuse.cn/dl/win/"'), "win.publish.url is the mirror's dl/win");
+});
+
 test("the clips the installer must carry are in the bundle's assets", () => {
   const assets = fileURLToPath(new URL("../dsh-nanomuse/assets/", here));
   for (const mood of ["idle", "working", "waiting", "happy"]) {
