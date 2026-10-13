@@ -1,5 +1,5 @@
-"""The coding agents on this computer — Cursor, Codex, Claude Code — seen and steered from
-any device of the account.
+"""The coding agents on this computer (Cursor, Codex, Claude Code, DeepSeek Harness), seen
+and steered from any device of the account.
 
 ``agents`` reads what the tools leave on disk (their session transcripts) and finds their
 command-line entry points; ``runner`` sends a message into a session through those entry
