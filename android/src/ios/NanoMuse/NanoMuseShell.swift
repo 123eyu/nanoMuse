@@ -1108,6 +1108,8 @@ struct NanoMuseDrawer: View {
     @State private var deleteCandidate: String?
     /// Reduce Motion on: the panel fades in instead of sliding in from the edge.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// The agent's name follows Dynamic Type, capped as the header's lines are (NanoMuseHeaderMetrics).
+    @ScaledMetric(relativeTo: .title2) private var nameSize: CGFloat = 24
 
     /// The panel's width: most of the window, at most 320 pt. Measured from the window the
     /// drawer is in rather than the screen, so an iPad window narrower than the screen (Stage
@@ -1174,7 +1176,7 @@ struct NanoMuseDrawer: View {
     private var panel: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(agentName)
-                .font(.system(size: 24, weight: .bold))
+                .font(.system(size: NanoMuseHeaderMetrics.capped(nameSize, base: 24), weight: .bold))
                 .lineLimit(1)
                 .padding(.horizontal, 20)
                 .padding(.top, 18)
