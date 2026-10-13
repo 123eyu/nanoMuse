@@ -19,10 +19,10 @@ name: harness bundle
 on:
   push:
     branches: ["**"]
-    paths: ["harness/**", "scripts/connectors-json.mjs", "scripts/providers-json.mjs", "nanomuse/llm/providers.json", "android/src/android/app/src/main/assets/nanomuse/connectors.json", "android/src/android/app/src/main/assets/nanomuse/providers.json", "android/src/android/app/src/main/assets/nanomuse/ideas.*.json", "android/src/ios/NanoMuse/Resources/connectors.json", "android/src/ios/NanoMuse/Resources/providers.json", ".github/workflows/harness.yml"]
+    paths: ["harness/**", "scripts/connectors-json.mjs", "scripts/providers-json.mjs", "nanomuse/llm/providers.json", "android/src/android/app/src/main/assets/nanomuse/connectors.json", "android/src/android/app/src/main/assets/nanomuse/providers.json", "android/src/android/app/src/main/assets/nanomuse/ideas.*.json", "android/src/ios/NanoMuse/Resources/connectors.json", "android/src/ios/NanoMuse/Resources/providers.json", "android/src/ios/NanoMuse/Resources/ideas.*.json", ".github/workflows/harness.yml"]
     tags: ["v*"]
   pull_request:
-    paths: ["harness/**", "scripts/connectors-json.mjs", "scripts/providers-json.mjs", "nanomuse/llm/providers.json", "android/src/android/app/src/main/assets/nanomuse/connectors.json", "android/src/android/app/src/main/assets/nanomuse/providers.json", "android/src/android/app/src/main/assets/nanomuse/ideas.*.json", "android/src/ios/NanoMuse/Resources/connectors.json", "android/src/ios/NanoMuse/Resources/providers.json", ".github/workflows/harness.yml"]
+    paths: ["harness/**", "scripts/connectors-json.mjs", "scripts/providers-json.mjs", "nanomuse/llm/providers.json", "android/src/android/app/src/main/assets/nanomuse/connectors.json", "android/src/android/app/src/main/assets/nanomuse/providers.json", "android/src/android/app/src/main/assets/nanomuse/ideas.*.json", "android/src/ios/NanoMuse/Resources/connectors.json", "android/src/ios/NanoMuse/Resources/providers.json", "android/src/ios/NanoMuse/Resources/ideas.*.json", ".github/workflows/harness.yml"]
   workflow_dispatch:
     inputs:
       release_tag:
