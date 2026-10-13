@@ -731,10 +731,7 @@ class Cloud:
         self._refuse_if_signups_closed(ident)
         self._refuse_if_domain_limited(ident)
         account = self.db.account_by_hash(ident.hash(self.s.hmac_key))
-        if account is not None and account["disabled"]:
-            # the same answer the code would get at /v1/auth/verify, given before an SMS or
-            # a mail is paid for; a disabled account has nothing to sign in to
-            raise CloudError(403, "account_disabled", "This account is disabled")
+        disabled = account is not None and bool(account["disabled"])
         t = now()
         if self.db.codes_recent_for(ident.hash(self.s.hmac_key), t - 600) >= self.s.code_per_identifier_10m:
             raise CloudError(429, "code_too_often", "Too many codes for this address; wait a few minutes")
@@ -746,6 +743,15 @@ class Cloud:
         self.db.insert_code(ident.hash(self.s.hmac_key), _code_hash(self.s.hmac_key, code), ip, self.s.code_ttl_s)
         if review:
             log.info("review sign-in: a code request for the reviewer's address; nothing sent")
+            return
+        if disabled:
+            # Refused quietly: the row above is written and the answer is the same 204 as
+            # anyone's, so this route tells a stranger nothing about the number (not that it
+            # has an account, not that the operator switched it off) and the per-identifier
+            # and per-address limits behave exactly as they do for an enabled account. No
+            # SMS or mail is paid for; the code itself goes nowhere, and whoever holds the
+            # account hears `403 account_disabled` at /v1/auth/verify, as before.
+            log.info("code request for a disabled account; nothing sent")
             return
         try:
             self.sender.send(ident, code)
