@@ -2,7 +2,7 @@ import { pathToFileURL } from "node:url";
 import { app, BrowserWindow, clipboard, desktopCapturer, dialog, globalShortcut, ipcMain, Menu, nativeImage, nativeTheme, powerSaveBlocker, screen, shell, systemPreferences, Tray } from "electron";
 import { randomBytes } from "node:crypto";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -727,7 +727,10 @@ function readPrefs(): Prefs {
 function writePrefs(): void {
   try {
     mkdirSync(harnessHome(), { recursive: true });
-    writeFileSync(prefsPath(), `${JSON.stringify(prefs, null, 2)}\n`);
+    // the proxy address may carry `user:pass@`: the file is the owner's alone, like cloud.json and
+    // hands.json next to it (`mode` applies to a new file only, so an existing one is tightened too)
+    writeFileSync(prefsPath(), `${JSON.stringify(prefs, null, 2)}\n`, { mode: 0o600 });
+    chmodSync(prefsPath(), 0o600);
   } catch (exc) {
     log(`prefs: could not save: ${String(exc)}`);
   }

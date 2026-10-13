@@ -195,7 +195,11 @@ code, then the close with `4001`. A client that sees `4001` or `4002` leaves
 the backoff, shows the hub as refused and asks the person to sign in again (the
 runtime still tries once a minute, so a key restored on the relay comes back
 without a restart); any other close is the network and is retried with
-backoff.
+backoff. A socket that stays open after the network went away (a laptop that
+slept, a Wi-Fi that changed) hears no `pong`: the runtime's client uses the
+protocol's own ping with a 20 s timeout, the desktop's drops the socket when
+nothing at all arrived between two of its `ping` frames (about 50 s) and
+reconnects the same way.
 
 Frames the relay does not know (`type` it has no handler for, a text frame
 that is not a JSON object, a binary frame) are answered with
