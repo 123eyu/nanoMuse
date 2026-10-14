@@ -170,7 +170,7 @@ export function SignIn({
           inputMode={identifierInputMode(identifier)}
           autoComplete="username"
           autoFocus={autoFocus}
-          placeholder={t("138 0000 0000 or you@example.com")}
+          placeholder={isMainland() ? t("138 0000 0000 or you@example.com") : "you@example.com"}
           className={cx(inputCls, "mt-1")}
         />
         {mode === "code" && !sent && (!isMainland() || looksLikeForeignNumber(identifier)) && (
@@ -218,7 +218,7 @@ export function SignIn({
                 placeholder="ABCD2345"
                 className={cx(inputCls, "mt-1 tracking-[0.2em] uppercase")}
               />
-              <p className="mt-1.5 text-[12px] text-muted">{t("A friend's code counts for a new account: you both get ¥{invite} more allowance.", { invite: (cfg.invite_bonus_cny ?? 5).toFixed(0) })}</p>
+              <p className="mt-1.5 text-[12px] text-muted">{t("A friend's code counts for a new account: you both get ¥{invite} after your first request.", { invite: (cfg.invite_bonus_cny ?? 5).toFixed(0) })}</p>
             </div>
           ) : (
             <button type="button" onClick={() => setInviteOpen(true)} className="text-[12px] text-muted underline-offset-2 hover:underline">
@@ -227,7 +227,7 @@ export function SignIn({
           )}
         </>
       )}
-      {error && <div className="rounded-2xl bg-rose-500/12 px-3 py-2 text-[12.5px] text-rose-700 dark:text-rose-300">{error}</div>}
+      {error && <div role="alert" className="rounded-2xl bg-rose-500/12 px-3 py-2 text-[12.5px] text-rose-700 dark:text-rose-300">{error}</div>}
       <div className="flex gap-2">
         {mode === "code" && sent ? (
           <>

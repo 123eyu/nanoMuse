@@ -5,6 +5,7 @@
  *     cursor-agent -p --output-format stream-json --stream-partial-output --force [--resume <id>] [--workspace <dir>] <text>
  *     codex exec [resume <id>] --json --skip-git-repo-check -c sandbox_mode="workspace-write" [-C <dir>] <text>
  *     claude -p --output-format stream-json --verbose --permission-mode acceptEdits [--resume <id>] <text>
+ *     dsh --profile headless --json [--session-id <id>] <text>
  *
  * Each prints one JSON object a line; the shapes differ, so `normalise` turns them into
  * the few kinds the apps show: `started`, `text` (the agent's words), `tool` (something it
@@ -16,7 +17,8 @@
  */
 import { spawn, type ChildProcess } from 'node:child_process'
 import { stat } from 'node:fs/promises'
-import { AGENTS, readSession, which, type AgentId, type CodingSession } from './coding-readers.ts'
+import { join } from 'node:path'
+import { AGENTS, cliFor, home, readSession, type AgentId, type CodingSession } from './coding-readers.ts'
 
 export const RUN_TIMEOUT_MS = 20 * 60 * 1000
 /** Characters of agent text kept per run. */
@@ -151,6 +153,7 @@ const AGENT_ENV_PREFIXES: Record<AgentId, string[]> = {
   cursor: ['CURSOR_'],
   codex: ['OPENAI_', 'CODEX_'],
   claude: ['ANTHROPIC_', 'CLAUDE_'],
+  dsh: ['DSH_', 'DEEPSEEK_'],
 }
 const CLAUDE_CLOUD: Record<string, string[]> = {
   CLAUDE_CODE_USE_BEDROCK: ['AWS_'],
@@ -181,6 +184,11 @@ export function agentEnv(agent: AgentId, source: NodeJS.ProcessEnv = process.env
     if (ALWAYS_DROP.has(name) || SECRET_ENV.test(upper) || SECRET_ENV_PREFIXES.some((p) => upper.startsWith(p))) continue
     env[name] = value
   }
+  // dsh's store is wherever DSH_HOME points, and the desktop app sets it to its own home for
+  // the harness this plugin runs in; a dsh started from here works in the store the readers
+  // list (`~/.dsh`, where dsh web and DeepSeek's desktop app keep their chats), so a chat read
+  // here is the one `--session-id` finds and a new one shows up in the list
+  if (agent === 'dsh') env.DSH_HOME = join(home(source), '.dsh')
   env.NO_COLOR = '1'
   env.CI = '1'
   return env
@@ -203,6 +211,18 @@ export function commandFor(agent: AgentId, cli: string, sessionId: string, works
     // edits inside the workspace without asking; `exec` never prompts anyway
     cmd.push('--json', '--skip-git-repo-check', '-c', 'sandbox_mode="workspace-write"')
     if (workspace && !(resume && sessionId)) cmd.push('-C', workspace)
+    cmd.push(text)
+    return cmd
+  }
+  if (agent === 'dsh') {
+    // the harness's own one-shot runner: `dsh headless "<task>" --json` prints one projected
+    // JSON object a line; `--session-id` adopts an existing session (the runner's cwd is the
+    // workspace, so the spawn's cwd is what makes a resumed session match its recorded one)
+    // a `dsh` on PATH runs itself; the harness this plugin runs inside is a `bin.js`, started
+    // through node (Electron, with ELECTRON_RUN_AS_NODE, which the environment already carries)
+    const cmd = cli.endsWith('.js') ? [process.execPath, cli] : [cli]
+    cmd.push('--profile', 'headless', '--json')
+    if (resume && sessionId) cmd.push('--session-id', sessionId)
     cmd.push(text)
     return cmd
   }
@@ -333,6 +353,37 @@ export function normalise(agent: AgentId, obj: Obj, run: Run): RunEvent[] {
       let msg: unknown = obj.error ?? obj.message ?? ''
       if (isObj(msg)) msg = msg.message ?? ''
       out.push({ kind: 'error', text: String(msg) })
+    }
+  } else if (agent === 'dsh') {
+    // `dsh headless --json`: `session` opens, `status` marks the turns and steps, `text` and
+    // `thinking` come from committed messages, `tool_call`/`tool_result` are the tools, and
+    // the terminal `final` carries the answer (the last line, never bounded).
+    if (t === 'session') {
+      const sid = String(obj.sessionId ?? '')
+      if (sid) run.result_session_id = sid
+      out.push({ kind: 'started', text: '', session_id: sid, cwd: obj.cwd ?? '' })
+    } else if (t === 'text') {
+      const text = String(obj.text ?? '')
+      if (text) {
+        run.output = append(run.output, (run.output ? '\n' : '') + text)
+        out.push({ kind: 'text', text })
+      }
+    } else if (t === 'tool_call') {
+      run.tools += 1
+      out.push({ kind: 'tool', text: briefTool(String(obj.tool ?? ''), obj.input ?? {}), phase: 'started' })
+    } else if (t === 'tool_result') {
+      out.push({ kind: 'tool', text: String(obj.status ?? 'completed'), phase: 'completed' })
+    } else if (t === 'final') {
+      run.commit()
+      const final = String(obj.text ?? '')
+      if (final && !run.output.includes(final)) run.output = append(run.output, (run.output ? '\n' : '') + final)
+      out.push({ kind: 'done', text: final || run.output, session_id: run.result_session_id })
+    } else if (t === 'status' && isObj(obj.reason)) {
+      const reason = obj.reason
+      if (String(reason.kind ?? '') === 'error') {
+        const err = isObj(reason.error) ? reason.error : {}
+        out.push({ kind: 'error', text: String(err.message ?? '') })
+      }
     }
   } else {
     if (t === 'system' && obj.subtype === 'init') {
@@ -492,7 +543,7 @@ export async function startRun(options: StartOptions): Promise<Run> {
   const sessionId = options.sessionId ?? ''
   const run = new Run(options.runId || `run_${Math.random().toString(16).slice(2, 10).padEnd(8, '0')}`, agent, sessionId, options.workspace ?? '', text)
   options.register?.(run)
-  const find = options.which ?? ((a: AgentId) => which(a, options.env ?? process.env))
+  const find = options.which ?? ((a: AgentId) => cliFor(a, options.env ?? process.env))
   const prior = sessionId ? await readSession(agent, sessionId, options.readerEnv ?? process.env) : undefined
   if (prior && !run.workspace) run.workspace = prior.workspace
   if (run.workspace) {

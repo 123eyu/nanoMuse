@@ -20,11 +20,11 @@ Meta 的 Muse 定下了这类智能体的样子；下面是我们还落后于它
 
 ### 主动性 {#proactivity}
 
-目标按计划检查，例程在 App 关着时照样跑，动态每天早上写一篇。还缺的：智能体在两次计划之间自己注意到事情，比如来了一封邮件（`nanomuse/triggers/mail.py` 是第一个触发器）、一个快到的日历项、一台刚上线的设备，然后判断值不值得说一句。
+目标按计划检查，例程在 App 关着时照样跑，动态每天早上写一篇。三种触发器已经有了（`nanomuse/triggers/`：来了一封邮件、一个快到的日历项、一个 webhook）。还缺的：智能体在两次计划之间自己注意到别的事情，比如一台刚上线的设备，然后判断注意到的事值不值得说一句。
 
 - 模块：`nanomuse/goals/`、`nanomuse/triggers/`、`nanomuse/nudges.py`；手机的 `io.github.nanomuse.feed` 和 `goals`。
 - 阅读：[every-device.md](every-device.md)，讲一声提醒怎么到达你手里拿着的那台设备。
-- 第一个任务：在 `mail.py` 旁边加第二个触发器（日历是最顺理成章的一个），接口相同，连同它产出的那条动态。
+- 第一个任务：在 `nanomuse/triggers/store.py` 的三种之外加第四种触发器（账号下的一台设备上线，来自 hub 的 `devices` 帧），接口相同，连同它产出的那条动态。
 
 ### 对话 {#the-conversation}
 
@@ -100,3 +100,6 @@ Meta 的 Muse 定下了这类智能体的样子；下面是我们还落后于它
 | 1.0.0 | Keel | 第一个稳定版：Android 和 iPhone 的手机 App、Mac、Windows 和 Linux 的桌面 App、网页控制台和中继，一个账号贯穿所有设备；nanoMuse Cloud 可以作为模型来源关掉，有自己 key 的设备退出登录也能用；主聊天跟着你选的对话模型走；模型选择器会折叠、能搜索；桌面上自己的 key 也能选思考深度；「我已经点过 Star」；桌面版等待 Windows 上慢的启动；回复跟随 App 的语言；`auto` 在带污点的外发和警告前会问；hub 和中继加固；人读到的话里不再有破折号 |
 | 1.0.1 | Ballast | 手机 App 有了自己的 URL scheme，不再和 OpenMinis 相撞；内容审核拒绝在每个客户端都是一句话，中继的健康页把它和上游错误分开计数；桌面端从别的设备收到的聊天能滚到开头，操作屏幕时呼吸灯整段亮着，Windows 上的形象会动了；网页控制台可以让某一轮走 nanoMuse Cloud；TestFlight 测试版通过了 Apple 的审核 |
 | 1.0.2 | Trim | 把项目的每一部分过了一遍：Sentinel 的污点规则在自动模式下对 `shell` 和 `send_email` 也成立；Android App 能和 OpenMinis 装在一起启动；桌面端在运行时拒绝某一步时重新弹出权限卡，Linux 上读图不再弄死 harness，Windows 的窗口按钮不再盖住页面按钮；记忆整理判断不了的就拒绝；`doctor` 会点名没人读的配置键；网页控制台和命令行的报错更清楚；iPhone 的页面有了全部九种语言；文档里没有破折号了 |
+| 1.0.3 | Helm | 聊天在每台设备上长得一样：和输入框一样宽的悬浮毛玻璃底栏、主题底色上的黑白药丸、当顶栏的一层遮罩，从 @Ichiro786 的 Android 改版带到 iPhone、网页控制台和桌面端；Android、iPhone 和桌面端可以用自己的一段视频当脸；桌面端和网页控制台能同时配置多个 OpenAI 兼容端点；一个下午报来的十个 Android 问题都修了，其中包括又能发送的自有 Anthropic key；iPhone 的操作按钮能发起语音提示；OpenCode Go 在每个客户端上可用；中继的镜像以非特权用户运行 |
+| 1.0.4 | Compass | 1.0.3 之后一周的整体体检：中继在朋友第一次使用时才发邀请奖励、能看出谁邀请了谁、记下操作者的每一步；运行时把 MCP 服务器的密钥放进保险库，建例行、触发器或目标前先问一句；网页控制台读屏可用、菜单能用键盘；桌面端在能播的电脑上接受 HEVC 视频，在 Cursor、Codex 和 Claude Code 旁边列出 DeepSeek Harness；Android 手机加密保存代理密码、跟随选中的模型组；iPad 的聊天是一根列、底栏重新是玻璃，别的设备上的 Muse 问起某一步时在手机上回答；You.com 不用 key 也能搜索 |
+| 1.0.5 | Lookout | Compass 次日的第二次体检：运维控制台能搜人、搜账单、搜事件；停用的账号从登录入口探不出来；运行时列出 DeepSeek Harness，一个地址只对应一个端点；桌面端八个失灵的按钮又能用了，退出前先护住进行中的工作，hub 断线一分钟内就能发现，Windows 版带上了更新所需的文件；Android 的审批卡片装得下屏幕，ChatGPT 登录在代理下有了出路；iPhone 的对话从顶栏底下滑过、Siri 短语有九种语言、能显示在别处设的 emoji 脸；手机和桌面端都安静地写每日动态；文档用 nanoMuse 自己的话描述它 |

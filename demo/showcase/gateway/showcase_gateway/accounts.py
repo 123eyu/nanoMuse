@@ -247,7 +247,8 @@ class AccountManager:
         if not key:
             raise Refused(502, "relay_error", "nanoMuse Cloud returned no key.")
         key, key_expires_at = await self._session_key(key, ip)
-        account_info = data.get("account") if isinstance(data.get("account"), dict) else {}
+        raw_account = data.get("account")
+        account_info: dict[str, Any] = raw_account if isinstance(raw_account, dict) else {}
         account_id = str(account_info.get("id") or "")
         if not account_id:
             # older relays: what identifies the account without naming the person

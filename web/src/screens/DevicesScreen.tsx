@@ -4,6 +4,7 @@ import { api } from "../api";
 import { PageBar } from "../components/BackBar";
 import { CloudCard } from "../components/CloudCard";
 import { MuseCaption, MuseCard, MuseDivider, MuseRow, MuseSwitchRow } from "../components/MuseList";
+import { useMenuKeys } from "../components/useMenuKeys";
 import { useT, type t as T } from "../i18n";
 import { useStore } from "../store";
 import type { HandsStatus, HubDevice, HubView } from "../types";
@@ -83,7 +84,7 @@ export function DevicesScreen() {
         <div className="px-5 pb-4 pt-1">
           <p className="text-[14px] leading-[20px] text-muted">{t("Every device signed in to your account is a Muse of its own, on the same conversations. Type @ and a device's name in the chat to hand it work; a computer lends its hands.")}</p>
           {hub && signedIn && total > 0 && (
-            <p className="mt-1.5 text-[12.5px] font-medium uppercase tracking-wide text-muted/80">
+            <p className="mt-1.5 text-[12.5px] font-medium uppercase tracking-wide text-muted">
               {total === 1 ? t("1 device") : t("{n} devices", { n: total })} · {t("{n} online", { n: online })}
             </p>
           )}
@@ -129,7 +130,7 @@ export function DevicesScreen() {
 }
 
 function SectionLabel({ children }: { children: ReactNode }) {
-  return <p className="px-1 pb-2 text-[12.5px] font-medium uppercase tracking-wide text-muted/80">{children}</p>;
+  return <p className="px-1 pb-2 text-[12.5px] font-medium uppercase tracking-wide text-muted">{children}</p>;
 }
 
 /** The small grey line under a switch row inside a card. */
@@ -343,21 +344,7 @@ function DeviceCard({ device: d, onAsk, onForget }: { device: HubDevice; onAsk: 
 function OverflowMenu({ label, items }: { label: string; items: Array<{ label: string; onClick: () => void; danger?: boolean }> }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: PointerEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    window.addEventListener("pointerdown", onDown);
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("pointerdown", onDown);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
+  useMenuKeys(ref, open, () => setOpen(false));
   return (
     <div ref={ref} className="relative -mr-1.5 -mt-1">
       <button type="button" onClick={() => setOpen((o) => !o)} aria-label={label} aria-haspopup="menu" aria-expanded={open} className="flex h-8 w-8 items-center justify-center rounded-full text-muted hover:bg-surface-2 hover:text-fg">
@@ -458,10 +445,11 @@ function HandsCard({ hands, onChange }: { hands: HandsStatus; onChange: () => vo
               key={b}
               type="button"
               disabled={busy}
+              aria-pressed={(hands.backend ?? "auto") === b}
               onClick={() => void set({ backend: b })}
-              className={cx("rounded-full px-2.5 py-1", (hands.backend ?? "auto") === b || (b === "auto" && !hands.backend) ? "bg-fg text-bg" : "bg-surface-2 text-fg")}
+              className={cx("rounded-full px-2.5 py-1", (hands.backend ?? "auto") === b ? "bg-fg text-bg" : "bg-surface-2 text-fg")}
             >
-              {b}
+              {b === "auto" ? t("Auto") : b === "desktop" ? t("Desktop") : b}
             </button>
           ))}
         </div>
@@ -475,6 +463,7 @@ function HandsCard({ hands, onChange }: { hands: HandsStatus; onChange: () => vo
                   key={m}
                   type="button"
                   disabled={busy}
+                  aria-pressed={(hands.mode ?? "auto") === m}
                   onClick={() => void set({ mode: m })}
                   className={cx("rounded-full px-2.5 py-1", (hands.mode ?? "auto") === m ? "bg-fg text-bg" : "bg-surface-2 text-fg")}
                 >

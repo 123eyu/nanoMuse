@@ -48,6 +48,21 @@ struct NanoMuseCloudAccount: Codable, Equatable, Sendable {
         return min(max(Double(remaining) / Double(granted), 0), 1)
     }
 
+    /// What is left, as the Settings card and the providers row say it: in yuan on a relay that
+    /// prices in money (the account page's headline figure), in tokens on an older relay; nil
+    /// when the relay runs without a ceiling, where there is nothing to count down.
+    var leftLine: String? {
+        if unlimited { return nil }
+        if let left = poolLeftCny {
+            let whole = left.rounded() == left
+            return String(format: AppLocalized("%@ left"), "¥" + left.formatted(.number.precision(.fractionLength(whole ? 0 : 2))))
+        }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        let left = formatter.string(from: NSNumber(value: remaining)) ?? "\(remaining)"
+        return String(format: AppLocalized("%@ left"), left)
+    }
+
     init(channel: String, hint: String, granted: Int64, used: Int64, usedToday: Int64, dailyCap: Int64, checkedAt: Date, unlimited: Bool = false, id: String = "", grantCny: Double? = nil, leftCny: Double? = nil) {
         self.channel = channel
         self.hint = hint
@@ -292,7 +307,7 @@ enum NanoMuseCloud {
             "code": trimmed(code),
             "device": deviceName,
         ]
-        // A friend's code: both get credit on a first sign-in (relay 0.12+); older relays ignore it.
+        // A friend's code on a first sign-in (relay 0.12+): both get credit once this account makes its first request; older relays ignore it.
         if !trimmed(invite).isEmpty { body["invite"] = trimmed(invite).uppercased() }
         let reply = try await call("POST", "/v1/auth/verify", body: body, token: nil)
         return try await adopt(reply)
@@ -343,6 +358,10 @@ enum NanoMuseCloud {
                 store.updateInstance(existing)
             }
             ProviderKeychainHelper.saveAPIKey(apiKey, instanceId: existing.id)
+            // C12: the relay's key is this phone's alone, never in iCloud Keychain; upstream's
+            // helper writes a synchronizable item, so it is rewritten device-only at once,
+            // before the model fetch below gives iCloud time to pick it up.
+            NanoMuseAccountData.saveRelayKey(apiKey, instanceId: existing.id)
             inst = existing
         } else {
             let fresh = ProviderInstance(
@@ -354,6 +373,7 @@ enum NanoMuseCloud {
             )
             // Key first: addInstance fetches the model list on its own right away.
             ProviderKeychainHelper.saveAPIKey(apiKey, instanceId: fresh.id)
+            NanoMuseAccountData.saveRelayKey(apiKey, instanceId: fresh.id) // C12, as above
             store.addInstance(fresh)
             inst = fresh
         }
@@ -372,8 +392,6 @@ enum NanoMuseCloud {
 
         let parsed = parseAccount(reply)
         account = parsed
-        // C12: the relay's key is this phone's alone — never in iCloud Keychain
-        NanoMuseAccountData.saveRelayKey(apiKey, instanceId: inst.id)
         NanoMuseNudges.shared.absorb(me: reply) // nanoMuse: contract C1 — the star policy rides along
         // C12: whoever was here is put aside, and this account's own set comes back (or starts empty)
         let after = NanoMuseAccountData.shared.current
@@ -383,6 +401,7 @@ enum NanoMuseCloud {
         }
         await MainActor.run { NanoMuseHub.shared.restart() } // the new key joins the hub
         NanoMuseSync.shared.accountChanged() // C10: another account's conversations are not this one's to show or push
+        NanoMuseProfileSync.shared.pull() // C8: the account's name and face land now, not at the next cold start
         return parsed
     }
 
@@ -484,7 +503,8 @@ enum NanoMuseCloud {
             }
             return AppLocalized("The model provider is busy right now. Try again in a moment.")
         case "locked":
-            return AppLocalized("Too many requests at once. Try again shortly.")
+            // the password endpoints: too many wrong passwords in a row, not too many requests
+            return AppLocalized("Too many wrong attempts. Wait a few minutes, or sign in with a code.")
         case "model_not_offered":
             return AppLocalized("nanoMuse Cloud no longer offers that model. Pick another under Settings → nanoMuse Cloud.")
         case "service_paused":
@@ -495,16 +515,33 @@ enum NanoMuseCloud {
             return AppLocalized("The device hub is paused on this relay for now; each device keeps working on its own.")
         case "upstream":
             return AppLocalized("nanoMuse Cloud did not answer. Try again in a moment.")
+        // The relay's password codes (cloud/nanomuse_cloud/service.py): a 401 `bad_credentials`
+        // at sign-in for a wrong address or password, `password_wrong` when the current password
+        // given while changing or removing it is not the one set, `no_password` for an account
+        // that has none yet, `password_required` when the current one was left out, and
+        // `password_short`, `password_long`, `password_weak` from the rules for a new one.
+        case "bad_credentials":
+            return AppLocalized("Wrong phone number, e-mail or password.")
         case "password_wrong":
             return AppLocalized("That password is not right.")
-        case "password_required", "no_password":
+        case "no_password":
             return AppLocalized("This account has no password yet. Sign in with a code and set one under nanoMuse Cloud.")
-        case "password_weak":
+        case "password_required":
+            return AppLocalized("Enter the current password first.")
+        case "password_short":
             return AppLocalized("Use eight characters or more.")
+        case "password_weak":
+            return AppLocalized("Use a few different characters, not the address itself.")
+        case "password_long":
+            return AppLocalized("That password is too long.")
         case "invite_bad":
             return AppLocalized("That invite code is not one we know. Check it, or leave it empty.")
         case "signup_closed":
             return AppLocalized("Sign-ups are paused on this relay for now. An account that already exists can still sign in.")
+        case "domain_limited":
+            return AppLocalized("Today's sign-up limit for addresses at that domain is reached on this relay. Try again tomorrow, or use another address.")
+        case "channel_unsupported":
+            return AppLocalized("This relay does not send codes to that kind of address. Use the other kind (e-mail or phone number), or sign in with a password.")
         case "daily_cap":
             return AppLocalized("Today's allowance is used up. It resets tomorrow.")
         case "rate_limited":

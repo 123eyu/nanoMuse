@@ -64,7 +64,17 @@ object OwnProviderProxy {
     private const val KEY_USER = "user"
     private const val KEY_PASSWORD = "password"
 
+    /**
+     * The password's own file, encrypted the way the provider keys are (`provider_secrets`,
+     * [com.openminis.app.util.EncryptedPrefsFactory]); the rest of the settings stay in the
+     * plain file. Before 1.0.4 the password sat in the plain file too: [config] moves it over
+     * once and takes it out of there.
+     */
+    private const val SECRETS = "nanomuse_proxy_secrets"
+
     @Volatile private var current: Config = Config()
+
+    @Volatile private var secretsStore: SharedPreferences? = null
 
     @Volatile private var hosts: Set<String> = ProviderReach.PLAN_HOSTS
 
@@ -77,15 +87,39 @@ object OwnProviderProxy {
     private fun prefs(context: Context): SharedPreferences =
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
+    private fun secrets(context: Context): SharedPreferences =
+        secretsStore ?: synchronized(this) {
+            secretsStore ?: com.openminis.app.util.EncryptedPrefsFactory
+                .safeCreate(context.applicationContext, SECRETS)
+                .also { secretsStore = it }
+        }
+
+    /**
+     * The password, from its encrypted file. A password a 1.0.3 phone left in the plain file is
+     * moved over first (written and confirmed on disk before the plain copy goes), so an update
+     * keeps a proxy with credentials working.
+     */
+    private fun password(context: Context, plain: SharedPreferences): String {
+        val s = secrets(context)
+        if (plain.contains(KEY_PASSWORD)) {
+            val old = plain.getString(KEY_PASSWORD, "").orEmpty()
+            val moved = old.isEmpty() || s.contains(KEY_PASSWORD) || s.edit().putString(KEY_PASSWORD, old).commit()
+            if (moved) plain.edit().remove(KEY_PASSWORD).apply()
+        }
+        return s.getString(KEY_PASSWORD, "").orEmpty()
+    }
+
     fun config(context: Context): Config = prefs(context).let { p ->
-        Config(
-            enabled = p.getBoolean(KEY_ENABLED, false),
-            host = p.getString(KEY_HOST, "").orEmpty(),
-            port = p.getInt(KEY_PORT, 0),
-            user = p.getString(KEY_USER, "").orEmpty(),
-            password = p.getString(KEY_PASSWORD, "").orEmpty(),
-        )
+        settings(p).copy(password = password(context, p))
     }.also { current = it }
+
+    /** The plain file's part: the switch, the host, the port, the user name. */
+    private fun settings(p: SharedPreferences): Config = Config(
+        enabled = p.getBoolean(KEY_ENABLED, false),
+        host = p.getString(KEY_HOST, "").orEmpty(),
+        port = p.getInt(KEY_PORT, 0),
+        user = p.getString(KEY_USER, "").orEmpty(),
+    )
 
     fun save(context: Context, config: Config) {
         prefs(context).edit()
@@ -93,8 +127,14 @@ object OwnProviderProxy {
             .putString(KEY_HOST, config.host.trim())
             .putInt(KEY_PORT, config.port)
             .putString(KEY_USER, config.user)
-            .putString(KEY_PASSWORD, config.password)
+            .remove(KEY_PASSWORD)
             .apply()
+        // the settings page saves on every keystroke; the encrypted file is written only for the password
+        if (config.password != current.password) {
+            secrets(context).edit().apply {
+                if (config.password.isEmpty()) remove(KEY_PASSWORD) else putString(KEY_PASSWORD, config.password)
+            }.apply()
+        }
         current = config.copy(host = config.host.trim())
     }
 
@@ -109,7 +149,10 @@ object OwnProviderProxy {
         if (installed) return
         installed = true
         val app = context.applicationContext
-        config(app)
+        // the plain settings now, so the first requests are routed; the password a moment
+        // later off the main thread, since opening the encrypted file goes through the keystore
+        current = settings(prefs(app))
+        scope.launch { config(app) }
         relayHost = hostOf(NanoMuseCloud.baseUrl(app))
         val catalogue = runCatching { ProviderCatalogue.load(app) }.getOrDefault(emptyList())
             .flatMap { listOfNotNull(it.baseUrl, it.baseUrlGlobal) }

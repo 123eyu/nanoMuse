@@ -4,7 +4,7 @@ The [ladder](gui.md#the-ladder) puts the phone's screen last. For that to mean a
 
 > **Nothing enters the [showcase](showcase.md) until it has run inside the phone's root file system and left a trace.** A package that installs is not a service that works. "Runs" means the tool was called and answered; the transcript is at the bottom of this page.
 
-The root file system is the Alpine Linux the local Android build unpacks on the phone ([local-runtime.md](local-runtime.md)), with Node 22 and Python 3.12 in it. Everything below was exercised in that image on an arm64 emulator (QEMU user-mode on the build machine) on 2026-09-24; PRoot itself and the phone's network are the two things the emulator does not exercise, and the checklist keeps a line for them.
+The root file system on the phone today is the Alpine Linux 3.21 minirootfs the Android app unpacks under proot ([android.md](android.md); `android/scripts/prepare_android_sandbox.sh` fetches it at build time). It ships bare: the agent installs Node and Python inside it with `apk add` the first time a task needs them. The transcript at the bottom of this page was recorded on 2026-09-24 in the Python line's image of the same Alpine base, which had Node 22 and Python 3.12 preinstalled ([local-runtime.md](local-runtime.md) is that line's record), on an arm64 emulator (QEMU user-mode on the build machine); the current app's rootfs has no run of its own recorded here yet. PRoot itself and the phone's network are the two things the emulator does not exercise, and the checklist keeps a line for them. The skills named below are the Python runtime's built-in ones under `nanomuse/skills/builtin/`.
 
 ## Tier 1: verified
 
@@ -53,7 +53,7 @@ When it has run inside the rootfs and answered once, add the transcript below an
 
 ## Verification log
 
-Inside `nanomuse-rootfs:aarch64` (Alpine 3.21.8, Node 22.23.2, npm 10.9.1, Python 3.12.14, nanomuse 0.1.0), QEMU user-mode on x86_64, 2026-09-24. Mirrors switched with `nanomuse-mirror cn`. The probe is a 60-line Python script over the `mcp` client the agent itself uses: connect, `tools/list`, a few `tools/call`.
+Inside `nanomuse-rootfs:aarch64`, the Python line's image (Alpine 3.21.8, Node 22.23.2, npm 10.9.1, Python 3.12.14, nanomuse 0.1.0), QEMU user-mode on x86_64, 2026-09-24. Mirrors were switched with that image's `nanomuse-mirror cn`; the app today measures its package mirrors itself on first start. The probe is a 60-line Python script over the `mcp` client the agent itself uses: connect, `tools/list`, a few `tools/call`.
 
 ```
 $ npm i -g 12306-mcp @larksuite/cli @tencentcloud/tmeet @amap/amap-maps-mcp-server @kuaidi100-mcp/kuaidi100-mcp-server

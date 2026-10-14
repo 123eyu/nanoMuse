@@ -486,7 +486,7 @@ def raw_skill_url(url: str) -> str:
 
 async def fetch_skill_text(url: str) -> str:
     """The text of a SKILL.md at an https link (a raw file, or a GitHub page turned into one).
-    ``ValueError`` when it is not one."""
+    ``ValueError`` when it is not one, or when the link does not answer."""
     import httpx
 
     url = raw_skill_url(url)
@@ -494,14 +494,17 @@ async def fetch_skill_text(url: str) -> str:
         raise ValueError("the link must start with https://")
     from nanomuse.tools.web import read_capped
 
-    async with (
-        httpx.AsyncClient(timeout=20, follow_redirects=True) as client,
-        client.stream("GET", url, headers={"User-Agent": "nanoMuse"}) as r,
-    ):
-        if r.status_code >= 400:
-            raise ValueError(f"HTTP {r.status_code} for {url}")
-        # one byte past the cap is enough to know; the rest is never read
-        content = await read_capped(r, MAX_SKILL_BYTES + 1)
+    try:
+        async with (
+            httpx.AsyncClient(timeout=20, follow_redirects=True) as client,
+            client.stream("GET", url, headers={"User-Agent": "nanoMuse"}) as r,
+        ):
+            if r.status_code >= 400:
+                raise ValueError(f"HTTP {r.status_code} for {url}")
+            # one byte past the cap is enough to know; the rest is never read
+            content = await read_capped(r, MAX_SKILL_BYTES + 1)
+    except httpx.HTTPError as exc:  # a host that does not answer is a message, not a traceback
+        raise ValueError(f"could not fetch {url}: {type(exc).__name__}") from exc
     if len(content) > MAX_SKILL_BYTES:
         raise ValueError(
             f"that file is larger than a SKILL.md can be ({MAX_SKILL_BYTES // 1024} KB)"

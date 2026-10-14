@@ -78,6 +78,14 @@ export function failureText(t: Translate, err: unknown): string {
   if (code === 'rate_limited' || code === 'too_many_in_flight' || code === 'provider_busy' || status === 429) return t('errBusy')
   if (code === 'signed_out' || code === 'bad_key' || status === 401) return t('errSignedOut')
   if (status >= 500 && status !== 504) return t('errRelay', { status })
+  // the host's own refusals of a form, said in the person's language
+  if (code === 'url_userinfo') return t('errUrlUserinfo')
+  if (code === 'no_key') return t('errNoKey')
+  if (code === 'key_shape') return t('errKeySpaces')
+  if (code === 'bad_provider') return t('errSignInRow')
+  // the relay's sign-in refusals that have no sentence elsewhere in the client
+  if (code === 'domain_limited') return t('errDomainLimited')
+  if (code === 'channel_unsupported') return t('errChannelUnsupported')
   return t('failed', { message: text || code || '?' })
 }
 

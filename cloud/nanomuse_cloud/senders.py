@@ -65,7 +65,8 @@ class SmtpSender:
     def send(self, ident: Identifier, code: str) -> None:
         if ident.channel != "email":
             raise SendError("this deployment sends codes by e-mail only")
-        msg = compose_code_mail(self.s.smtp_from, ident.value, code, self.s.code_ttl_s // 60)
+        # the same rounding as the SMS template: a lifetime under a minute still reads as one
+        msg = compose_code_mail(self.s.smtp_from, ident.value, code, max(1, self.s.code_ttl_s // 60))
         smtp_send(self.s, msg)
 
 
@@ -84,8 +85,21 @@ def smtp_send(s: Settings, msg: EmailMessage) -> None:
                 server.login(s.smtp_user, s.smtp_password)
             server.send_message(msg)
     except (smtplib.SMTPException, OSError) as e:
-        log.error("smtp send failed: %s", e)
+        log.error("smtp send failed: %s", smtp_error_text(e))
         raise SendError("mail") from e
+
+
+def smtp_error_text(e: BaseException) -> str:
+    """What the log may say about a failed send: the error's kind and the server's code and
+    words, never the recipient. ``str()`` of an SMTPRecipientsRefused is a dict keyed by the
+    addresses refused, and SMTPSenderRefused carries the From address."""
+    if isinstance(e, smtplib.SMTPRecipientsRefused):
+        codes = sorted({str(v[0]) for v in e.recipients.values()} if isinstance(e.recipients, dict) else set())
+        return f"SMTPRecipientsRefused ({len(e.recipients)} recipient(s); {', '.join(codes) or 'no code'})"
+    if isinstance(e, smtplib.SMTPResponseException):
+        error = e.smtp_error.decode("utf-8", "replace") if isinstance(e.smtp_error, bytes) else str(e.smtp_error)
+        return f"{type(e).__name__} {e.smtp_code} {error[:120]}"
+    return f"{type(e).__name__}: {str(e)[:160]}"
 
 
 def compose_notice_mail(sender: str, to: str, subject: str, lines: list[str]) -> EmailMessage:
@@ -241,7 +255,9 @@ class AliyunSmsSender:
             r = httpx.get(url, timeout=15)
             body = r.json()
         except (httpx.HTTPError, ValueError) as e:
-            log.error("aliyun sms request failed: %s", e)
+            # the signed query carries the number and the code; an error that quotes the
+            # URL is cut at the question mark before it reaches the log
+            log.error("aliyun sms request failed: %s: %s", type(e).__name__, str(e).split("?", 1)[0][:160])
             raise SendError("sms") from e
         if body.get("Code") != "OK":
             # never the number: BUSINESS_LIMIT_CONTROL (too many for one number), FREQUENCY_FAIL,

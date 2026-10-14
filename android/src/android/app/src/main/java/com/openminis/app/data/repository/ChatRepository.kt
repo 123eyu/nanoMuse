@@ -11,10 +11,11 @@ import java.util.UUID
 
 class ChatRepository(internal val dao: ChatDao) {
 
-    // nanoMuse: signed in, the list is the account's — chats synced under another account stay on the phone, out of sight (contract C10)
+    // nanoMuse: signed in, the list is the account's: chats synced under another account stay on the phone, out of sight (contract C10);
+    // the feed's working conversation is the agent's, not a chat of the person's, and stays out too (FeedFlow.hidden)
     fun observeSessions(): Flow<List<ChatSessionEntity>> =
-        kotlinx.coroutines.flow.combine(dao.observeSessions(), io.github.nanomuse.sync.ConversationSync.hidden) { list, hidden ->
-            if (hidden.isEmpty()) list else list.filter { it.id !in hidden }
+        kotlinx.coroutines.flow.combine(dao.observeSessions(), io.github.nanomuse.sync.ConversationSync.hidden, io.github.nanomuse.feed.FeedFlow.hidden) { list, hidden, feed ->
+            if (hidden.isEmpty() && feed.isEmpty()) list else list.filter { it.id !in hidden && it.id !in feed }
         }
 
     suspend fun createSession(

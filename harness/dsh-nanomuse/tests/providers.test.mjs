@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
 import { readFileSync } from 'node:fs'
 import {
-  apiOf, baseUrlFor, capabilitiesForAuth, capabilitiesOf, ChatGptDesk, chatGptOnly, keyRefFor, kindOf, LineReader, listModelRows, listModels, loadCatalogue, modelsOf, ownKeyStepDone, ownProviderRow, parseCatalogue, parseListedReasoning, parseModelReasoning, parseReasoningHint, providersWith, reasoningFields, reasoningFor, regionOf, sighted, typedModelIds, unavailableKey, waysOn,
+  apiOf, baseUrlFor, capabilitiesForAuth, capabilitiesOf, ChatGptDesk, chatGptOnly, hasUserinfo, keyRefFor, kindOf, LineReader, listModelRows, listModels, loadCatalogue, modelsOf, ownKeyStepDone, ownProviderRow, parseCatalogue, parseListedReasoning, parseModelReasoning, parseReasoningHint, providersWith, reasoningFields, reasoningFor, regionOf, sighted, typedModelIds, unavailableKey, waysOn,
 } from '../lib/providers.js'
 
 const catalogue = parseCatalogue(JSON.parse(readFileSync(new URL('../assets/providers.json', import.meta.url), 'utf8')))
@@ -149,6 +149,41 @@ test('listModels: OpenAI’s shape with the bearer, Anthropic’s with x-api-key
   assert.ok(calls[2][0].includes('key=AIza'))
   assert.deepEqual(await listModels('openai', 'https://refuse.example/v1', 'k', fetchImpl), [])
   assert.deepEqual(await listModels('openai', 'https://slow.example/v1', 'k', () => new Promise(() => undefined), 20), [])
+})
+
+test('listModels follows a redirect only on the endpoint’s own origin while a key rides along; an address with user:pass@ is refused before any request', async () => {
+  const calls = []
+  const fetchImpl = async (url, init) => {
+    calls.push([url, init.redirect])
+    if (url === 'https://gw.example/v1/models') return new Response(null, { status: 307, headers: { location: 'https://gw.example/api/v1/models' } })
+    if (url === 'https://gw.example/api/v1/models') return new Response(JSON.stringify({ data: [{ id: 'm' }] }), { status: 200 })
+    if (url === 'http://plain.example/v1/models') return new Response(null, { status: 301, headers: { location: 'https://plain.example/v1/models' } })
+    if (url === 'https://plain.example/v1/models') return new Response(JSON.stringify({ data: [{ id: 'tls' }] }), { status: 200 })
+    if (url === 'https://leak.example/v1/models') return new Response(null, { status: 302, headers: { location: 'https://elsewhere.example/v1/models' } })
+    if (url === 'https://open.example/v1/models') return new Response(null, { status: 302, headers: { location: 'https://elsewhere.example/v1/models' } })
+    if (url === 'https://elsewhere.example/v1/models') return new Response(JSON.stringify({ data: [{ id: 'far' }] }), { status: 200 })
+    if (url.startsWith('https://loop.example/')) return new Response(null, { status: 302, headers: { location: url + '/x' } })
+    return new Response('{}', { status: 404 })
+  }
+  assert.deepEqual(await listModels('openai', 'https://gw.example/v1', 'k', fetchImpl), ['m'], 'a hop on the same origin is followed')
+  assert.ok(calls.every(([, redirect]) => redirect === 'manual'), 'redirects are followed by hand')
+  assert.deepEqual(await listModels('openai', 'http://plain.example/v1', 'k', fetchImpl), ['tls'], 'the http to https step on the same host is followed')
+  calls.length = 0
+  assert.deepEqual(await listModels('openai', 'https://leak.example/v1', 'k', fetchImpl), [], 'another host with a key on the request: not followed')
+  assert.deepEqual(calls.map(([url]) => url), ['https://leak.example/v1/models'], 'the key never reached the other host')
+  assert.deepEqual(await listModels('openai', 'https://open.example/v1', '', fetchImpl), ['far'], 'without a key the redirect is followed wherever it goes')
+  calls.length = 0
+  assert.deepEqual(await listModels('openai', 'https://loop.example/v1', 'k', fetchImpl), [], 'a redirect chain ends after five hops')
+  assert.equal(calls.length, 6)
+  calls.length = 0
+  assert.deepEqual(await listModels('openai', 'https://user:pass@gw.example/v1', 'k', fetchImpl), [])
+  assert.equal(calls.length, 0, 'an address with user:pass@ is not asked anything')
+  assert.equal(hasUserinfo('https://user:pass@host/v1'), true)
+  assert.equal(hasUserinfo('https://token@host/v1'), true)
+  assert.equal(hasUserinfo('user:pass@host/v1'), true)
+  assert.equal(hasUserinfo('https://host/v1?u=a@b'), false)
+  assert.equal(hasUserinfo('https://host:8080/v1'), false)
+  assert.equal(hasUserinfo('not a url'), false)
 })
 
 test('LineReader: one event per line, a partial line waits, the runtime’s own logging between events is skipped', () => {

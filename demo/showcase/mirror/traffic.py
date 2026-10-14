@@ -148,11 +148,40 @@ def log_files() -> list[Path]:
     return rolled + ([current] if current.exists() else [])
 
 
+def rolled_since_last_run(conn: sqlite3.Connection, saved_inode: int, saved_offset: int):
+    """The lines still unread in the files Caddy rolled since the last run, oldest first:
+    the rest of the file that was current then (found by its inode; the site block says
+    roll_uncompressed so that it keeps it), and the whole of every file rolled after it.
+    Two rolls between two runs (a burst, a run that was skipped) used to lose the middle
+    file; a saved file that is already gone (rolled past roll_keep or the week) used to lose
+    every newer one, and now loses only itself: the files whose last write is later than the
+    last run were rolled after it, so nothing of them was read."""
+    rolled: list[tuple[Path, os.stat_result]] = []
+    for p in log_files():
+        if p.name == LOG_NAME or p.name.endswith(".gz"):
+            continue
+        try:
+            rolled.append((p, p.stat()))
+        except OSError:
+            continue  # gone between the listing and now
+    start = next((i for i, (_, ps) in enumerate(rolled) if ps.st_ino == saved_inode), None)
+    if start is None:
+        last_run = float(get_state(conn, "last_run", "0") or 0)
+        unread = [p for p, ps in rolled if ps.st_mtime > last_run] if last_run else []
+    else:
+        with rolled[start][0].open("rb") as f:
+            f.seek(saved_offset)
+            yield from f
+        unread = [p for p, _ in rolled[start + 1 :]]
+    for p in unread:
+        with p.open("rb") as f:
+            yield from f
+
+
 def read_new_lines(conn: sqlite3.Connection):
     """Yield the lines written since the last run. The position is remembered as (inode, offset)
-    of the current file; when Caddy rolled it, the rest of the old file is read first from the
-    rolled copy that carries the same inode (the site block says roll_uncompressed so that it
-    keeps it), then the new file from the top."""
+    of the current file; when Caddy rolled it, the rolled files are finished first
+    (``rolled_since_last_run``), then the new file is read from the top."""
     current = LOG_DIR / LOG_NAME
     if not current.exists():
         return
@@ -160,19 +189,7 @@ def read_new_lines(conn: sqlite3.Connection):
     saved_inode = int(get_state(conn, "log:inode", "0") or 0)
     saved_offset = int(get_state(conn, "log:offset", "0") or 0)
     if saved_inode and saved_inode != st.st_ino:
-        # rolled: finish the previous file if it is still around
-        for p in log_files():
-            if p == current:
-                continue
-            try:
-                ps = p.stat()
-            except OSError:
-                continue
-            if ps.st_ino == saved_inode and not p.name.endswith(".gz"):
-                with p.open("rb") as f:
-                    f.seek(saved_offset)
-                    yield from f
-                break
+        yield from rolled_since_last_run(conn, saved_inode, saved_offset)
         saved_offset = 0
     elif saved_inode == st.st_ino and saved_offset > st.st_size:
         saved_offset = 0  # truncated

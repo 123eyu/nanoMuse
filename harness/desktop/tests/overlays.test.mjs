@@ -7,10 +7,12 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-const page = (name) => readFileSync(fileURLToPath(new URL(`../resources/${name}.html`, import.meta.url)), "utf8");
+// read with LF line ends whatever the checkout wrote (a Windows runner with autocrlf writes CRLF)
+const text = (path) => readFileSync(fileURLToPath(new URL(path, import.meta.url)), "utf8").replace(/\r\n/g, "\n");
+const page = (name) => text(`../resources/${name}.html`);
 const glow = page("glow");
 const capsule = page("capsule");
-const main = readFileSync(fileURLToPath(new URL("../src/main.ts", import.meta.url)), "utf8");
+const main = text("../src/main.ts");
 
 test("the glow breathes along the four edges; nothing flows round the rim", () => {
   assert.match(glow, /\.on \.glow \{[^\n]*animation: breathe 4\.8s ease-in-out infinite/);

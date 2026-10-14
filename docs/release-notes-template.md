@@ -5,7 +5,7 @@
      Codenames so far: Foundation, Identity, Home, Guardrails, Memory, Avatar, Welcome, Polish,
      Portrait, Motion, Hatch, Hands, Reach, Home, Stage, Palette, Open, Ensemble, Presence,
      Footing, Commons, Welcome, Signal, Mirror, Window, Ledger, Harness, Likeness, Rooms, Locks,
-     Union, Steps, Turns, Accord, Thread, Weave, Loom, Keys, Clear, Choice, Keel, Ballast, Trim (CHANGELOG.md has the list). One word, capitalised,
+     Union, Steps, Turns, Accord, Thread, Weave, Loom, Keys, Clear, Choice, Keel, Ballast, Trim, Helm, Compass, Lookout (CHANGELOG.md has the list). One word, capitalised,
      not on that list (Home and Welcome were each used twice early on; do not add a third).
 
      Voice: plain and specific, the maintainer talking to one person. Facts over promises; no
@@ -28,7 +28,7 @@
 ## Upgrade Notes
 
 - **Android installs over <previous> and keeps your data.** `nanoMuse-<version>-arm64.apk` (Android 8.0+, arm64; versionCode <n>) is signed with the same key as every version before it. Verify with `sha256sum -c nanoMuse-<version>-arm64.apk.sha256`.
-- **The desktop installers are not notarised.** On macOS open the app once from *System Settings → Privacy & Security → Open Anyway* (or right-click → *Open*); on Windows click *Run anyway*. They arrive a little after the APK (CI builds them from the tag), and `SHA256SUMS-desktop.txt` lists every checksum.
+- **The desktop installers are not notarised.** On macOS open the app once from *System Settings → Privacy & Security → Open Anyway* (or right-click → *Open*); on Windows click *Run anyway*. They arrive a little after the APK (CI builds them from the tag), and `SHA256SUMS-desktop.txt` lists every checksum, the Windows update metadata included (`latest.yml` and the installer's `.exe.blockmap`).
 - <Anything a person upgrading must know: a setting that moved, a relay version an operator needs, a platform that needs a newer build.>
 - **Where to get it.**
 
@@ -50,7 +50,7 @@ nanoMuse is open source, free and non-profit. Sign in with a phone number or an 
 
 A stable version is not the last word: nanoMuse keeps evolving, and the [roadmap](https://github.com/nano-muse/nanoMuse/blob/main/docs/roadmap.md) says what comes next. We use it every day and know where it is rough; tell us where it broke for you and what you want it to do. Thanks to everyone who tried a build and reported what broke. [Open an issue](https://github.com/nano-muse/nanoMuse/issues/new/choose) · [send a pull request](https://github.com/nano-muse/nanoMuse/blob/main/CONTRIBUTING.md) · [Discussions](https://github.com/nano-muse/nanoMuse/discussions) · [Discord](https://discord.gg/bkTySmm28X) · [star the repo](https://github.com/nano-muse/nanoMuse); if it is useful to you, a star helps others find it.
 
-Based on [OpenMinis](https://github.com/OpenMinis/OpenMinis) 1.13 (GPL-3.0), modified since 2026-09-24. The complete corresponding source of this build is tag `v<version>` plus the `android/deps/proot` submodule ([nano-muse/proot](https://github.com/nano-muse/proot)). The whole repository is GPL-3.0-or-later. nanoMuse Harness carries DeepSeek Harness unmodified, with its licence files inside; *harness* in the name is the word, not DeepSeek's. nanoMuse is not affiliated with Meta; Muse is a trademark of Meta Platforms, Inc. The desktop follows what Muse's app looks like and does, written down from using it; none of Meta's assets, code or content is in it.
+Based on [OpenMinis](https://github.com/OpenMinis/OpenMinis) 1.13 (GPL-3.0), modified since 2026-09-24. The complete corresponding source of this build is tag `v<version>` plus the `android/deps/proot` submodule ([nano-muse/proot](https://github.com/nano-muse/proot)). The whole repository is GPL-3.0-or-later. nanoMuse Desktop carries DeepSeek Harness unmodified, with its licence files inside; *harness* in the name is the word, not DeepSeek's. nanoMuse is not affiliated with Meta; Muse is a trademark of Meta Platforms, Inc. The desktop follows what Muse's app looks like and does, written down from using it; none of Meta's assets, code or content is in it.
 
 <!-- pull requests -->
 
@@ -69,7 +69,7 @@ Based on [OpenMinis](https://github.com/OpenMinis/OpenMinis) 1.13 (GPL-3.0), mod
 ### 升级说明
 
 - **Android 覆盖安装 <previous>，数据保留。** `nanoMuse-<version>-arm64.apk`（Android 8.0+，arm64；versionCode <n>）和之前每个版本用同一把签名。校验：`sha256sum -c nanoMuse-<version>-arm64.apk.sha256`。
-- **桌面安装包没有经过公证。** macOS 第一次在「系统设置 → 隐私与安全性」里点「仍要打开」（或右键 → 「打开」），Windows 点「仍要运行」。安装包会比 APK 晚一点到（CI 从 tag 构建它们）；`SHA256SUMS-desktop.txt` 列出了所有校验值。
+- **桌面安装包没有经过公证。** macOS 第一次在「系统设置 → 隐私与安全性」里点「仍要打开」（或右键 → 「打开」），Windows 点「仍要运行」。安装包会比 APK 晚一点到（CI 从 tag 构建它们）；`SHA256SUMS-desktop.txt` 列出了所有校验值，也包括 Windows 的更新元数据（`latest.yml` 和安装包的 `.exe.blockmap`）。
 - <升级的人必须知道的事：挪了位置的设置、运维者需要的中转版本、需要新构建的平台。>
 - **去哪下载。**
 
@@ -91,6 +91,6 @@ nanoMuse 开源、免费、非营利。手机号或邮箱登录后有一份起�
 
 稳定版也不是最后一句话：nanoMuse 在持续进化，接下来做什么写在[路线图](https://github.com/nano-muse/nanoMuse/blob/main/docs/zh/roadmap.md)里。我们自己每天在用，知道哪些地方还糙；哪里坏了、想要什么，直接提 issue。谢谢每一位装过、试过、报过问题的人。[提 issue](https://github.com/nano-muse/nanoMuse/issues/new/choose) · [发 PR](https://github.com/nano-muse/nanoMuse/blob/main/CONTRIBUTING.md) · [Discussions](https://github.com/nano-muse/nanoMuse/discussions) · [Discord](https://discord.gg/bkTySmm28X) · [点个 Star](https://github.com/nano-muse/nanoMuse)；觉得有用，点个 Star，让更多人看到。
 
-基于 [OpenMinis](https://github.com/OpenMinis/OpenMinis) 1.13（GPL-3.0），自 2026-09-24 起修改；本版本的完整对应源码是 tag `v<version>` 加子模块 `android/deps/proot`（[nano-muse/proot](https://github.com/nano-muse/proot)）。整个仓库以 GPL-3.0-or-later 发布。nanoMuse Harness 原样携带 DeepSeek Harness 及其许可证文件；名字里的 *harness* 是普通词，不是 DeepSeek 的名字。nanoMuse 与 Meta 无关，Muse 是 Meta Platforms, Inc. 的商标。桌面端照着 Muse 应用用起来的样子做，是用过之后写下来的；里面没有 Meta 的任何素材、代码或内容。
+基于 [OpenMinis](https://github.com/OpenMinis/OpenMinis) 1.13（GPL-3.0），自 2026-09-24 起修改；本版本的完整对应源码是 tag `v<version>` 加子模块 `android/deps/proot`（[nano-muse/proot](https://github.com/nano-muse/proot)）。整个仓库以 GPL-3.0-or-later 发布。nanoMuse 桌面版原样携带 DeepSeek Harness 及其许可证文件；名字里的 *harness* 是普通词，不是 DeepSeek 的名字。nanoMuse 与 Meta 无关，Muse 是 Meta Platforms, Inc. 的商标。桌面端照着 Muse 应用用起来的样子做，是用过之后写下来的；里面没有 Meta 的任何素材、代码或内容。
 
 </details>

@@ -203,23 +203,36 @@ object AvatarStudio {
         val result = runCatching { throttled { drawer(context, ep, ref, prompt) } }
         // Cancelled, or a new set was asked for meanwhile: nothing to say about this tile any more.
         if (result.exceptionOrNull() is CancellationException || !currentCoroutineContext().isActive || gen != generation) return
-        synchronized(candidateLock) {
-            // Checking before update alone leaves a replacement between the check and its
-            // CAS retry. Reset, ownership, file write and publication share the same lock.
-            if (gen != generation) return
-            val slot = result.fold(
-                onSuccess = { bmp ->
-                    val f = File(dir, "$i.png")
-                    AvatarStore.write(f, bmp)
-                    Slot.Ready(AvatarStore.decodeBitmap(f) ?: bmp, f)
-                },
-                onFailure = { e ->
+        val jobContext = currentCoroutineContext()
+        var pending: File? = null
+        try {
+            // Encoding and decoding can be slow. Each draw owns its temporary files, so
+            // Again can replace it without waiting or letting an old writer overwrite a tile.
+            val prepared = result.mapCatching { bmp ->
+                val f = File.createTempFile("candidate-$gen-$i-", ".png", dir)
+                pending = f
+                AvatarStore.write(f, bmp)
+                Slot.Ready(AvatarStore.decodeBitmap(f) ?: bmp, File(dir, "$i.png"))
+            }
+            synchronized(candidateLock) {
+                // Only the ownership check, same-directory rename and slot publication share
+                // the replacement lock. A stale draw never touches the published PNG path.
+                if (gen != generation || !jobContext.isActive) return
+                val slot = prepared.mapCatching { ready ->
+                    check(pending!!.renameTo(ready.file)) { "could not save candidate $i" }
+                    ready
+                }.getOrElse { e ->
                     AppLogger.warning(TAG, "candidate $i failed: ${e.message}")
                     // a provider still busy after the retries: a sentence, not its status line
                     Slot.Failed(if (looksRateLimited(e)) context.getString(R.string.nm_avatar_provider_busy) else e.message ?: "failed")
-                },
-            )
-            _slots.update { list -> list.toMutableList().also { it[i] = slot } }
+                }
+                _slots.update { list -> list.toMutableList().also { it[i] = slot } }
+            }
+        } finally {
+            pending?.let { f ->
+                f.delete()
+                File(f.parentFile, f.name + ".tmp").delete()
+            }
         }
     }
 

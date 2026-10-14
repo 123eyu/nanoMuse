@@ -31,7 +31,7 @@ Play 商店：「设置 → 版本」把已安装的构建和最新版本并排�
 2. 打开它。Android 会问一次，是否允许从你的浏览器或文件管理器安装。
 3. **登录。** 第一屏就是账号：手机号或邮箱，一个验证码，设过密码之后也可以用密码。账号让
    你的设备能连成一体（[hub.md](hub.md)），也带来一个起步用的模型（[cloud.md](cloud.md)：每个
-   账号一份免费额度（写这页时是 ¥10），每邀请一位朋友，你和对方都再得一些；App 会显示中继
+   账号一份免费额度（写这页时是 ¥10），每邀请一位朋友，等对方发出第一次请求后，你和对方都再得一些；App 会显示中继
    当前的数字；之后可以[换自己的 key](own-key.md)）。然后选哪个模型来回答：账号自带的，或者
    你自己的 key（任何 OpenAI 兼容端点，或 App 内置的那几种 OAuth 登录）。设的是四个模型，
    不是一个，都在同一页「**设置 → 模型**」里（设置顶部那张卡片打开它）：**对话**，和你说话
@@ -80,11 +80,13 @@ Play 商店：「设置 → 版本」把已安装的构建和最新版本并排�
 `/healthz` 并显示它回答的版本，「使用这个服务器」把地址记住，下次启动仍然有效。自己网络之外的
 地址必须是 `https://`；自己网络内的地址可以用明文 `http://`，判断规则与模型服务器地址相同
 （见下文：按解析后的地址判断私有网段，`localhost`、不带点的名字，以及 `.local`、`.lan`、`.home`、
-`.internal`、`.home.arpa`、`.ts.net` 后缀）。「设置 → 账号」显示「服务器：`<host>`」和「更改」，更改会先把
+`.internal`、`.home.arpa`、`.localdomain`、`.ts.net` 后缀）。「设置 → 账号」显示「服务器：`<host>`」和「更改」，更改会先把
 手机退出登录：它持有的 key 属于签发它的那台服务器。App 对账号做的一切（登录、hub、同步、
 用量、模型菜单）都发往这个地址。
 
 ## 手机能做什么 {#what-the-phone-does}
+
+Shell 的进度更新会保留较短覆盖后未被改写的文字。终端的颜色和标题控制码会先移除，避免覆盖后在输出中留下转义序列的残片。
 
 | | |
 | --- | --- |
@@ -98,8 +100,26 @@ Play 商店：「设置 → 版本」把已安装的构建和最新版本并排�
 | **连接器**（`connectors/`、`ui/connectors/`） | 智能体可以被放进去的那些服务：桌面版那份 75 个远程 MCP 服务器的目录（Notion、Linear、GitHub、GitLab、Slack、Stripe、Miro……），以 `assets/nanomuse/connectors.json` 随 App 发布。设置里管这一切的只有一行：「连接器」；上游的 MCP 编辑器（按地址、按命令、导入 JSON）是页面末尾的「你自己的服务器」。开放的服务点一下就加上；要 key 的服务填 key；OAuth 服务走 MCP 授权流程（发现、动态客户端注册、在 Custom Tab 里做 PKCE），令牌进入该条目的 `Authorization` 头，供沙箱内的 MCP 客户端使用，App 启动时刷新；授权服务器不接受注册客户端的服务（`clientIdRequired`：GitHub、Slack、Discord、HubSpot、Render、Bitrise、PagerDuty、Box）会要你在厂商的开发者页面用 App 的回调地址创建一对 OAuth client id 和 secret，面板会显示并复制这个回调地址。连接好的服务就是同一个 id 下的一个 MCP 服务器条目；「你自己的服务器」也能管它。连接了什么，会通过中继的 profile 分享给账号的其他设备，只有条目（id、名称、地址、认证方式、哪台设备、何时），从不包含令牌，所以页面还会列出「在你的其他设备上」：在桌面上连接的服务显示为「已在 <device> 上连接，在这里登录即可在这台手机上使用」，点一下进入同一个面板。 |
 | **聊天，不花哨** | 智能体工作时，形象下面那一行写的是正在进行的步骤（「nanoMuse 正在用 Shell」「正在写回复」「在做了：订餐桌」），从不写心情。工具小标签、「电脑」面板和浮动的步骤条从 0.1.37 起**默认打开**；「设置 → 外观 → 显示智能体的步骤」可以关掉它们。打开时，完成的步骤显示为「nanoMuse 用过 Shell · 完成」，它的面板点 ×、滑动或返回键都能关。 |
 
+聊天和胶囊栏、菜单、抽屉在同一块底色上：深色主题是纯黑，浅色主题是纯白。你的消息是白色胶囊、黑色文字（浅色主题下反过来，黑色胶囊、白色文字），
+智能体的回复放在比底色略浅一级的胶囊里（`#1C1C1E` / `#F2F2F7`），发送按钮和「回到最新」圆盘是白底黑箭头（浅色主题下反过来）；
+除了链接，对话里没有蓝色。顶栏不是一条横条，而是一层渐隐：对话从它下面滚过去，渐渐融进底色；往回翻旧消息时，顶边还会多出一层渐隐。
+调色板在上游的 `com/openminis/app/ui/theme/ChatColors.kt`，由 `scripts/rebrand.py` 写入。
+
+消息输入框始终位于浮动导航胶囊上方，胶囊栏和输入框一样宽（同样的 16 dp 边距；最宽 420 dp，更宽的屏幕上居中），两枚胶囊的边缘对齐。智能体使用工具时，步骤条在输入框上方；
+最新消息和工具小标签都可以完整滚动到它们上方。对话仍会滚过导航胶囊背后，
+保留磨砂模糊效果。输入框展开、工具预览或审批卡片出现时，间距跟着底部区域的实际高度调整。
+审批卡片本身最多占屏幕的三分之二：超过六行的命令折叠在「全部显示」后面，说明和预览在中间滚动，「允许」和「拒绝」始终留在底部可见。
+查看较早的消息时，稍淡的渐隐效果沿着输入框的圆角轮廓展开。
+只有当前浏览器操作的步骤条、浏览器面板或「轮到你了」操作卡片显示时，这层渐隐才会隐藏；历史工具小标签和其他工具不会关闭它。
+深色模式下，主要聊天和旁聊的导航胶囊周围为纯黑色，输入框下方的间隙也会被盖住。
+胶囊的玻璃区域仍透出滚动内容，保留实时磨砂模糊效果。其他页面的导航外观保持原样。
+键盘弹出时，输入框贴在键盘上，胶囊栏在键盘后面。
+动态、点子、目标和资源库四个页面的列表也在胶囊栏上方结束，最后一行不会被它挡住。
+
 同一个账号的网页控制台在中继上（`/app`），桌面版见 [desktop.md](desktop.md)；手机、桌面和网页共用
 [brand.md](brand.md) 里描述的设计语言。
+
+在「设置 → 外观」中，「聊天输入」「消息文本」和「应用基础」的字号标签会跟随应用语言。
 
 ## 自己的 key {#your-own-key}
 
@@ -120,7 +140,11 @@ Claude、Kimi（设备码）和 OpenRouter；「登录」打开同一个表单�
 `OpenRouterOAuthManager`。ChatGPT 那一行附一句话：OpenAI 的条款只允许 ChatGPT 套餐在 OpenAI
 自己的 Codex 里使用，别的 App 曾被切断过这种访问（OpenCode，2026 年 1 月），如果停了，API key
 照样能用。Anthropic 和 Gemini 打开的是 OpenMinis 为它们准备的服务商类型；其他都走 OpenAI
-兼容表单。
+兼容表单。Claude 登录需要 Anthropic 要求放在每个请求开头的一段标识；它在构建时从
+`app/provider-customization.properties` 读入，这个文件不在仓库里，所以发布的 APK 没有它。没有这段
+标识的构建不会列出 Claude 登录（这张卡片上没有，「添加服务商」里没有，`?preset=anthropic:oauth`
+打开的是 API key 表单）；早先版本保存下来的 Claude 登录，每次发送都会得到一句「这个版本不能用
+Claude 账号登录。请改用 API key 添加 Anthropic。」，而不是让 App 退出（`io.github.nanomuse.cloud.ClaudeSignIn`）。
 
 **列表从哪来。** 中继的 `/v1/me` 带着 `spend.guidance`（中继 0.21，[cloud.md](cloud.md)）：这个人所在
 地区的服务商，按中继的顺序，每家覆盖什么、可以登录的套餐以及它们面向哪些客户端、本地服务器、
@@ -137,7 +161,7 @@ Codex 登录的 ChatGPT 套餐只有聊天和视觉（Codex 后端没有图片�
 一样。没有任何已配置的服务商具备某项能力时，页面用一句话说明（「画图需要有图像模型的
 提供方：百炼、OpenAI、Gemini 或 OpenRouter。」），而不是报错。
 
-在形象工作室重新生成候选图时，新一组会替换旧一组。旧请求随后返回的图片或失败结果，不会改动新一组的候选格。
+在形象工作室重新生成候选图时，新一组会替换旧一组。旧请求随后返回的图片或失败结果，不会改动新一组的候选格或文件。点击重新生成即可开始新请求，无需等待旧图片保存完毕。
 
 **连不上服务商的时候**（`net/ProviderReach.kt`、`ui/chat/ProviderReachCard.kt`）。失败的一轮，如果
 错误来自传输层（OkHttp 的「failed to connect to chatgpt.com/…（port 443）」「Unable to resolve host」、
@@ -170,20 +194,26 @@ model_not_offered` →「打开设置」；`503 service_paused`、`sync_paused`�
 单元测试：`RelayRefusalTest`、`GuidanceTest`。
 
 **设置 → 网络**（`net/OwnProviderProxy.kt`、`ui/net/NetworkScreen.kt`、`minis://settings/network`）。
-给自己的服务商用的 HTTP 代理：主机、端口、可选的用户名和密码，默认关闭，只存在这台手机的
-`SharedPreferences` 里。它在 `MinisApp.onCreate` 中被装为进程默认的 `ProxySelector`，所以每个 OkHttp
+给自己的服务商用的 HTTP 代理：主机、端口、可选的用户名和密码，默认关闭，只存在这台手机上：设置项在
+`SharedPreferences` 里，密码单独放在一个 `EncryptedSharedPreferences` 文件里（`nanomuse_proxy_secrets`，
+和服务商 key 一样的存法；1.0.3 的手机存在普通文件里的密码会在第一次读取时搬过去）。它在
+`MinisApp.onCreate` 中被装为进程默认的 `ProxySelector`，所以每个 OkHttp
 客户端每次请求都会问它；对目录里的主机、`chatgpt.com`、`auth.openai.com` 和服务商实例的自定义
 base URL（从不包括中继的，从不包括局域网地址）它回答代理，对其他所有主机回答系统的设置：hub、
 中继、沙箱镜像都不受影响。服务商客户端带着 `OwnProviderProxy.authenticator`，应付要密码的代理。
 「测试」按填写的代理抓取 `https://chatgpt.com/`，报告状态码和毫秒数。单元测试：`ProviderReachTest`、
 `OwnProviderProxyTest`。
 
+## 语音输入 {#voice-input}
+
+系统语音输入可以优先使用设备端识别。手机没有可用的设备端识别服务时，会改用默认识别服务；默认服务返回的语言错误会显示在语音面板中。已经启动的设备端识别器缺少语言包时，仍会尝试一次默认服务。
+
 ## 隐私与权限 {#privacy-and-permissions}
 
 中继保存账号 id、一个打码的标识、用量计数，以及智能体的名字和外观（让你的设备保持一致）；
 消息内容只以对话同步的形式保存：登录后默认开启，在*数据控制*里关掉（[privacy.md](privacy.md)、
-[sync.md](sync.md)）；第一次对话的第四句话会这么说。在手机上，API key、账号 key 和 Reach 配对令牌放在
-`EncryptedSharedPreferences` 里；从 0.1.40 起 App 完全不参与设备备份（`allowBackup="false"`：
+[sync.md](sync.md)）；第一次对话的第四句话会这么说。在手机上，API key 和账号 key 放在
+`EncryptedSharedPreferences` 里，*设置 → 网络* 的代理密码也是（1.0.4 起；只在这台手机上）；从 0.1.40 起 App 完全不参与设备备份（`allowBackup="false"`：
 聊天、记忆和 key 从不上传到 Google，重装后从空白开始，账号的聊天通过同步回来；`res/xml/` 下的
 两个规则文件留着，等哪天开关再打开时用）。手需要无障碍服务和悬浮窗权限，两者都可选、都能在
 同一屏撤销（首次运行的「手」那一页在 App 标志下面请求这两项，和登录页一样）；会发送东西的步骤（点「发送」，或在聊天软件的消息框里按回车）一次一次地审批，
@@ -198,7 +228,7 @@ base URL（从不包括中继的，从不包括局域网地址）它回答代理
 （`io.github.nanomuse.net.LanOnly`）。地址先解析再判断，所以 `10.foo.example.com` 这样的公网名字
 不会被当成私有地址。自己的中继能否用 `http://` 也按同一条规则判断；nanoMuse Cloud 以及到它的
 hub 只走 TLS。App 内的
-web view 不对其他 App 导出。
+web view 不对其他 App 导出。用服务商语音模型做语音输入时，麦克风只在录音期间打开：停止或取消录音都会立刻关掉录音器，取消的那段音频直接丢弃，不会发给服务商。
 
 ## 自己构建 {#building-it-yourself}
 
@@ -210,7 +240,13 @@ bash scripts/android/build-natives.sh   # 只需一次：proot、Alpine rootfs �
 cd android/src/android
 ./gradlew :app:assembleDebug        # app/build/outputs/apk/debug/app-debug.apk
 ./gradlew :app:assembleRelease      # signed with android/keystore.properties when present
+./gradlew :app:testDebugUnitTest --tests 'io.github.nanomuse.*'   # 我们的单元测试
+./gradlew :app:lintDebug            # Android lint；报告在 app/build/reports/lint-results-debug.html
 ```
+
+Lint 用的是比 AGP 8.7.3 自带版本更新的 lint（`gradle.properties` 里的
+`android.experimental.lint.version`）：Compose 和 lifecycle 库自带的检查，自带的那个加载不了。上游树里有
+它自己的 lint 发现；看报告时找 `io.github.nanomuse` 的部分。
 
 `rclone.aar` 用 Go 构建，模块走 Go 自己的默认代理（`https://proxy.golang.org,direct`）；在中国大陆网络下先
 `export GOPROXY=https://goproxy.cn,direct`，`env.sh` 会沿用你导出的值。
@@ -233,7 +269,8 @@ keytool -genkeypair -keystore ~/.nanomuse-release/nanomuse.jks -alias nanomuse \
 这项检查）。版本由 `scripts/release-apk.sh <version>` 从一个标签做出来：它核对版本号与 `rebrand.py`
 和 Gradle 是否一致，用 release 密钥构建 `:app:assembleRelease`，写出
 `dist/nanoMuse-<version>-arm64.apk` 和它的 `.sha256`，加 `--publish` 时打上 `v<version>` 标签，
-并把两者连同 `docs/releases/v<version>.md` 里的说明一起附到 GitHub release 上。debug 签名的 APK
+并把两者连同 `docs/releases/v<version>.md` 里的说明一起附到 GitHub release 上。工作区有未提交的改动，
+或者提交不在 `main` 上，发布会被拒绝。debug 签名的 APK
 永远不进 release，因为正式签名的版本无法覆盖它。`versionName` 必须和标签一致，就像 Python 包的
 版本号那样。
 
@@ -246,12 +283,14 @@ keytool -genkeypair -keystore ~/.nanomuse-release/nanomuse.jks -alias nanomuse \
 | `sync/` | 对话同步（契约 C7–C10）：`SyncEngine`（什么上传、什么下载；每个映射带 `owner`，只有本账号的）、`ConversationSync`（何时同步；`hidden`：另一个账号的聊天，从 `ChatRepository.observeSessions()` 里排除）、`LocalChats`、Room 存储 `nanomuse_sync.db`（含 C12 的 `session_owners` 表） |
 | `account/` | 契约 C12（0.1.40，[sync.md](sync.md)）：`AccountScope`（规则：一个会话是谁的聊天、账号的 key、列表排除什么、被拒绝的 key 保留什么（`keepOnRefusedKey`：全部保留，除非中继说 `account_deleted`）；有单元测试）、`AccountData`（执行规则：每个聊天一行归属记录，`leave` 把账号的聊天、记忆、动态、目标、例程、形象和偏好收起来或删掉，`enter` 把一个账号的东西带回来）。「库」标签遵循同一条规则：只列出聊天列表会显示的那些会话的工作区，共用一台手机时另一个账号的文件不会出现（`library/LibraryIndex.shows`，有单元测试） |
 | `hub/` | `Hub`（状态、设备身份、设置）、`HubClient`（带退避的 socket；key 被拒绝时每分钟重试一次并如实显示，连接被替换时等 30 秒，运营者暂停 hub 时等两分钟并如实显示）、`HubService`（前台服务）、`HubActions`（其他设备可以让这台手机做什么；`stop {call | conversation}` 结束发起设备在这里启动的任务，由 `HubTasks` 记账，有单元测试）、`HubErrors`（用文字描述的失败） |
-| `reach/` | `Computers`（已配对的电脑，令牌在加密存储里）、把工作转交给电脑的处理器 |
+| `reach/` | `Computers`（账号的设备，按 hub 列出的样子，以及对它们的调用；0.1.24 起不再有配对，也没有自己的令牌）、把工作转交给电脑的处理器 |
 | `models/` | 「设置 → 模型」背后的逻辑：`ModelSlots`（四个槽位、各自设成了什么、存在哪里、选择页列出的分组、对话默认的 `followPick`、「用它来做什么」卡片的 `applyProvider`），`SlotOrder`（解析顺序和目录默认，纯 Kotlin，有单元测试），`PickerList`（选择页每组 8 行的折叠、排序和搜索过滤，纯 Kotlin，有单元测试） |
 | `ui/models/` | 「模型」页、每一行背后的选择页、「用它来做什么」卡片（`minis://settings/models`） |
 | `chat/CloudRetry.kt` | 「这次改用 nanoMuse Cloud」：卡片何时提供它，以及 `ChatViewModel.retryLast` 这一轮用的服务商 |
+| `chat/RoutineWakes.kt`、`ui/chat/NmRoutineWakeRow.kt` | 定时任务的一轮是例程的，不是本人的：`ScheduledAgentRunner` 在提示词发出前先登记一次唤醒，`ChatViewModel` 把它绑到落库的那一行，聊天里这一行只画成一行安静的小字「例程 · 〈名称〉 · 08:00」，而不是一条以本人口吻发出的气泡；模型收到一条只管这一轮的 `SessionAddenda`，说明情况，于是它直接从结果说起，不感谢谁的提问。到 1.0.4 为止，提示词就像本人打的字一样立在聊天里 |
+| `feed/` | 动态：`FeedFlow` 维护每日定时任务和它写作所在的会话，这个会话是智能体的工作间，不进抽屉、聊天列表和主聊天的回退（`FeedFlow.hidden`，由 `ChatRepository.observeSessions()`、`MainChat` 和「移到会话」面板读取）；`FeedStore` 存帖子。任务在 App 退到后台时写出了帖子，就发一条点出帖子标题的通知，点开进动态页（`minis://feed`），取代 1.0.4 之前那条带着模型原文、点开进会话的通用「任务完成」通知 |
 | `hands/` | 作为手的无障碍服务、舞台和胶囊、屏幕读取器；`Hands.screenModel` 选屏幕模型（已选的 → 对话服务商自己的默认，当它能看图 → Cloud 的 `qwen3.8-27b` → 你自己 key 下的同一个 → 一个能看图的聊天模型 → Vision Group） |
 | `ui/coding/` | 你电脑上的编程助手 |
 | `connectors/`、`ui/connectors/` | 连接器目录（`ConnectorsCatalogue` 读取资源文件）、MCP 授权发现与注册（`McpAuthDiscovery`）、连接和令牌刷新（`Connectors`）、这台手机连接了什么并发布到 profile、其他设备连接了什么（`SharedConnectors`）、「设置 → 连接器」页面 |
 | `ui/cloud/` | 登录、账号屏、设备部分 |
-| `res/values*/nm_strings.xml` | nanoMuse 的全部字符串，App 支持的十七种语言各一份（英语、简体中文、繁體中文、德语、西班牙语、菲律宾语、法语、印尼语、日语、韩语、马来语、波兰语、巴西葡萄牙语、罗马尼亚语、俄语、泰语、土耳其语）；每个文件的键相同，缺的回落到英语 |
+| `res/values*/nm_strings.xml` | nanoMuse 的全部字符串，App 支持的十七种语言各一份（英语、简体中文、繁體中文、德语、西班牙语、菲律宾语、法语、印尼语、日语、韩语、马来语、波兰语、巴西葡萄牙语、罗马尼亚语、俄语、泰语、土耳其语）；每个文件的键相同，只有英语文件里标了 `translatable="false"` 的两条（中继地址示例和产品名 `nanoMuse Cloud`）例外，缺的回落到英语 |

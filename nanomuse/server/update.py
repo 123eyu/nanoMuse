@@ -1,5 +1,6 @@
 """Is there a newer nanoMuse? The download mirror's index first, GitHub Releases second,
-kept for a day (contract C2: every client shows the installed and the latest version).
+kept for a day, a failed check for an hour (contract C2: every client shows the installed
+and the latest version).
 
 Nothing is downloaded and nothing about the install is sent: the requests are the ones a
 browser makes when it opens the download page. ``https://nanomuse.cn/dl/index.json``
@@ -31,6 +32,8 @@ RELEASES_API = "https://api.github.com/repos/nano-muse/nanoMuse/releases/latest"
 RELEASES_PAGE = "https://github.com/nano-muse/nanoMuse/releases/latest"
 RELEASE_TAG_PAGE = "https://github.com/nano-muse/nanoMuse/releases/tag/{tag}"
 CACHE_S = 24 * 3600
+# a check that failed (the runtime came up before the network did) is tried again sooner
+RETRY_S = 3600
 INDEX_TIMEOUT_S = 5.0
 TIMEOUT_S = 6.0
 
@@ -99,7 +102,7 @@ class UpdateCheck:
                 "source": None,
                 "error": None,
             }
-        if force or self.checked_at is None or time.monotonic() - self.checked_at > CACHE_S:
+        if force or self.checked_at is None or self._stale():
             await self._check()
         return {
             "current": self.current,
@@ -112,6 +115,14 @@ class UpdateCheck:
             "source": self.source,
             "error": self.error,
         }
+
+    def _stale(self) -> bool:
+        """A good answer is kept for a day; a failed one for an hour, so a runtime that
+        started before its network was up does not say "could not check" all day."""
+        if self.checked_at is None:
+            return True
+        age = time.monotonic() - self.checked_at
+        return age > (RETRY_S if self.error else CACHE_S)
 
     async def _check(self) -> None:
         self.checked_at = time.monotonic()

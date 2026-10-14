@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- nanoMuse: strings added on top of upstream; kept in their own file so an
      upstream pull never touches them. Anything missing here falls back to English. -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="nm_about_build">Cette version</string>
     <string name="nm_about_license">Licence</string>
     <string name="nm_about_upstream">Basé sur OpenMinis 1.13</string>
@@ -24,13 +24,13 @@
     <string name="nm_star_done">Déjà fait</string>
     <string name="nm_star_signed_in">Bienvenue. nanoMuse est gratuit, open source et sans but lucratif : un agent personnel pour quiconque le fait tourner. Si cela compte pour vous, une étoile sur GitHub est ce qui permet à la personne suivante de le trouver.</string>
     <plurals name="nm_star_tasks">
-        <item quantity="one">Une tâche accomplie. Si nanoMuse a aidé, une étoile sur GitHub le dit à ceux qui le construisent.</item>
+        <item quantity="one">%1$d tâche accomplie. Si nanoMuse a aidé, une étoile sur GitHub le dit à ceux qui le construisent.</item>
         <item quantity="other">%1$d tâches accomplies. Si nanoMuse vous est utile, une étoile sur GitHub aide la personne suivante à le trouver.</item>
     </plurals>
     <string name="nm_star_days_used_week">Une semaine avec nanoMuse. S’il a trouvé sa place dans votre journée, une étoile sur GitHub aide la personne suivante à le trouver.</string>
     <string name="nm_star_days_used_month">Un mois avec nanoMuse. S’il fait maintenant partie de vos habitudes, une étoile sur GitHub dit aux autres qu’il vaut l’essai.</string>
     <plurals name="nm_star_days_used">
-        <item quantity="one">Un jour avec nanoMuse. S’il a aidé, une étoile sur GitHub aide la personne suivante à le trouver.</item>
+        <item quantity="one">%1$d jour avec nanoMuse. S’il a aidé, une étoile sur GitHub aide la personne suivante à le trouver.</item>
         <item quantity="other">%1$d jours avec nanoMuse. S’il a trouvé sa place dans votre journée, une étoile sur GitHub aide la personne suivante à le trouver.</item>
     </plurals>
     <string name="nm_star_goal_done">Objectif atteint. Si nanoMuse vous y a aidé, une étoile sur GitHub le dit à ceux qui le construisent.</string>
@@ -102,7 +102,8 @@
     <string name="nm_goal_sheet_go">Commencer</string>
     <string name="nm_goal_create_message">Je voudrais créer un objectif « %1$s ».</string>
     <string name="nm_goal_check_task_label">Point d’objectif : %1$s</string>
-    <plurals name="nm_goal_every_hours">
+    <!-- the interval is never 0 (a goal without one is checked daily), so "one" is 1 alone -->
+    <plurals name="nm_goal_every_hours" tools:ignore="ImpliedQuantity">
         <item quantity="one">Vérifie toutes les heures</item>
         <item quantity="other">Vérifie toutes les %d heures</item>
     </plurals>
@@ -130,6 +131,8 @@
     <string name="nm_routine_run_now">Exécuter maintenant</string>
     <string name="nm_routine_delete">Supprimer</string>
     <string name="nm_routine_paused">Désactivée</string>
+    <!-- The chat row a routine sent: its label and the clock time it fired -->
+    <string name="nm_routine_wake_caption">Routine · %1$s · %2$s</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">Idées</string>
@@ -351,6 +354,23 @@
     <string name="nm_avatar_use_this">Utiliser celui-ci</string>
     <string name="nm_avatar_use_this_hint">Les humeurs (au travail, en attente, terminé, oups) en seront dessinées ensuite, en arrière-plan.</string>
     <string name="nm_avatar_footer">Les images sont stockées sur ce téléphone sous minis-global/nanomuse/avatar. Chaque visage coûte cinq images chez votre fournisseur : celle que vous avez choisie plus quatre humeurs.</string>
+    <string name="nm_own_clip_title">Votre propre clip</string>
+    <string name="nm_own_clip_body">Une courte vidéo à vous s\'affiche comme visage au repos, et les autres humeurs s\'y rabattent. MP4 ou MOV en vidéo H.264, 15 secondes et 30 Mo au plus ; elle tourne en boucle, sans le son.</string>
+    <string name="nm_own_clip_on">Votre clip est actif et joue pour chaque humeur ; là où une image fixe est montrée, les images dessinées restent. « Visage par défaut » le retire.</string>
+    <string name="nm_own_clip_local">Le clip reste sur ce téléphone. Il n\'est ni envoyé à nanoMuse Cloud ni synchronisé avec vos autres appareils.</string>
+    <string name="nm_own_clip_choose">Choisir un clip</string>
+    <string name="nm_own_clip_replace">Remplacer le clip</string>
+    <string name="nm_own_clip_default">Visage par défaut</string>
+    <string name="nm_own_clip_menu">Votre propre clip…</string>
+    <string name="nm_own_clip_preview_title">Aperçu</string>
+    <string name="nm_own_clip_preview_body">Voici comment il joue comme visage : sans le son, en boucle, recadré dans le cercle.</string>
+    <string name="nm_own_clip_details">%1$d s · %2$s</string>
+    <string name="nm_own_clip_use">Utiliser</string>
+    <string name="nm_own_clip_refused_format">Ce fichier ne peut pas être utilisé ici. Choisissez un MP4 ou MOV en vidéo H.264, 15 secondes et 30 Mo au plus.</string>
+    <string name="nm_own_clip_refused_long">Ce clip dure %1$d secondes. La limite est de 15 secondes, et 30 Mo.</string>
+    <string name="nm_own_clip_refused_large">Ce clip pèse %1$s. La limite est de 30 Mo, et 15 secondes.</string>
+    <string name="nm_own_clip_unreadable">Le clip n\'a pas pu être lu. Essayez-en un autre.</string>
+    <string name="nm_a11y_own_clip_preview">Aperçu de votre clip</string>
 
     <!-- First run (Muse-style welcome; the steps are OpenMinis' provider and model screens) -->
     <string name="nm_setup_title">Bienvenue dans nanoMuse</string>
@@ -594,6 +614,8 @@
     <string name="nm_risk_title_device">Autoriser « %1$s » à piloter ce téléphone ?</string>
     <string name="nm_risk_desc_device">« %1$s », un autre appareil de votre compte, veut %2$s sur ce téléphone. Le détail est ci-dessous. « Toujours » laisse cet appareil faire ce genre de choses ici sans demander ; revenez dessus sous Permissions.</string>
     <string name="nm_risk_preview_device">Ce que l’appareil a demandé</string>
+    <string name="nm_risk_preview_show_all">Tout afficher (%1$d lignes)</string>
+    <string name="nm_risk_preview_show_less">Réduire</string>
     <string name="nm_risk_class_remote">Contrôle à distance</string>
     <string name="nm_hub_remote_reason">%1$s peut piloter ce téléphone</string>
 
@@ -627,7 +649,6 @@
     <string name="nm_welcome_skip">Passer pour l’instant</string>
     <string name="nm_welcome_hands_fine_print">Tout le reste fonctionne sans. Elles se trouvent sous Réglages → Mains quand vous les voulez.</string>
     <string name="nm_welcome_meet_fine_print">Avant tout ce qu’il ne peut pas défaire (supprimer, envoyer, payer) il s’arrête et vous demande d’abord.</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">Commencer avec nanoMuse Cloud</string>
     <string name="nm_cloud_signin_subtitle">Un code sur votre téléphone ou dans votre boîte mail, ou votre mot de passe, une fois défini.</string>
     <string name="nm_cloud_mode_code">Avec un code</string>
@@ -635,7 +656,7 @@
     <string name="nm_cloud_password">Mot de passe</string>
     <string name="nm_cloud_forgot_password">Mot de passe oublié ? Connectez-vous avec un code</string>
     <string name="nm_cloud_identifier">Numéro de Chine continentale ou e-mail</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · vous@example.com</string>
+    <string name="nm_cloud_identifier_hint">vous@example.com</string>
     <string name="nm_cloud_code">Code</string>
     <string name="nm_cloud_send_code">Envoyer le code</string>
     <string name="nm_cloud_resend">Renvoyer</string>
@@ -645,7 +666,6 @@
     <!-- Your own relay (0.1.38): the sign-in screen's server form and the account page's row -->
     <string name="nm_cloud_other_server">Utiliser un autre serveur</string>
     <string name="nm_cloud_server_url">Adresse du relais</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
     <string name="nm_cloud_server_check">Vérifier</string>
     <string name="nm_cloud_server_use">Utiliser ce serveur</string>
     <string name="nm_cloud_server_now">Serveur : %1$s</string>
@@ -707,6 +727,8 @@
     <string name="nm_cloud_err_password_short">Le mot de passe doit faire au moins 8 caractères.</string>
     <string name="nm_cloud_err_password_weak">Ce mot de passe est trop facile à deviner.</string>
     <string name="nm_cloud_err_signup_closed">Les inscriptions sont suspendues sur ce relais pour le moment. Un compte déjà créé peut toujours se connecter.</string>
+    <string name="nm_cloud_err_domain_limited">Les adresses de ce domaine ont atteint la limite d’inscriptions du jour sur ce relais. Réessayez demain ou utilisez une autre adresse.</string>
+    <string name="nm_cloud_err_channel_unsupported">Ce relais n’envoie pas de code à ce type d’adresse. Utilisez l’autre type (e-mail ou numéro de téléphone) ou connectez-vous avec votre mot de passe.</string>
     <string name="nm_cloud_err_too_large">Ce message est trop volumineux pour le modèle. Raccourcissez-le, retirez quelques pièces jointes ou commencez une nouvelle discussion.</string>
     <string name="nm_cloud_err_content_rejected">Le contrôle de contenu du fournisseur du modèle a refusé cette demande. Essayez d\'autres mots ou, si cela se répète, ouvrez une nouvelle discussion : les mots en cause peuvent se trouver plus haut dans la conversation.</string>
     <string name="nm_cloud_err_provider_busy">Le fournisseur du modèle est occupé en ce moment. Réessayez dans un instant.</string>
@@ -753,7 +775,7 @@
     <string name="nm_face_cost_not_now">Pas maintenant</string>
     <string name="nm_face_cost_declined">Très bien, le visage reste tel quel.</string>
     <string name="nm_cloud_invite_title">Inviter un ami</string>
-    <string name="nm_cloud_invite_why">Chaque nouvelle personne qui s’inscrit avec votre code ajoute ¥%1$s à votre crédit, et ¥%1$s au sien. Ça n’expire jamais.</string>
+    <string name="nm_cloud_invite_why">Quand un ami s’inscrit avec votre code et envoie sa première requête, vous recevez chacun ¥%1$s. Ça n’expire jamais.</string>
     <string name="nm_cloud_invite_code">Votre code</string>
     <string name="nm_cloud_invite_share">Partager le lien</string>
     <string name="nm_cloud_invite_copy">Copier</string>
@@ -791,7 +813,7 @@
     <string name="nm_cap_clips_unavailable">Les clips demandent un fournisseur avec des modèles vidéo : Alibaba Cloud Bailian.</string>
     <string name="nm_cap_hands_unavailable">Les mains demandent un modèle qui voit l\'écran : Bailian, OpenRouter, OpenAI, Anthropic, Gemini, ou tout fournisseur avec des modèles de vision.</string>
     <string name="nm_cap_chat_unavailable">Le chat demande un fournisseur avec des modèles de chat : ajoutez une clé ou connectez-vous.</string>
-    <string name="nm_ways_invite_title">Invitez un ami : +¥%1$s pour vous et +¥%2$s pour lui, pour chaque nouvelle personne qui s’inscrit avec votre lien.</string>
+    <string name="nm_ways_invite_title">Invitez un ami : +¥%1$s pour vous et +¥%2$s pour lui, dès qu’une nouvelle personne inscrite avec votre lien envoie sa première requête.</string>
     <string name="nm_ways_invite_share">Partager le lien</string>
     <string name="nm_ways_invite_copy">Copier le lien</string>
     <string name="nm_cloud_ev_contribute_on">Contrôle des données : aide à l’amélioration activée</string>
@@ -1122,4 +1144,16 @@
     <string name="nm_a11y_liked">Aimé</string>
     <string name="nm_a11y_not_liked">Non aimé</string>
     <string name="nm_a11y_post_details">Détails de la publication</string>
+    <string name="nm_claude_sign_in_unavailable">Cette version ne peut pas utiliser la connexion Claude. Ajoutez plutôt Anthropic avec une clé d’API.</string>
+    <string name="nm_oauth_rescue_hint">Si le navigateur affiche une page d\'erreur sur localhost, votre proxy ou VPN avale le retour. Ajoutez localhost à sa liste d\'exclusions, ou copiez l\'adresse de la page et collez-la ici.</string>
+    <string name="nm_oauth_rescue_placeholder">Collez l\'adresse ici</string>
+    <string name="nm_oauth_rescue_continue">Continuer</string>
+    <string name="nm_oauth_rescue_no_code">Cette adresse ne contient pas de code de connexion.</string>
+    <string name="nm_oauth_rescue_failed">La connexion n\'attend plus cette adresse. Touchez Se connecter et réessayez.</string>
+    <!-- Font scale labels -->
+    <string name="nm_font_scale_extra_small">Très petit</string>
+    <string name="nm_font_scale_small">Petit</string>
+    <string name="nm_font_scale_medium">Moyen</string>
+    <string name="nm_font_scale_large">Grand</string>
+    <string name="nm_font_scale_extra_large">Très grand</string>
 </resources>

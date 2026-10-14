@@ -188,3 +188,83 @@ def test_main_moves_the_issue_forms_but_not_on_a_dry_run(
 
     assert release_docs.main(["1.0.0", "1.0.1", "Keel", "Still", "2026-10-20"]) == 0
     assert "e.g. 1.0.1 (44)" in form.read_text(encoding="utf-8")
+
+
+ROADMAP = """## Past releases
+
+| Version | Codename | In one line |
+|---|---|---|
+| 0.1.41 | Choice | Settings › Models with four rows |
+| 1.0.0 | Keel | The first stable version |
+"""
+
+
+def test_a_roadmap_row_goes_at_the_end_of_the_past_releases_table(
+    release_docs: ModuleType,
+) -> None:
+    text = release_docs.add_roadmap_row(ROADMAP, "1.0.1", "Ballast", "The phone app has a scheme")
+    assert text.endswith(
+        "| 1.0.0 | Keel | The first stable version |\n"
+        "| 1.0.1 | Ballast | The phone app has a scheme |\n"
+    )
+    with pytest.raises(ValueError, match="already there"):
+        release_docs.add_roadmap_row(text, "1.0.1", "Ballast", "again")
+    with pytest.raises(ValueError, match="no past-releases table"):
+        release_docs.add_roadmap_row("# Roadmap\n", "1.0.1", "Ballast", "x")
+    with pytest.raises(ValueError, match="cannot contain"):
+        release_docs.add_roadmap_row(ROADMAP, "1.0.1", "Ballast", "a | b")
+
+
+def test_main_writes_both_roadmap_rows_or_asks_for_them(
+    release_docs: ModuleType,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    _tree(tmp_path)
+    (tmp_path / "docs" / "roadmap.md").write_text(ROADMAP, encoding="utf-8")
+    (tmp_path / "docs" / "zh" / "roadmap.md").write_text(
+        ROADMAP.replace("Version | Codename | In one line", "版本 | 代号 | 一句话"),
+        encoding="utf-8",
+    )
+    args = ["1.0.0", "1.0.1", "Keel", "Still", "2026-10-20"]
+
+    # one flag without the other is refused before anything is written
+    assert release_docs.main([*args, "--roadmap", "x"]) == 2
+    assert "go together" in capsys.readouterr().err
+    assert "## [1.0.1]" not in (tmp_path / "CHANGELOG.md").read_text(encoding="utf-8")
+
+    assert release_docs.main([*args, "--roadmap", "One line", "--roadmap-zh", "一句话"]) == 0
+    out = capsys.readouterr().out
+    assert "docs/roadmap.md: a row for 1.0.1 Still" in out
+    assert "docs/roadmap.md's and docs/zh/roadmap.md's past-releases rows" not in out
+    assert (
+        (tmp_path / "docs" / "roadmap.md")
+        .read_text(encoding="utf-8")
+        .endswith("| 1.0.1 | Still | One line |\n")
+    )
+    assert (
+        (tmp_path / "docs" / "zh" / "roadmap.md")
+        .read_text(encoding="utf-8")
+        .endswith("| 1.0.1 | Still | 一句话 |\n")
+    )
+
+    # a page without the table refuses the run before anything is written
+    bare = tmp_path / "bare"
+    bare.mkdir()
+    monkeypatch.chdir(bare)
+    _tree(bare)
+    (bare / "docs" / "roadmap.md").write_text("# Roadmap\n", encoding="utf-8")
+    (bare / "docs" / "zh" / "roadmap.md").write_text("# 路线图\n", encoding="utf-8")
+    assert release_docs.main([*args, "--roadmap", "One line", "--roadmap-zh", "一句话"]) == 1
+    assert "no past-releases table" in capsys.readouterr().err
+    assert "## [1.0.1]" not in (bare / "CHANGELOG.md").read_text(encoding="utf-8")
+
+    # without the flags the rows are left to hand work, and the message says so
+    again = tmp_path / "again"
+    again.mkdir()
+    monkeypatch.chdir(again)
+    _tree(again)
+    assert release_docs.main(["1.0.0", "1.0.2", "Keel", "Trim", "2026-10-21"]) == 0
+    assert "run again with --roadmap and --roadmap-zh" in capsys.readouterr().out

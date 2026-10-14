@@ -5,7 +5,9 @@
 //  Muse's composer pill, used by AIChatView when the Muse shell is on: one
 //  row on a flat grey capsule — plus on the left, the field in the middle,
 //  the mic on the right while there is nothing to send, the send arrow once
-//  there is, the stop glyph while the agent answers. Bare glyphs, no discs.
+//  there is, the stop square while the agent answers. Bare glyphs for plus
+//  and mic; send and stop sit on the chat's ink disc (black in light, white
+//  in dark, the glyph in the canvas colour), as Android's send since #331.
 //  Android: the `nmPill` branch of ChatScreen.kt.
 //
 
@@ -37,8 +39,11 @@ struct NanoMuseComposerPill<Field: View>: View {
     @ViewBuilder var field: () -> Field
 
     @State private var showAttachMenu = false
+    @Environment(\.colorScheme) private var scheme
 
     private let glyph: CGFloat = 40
+    /// The send disc's diameter, the size the `arrow.up.circle.fill` glyph had.
+    private let disc: CGFloat = 30
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 2) {
@@ -97,33 +102,40 @@ struct NanoMuseComposerPill<Field: View>: View {
 
     // MARK: Mic · send · stop
 
+    /// A glyph on the ink disc: the send arrow, and the stop square while the agent answers.
+    /// Enabled: the disc in the ink colour, the glyph in the canvas colour. Disabled (nothing
+    /// sendable yet): the disc a faint wash of the ink and the glyph at 40 percent, Android's
+    /// `nmSendBg` / `nmSendFg`.
+    private func inkDisc(_ symbol: String, enabled: Bool) -> some View {
+        ZStack {
+            Circle()
+                .fill(enabled ? NanoMuseTones.ink : NanoMuseTones.ink.opacity(scheme == .dark ? 0.15 : 0.08))
+            Image(systemName: symbol)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(enabled ? NanoMuseTones.onInk : Color.primary.opacity(0.4))
+        }
+        .frame(width: disc, height: disc)
+        .frame(width: glyph, height: glyph)
+    }
+
     @ViewBuilder
     private var trailingButton: some View {
         if isProcessing && canEnqueue {
             Button(action: onEnqueue) {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 30))
-                    .foregroundStyle(Color.primary)
-                    .frame(width: glyph, height: glyph)
+                inkDisc("arrow.up", enabled: true)
             }
             .buttonStyle(.plain)
             .keyboardShortcut(.return, modifiers: .command)
             .accessibilityLabel(Text("Add to queue", comment: "VoiceOver label for the send button while a reply is generating"))
         } else if isProcessing {
             Button(action: onStop) {
-                Image(systemName: "stop.circle.fill")
-                    .font(.system(size: 30))
-                    .foregroundStyle(Color.primary)
-                    .frame(width: glyph, height: glyph)
+                inkDisc("stop.fill", enabled: true)
             }
             .buttonStyle(.plain)
             .accessibilityLabel(Text("Stop generating", comment: "VoiceOver label for the stop button"))
         } else if hasContent {
             Button(action: onSend) {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 30))
-                    .foregroundStyle(canSend ? Color.primary : Color.secondary.opacity(0.5))
-                    .frame(width: glyph, height: glyph)
+                inkDisc("arrow.up", enabled: canSend)
             }
             .buttonStyle(.plain)
             .disabled(!canSend)

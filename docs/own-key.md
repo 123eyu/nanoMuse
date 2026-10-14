@@ -94,7 +94,7 @@ or paste it into a chat.**
 - **Google Gemini.** [aistudio.google.com/apikey](https://aistudio.google.com/apikey), base URL `https://generativelanguage.googleapis.com/v1beta/openai`.
 - **xAI, Groq, Mistral.** A key from each console; base URLs `https://api.x.ai/v1`, `https://api.groq.com/openai/v1`, `https://api.mistral.ai/v1`.
 - **OpenCode Zen.** A key from [opencode.ai/auth](https://opencode.ai/auth); pay per request from a balance, a few models are free. Base URL `https://opencode.ai/zen/v1`. Only the models on the OpenAI shape are reached, so chat and no hands: the vision model OpenCode lists, `deepseek-v4-flash-vision-exp`, is an id DeepSeek has retired on its own platform. OpenCode publishes no plan sign-in, only a key, so there is nothing to sign in with here.
-- **OpenCode Go.** The subscription on the same host: Go ($10 a month) or Go Plus ($40) in the OpenCode console, then a key from [opencode.ai/auth](https://opencode.ai/auth). Base URL `https://opencode.ai/zen/go/v1`. Usage is counted per model against monthly, weekly and five hour limits. OpenCode means Go for coding agents and asks a client to name itself and to send one stable id per conversation in `x-opencode-session` ([its docs](https://opencode.ai/docs/go/#where-can-i-use-it)). The runtime (and so the web console) sends `nanoMuse/<version>` as its user agent and the conversation's id in that header on every Go request; a call outside a conversation, such as the connection test, carries an id of its own. The desktop writes Go as its model adapter's own OpenCode Go route, which sends the same header and reaches each model on its own shape: the desktop offers the models that route's catalog lists, those on the Responses and Messages shapes included; elsewhere only the OpenAI shape is reached. The phone apps send it too, on chat and Responses requests to OpenCode's host: the id is the chat's prompt cache key, a hash of its first message that stays the same across its turns (two chats that open with the very same words share one). Chat only, for the same reason as Zen.
+- **OpenCode Go.** The subscription on the same host: Go ($10 a month) or Go Plus ($40) in the OpenCode console, then a key from [opencode.ai/auth](https://opencode.ai/auth). Base URL `https://opencode.ai/zen/go/v1`. Usage is counted per model against monthly, weekly and five hour limits. OpenCode means Go for coding agents and asks a client to name itself and to send one stable id per conversation in `x-opencode-session` ([its Go page](https://opencode.ai/go), under *Can I use Go with other coding agents?*). The runtime (and so the web console) sends `nanoMuse/<version>` as its user agent and the conversation's id in that header on every Go request; a call outside a conversation, such as the connection test, carries an id of its own. The desktop writes Go as its model adapter's own OpenCode Go route, which sends the same header and reaches each model on its own shape: the desktop offers the models that route's catalog lists, those on the Responses and Messages shapes included; elsewhere only the OpenAI shape is reached. The phone apps send it too, on chat and Responses requests to OpenCode's host: the id is the chat's prompt cache key, a hash of its first message that stays the same across its turns (two chats that open with the very same words share one). Chat only, for the same reason as Zen.
 
 **Paste it into nanoMuse.**
 
@@ -133,11 +133,22 @@ one sentence naming who could, and *Add a provider*. A chat pick is the default
 for new chats and moves the main chat (*Applies to the main chat and to new
 chats; a side chat keeps its model.*): the main chat is the one conversation the
 Chat tab always shows and is never new, so it would otherwise stay on the
-provider it started with; a side chat already open keeps its model. The same
-on the phones and the desktop. On the iPhone, where a model group of yours can
-carry a default thinking level (*All settings › Model Groups*), the main chat
-takes that level along when it follows the pick, as a new chat and the chat's
-own picker do.
+provider it started with; a side chat already open keeps its model. A chat
+that has not been written to yet takes the pick as well: the main chat right
+after a sign-in (the account starts with an empty one), or a new chat you
+opened and left. So what the Chat row names is what answers the next message
+you send, in the main chat and in a new one, whichever source you came from:
+a plan you signed in with (ChatGPT, Claude, Kimi), a key of yours or nanoMuse
+Cloud; a sign-in never steps in front of a pick. The same
+on the phones and the desktop. A group of yours picked in a chat's own picker
+(a row of the `•••` menu, or a model under it) becomes the default as it is,
+never reordered, and the main chat follows it with the model the chat resolved;
+only a group named after a provider and holding that provider alone is led with
+the pick, as a pick on the Models page does. On the phones, where a model group
+of yours can carry a default thinking level (*All settings › Model Groups* on
+the iPhone, *Model Groups* from the chat's picker on Android), the main
+chat takes that level along when it follows the pick, as a new chat and the
+chat's own picker do.
 
 **Automatic.** The screen, pictures and clips rows open with an *Automatic*
 entry that says what it gives right now (*Currently nanoMuse Cloud ·
@@ -223,6 +234,19 @@ address the browser ends on and give it to the CLI's prompt or to
 `POST /api/chatgpt/callback {"url": …}`
 ([configuration.md](configuration.md#a-chatgpt-plan-instead-of-a-key)).
 
+**A proxy or VPN on the phone can swallow the callback.** On Android the sign-in
+page sends the browser back to `http://localhost:1455/auth/callback`, which only
+the app on the same phone answers. A proxy or VPN app (Clash, for example) that
+routes every address into its tunnel, or whose DNS answers for `localhost`,
+takes that address too; the browser shows a connection error and the app keeps
+waiting. Two ways through: add `localhost` and `127.0.0.1` to the proxy app's
+bypass (direct) list and sign in again, or copy the address of the error page
+and paste it into the box that appears under *Sign in* after about ten seconds
+(at once when the phone's proxy settings would take the address); *Continue*
+hands the code to the waiting sign-in without going through the proxy. The same
+box appears for the Anthropic, xAI and OpenRouter sign-ins, which use the same
+kind of redirect; the Kimi sign-in uses a device code and does not need it.
+
 **One honest line.** OpenAI's terms cover using a ChatGPT plan inside OpenAI's
 own Codex; other apps have had this access cut off before (OpenCode, January
 2026). If it stops working, an API key does.
@@ -267,7 +291,8 @@ Ollama, LM Studio and vLLM on your own computer work too: pick the preset
 (`http://127.0.0.1:11434/v1`, `:1234`, `:8000`) and no key is needed. They
 count as *chat*; the hands need a model that sees, so run a multimodal one
 locally (Ollama's `qwen3-vl`, say) and pick it under *Operating the screen*
-(web console: type its id on the *Hands model* row). Pictures and clips need
+(web console: the *Hands model* row under *Chat model* lists what the endpoint
+serves; pick it there). Pictures and clips need
 one of the providers in the table.
 
 ## Any other OpenAI-compatible endpoint
@@ -276,9 +301,22 @@ Anything that speaks the OpenAI API works; choose *Custom*:
 
 | Field | Value |
 |---|---|
-| Base URL | the provider's address, usually ending in `/v1` |
+| Base URL | the provider's address, usually ending in `/v1`; the runtime, the web console and the desktop refuse an address with `user:pass@` in it (the key has its own field) |
 | API key | the key made in the provider's console (a local server may leave it empty) |
 | Model | pick from the list after saving; if the endpoint does not list its models, the form asks for their ids (comma-separated) and saves with those |
 
 What a custom endpoint covers is yours to say: nanoMuse takes it for chat, and
 the hands, picture and clip models count once their ids are filled in.
+
+**Several at once.** On the desktop app and in the web console the custom
+endpoints are a list, not one slot (#294): each one you add keeps its own key
+and its own models, and adding a second never replaces the first. On the
+desktop, *Settings → Account → Any OpenAI-compatible endpoint* shows one row
+per endpoint (its name over its host, with *Change key*, *Rename* and
+*Remove*) and an *Add an endpoint* row under them; the model pickers on
+*Settings → Models* list each endpoint as a group of its own. In the web
+console, *Connections → Chat model* shows one tile per endpoint under *Local or
+your own endpoint* with *Add an endpoint* last; the hands, pictures and clips
+pickers list the endpoints too ([web.md](web.md#where-it-shows)). A custom
+endpoint set before the list existed becomes its first entry, key and all,
+the next time the app starts. The phones keep one slot per provider.

@@ -100,5 +100,5 @@ export default function MusePage() {
 // The web app's own palette (web/src/index.css: --om-bg, --om-surface). It picks light or dark
 // by its own setting, not the simulator's theme, and tells its host which — the strips above
 // and below its frame follow that, the way the Android app's status and gesture bars do.
-const WEB_APP_LIGHT = { bg: '#fcfcfc' };
+const WEB_APP_LIGHT = { bg: '#ffffff' };
 const WEB_APP_DARK = { bg: '#181819' };

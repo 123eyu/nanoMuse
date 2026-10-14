@@ -2,7 +2,7 @@ import { pathToFileURL } from "node:url";
 import { app, BrowserWindow, clipboard, desktopCapturer, dialog, globalShortcut, ipcMain, Menu, nativeImage, nativeTheme, powerSaveBlocker, screen, shell, systemPreferences, Tray } from "electron";
 import { randomBytes } from "node:crypto";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -15,6 +15,8 @@ import { EXTERNAL_URL, navigationVerdict, sameOrigin } from "./navigation";
 import { relink } from "./profile-link";
 import { maskProxyUrl, proxyEnv, validProxyUrl } from "./proxy";
 import { HostStartWatch, maskToken, waitedText, type WaitState } from "./host-start";
+import { HostWork } from "./host-work";
+import { ProtectedExit, type ExitDialog, type ExitIntent, type WorkItem, type WorkSource } from "./protected-exit";
 
 /**
  * nanoMuse Desktop — the nanoMuse desktop, built on DeepSeek Harness.
@@ -77,6 +79,17 @@ const T = {
   open: zh ? "打开 nanoMuse" : "Open nanoMuse",
   newChat: zh ? "新聊天" : "New chat",
   quickChat: zh ? "快速唤起" : "Quick chat",
+  quitApp: zh ? "退出 nanoMuse" : "Quit nanoMuse",
+  // the protected exit: what a real quit (later, a restart-update) would end
+  exitBusyTitle: zh ? "有工作还在进行" : "Work is still in progress",
+  exitBusyLead: zh ? "现在退出会结束这些工作：" : "Quitting now would end this work:",
+  restartBusyLead: zh ? "现在重启更新会结束这些工作：" : "Restarting to update now would end this work:",
+  exitBusyNote: zh
+    ? "默认继续运行，让这些工作完成。只有在这里明确确认，工作才会被结束。"
+    : "Keeping the app running is the default: the work finishes. It ends only because you confirmed it here.",
+  exitBusyKeep: zh ? "继续运行" : "Keep running",
+  exitBusyQuit: zh ? "结束工作并退出" : "End the work and quit",
+  exitBusyRestart: zh ? "结束工作并重启更新" : "End the work and restart to update",
 };
 
 /** dev flag: `--screenshot=/tmp/x.png` writes the window once the web app is up, then quits (a headless check) */
@@ -505,6 +518,75 @@ async function restartHost(): Promise<void> {
   }
 }
 
+// ---- the protected exit ---------------------------------------------------------------------
+//
+// A real exit (the menu's Quit, the tray's Quit, closing the last window) never just quits:
+// the Host is asked what work is on (src/host-work.ts, the plugin's src/work.ts), the gate
+// closes so nothing new starts under the hand-over, and work that is on is named first, with
+// keeping it running as the default; an explicit confirmation ends it, and the stop is waited
+// for before the Host goes. Closing the window to stay in the tray, idling, a crash and the
+// system switching off never come through here, and `approval` stays `none` for them: the
+// later install-on-exit change reads that flag and nothing else.
+
+/** The Host's work routes, once the Host is up; until then nothing answers and the exit reads as idle. */
+let hostWork: HostWork | null = null;
+/** The one protected exit (a quit today; the restart-update request of the update tickets reuses it). */
+let exitGuard: ProtectedExit | null = null;
+
+const workSource: WorkSource = {
+  busy: async () => (await hostWork?.busy()) ?? [],
+  setGate: async (open) => {
+    await hostWork?.setGate(open);
+  },
+  stopAll: async () => {
+    await hostWork?.stopAll();
+  },
+};
+
+/** One line of the question, in the person's language: what kind of work it is, and whose. */
+function workLine(item: WorkItem): string {
+  switch (item.kind) {
+    case "reply":
+      return zh ? "有回复正在生成" : "A reply is being written";
+    case "computer":
+      return zh ? "有电脑操作正在进行" : "The hands are working on this computer's screen";
+    case "task":
+      return item.label ? (zh ? `来自 ${item.label} 的任务` : `A task from ${item.label}`) : zh ? "有其他设备交来的任务" : "A task from another device";
+    case "approval":
+      return zh ? "有操作等待你的确认" : "An approval is waiting for you";
+  }
+}
+
+const exitDialog: ExitDialog = {
+  async confirm(items, intent) {
+    const restart = intent === "restart-update";
+    const { response } = await dialog.showMessageBox({
+      type: "warning",
+      title: T.exitBusyTitle,
+      message: T.exitBusyTitle,
+      detail: `${restart ? T.restartBusyLead : T.exitBusyLead}\n${items.map((item) => `• ${workLine(item)}`).join("\n")}\n\n${T.exitBusyNote}`,
+      buttons: [T.exitBusyKeep, restart ? T.exitBusyRestart : T.exitBusyQuit],
+      defaultId: 0,
+      cancelId: 0,
+      noLink: true,
+    });
+    return response === 1;
+  },
+};
+
+/** A real exit, the person's own: the protected exit asks about the work first. */
+function protectedQuit(intent: ExitIntent = "quit"): void {
+  if (quitting || !exitGuard) {
+    app.quit();
+    return;
+  }
+  void exitGuard.requestExit(intent).then((went) => {
+    // Keep running after the last window closed with no tray to come back through: the
+    // window comes back, or the app would stay alive with nothing on screen to reach it by.
+    if (!went && !mainWindow && !tray) void showWindow();
+  });
+}
+
 function details(message: string): string {
   const s = shipped();
   return [
@@ -727,7 +809,10 @@ function readPrefs(): Prefs {
 function writePrefs(): void {
   try {
     mkdirSync(harnessHome(), { recursive: true });
-    writeFileSync(prefsPath(), `${JSON.stringify(prefs, null, 2)}\n`);
+    // the proxy address may carry `user:pass@`: the file is the owner's alone, like cloud.json and
+    // hands.json next to it (`mode` applies to a new file only, so an existing one is tightened too)
+    writeFileSync(prefsPath(), `${JSON.stringify(prefs, null, 2)}\n`, { mode: 0o600 });
+    chmodSync(prefsPath(), 0o600);
   } catch (exc) {
     log(`prefs: could not save: ${String(exc)}`);
   }
@@ -793,7 +878,7 @@ function applyMenuBar(): void {
       { label: T.open, click: () => void showWindow() },
       { label: T.newChat, accelerator: prefs.quickChat ? quickChatKey() : undefined, click: () => showWindow()?.webContents.send("nanomuse:quick-chat") },
       { type: "separator" },
-      { label: T.quit, click: () => app.quit() },
+      { label: T.quit, click: () => protectedQuit() },
     ]),
   );
   if (process.platform !== "darwin") tray.on("click", () => void showWindow());
@@ -1694,7 +1779,7 @@ function mainWindowClosed(): void {
     return;
   }
   log("window closed; no tray — quitting");
-  app.quit();
+  protectedQuit();
 }
 
 function createWindow(): BrowserWindow {
@@ -1754,6 +1839,8 @@ async function boot(): Promise<void> {
     throw exc;
   }
   log(`ready: ${hostUrl.replace(/token=\S+/, "token=…")}`);
+  // the work routes the protected exit asks at quit time (an old plugin answers nothing usable)
+  hostWork = new HostWork(hostUrl, { log });
   await mainWindow?.loadURL(hostUrl);
   if (screenshotFlag && mainWindow) {
     // the web app loads its plugins after the document; give it a moment
@@ -1825,7 +1912,7 @@ function buildMenu(): void {
   // GNOME whose appindicator extension does not take Electron 44's registration (Ubuntu
   // 20.04: "org.freedesktop.StatusNotifierItem-<pid>-1/StatusNotifierItem/1" is not a bus
   // name to it) the tray icon never appears, so its Quit cannot be reached.
-  if (process.platform !== "darwin") help.push({ type: "separator" }, { label: T.about, click: about }, { type: "separator" }, { label: T.quit, role: "quit", accelerator: "CmdOrCtrl+Q" });
+  if (process.platform !== "darwin") help.push({ type: "separator" }, { label: T.about, click: about }, { type: "separator" }, { label: T.quit, accelerator: "CmdOrCtrl+Q", click: () => protectedQuit() });
   const template: Electron.MenuItemConstructorOptions[] = [
     ...(process.platform === "darwin"
       ? [
@@ -1838,7 +1925,7 @@ function buildMenu(): void {
               { role: "hideOthers" },
               { role: "unhide" },
               { type: "separator" },
-              { role: "quit" },
+              { label: T.quitApp, accelerator: "Command+Q", click: () => protectedQuit() },
             ],
           } as Electron.MenuItemConstructorOptions,
         ]
@@ -1903,6 +1990,7 @@ if (!app.requestSingleInstanceLock({ version: app.getVersion() })) {
     buildMenu();
     prefs = readPrefs();
     applyPrefs();
+    exitGuard = new ProtectedExit({ work: workSource, dialog: exitDialog, finish: () => app.quit(), log });
     log(`nanoMuse Desktop ${app.getVersion()} starting (${process.platform} ${process.arch}, packaged=${app.isPackaged})`);
     if (operatorCheckFlag) {
       await operatorCheck(operatorCheckFlag);
@@ -1924,13 +2012,17 @@ if (!app.requestSingleInstanceLock({ version: app.getVersion() })) {
     // The main window's own `closed` decides (mainWindowClosed): the Host keeps running on
     // macOS while the app is in the Dock, and on Linux and Windows while there is a tray.
     // This fires only when the overlays are gone too; the same rule applies.
-    if (process.platform !== "darwin" && !tray) app.quit();
+    if (process.platform !== "darwin" && !tray) protectedQuit();
   });
   app.on("before-quit", (e) => {
     releaseAwake();
     globalShortcut.unregisterAll();
     if (quitting) return;
     quitting = true;
+    // The record the install-on-exit change will read: a quit that did not go through the
+    // protected exit (a crash, the system switching off, a Host that never came up) is not
+    // the person approving an installation.
+    log(`quit: the exit ${exitGuard?.approval === "user" ? "went through the protected exit with the person's say-so" : "did not go through the protected exit (the system, a crash, or a Host that was not up)"}`);
     if (startWatch) {
       // a Host still starting goes with the app; the log says it was alive
       log("quit: the host was still starting; stopping it");

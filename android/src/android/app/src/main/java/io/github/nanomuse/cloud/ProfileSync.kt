@@ -5,6 +5,9 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Build
 import android.util.Base64
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.openminis.app.agent.SoulStore
 import com.openminis.app.logging.AppLogger
 import io.github.nanomuse.avatar.AvatarStore
@@ -72,6 +75,14 @@ object ProfileSync {
     fun init(context: Context) {
         app = context.applicationContext
         pullSoon(context)
+        // The hub's `profile` frame is missed while the app is in the background: a pull on
+        // the way back to the front picks up a name or a face another device wrote meanwhile,
+        // instead of waiting for the next cold start.
+        ProcessLifecycleOwner.get().lifecycle.addObserver(
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_START) pullSoon(context)
+            },
+        )
         // what this phone connected changes → the account's other devices hear about it
         SharedConnectors.watch(context.applicationContext) { changed() }
     }
@@ -106,9 +117,21 @@ object ProfileSync {
         }
     }
 
+    /**
+     * The account a read or a write is for, taken before the network and checked after it:
+     * a sign-out or a sign-in that lands while the relay answers moves the stores to another
+     * set (contract C12), and what came back must not be worn or recorded as that set's.
+     */
+    private fun account(context: Context): String = io.github.nanomuse.account.AccountData.key(context)
+
+    private fun still(context: Context, account: String): Boolean =
+        NanoMuseCloud.isSignedIn(context) && account(context) == account
+
     /** Fetch the relay's profile and wear it when it is newer. */
     private fun pull(context: Context) {
+        val account = account(context)
         val light = NanoMuseCloud.profile(context, withFace = false)
+        if (!still(context, account)) { AppLogger.info(TAG, "pull: the account changed meanwhile, nothing worn"); return }
         val rev = light.optInt("rev", 0)
         val known = prefs(context).getInt(KEY_REV, 0)
         // the other devices' connections come with every read, whatever the rev
@@ -142,6 +165,7 @@ object ProfileSync {
                     val remote = light.optString("face_id")
                     if (AvatarStore.current.value == null || remote.isEmpty() || remote != knownHash) {
                         val full = NanoMuseCloud.profile(context, withFace = true)
+                        if (!still(context, account)) { AppLogger.info(TAG, "pull: the account changed meanwhile, the face not worn"); return }
                         wearFace(context, full, knownHash)
                     }
                     // else: the pictures this phone already wears — only the name changed
@@ -214,10 +238,13 @@ object ProfileSync {
     private fun connectorsStamp(context: Context): String = SharedConnectors.mine(context).toString()
 
     private fun push(context: Context) {
+        val account = account(context)
         val name = SoulStore.load(context)?.metadata?.name?.takeIf { it.isNotBlank() } ?: "nanoMuse"
         val p = prefs(context)
         val stamp = faceStamp()
-        val sameFace = stamp == p.getString(KEY_PUSHED_FACE, null)
+        // A phone that never pushed or pulled and wears no face has nothing to say about the
+        // look: its first write must not put the dragon over a face the account already has.
+        val sameFace = stamp == p.getString(KEY_PUSHED_FACE, null).orEmpty()
         val connectors = SharedConnectors.mine(context)
         val sameConnectors = connectors.toString() == p.getString(KEY_PUSHED_CONNECTORS, null)
         if (sameFace && sameConnectors && name == p.getString(KEY_PUSHED_NAME, null)) return
@@ -230,7 +257,11 @@ object ProfileSync {
         val cur = AvatarStore.current.value
         var sentHash: String? = null
         if (cur == null) {
-            body.put("avatar", DRAGON)
+            // The dragon goes up only when this phone took a face off (a reset): a rename or a
+            // connector change on a phone without a face leaves the look as the relay has it
+            // (relay 0.25 keeps a field that is absent). Before, every such write carried the
+            // dragon and the account's face vanished from the other devices.
+            if (!sameFace) body.put("avatar", DRAGON)
         } else {
             body.put("avatar", "face")
                 .put("style", cur.style.take(20))
@@ -252,13 +283,14 @@ object ProfileSync {
                     body.put("face", face)
                 } else {
                     // a face with no picture on disk cannot be shared: the others keep theirs
-                    body.put("avatar", DRAGON)
+                    body.remove("avatar")
                     body.remove("style")
                     body.remove("description")
                 }
             }
         }
         val out = NanoMuseCloud.putProfile(context, body)
+        if (!still(context, account)) { AppLogger.info(TAG, "push: the account changed meanwhile, nothing recorded"); return }
         // the reply is the merged profile: the other devices' connections, fresh
         SharedConnectors.absorb(context, out)
         val editor = p.edit()

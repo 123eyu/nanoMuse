@@ -43,6 +43,7 @@ object AvatarStore {
         dir = File(context.filesDir, "minis-global/nanomuse/avatar").apply { mkdirs() }
         reload()
         AvatarMotion.init()
+        OwnClip.init()
     }
 
     /** Tests only: the pictures go under [root]; nothing is reloaded. */

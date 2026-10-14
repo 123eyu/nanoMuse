@@ -229,7 +229,11 @@ private fun providerIcon(type: ProviderType): Pair<ImageVector, Color> = when (t
 private fun availableCredentials(type: ProviderType): List<ProviderCredential> {
     return when (type) {
         ProviderType.openRouter -> listOf(ProviderCredential.apiKey, ProviderCredential.oauth)
-        ProviderType.anthropic,
+        // nanoMuse: the Claude sign-in only on a build that carries Anthropic's identifier; the
+        // public build has none, so it offers the API key alone (#373)
+        ProviderType.anthropic ->
+            if (io.github.nanomuse.cloud.ClaudeSignIn.available) listOf(ProviderCredential.apiKey, ProviderCredential.oauth)
+            else listOf(ProviderCredential.apiKey)
         ProviderType.openAI -> listOf(ProviderCredential.apiKey, ProviderCredential.oauth)
         ProviderType.gemini -> listOf(ProviderCredential.apiKey)
         // xAI Grok primarily targets SuperGrok / X Premium+ OAuth, but also
@@ -874,6 +878,8 @@ private fun ColumnScope.OAuthConfigSection(
                         Text(signInLabel)
                     }
                 }
+                // nanoMuse: a proxy or VPN can swallow the localhost callback; after ten seconds the person can paste the address (#441).
+                io.github.nanomuse.oauth.OAuthCallbackRescue(active = isAuthenticating, providerType = providerType)
                 if (errorMessage != null) {
                     Spacer(Modifier.height(8.dp))
                     Text(

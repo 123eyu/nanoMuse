@@ -18,6 +18,9 @@ services:
     stdin_open: true
     tty: true
     command: ["chat"]
+    # the image's health check asks the server on :8787; chat and daemon run none
+    healthcheck:
+      disable: true
     volumes:
       - nanomuse-data:/data
       - ./workspace:/workspace
@@ -35,6 +38,8 @@ services:
     stdin_open: false
     tty: false
     command: ["serve", "--host", "0.0.0.0", "--no-qr"]
+    healthcheck:
+      disable: false
     ports:
       - "8787:8787"
     restart: unless-stopped

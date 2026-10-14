@@ -203,7 +203,7 @@ export function goalCreationNote(categoryKey: string, zh: boolean): string {
         `不要描述这个代码块，也不要提 JSON——应用会把它渲染成卡片。代码块之后不要再说话。之后这个目标的检查会在它自己的对话里自动进行。]`,
       ]
     : [
-        `[The person just chose to create a goal in the "${categoryKey}" category from their Goals room. Shape it together, like Muse does: ask at most three short questions, ONE message at a time, in the person's language — (1) what exactly they want to achieve, (2) why it matters and by when, (3) how often you should check in (every N hours, or daily at a time). Two or three sentences per message; if they already answered something, skip that question.`,
+        `[The person just chose to create a goal in the "${categoryKey}" category from their Goals room. Shape it together: ask at most three short questions, ONE message at a time, in the person's language: (1) what exactly they want to achieve, (2) why it matters and by when, (3) how often you should check in (every N hours, or daily at a time). Two or three sentences per message; if they already answered something, skip that question.`,
         `When you have enough, reply with one warm sentence of confirmation and then EXACTLY ONE fenced code block tagged \`${FENCE_GOAL}\` containing JSON with these keys:`,
         `{"title": "<= 40 chars", "why": "one sentence", "category": "${categoryKey}", "check_every_hours": <integer, 0 means a daily check>, "check_time": "HH:MM" (used when check_every_hours is 0), "steps": ["3 to 5 short steps you will take or track"], "first_check": "what you will do at the first check"}`,
         `Do not describe the block or mention JSON — the app renders it as a card. Say nothing after the block. Later, checks for this goal happen automatically in their own conversation.]`,

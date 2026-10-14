@@ -373,7 +373,7 @@ function UpcomingView({ onSettings }: { onSettings: () => void }) {
                 <div className="min-w-0 flex-1">
                   <div className="text-[13.5px] font-medium truncate">{g.title}</div>
                   <div className="text-[11.5px] text-muted truncate">
-                    {g.next_step ?? "—"} · {t("{done}/{total} done", { done: g.progress.done, total: g.progress.total })}
+                    {g.next_step ?? t("No next step")} · {t("{done}/{total} done", { done: g.progress.done, total: g.progress.total })}
                   </div>
                 </div>
                 <button
@@ -481,7 +481,7 @@ function RemindersSection({ items, name, onChange }: { items: Reminder[]; name: 
               <div className="min-w-0 flex-1">
                 <div className="text-[13.5px] font-medium truncate">{r.text}</div>
                 <div className="text-[11.5px] text-muted truncate">
-                  {r.next_at ? `${relativeTime(r.next_at)} · ${timeShort(r.next_at)}` : "—"}
+                  {r.next_at ? `${relativeTime(r.next_at)} · ${timeShort(r.next_at)}` : t("Not scheduled")}
                   {r.repeat && ` · ${describeCadence(r.repeat).toLowerCase()}`}
                   {r.kind === "task" && ` · ${t("does the work")}`}
                 </div>
@@ -569,6 +569,7 @@ function ReminderForm({ onDone, onCancel }: { onDone: () => void; onCancel: () =
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder={kind === "task" ? t("What should be done…") : t("What to remind you of…")}
+        aria-label={kind === "task" ? t("What should be done…") : t("What to remind you of…")}
         className={cx(field, "w-full h-10 text-[14px]")}
       />
       <div className="flex gap-1.5 text-[12.5px]">
@@ -576,17 +577,17 @@ function ReminderForm({ onDone, onCancel }: { onDone: () => void; onCancel: () =
         <Segment options={[["once", t("Once")], ["repeat", t("Repeat")]]} value={mode} onChange={(v) => setMode(v as "once" | "repeat")} />
       </div>
       {mode === "once" ? (
-        <input type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} className={cx(field, "w-full")} />
+        <input type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} aria-label={t("When")} className={cx(field, "w-full")} />
       ) : (
         <div className="flex flex-wrap gap-1.5">
-          <select value={cadence} onChange={(e) => setCadence(e.target.value)} className={field}>
+          <select value={cadence} onChange={(e) => setCadence(e.target.value)} aria-label={t("How often")} className={field}>
             <option value="daily">{t("Every day")}</option>
             <option value="weekdays">{t("Weekdays")}</option>
             <option value="weekly">{t("Weekly")}</option>
             <option value="monthly">{t("Monthly")}</option>
           </select>
           {cadence === "weekly" && (
-            <select value={weekday} onChange={(e) => setWeekday(e.target.value)} className={field}>
+            <select value={weekday} onChange={(e) => setWeekday(e.target.value)} aria-label={t("Weekday")} className={field}>
               {["mon", "tue", "wed", "thu", "fri", "sat", "sun"].map((d, i) => (
                 <option key={d} value={d}>
                   {new Date(2024, 0, 1 + i).toLocaleDateString(intlLocale(), { weekday: "long" })}
@@ -595,7 +596,7 @@ function ReminderForm({ onDone, onCancel }: { onDone: () => void; onCancel: () =
             </select>
           )}
           {cadence === "monthly" && (
-            <select value={day} onChange={(e) => setDay(e.target.value)} className={field}>
+            <select value={day} onChange={(e) => setDay(e.target.value)} aria-label={t("Day of the month")} className={field}>
               {Array.from({ length: 28 }, (_, i) => String(i + 1)).map((d) => (
                 <option key={d} value={d}>
                   {t("Day {d}", { d })}
@@ -603,7 +604,7 @@ function ReminderForm({ onDone, onCancel }: { onDone: () => void; onCancel: () =
               ))}
             </select>
           )}
-          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={field} />
+          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} aria-label={t("Time")} className={field} />
         </div>
       )}
       <div className="flex justify-end gap-2 pt-0.5">
@@ -751,7 +752,7 @@ function TriggersSection({ data, name, onChange }: { data: TriggersData; name: s
         </ul>
       )}
       {watching && (
-        <div className={cx("mt-1.5 text-[12px]", data.mail_error ? "text-rose-500" : "text-muted")}>
+        <div className={cx("mt-1.5 text-[12px]", data.mail_error ? "text-rose-600 dark:text-rose-300" : "text-muted")}>
           {data.mail_error
             ? t("The inbox could not be read: {error}", { error: data.mail_error })
             : data.mail_checked_at
@@ -822,7 +823,7 @@ function TriggerForm({ available, onDone, onCancel }: { available: Record<Trigge
     <div className="mb-2 rounded-2xl border border-border p-3 space-y-2">
       <Segment options={kinds} value={kind} onChange={(v) => setKind(v as TriggerKind)} />
       {!available[kind] && (
-        <div className="text-[12.5px] text-rose-500">
+        <div className="text-[12.5px] text-rose-600 dark:text-rose-300">
           {kind === "mail" ? t("Connect a mailbox under Connections first.") : t("Add a calendar under Connections first.")}
         </div>
       )}
@@ -831,6 +832,7 @@ function TriggerForm({ available, onDone, onCancel }: { available: Record<Trigge
           value={match}
           onChange={(e) => setMatch(e.target.value)}
           placeholder={kind === "mail" ? t("Words in the sender or subject (empty: any mail)") : kind === "event" ? t("Words in the title or place (empty: any event)") : t("A name for this hook")}
+          aria-label={kind === "mail" ? t("Words in the sender or subject (empty: any mail)") : kind === "event" ? t("Words in the title or place (empty: any event)") : t("A name for this hook")}
           className={cx(field, "min-w-0 flex-1")}
         />
         {kind === "event" && (
@@ -844,6 +846,7 @@ function TriggerForm({ available, onDone, onCancel }: { available: Record<Trigge
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder={t("What should be done each time…")}
+        aria-label={t("What should be done each time…")}
         className={cx(field, "w-full h-10 text-[14px]")}
       />
       <div className="text-[12px] text-muted">{t("When {condition}", { condition: describeTrigger({ kind, match: match.trim(), lead_minutes: Number(lead) || 30 }, t) })}</div>
@@ -991,7 +994,7 @@ function PermissionsView({ open }: { open: boolean }) {
           {mode === "auto" && t("Everything is approved automatically except explicit deny rules. Use with care.")}
         </p>
         {data?.tainted && (
-          <p className="mt-2 text-[12.5px] text-amber-600 dark:text-amber-300 flex items-center gap-1.5">
+          <p className="mt-2 text-[12.5px] text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
             <ShieldOff size={14} /> {t("Private data was read this session: network calls to new destinations need approval.")}
           </p>
         )}
@@ -1023,7 +1026,7 @@ function grantUntil(g: Grant, t: (key: string, vars?: Record<string, string | nu
 }
 
 /** The risk classes a tool can carry, the gravest first: the order the grants are listed in. */
-const RISK_ORDER = ["sensitive", "moderate", "low", "safe"] as const;
+const RISK_ORDER = ["sensitive", "moderate", "safe"] as const;
 
 /**
  * Every standing permission you granted, revocable on its own, listed by the risk class of
@@ -1116,14 +1119,14 @@ function AuditRow({ entry }: { entry: AuditEntry }) {
           {entry.risk && <RiskBadge risk={entry.risk as RiskLevel} />}
           {entry.approved === true && (
             <span className="text-emerald-600 dark:text-emerald-300">
-              {t("approved by you")}{entry.approval_scope && entry.approval_scope !== "once" ? ` (${entry.approval_scope})` : ""}
+              {t("approved by you")}{entry.approval_scope && entry.approval_scope !== "once" ? ` (${t(entry.approval_scope)})` : ""}
             </span>
           )}
           {entry.approved == null && entry.approval_scope && entry.approval_scope !== "once" && (
-            <span className="text-emerald-600 dark:text-emerald-300">{t("covered by your {scope} permission", { scope: entry.approval_scope })}</span>
+            <span className="text-emerald-600 dark:text-emerald-300">{t("covered by your {scope} permission", { scope: t(entry.approval_scope) })}</span>
           )}
-          {denied && <span className="text-rose-500">{t("blocked")}</span>}
-          {failed && <span className="text-amber-600">{t("failed")}</span>}
+          {denied && <span className="text-rose-600 dark:text-rose-300">{t("blocked")}</span>}
+          {failed && <span className="text-amber-700 dark:text-amber-300">{t("failed")}</span>}
           {typeof entry.duration_ms === "number" && <span>{(entry.duration_ms / 1000).toFixed(1)}s</span>}
         </div>
         {denied && entry.reasons && entry.reasons.length > 0 && <div className="mt-0.5 text-[12px] text-muted">{entry.reasons.map(localReason).join(" · ")}</div>}

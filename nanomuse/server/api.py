@@ -27,6 +27,8 @@
     PUT  /api/connections/gui             the hands' model (a protocol or a catalogue id, as for llm)   POST /api/connections/gui/test
     GET|PUT /api/connections/image|video  where pictures and clips come from: provider (a catalogue id), model, base_url, api_key
     POST /api/llm/models                 the models an endpoint offers (live /models, else the catalogue)
+    POST /api/connections/endpoints {label,base_url,api_key,models}  PUT|DELETE /api/connections/endpoints/{id}
+    POST /api/connections/endpoints/{id}/models   custom OpenAI-compatible endpoints, several at once (#294)
     GET  /api/providers (?lang=en|zh&region=cn|global)  the provider catalogue, which slots use which, what that covers
     POST /api/chatgpt/login  GET /api/chatgpt/status  GET /api/chatgpt/usage
     POST /api/chatgpt/callback {url}  POST /api/chatgpt/logout
@@ -65,11 +67,12 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import mimetypes
+import os
 import secrets
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -90,6 +93,9 @@ from nanomuse.server.channels_api import install_channels
 from nanomuse.server.events import MAIN_THREAD
 from nanomuse.server.service import MuseService, goal_to_dict
 from nanomuse.server.update import UpdateCheck
+
+if TYPE_CHECKING:
+    from starlette.types import Scope
 
 STATIC_DIR = Path(__file__).parent / "static"
 # Said to a client that still puts the token in the URL (taken until 0.1.32).
@@ -195,24 +201,66 @@ class LLMBody(BaseModel):
     api_key: str | None = None
     # `[llm] proxy`: http(s):// or socks5(h):// for this slot's requests only; "" clears it
     proxy: str | None = None
+    # one of the endpoint list (#294): the slot takes its address and its key; provider,
+    # base_url and api_key in the body are then ignored
+    endpoint: str | None = None
 
 
 class MediaBody(BaseModel):
     """One of the ``image`` / ``video`` slots. ``provider`` is a catalogue id, or ``openai``
     / ``openai_responses`` with a ``base_url``; ``model`` empty means the catalogue's default;
     ``api_key`` goes into the vault, "" removes it, None keeps it. All four "" clears the
-    slot: pictures (clips) come from the chat provider again, or the account."""
+    slot: pictures (clips) come from the chat provider again, or the account. ``endpoint``
+    names one of the endpoint list instead of a provider (#294)."""
 
     provider: str | None = None
     model: str | None = None
     base_url: str | None = None
     api_key: str | None = None
+    endpoint: str | None = None
+
+
+class GuiBody(BaseModel):
+    """The phone operator: its switch and its model. ``provider`` is a protocol or a
+    catalogue id, as for the chat model; ``api_key`` goes into the vault, "" removes it,
+    None keeps it; ``endpoint`` names one of the endpoint list instead (#294)."""
+
+    enabled: bool | None = None
+    provider: str | None = Field(default=None, max_length=200)
+    model: str | None = Field(default=None, max_length=200)
+    base_url: str | None = Field(default=None, max_length=2000)
+    api_key: str | None = Field(default=None, max_length=4000)
+    endpoint: str | None = Field(default=None, max_length=200)
+
+
+class HandsBody(BaseModel):
+    """This computer's own screen and hands: the switch, which backend drives them and
+    whether the operator sees the whole screen or one window. An unknown ``backend`` or
+    ``mode`` is 400 with the choices (checked in :meth:`Connections.set_hands`)."""
+
+    enabled: bool | None = None
+    backend: str | None = Field(default=None, max_length=40)
+    mode: str | None = Field(default=None, max_length=40)
 
 
 class LLMModelsBody(BaseModel):
     preset: str = ""
     base_url: str = ""
     api_key: str = ""
+    # one of the endpoint list (#294): its address and its own key
+    endpoint: str = ""
+
+
+class EndpointBody(BaseModel):
+    """A custom OpenAI-compatible endpoint of the list (#294). ``base_url`` is required to
+    add one; ``label`` empty means the host name; ``api_key`` goes into the vault, "" means
+    no key (a local server), None keeps it; ``models`` are the ids the person typed, for an
+    endpoint that does not list its own (a string with commas, or a list)."""
+
+    label: str | None = Field(default=None, max_length=200)
+    base_url: str | None = Field(default=None, max_length=2000)
+    api_key: str | None = Field(default=None, max_length=4000)
+    models: str | list[str] | None = None
 
 
 class ChatGptCallbackBody(BaseModel):
@@ -228,7 +276,7 @@ class EmbeddingsBody(BaseModel):
 
 
 class SearchBody(BaseModel):
-    provider: str | None = None  # duckduckgo | brave | tavily | searxng
+    provider: str | None = None  # duckduckgo | brave | tavily | you | searxng
     api_key: str | None = None  # into the vault; "" removes it; None keeps it
     base_url: str | None = None  # SearXNG instance
 
@@ -926,7 +974,55 @@ def create_app(settings: Settings, service: MuseService | None = None) -> FastAP
     @app.post("/api/llm/models", dependencies=dep)
     async def llm_models(body: LLMModelsBody) -> dict[str, Any]:
         """The models an endpoint offers (its /models, else the preset's catalogue); saves nothing."""
-        return await conn.llm_models(body.model_dump())
+        try:
+            return await conn.llm_models(body.model_dump())
+        except ValueError as exc:  # an address with user:pass@ in it
+            raise HTTPException(400, str(exc)) from exc
+
+    # ------------------------------------------------------------------ endpoints (#294)
+    @app.post("/api/connections/endpoints", dependencies=dep)
+    async def add_endpoint(body: EndpointBody) -> dict[str, Any]:
+        """A custom OpenAI-compatible endpoint added to the list: its models are asked for
+        (``GET /models``) unless typed; 400 when there is neither, 409 for an address
+        another endpoint already has."""
+        try:
+            return await conn.endpoints.add(body.model_dump(exclude_none=True))
+        except ValueError as exc:
+            raise HTTPException(_endpoint_status(exc), str(exc)) from exc
+
+    def _endpoint_status(exc: ValueError) -> int:
+        text = str(exc)
+        if text.startswith("no endpoint"):
+            return 404
+        return 409 if text.startswith("that address is already") else 400
+
+    @app.put("/api/connections/endpoints/{endpoint_id}", dependencies=dep)
+    async def update_endpoint(endpoint_id: str, body: EndpointBody) -> dict[str, Any]:
+        """Rename, change the key or the address, retype the models; the slots that use the
+        endpoint follow a new address or key. 409 for an address another endpoint has."""
+        try:
+            return await conn.endpoints.update(endpoint_id, body.model_dump(exclude_none=True))
+        except ValueError as exc:
+            raise HTTPException(_endpoint_status(exc), str(exc)) from exc
+
+    @app.delete("/api/connections/endpoints/{endpoint_id}", dependencies=dep)
+    async def remove_endpoint(endpoint_id: str) -> dict[str, Any]:
+        """The endpoint, its key and the hands, picture and clip slots that used it (back to
+        automatic); 409 while the chat model answers through it."""
+        try:
+            if not conn.endpoints.remove(endpoint_id):
+                raise HTTPException(404, "no such endpoint")
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from exc
+        return {"ok": True}
+
+    @app.post("/api/connections/endpoints/{endpoint_id}/models", dependencies=dep)
+    async def refresh_endpoint_models(endpoint_id: str) -> dict[str, Any]:
+        """Ask the endpoint for its models again; the saved list stays when it does not answer."""
+        try:
+            return await conn.endpoints.refresh_models(endpoint_id)
+        except ValueError as exc:
+            raise HTTPException(404, str(exc)) from exc
 
     # ------------------------------------------------------------------ providers (contract C11)
     @app.get("/api/providers", dependencies=dep)
@@ -1009,9 +1105,9 @@ def create_app(settings: Settings, service: MuseService | None = None) -> FastAP
         return await conn.test_email()
 
     @app.put("/api/connections/gui", dependencies=dep)
-    async def set_gui(body: dict[str, Any]) -> dict[str, Any]:
+    async def set_gui(body: GuiBody) -> dict[str, Any]:
         try:
-            return svc.connections.set_gui(body)
+            return svc.connections.set_gui(body.model_dump())
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
 
@@ -1046,9 +1142,9 @@ def create_app(settings: Settings, service: MuseService | None = None) -> FastAP
         return svc.hands_view()
 
     @app.put("/api/connections/hands", dependencies=dep)
-    async def set_hands(body: dict[str, Any]) -> dict[str, Any]:
+    async def set_hands(body: HandsBody) -> dict[str, Any]:
         try:
-            return svc.connections.set_hands(body)
+            return svc.connections.set_hands(body.model_dump())
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
 
@@ -1089,13 +1185,6 @@ def create_app(settings: Settings, service: MuseService | None = None) -> FastAP
         """Whether a face can be drawn (an image model on the chat model's host), and the
         session under way if any."""
         return svc.avatar.view()
-
-    @app.post("/api/avatar/estimate", dependencies=dep)
-    async def avatar_estimate() -> dict[str, Any]:
-        try:
-            return await svc.avatar.estimate()
-        except StudioError as exc:
-            raise _studio_http(exc) from exc
 
     @app.post("/api/avatar/begin", dependencies=dep)
     async def avatar_begin(body: AvatarBeginBody) -> dict[str, Any]:
@@ -1234,7 +1323,7 @@ def create_app(settings: Settings, service: MuseService | None = None) -> FastAP
         return {"signed_out": n, **svc.hub.account_view()}
 
     @app.get("/api/cloud/events", dependencies=dep)
-    async def cloud_events(limit: int = 50) -> dict[str, Any]:
+    async def cloud_events(limit: int = Query(50, ge=1, le=200)) -> dict[str, Any]:
         try:
             return {"events": await svc.hub.events(limit)}
         except CloudError as exc:
@@ -1920,9 +2009,27 @@ def create_app(settings: Settings, service: MuseService | None = None) -> FastAP
         # nanoMuse: the avatars are WebP; older Python mimetypes tables do not know it
         mimetypes.add_type("image/webp", ".webp")
 
+        class HashedAssets(StaticFiles):
+            """The build's files under /assets carry a content hash in their names.
+
+            A new build gets new names, so a browser may keep a copy for a year without
+            ever asking again; index.html (``no-cache``) is what names the current set.
+            """
+
+            def file_response(
+                self,
+                full_path: str | os.PathLike[str],
+                stat_result: os.stat_result,
+                scope: Scope,
+                status_code: int = 200,
+            ) -> Response:
+                response = super().file_response(full_path, stat_result, scope, status_code)
+                response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+                return response
+
         assets = STATIC_DIR / "assets"
         if assets.is_dir():
-            app.mount("/assets", StaticFiles(directory=assets), name="assets")
+            app.mount("/assets", HashedAssets(directory=assets), name="assets")
 
         @app.get("/{full_path:path}", include_in_schema=False)
         async def spa(full_path: str) -> Response:

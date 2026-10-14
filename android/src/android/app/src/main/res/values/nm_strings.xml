@@ -130,6 +130,8 @@
     <string name="nm_routine_run_now">Run now</string>
     <string name="nm_routine_delete">Delete</string>
     <string name="nm_routine_paused">Off</string>
+    <!-- The chat row a routine sent: its label and the clock time it fired -->
+    <string name="nm_routine_wake_caption">Routine · %1$s · %2$s</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">Ideas</string>
@@ -345,6 +347,23 @@
     <string name="nm_avatar_use_this">Use this one</string>
     <string name="nm_avatar_use_this_hint">The moods (working, waiting, done, oops) are drawn from it next, in the background.</string>
     <string name="nm_avatar_footer">Pictures are stored on this phone under minis-global/nanomuse/avatar. Each face costs five images from your provider: one you chose plus four moods.</string>
+    <string name="nm_own_clip_title">Your own clip</string>
+    <string name="nm_own_clip_body">A short video of yours plays as the face at rest, and the other moods fall back to it. MP4 or MOV with H.264 video, up to 15 seconds and 30 MB; it plays muted in a loop.</string>
+    <string name="nm_own_clip_on">Your clip is on and plays for every mood; the drawn stills still show where a still is used. Default face removes it.</string>
+    <string name="nm_own_clip_local">The clip stays on this phone. It is not uploaded to nanoMuse Cloud or synced to your other devices.</string>
+    <string name="nm_own_clip_choose">Choose a clip</string>
+    <string name="nm_own_clip_replace">Replace the clip</string>
+    <string name="nm_own_clip_default">Default face</string>
+    <string name="nm_own_clip_menu">Your own clip…</string>
+    <string name="nm_own_clip_preview_title">Preview</string>
+    <string name="nm_own_clip_preview_body">This is how it plays as the face: muted, in a loop, cropped to the circle.</string>
+    <string name="nm_own_clip_details">%1$d s · %2$s</string>
+    <string name="nm_own_clip_use">Use</string>
+    <string name="nm_own_clip_refused_format">That file cannot be used here. Pick an MP4 or MOV with H.264 video, up to 15 seconds and 30 MB.</string>
+    <string name="nm_own_clip_refused_long">That clip runs %1$d seconds. The limit is 15 seconds, and 30 MB.</string>
+    <string name="nm_own_clip_refused_large">That clip is %1$s. The limit is 30 MB, and 15 seconds.</string>
+    <string name="nm_own_clip_unreadable">The clip could not be read. Try another one.</string>
+    <string name="nm_a11y_own_clip_preview">Preview of your clip</string>
 
     <!-- First run (Muse-style welcome; the steps are OpenMinis' provider and model screens) -->
     <string name="nm_setup_title">Welcome to nanoMuse</string>
@@ -408,11 +427,11 @@
     <string name="nm_profile_today">Today</string>
     <string name="nm_profile_yesterday">Yesterday</string>
     <string name="nm_profile_activity_empty">Nothing yet today. What you ask for and what the agent does about it shows up here.</string>
-    <string name="nm_profile_approvals_empty">No standing approvals. When you answer "always allow" to a risky step, it is listed here and can be revoked.</string>
+    <string name="nm_profile_approvals_empty">No standing approvals. When you answer \"always allow\" to a risky step, it is listed here and can be revoked.</string>
     <string name="nm_profile_approvals_always">Always allowed</string>
     <string name="nm_profile_always_allowed">Always allowed · %1$s</string>
     <string name="nm_profile_manage_permissions">Manage permissions</string>
-    <string name="nm_profile_daily_empty">No routines yet. Ask the agent for something "every morning" and it will appear here.</string>
+    <string name="nm_profile_daily_empty">No routines yet. Ask the agent for something \"every morning\" and it will appear here.</string>
     <string name="nm_profile_manage_routines">Manage routines</string>
     <string name="nm_profile_card_soul">SOUL</string>
     <string name="nm_profile_card_memory">Memory</string>
@@ -420,21 +439,21 @@
     <!-- Changing the face from the chat -->
     <string name="nm_avatar_status_options">Generating options</string>
     <string name="nm_avatar_status_finalizing">Finalizing avatar</string>
-    <string name="nm_avatar_options_drawing">Drawing four takes on "%1$s"…</string>
-    <string name="nm_avatar_options_pick_hint">Tap the one you like, or tell me: "the second one".</string>
+    <string name="nm_avatar_options_drawing">Drawing four takes on \"%1$s\"…</string>
+    <string name="nm_avatar_options_pick_hint">Tap the one you like, or tell me: \"the second one\".</string>
     <string name="nm_avatar_options_failed">The pictures did not come through. Check the image model under ••• → Avatar studio and try again.</string>
     <string name="nm_avatar_provider_busy">The image provider is busy right now; try again in a minute.</string>
     <string name="nm_avatar_options_again">Again</string>
     <string name="nm_avatar_options_keep">Keep current</string>
     <string name="nm_avatar_option_n">Option %1$d</string>
     <string name="nm_avatar_option_retry">Retry</string>
-    <string name="nm_avatar_options_ready">Here are a few takes on "%1$s": pick the one you like best.</string>
-    <string name="nm_avatar_drawing_now">I\'m drawing a few takes on "%1$s" now. Pictures take a little while; I\'ll tell you when they\'re ready.</string>
+    <string name="nm_avatar_options_ready">Here are a few takes on \"%1$s\": pick the one you like best.</string>
+    <string name="nm_avatar_drawing_now">I\'m drawing a few takes on \"%1$s\" now. Pictures take a little while; I\'ll tell you when they\'re ready.</string>
     <string name="nm_avatar_drawing_again">One more round, give me a moment.</string>
     <string name="nm_avatar_adopted">Done, my new look is on. I\'m %1$s now.</string>
     <string name="nm_avatar_pick_line">Option %1$d</string>
     <string name="nm_avatar_cannot_start">I can\'t draw a new look yet: %1$s</string>
-    <string name="nm_avatar_memory_line">- %1$s: the user changed my avatar to "%2$s".</string>
+    <string name="nm_avatar_memory_line">- %1$s: the user changed my avatar to \"%2$s\".</string>
     <string name="nm_avatar_share_text">My new look: %1$s. Have a look.</string>
     <string name="nm_avatar_share_button">Share avatar</string>
     <string name="nm_avatar_share_later">Later</string>
@@ -581,6 +600,8 @@
     <string name="nm_risk_title_device">Allow “%1$s” to operate this phone?</string>
     <string name="nm_risk_desc_device">“%1$s”, another device on your account, wants to %2$s on this phone. What exactly is shown below. “Always” lets that device do such things here without asking; take it back under Permissions.</string>
     <string name="nm_risk_preview_device">What the device asked</string>
+    <string name="nm_risk_preview_show_all">Show all (%1$d lines)</string>
+    <string name="nm_risk_preview_show_less">Show less</string>
     <string name="nm_risk_class_remote">Remote control</string>
     <string name="nm_hub_remote_reason">%1$s may operate this phone</string>
 
@@ -613,7 +634,7 @@
     <string name="nm_welcome_skip">Skip for now</string>
     <string name="nm_welcome_hands_fine_print">Everything else works without these. They live under Settings → Hands whenever you want them.</string>
     <string name="nm_welcome_meet_fine_print">Before anything it cannot take back (deleting, sending, paying) it stops and asks you first.</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
+    <string name="nm_cloud_title" translatable="false">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">Start with nanoMuse Cloud</string>
     <string name="nm_cloud_signin_subtitle">A code to your phone or inbox, or your password, once you have set one.</string>
     <string name="nm_cloud_mode_code">With a code</string>
@@ -621,7 +642,7 @@
     <string name="nm_cloud_password">Password</string>
     <string name="nm_cloud_forgot_password">Forgot the password? Sign in with a code</string>
     <string name="nm_cloud_identifier">Mainland China phone number or e-mail</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · you@example.com</string>
+    <string name="nm_cloud_identifier_hint">you@example.com</string>
     <string name="nm_cloud_code">Code</string>
     <string name="nm_cloud_send_code">Send code</string>
     <string name="nm_cloud_resend">Send again</string>
@@ -630,7 +651,7 @@
     <!-- Your own relay (0.1.38): the sign-in screen's server form and the account page's row -->
     <string name="nm_cloud_other_server">Use a different server</string>
     <string name="nm_cloud_server_url">Relay address</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
+    <string name="nm_cloud_server_hint" translatable="false">https://relay.example.org</string>
     <string name="nm_cloud_server_check">Check</string>
     <string name="nm_cloud_server_use">Use this server</string>
     <string name="nm_cloud_server_now">Server: %1$s</string>
@@ -691,6 +712,8 @@
     <string name="nm_cloud_err_password_short">The password needs at least 8 characters.</string>
     <string name="nm_cloud_err_password_weak">That password is too easy to guess.</string>
     <string name="nm_cloud_err_signup_closed">Sign-ups are paused on this relay for now. An account that already exists can still sign in.</string>
+    <string name="nm_cloud_err_domain_limited">Today\'s sign-up limit for addresses at that domain is reached on this relay. Try again tomorrow, or use another address.</string>
+    <string name="nm_cloud_err_channel_unsupported">This relay does not send codes to that kind of address. Use the other kind (e-mail or phone number), or sign in with a password.</string>
     <string name="nm_cloud_err_too_large">That message is too large for the model. Shorten it, leave out some attachments, or start a new chat.</string>
     <string name="nm_cloud_err_content_rejected">The model provider\'s content check declined this request. Try different words, or start a new chat if it keeps happening: the words it objects to can be earlier in the conversation.</string>
     <string name="nm_cloud_err_provider_busy">The model provider is busy right now. Try again in a moment.</string>
@@ -736,7 +759,7 @@
     <string name="nm_face_cost_not_now">Not now</string>
     <string name="nm_face_cost_declined">All right, the face stays as it is.</string>
     <string name="nm_cloud_invite_title">Invite a friend</string>
-    <string name="nm_cloud_invite_why">Each new person who signs up with your code adds ¥%1$s to your allowance, and ¥%1$s to theirs. It never expires.</string>
+    <string name="nm_cloud_invite_why">When a friend signs up with your code and makes their first request, you both get ¥%1$s. It never expires.</string>
     <string name="nm_cloud_invite_code">Your code</string>
     <string name="nm_cloud_invite_share">Share the link</string>
     <string name="nm_cloud_invite_copy">Copy</string>
@@ -774,7 +797,7 @@
     <string name="nm_cap_clips_unavailable">Clips need a provider with video models: Alibaba Cloud Bailian.</string>
     <string name="nm_cap_hands_unavailable">Hands need a model that sees the screen: Bailian, OpenRouter, OpenAI, Anthropic, Gemini, or any provider with vision models.</string>
     <string name="nm_cap_chat_unavailable">Chat needs a provider with chat models: add a key, or sign in.</string>
-    <string name="nm_ways_invite_title">Invite a friend: +¥%1$s for you and +¥%2$s for them, for each new person who signs up with your link.</string>
+    <string name="nm_ways_invite_title">Invite a friend: +¥%1$s for you and +¥%2$s for them, once a new person who signed up with your link makes their first request.</string>
     <string name="nm_ways_invite_share">Share the link</string>
     <string name="nm_ways_invite_copy">Copy the link</string>
     <string name="nm_cloud_ev_contribute_on">Data controls: help improve turned on</string>
@@ -1099,4 +1122,16 @@
     <string name="nm_a11y_liked">Liked</string>
     <string name="nm_a11y_not_liked">Not liked</string>
     <string name="nm_a11y_post_details">Post details</string>
+    <string name="nm_claude_sign_in_unavailable">This build cannot use a Claude sign-in. Add Anthropic with an API key instead.</string>
+    <string name="nm_oauth_rescue_hint">If the browser shows an error page at localhost, your proxy or VPN is swallowing the callback. Add localhost to its bypass list, or copy the page\'s address and paste it here.</string>
+    <string name="nm_oauth_rescue_placeholder">Paste the address here</string>
+    <string name="nm_oauth_rescue_continue">Continue</string>
+    <string name="nm_oauth_rescue_no_code">That address has no sign-in code.</string>
+    <string name="nm_oauth_rescue_failed">The sign-in is no longer waiting for that address. Tap Sign in and try again.</string>
+    <!-- Font scale labels -->
+    <string name="nm_font_scale_extra_small">XS</string>
+    <string name="nm_font_scale_small">Small</string>
+    <string name="nm_font_scale_medium">Medium</string>
+    <string name="nm_font_scale_large">Large</string>
+    <string name="nm_font_scale_extra_large">XL</string>
 </resources>

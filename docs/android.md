@@ -38,8 +38,8 @@ update*) and offers the download.
 3. **Sign in.** The first screen is the account: a phone number or an e-mail address,
    a code, or a password once you have set one. It is what lets your devices work as one
    ([hub.md](hub.md)) and brings a model to start with ([cloud.md](cloud.md): a free pool per
-   account (¥10 at the time of writing) and more for each friend invited, and for them;
-   the app prints the relay's current figures; then [your own key](own-key.md)). Then choose which model answers: the account's
+   account (¥10 at the time of writing) and more for each friend invited, and for them,
+   once the friend makes a first request; the app prints the relay's current figures; then [your own key](own-key.md)). Then choose which model answers: the account's
    own, or a key of your own (any OpenAI-compatible endpoint, or the OAuth sign-ins the
    app ships with). Four models are set, not one, and they live on one page, **Settings →
    Models** (the card at the top of Settings opens it): **Chat**, the model that talks with
@@ -102,11 +102,13 @@ you run yourself ([cloud.md](cloud.md), `cloud/docker-compose.yml`), *Check* ask
 across launches. `https://` is required for anything outside your own network; plain
 `http://` is accepted for an address on your own network, judged by the same rule as a
 model server's (below: the private ranges as parsed addresses, `localhost`, a name without
-a dot, a `.local`, `.lan`, `.home`, `.internal`, `.home.arpa` or `.ts.net` name). Settings → Account shows *Server: `<host>`* with *Change*, which signs the phone out first: the key it holds belongs to the
+a dot, a `.local`, `.lan`, `.home`, `.internal`, `.home.arpa`, `.localdomain` or `.ts.net` name). Settings → Account shows *Server: `<host>`* with *Change*, which signs the phone out first: the key it holds belongs to the
 server that issued it. Everything the app does with the account (sign-in, the hub, sync,
 usage, the model menu) goes to that address.
 
 ## What the phone does
+
+Shell progress updates preserve text beyond a shorter rewrite. Terminal color and title codes are removed before those updates, so they cannot leave escape fragments in the output.
 
 | | |
 | --- | --- |
@@ -120,9 +122,37 @@ usage, the model menu) goes to that address.
 | **Connectors** (`connectors/`, `ui/connectors/`) | The services the agent can be let into: the desktop's catalogue of 75 remote MCP servers (Notion, Linear, GitHub, GitLab, Slack, Stripe, Miro, …), shipped as `assets/nanomuse/connectors.json`. The only Settings row for all of this is *Connectors*; the upstream MCP editor (by address, by command, imported JSON) is *Your own servers* at the end of the page. Open servers add with a tap; a key service takes the key; an OAuth service runs the MCP authorization flow (discovery, dynamic client registration, PKCE in a Custom Tab) and the token goes into the entry's `Authorization` header for the in-guest MCP client, refreshed at app start; a service whose authorization server registers no clients (`clientIdRequired`: GitHub, Slack, Discord, HubSpot, Render, Bitrise, PagerDuty, Box) asks for an OAuth client id and secret made at the vendor's developer page with the app's callback address, which the sheet shows and copies. A connected service is an MCP server entry under the same id; *Your own servers* manages it too. What is connected is shared with the account's other devices through the relay profile, the entries (id, label, address, kind of auth, which device, when), never a token, so the page also lists *On your other devices*: a service connected on the desktop shows as *Connected on <device>. Sign in here to use it on this phone*, one tap into the same sheet. |
 | **The chat, plain** | While the agent works, the line under its avatar names the step under way (*nanoMuse is using Shell*, *Writing the reply*, *On it: book the table*), never a state of mind. The tool pills, the Computer sheet and the floating step bar are **on by default** since 0.1.37; *Settings → Appearance → Show the agent's steps* turns them off. With them on, a finished step reads *nanoMuse used Shell · Done*, and its sheet closes on ×, swipe or Back. |
 
+The chat sits on the same canvas as the pill bar, the menus and the drawer: pure black in the
+dark theme, pure white in the light one. Your messages are white pills with black text (black
+pills with white text in light), the agent's replies sit in a pill a shade off the canvas
+(`#1C1C1E` / `#F2F2F7`), and the send button and the scroll-to-latest disc are white with a
+black arrow (inverted in light); there is no blue in the conversation apart from links. The
+header is not a bar but a scrim: the conversation scrolls under it and dissolves into the
+canvas, and a second fade appears at the top edge while you read older messages. The palette
+is upstream's `com/openminis/app/ui/theme/ChatColors.kt`, written by `scripts/rebrand.py`.
+
+The message composer stays above the floating navigation pill, and the pill is as wide as the
+composer (the same 16 dp margins; 420 dp at most, centred on a wider screen), so the two
+capsules stack with one edge. While the agent uses tools,
+the step bar sits above the composer; the latest message and tool pills can scroll fully
+above both. The conversation still scrolls behind the navigation pill for its frosted blur.
+The spacing follows the actual footer height when the composer expands or a tool preview
+or approval card appears. The approval card itself takes at most two thirds of the screen:
+a command longer than six lines is folded behind *Show all*, the description and the
+preview scroll in the middle, and Allow and Deny stay in view at the bottom. When reading
+older messages, a slightly lighter fade follows
+the composer's rounded outline. Live browser controls hide it; historical tool pills and
+other tools keep it. In dark-mode home and side chats, pure black surrounds the navigation
+pill and fills the gap below the composer. Its glass stays open to the scrolling content
+for live frosted blur. Other tabs keep their navigation appearance. With the keyboard
+open the composer sits on the keyboard and the pill is behind it. The Feed, Ideas, Goals and
+Library lists end above the pill as well, so their last row is never under it.
+
 The web console of the same account is at the relay (`/app`), the desktop app in
 [desktop.md](desktop.md); the phone, the desktop and the web share the design language
 described in [brand.md](brand.md).
+
+Under **Settings → Appearance**, the font-size labels for **Chat Input**, **Message Text** and **App Base** follow the app's language.
 
 ## Your own key
 
@@ -146,7 +176,13 @@ Kimi (a device code) and OpenRouter; *Sign in* opens the same form on the sign-i
 OpenAI's terms cover a ChatGPT plan inside OpenAI's own Codex, that other apps have had this
 access cut off before (OpenCode, January 2026), and that an API key works if it stops.
 Anthropic and Gemini open on OpenMinis' own provider types for them; everything else on the
-OpenAI-compatible form.
+OpenAI-compatible form. The Claude sign-in needs an identifier Anthropic expects at the start
+of every request; it is read at build time from `app/provider-customization.properties`, which
+is not in this repository, so the published APK does not have it. A build without it does not
+list the Claude sign-in (not on this card, not under *Add a provider*, and `?preset=anthropic:oauth`
+opens the API key form), and a Claude sign-in saved by an earlier build answers each send with
+*This build cannot use a Claude sign-in. Add Anthropic with an API key instead.* rather than
+closing the app (`io.github.nanomuse.cloud.ClaudeSignIn`).
 
 **Where the list comes from.** The relay's `/v1/me` carries `spend.guidance` (relay 0.21,
 [cloud.md](cloud.md)): the providers for the person's region in the relay's order, each with
@@ -169,7 +205,8 @@ sentence (*Pictures need a provider with image models: Bailian, OpenAI, Gemini o
 OpenRouter.*) instead of failing.
 
 In the avatar studio, asking for a new set of candidates replaces the previous set. A picture
-or failure that finishes from the previous request cannot change the new set's tiles.
+or failure that finishes from the previous request cannot change the new set's tiles or files.
+Again starts the new request without waiting for the old picture to finish saving.
 
 **When the provider cannot be reached** (`net/ProviderReach.kt`, `ui/chat/ProviderReachCard.kt`).
 A failed turn whose error is the transport's (OkHttp's *failed to connect to chatgpt.com/… (port
@@ -211,7 +248,10 @@ now, not used up* and that what is left stays as it is. The sentences are
 
 **Settings → Network** (`net/OwnProviderProxy.kt`, `ui/net/NetworkScreen.kt`,
 `minis://settings/network`). The HTTP proxy for own providers: host, port, optional user name
-and password, off by default, in `SharedPreferences` on this phone only. It is installed in
+and password, off by default, on this phone only: the settings in `SharedPreferences`, the
+password in an `EncryptedSharedPreferences` file of its own (`nanomuse_proxy_secrets`, the way
+the provider keys are kept; a password a 1.0.3 phone saved in the plain file is moved over on
+the first read). It is installed in
 `MinisApp.onCreate` as the process's default `ProxySelector`, so every OkHttp client asks it per
 request; it answers the proxy for the catalogue's hosts, `chatgpt.com`, `auth.openai.com` and
 the custom base URLs of the provider instances (never the relay's, never a LAN address), and the
@@ -220,13 +260,21 @@ Provider clients carry `OwnProviderProxy.authenticator` for a proxy that asks fo
 *Test* fetches `https://chatgpt.com/` through the proxy as entered and reports the status and the
 milliseconds. Unit tests: `ProviderReachTest`, `OwnProviderProxyTest`.
 
+## Voice input
+
+System voice input can prefer on-device recognition. If the phone has no usable on-device
+service, it falls back to the default recognition service. A language error from that
+default service is shown in the voice panel. A running on-device recognizer whose language
+pack is unavailable still falls back once to the default service.
+
 ## Privacy and permissions
 
 The relay keeps an account id, a masked identifier, usage counts and the agent's name and
 look (so your devices match), and message content only as conversation sync, on by default
 when signed in and switched off under *Data controls* ([privacy.md](privacy.md),
-[sync.md](sync.md)); the first conversation says so in its fourth line. On the phone, API keys, the account key and Reach
-pairing tokens are in `EncryptedSharedPreferences`; since 0.1.40 the app takes no part in
+[sync.md](sync.md)); the first conversation says so in its fourth line. On the phone, API keys and the account key
+are in `EncryptedSharedPreferences`, and so is the proxy password of *Settings → Network*
+(since 1.0.4; on this phone only); since 0.1.40 the app takes no part in
 the device backup at all (`allowBackup="false"`: chats, memory and keys never go to Google,
 a reinstall starts empty and the account's chats come back through sync; the two rule files
 under `res/xml/` are kept for the day the switch is turned on again). Hands needs the accessibility service
@@ -248,7 +296,9 @@ and refuses it at the provider URL field for anything else (`io.github.nanomuse.
 The address is parsed before it is judged, so a public name such as `10.foo.example.com` is
 not taken for a private address. The same rule decides whether a relay of your own may be
 `http://`; nanoMuse Cloud and the hub to it are TLS only. The in-app web view is not exported
-to other apps.
+to other apps. Voice input through a provider's speech model keeps the microphone open only
+while a recording is on: stopping or cancelling the recording closes the recorder at once, and a
+cancelled recording's audio is dropped, never sent to the provider.
 
 ## Building it yourself
 
@@ -260,7 +310,13 @@ bash scripts/android/build-natives.sh   # once: proot, the Alpine rootfs and rcl
 cd android/src/android
 ./gradlew :app:assembleDebug        # app/build/outputs/apk/debug/app-debug.apk
 ./gradlew :app:assembleRelease      # signed with android/keystore.properties when present
+./gradlew :app:testDebugUnitTest --tests 'io.github.nanomuse.*'   # our unit tests
+./gradlew :app:lintDebug            # Android lint; the report is app/build/reports/lint-results-debug.html
 ```
+
+Lint runs on a newer lint than AGP 8.7.3 bundles (`android.experimental.lint.version` in
+`gradle.properties`): the Compose and lifecycle libraries ship checks the bundled one cannot
+load. The upstream tree carries lint findings of its own; read the report for `io.github.nanomuse`.
 
 `rclone.aar` is built with Go, which fetches its modules through Go's default proxy
 (`https://proxy.golang.org,direct`); on a mainland-China network set
@@ -288,7 +344,8 @@ and put its four values in `android/keystore.properties` (git-ignored: `storeFil
 Gradle, builds `:app:assembleRelease` with the release key, writes
 `dist/nanoMuse-<version>-arm64.apk` and its `.sha256`, and with `--publish` tags
 `v<version>` and attaches both to the GitHub release with the notes from
-`docs/releases/v<version>.md`. A debug-signed APK never goes on a release, because it
+`docs/releases/v<version>.md`. Publishing refuses a working tree with uncommitted changes
+and a commit that is not on `main`. A debug-signed APK never goes on a release, because it
 could not be updated by a properly signed one. The `versionName` must match the tag,
 like the Python package's version does.
 
@@ -301,12 +358,14 @@ like the Python package's version does.
 | `sync/` | Conversation sync (contracts C7–C10): `SyncEngine` (what goes up and comes down; `owner` per mapping, the account's only), `ConversationSync` (when; `hidden`: the chats of another account, left out of `ChatRepository.observeSessions()`), `LocalChats`, the Room store `nanomuse_sync.db` (with the `session_owners` table of C12) |
 | `account/` | Contract C12 (0.1.40, [sync.md](sync.md)): `AccountScope` (the rules: whose chat a session is, the account's key, what the lists leave out, what a refused key keeps (`keepOnRefusedKey`: everything, unless the relay says `account_deleted`); unit-tested), `AccountData` (applies them: every chat an owner row, `leave` puts the account's chats, memory, feed, goals, routines, face and preferences aside or deletes them, `enter` brings an account's back). The Library tab follows the same rule: it lists the workspaces of the sessions the chat list shows, so another account's files stay off a shared phone (`library/LibraryIndex.shows`, unit-tested) |
 | `hub/` | `Hub` (state, device identity, settings), `HubClient` (the socket with backoff; a refused key is retried once a minute and shown as such, a replaced connection waits 30 s, a hub the operator paused waits two minutes and is shown as such), `HubService` (the foreground service), `HubActions` (what other devices may ask this phone; `stop {call | conversation}` ends a task the asking device started here, bookkept in `HubTasks`, unit-tested), `HubErrors` (failures in words) |
-| `reach/` | `Computers` (paired computers, tokens in the encrypted store), the offload handler that sends work to a computer |
+| `reach/` | `Computers` (the account's devices as the hub lists them, and the calls to them; no pairing and no tokens of its own since 0.1.24), the offload handler that sends work to a computer |
 | `models/` | Settings → Models behind the screens: `ModelSlots` (the four slots, what each is set to and where that is kept, the groups a picker shows, `followPick` for the chat default, `applyProvider` for the *Use it for* card), `SlotOrder` (the resolution order and the catalogue default, pure Kotlin, unit-tested), `PickerList` (the picker's eight-row groups, their order and the search filter, pure Kotlin, unit-tested) |
 | `ui/models/` | The Models page, the picker behind each row, the *Use it for* card (`minis://settings/models`) |
 | `chat/CloudRetry.kt` | *Use nanoMuse Cloud this time*: whether the card offers it and the one-turn provider `ChatViewModel.retryLast` uses |
+| `chat/RoutineWakes.kt`, `ui/chat/NmRoutineWakeRow.kt` | A scheduled task's turn is the routine's, not the person's: `ScheduledAgentRunner` arms a wake before the prompt goes out, `ChatViewModel` binds it to the persisted row, and the chat draws that row as one quiet line, *Routine · 〈label〉 · 08:00*, instead of a bubble in the person's voice; the model gets a one-turn `SessionAddenda` saying so, so it opens with the result rather than thanking anyone for asking. Up to 1.0.4 the prompt stood in the chat as if the person had typed it |
+| `feed/` | The Feed: `FeedFlow` keeps the daily scheduled task and the conversation it writes in, which is the agent's working room and stays out of the drawer, the chat list and the main-chat fallback (`FeedFlow.hidden`, read by `ChatRepository.observeSessions()`, `MainChat` and the move-to sheet); `FeedStore` holds the posts. When the task has written posts while the app is in the background, one notification names them and opens the Feed tab (`minis://feed`), in place of the generic "task done" notice with the model's text that up to 1.0.4 opened the conversation |
 | `hands/` | The accessibility service as the hand, the stage and the capsule, the screen reader; `Hands.screenModel` picks the screen's model (chosen → the chat provider's own default when it sees → the Cloud's `qwen3.8-27b` → the same under your own key → a chat model that sees → the Vision Group) |
 | `ui/coding/` | The coding agents of your computers |
 | `connectors/`, `ui/connectors/` | The connectors catalogue (`ConnectorsCatalogue` reads the asset), MCP authorization discovery + registration (`McpAuthDiscovery`), connecting and token refresh (`Connectors`), what this phone connected as published to the profile and what the other devices did (`SharedConnectors`), the Settings → Connectors page |
 | `ui/cloud/` | Sign-in, the Account screen, the Devices section |
-| `res/values*/nm_strings.xml` | Every nanoMuse string in the seventeen languages the app has (English, 简体中文, 繁體中文, German, Spanish, Filipino, French, Indonesian, Japanese, Korean, Malay, Polish, Brazilian Portuguese, Romanian, Russian, Thai, Turkish); every file carries the same keys, and a missing one falls back to English |
+| `res/values*/nm_strings.xml` | Every nanoMuse string in the seventeen languages the app has (English, 简体中文, 繁體中文, German, Spanish, Filipino, French, Indonesian, Japanese, Korean, Malay, Polish, Brazilian Portuguese, Romanian, Russian, Thai, Turkish); every file carries the same keys, apart from the two the English file marks `translatable="false"` (the relay address example and the product name `nanoMuse Cloud`), and a missing one falls back to English |

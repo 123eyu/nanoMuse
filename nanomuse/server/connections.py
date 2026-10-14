@@ -1,10 +1,10 @@
 """Connections: the model, email, the browser and MCP servers, set up from the app.
 
-Muse's Connections screen is where you plug things in and take them out again. Here that
-means: non-secret settings go to ``<data_dir>/app-settings.json`` (layered over
+The Connections screen is where a person plugs things in and takes them out again. Here
+that means: non-secret settings go to ``<data_dir>/app-settings.json`` (layered over
 ``config.toml`` on every start, for the app and the CLI alike); secrets go straight into
 the encrypted vault and are referred to as ``{{vault:NAME}}``. Nothing here is ever shown
-to the model — it only gets the tools that result.
+to the model; it only gets the tools that result.
 """
 
 from __future__ import annotations
@@ -37,6 +37,7 @@ from nanomuse.llm.chatgpt import DEFAULT_MODEL as CHATGPT_DEFAULT_MODEL
 from nanomuse.logger import logger
 from nanomuse.schema import Message
 from nanomuse.search import WebSearchProvider
+from nanomuse.server.endpoints import Endpoints
 from nanomuse.server.failures import describe_failure
 from nanomuse.tools import (
     Calendar,
@@ -47,7 +48,7 @@ from nanomuse.tools import (
     WebSearch,
     playwright_available,
 )
-from nanomuse.vault.vault import VaultError
+from nanomuse.vault.vault import PLACEHOLDER_RE, VaultError
 
 if TYPE_CHECKING:
     from nanomuse.server.service import MuseService
@@ -261,6 +262,126 @@ def normalize_base_url(url: str) -> str:
     return url
 
 
+USERINFO_MESSAGE = (
+    "the address must not carry a user name or password (user:pass@host); "
+    "put the key in the key field instead"
+)
+
+
+def has_userinfo(url: str) -> bool:
+    """Whether a URL carries ``user:pass@`` before its host."""
+    try:
+        parts = urlsplit(url if "://" in url else "https://" + url.strip())
+    except ValueError:
+        return False
+    return parts.username is not None or parts.password is not None
+
+
+def check_base_url(url: str) -> str:
+    """:func:`normalize_base_url` for an address typed in the app, refusing one that
+    carries a user name or a password: it would be stored, logged and shown as typed,
+    and a key has its own field. Raises :class:`ValueError` with the reason."""
+    if has_userinfo(url):
+        raise ValueError(USERINFO_MESSAGE)
+    return normalize_base_url(url)
+
+
+def _same_origin(a: Any, b: Any) -> bool:
+    """Two parsed URLs with the same scheme, host and port (an ``http`` to ``https``
+    step on the same host counts, as httpx's own Authorization rule has it)."""
+    if a.host != b.host:
+        return False
+    if a.scheme == b.scheme:
+        return a.port == b.port
+    return a.scheme == "http" and b.scheme == "https" and a.port is None and b.port is None
+
+
+MAX_MODELS_REDIRECTS = 5
+
+
+class _CrossHostRedirect(Exception):
+    """A redirect that would carry the Authorization header to another origin."""
+
+
+async def _get_following(client: Any, url: str, headers: dict[str, str]) -> Any:
+    """``GET`` with redirects followed by hand: at most :data:`MAX_MODELS_REDIRECTS` hops,
+    never to an address with ``user:pass@`` or a non-HTTP scheme, and with an Authorization
+    header never to another origin (:class:`_CrossHostRedirect`)."""
+    import httpx
+
+    r = await client.get(url, headers=headers)
+    hops = 0
+    while r.is_redirect and r.has_redirect_location:
+        hops += 1
+        if hops > MAX_MODELS_REDIRECTS:
+            raise httpx.TooManyRedirects("too many redirects")
+        target = r.url.join(r.headers["location"])
+        if target.scheme not in ("http", "https") or target.userinfo:
+            raise httpx.TooManyRedirects("redirect to a refused address")
+        if headers and not _same_origin(r.url, target):
+            raise _CrossHostRedirect(str(target))
+        r = await client.get(target, headers=headers)
+    return r
+
+
+async def fetch_models(
+    base_url: str, key: str = "", *, transport: Any | None = None
+) -> tuple[list[str], str]:
+    """The model ids an OpenAI-compatible endpoint lists (``GET /models``, then ``/v1/models``
+    when the address names no version), sorted; with an empty list, one word on why
+    (``404``, ``HTTP 401``, ``ConnectError``, ``redirect to another host``, ``empty list``).
+    Never raises.
+
+    Redirects are followed by hand, at most :data:`MAX_MODELS_REDIRECTS` hops: with a key
+    in the request, only to the same origin, so a gateway answering with a ``Location``
+    elsewhere cannot have the key sent there. An address with ``user:pass@`` is refused
+    before any request. ``transport`` is for tests."""
+    if has_userinfo(base_url):
+        return [], "userinfo in URL"
+    headers = {"Authorization": f"Bearer {key}"} if key else {}
+    candidates = [f"{base_url}/models"]
+    if not re.search(r"/v\d+$", base_url):
+        candidates.append(f"{base_url}/v1/models")
+    error = ""
+    try:
+        import httpx
+
+        async with httpx.AsyncClient(
+            timeout=8.0, follow_redirects=False, transport=transport
+        ) as client:
+            for url in candidates:
+                try:
+                    r = await _get_following(client, url, headers)
+                except _CrossHostRedirect:
+                    error = "redirect to another host"
+                    break
+                except httpx.HTTPError as exc:
+                    error = f"{type(exc).__name__}"
+                    continue
+                if r.status_code == 404:
+                    error = "404"
+                    continue
+                if r.status_code >= 400:
+                    error = f"HTTP {r.status_code}"
+                    break
+                data = r.json()
+                rows = data.get("data") if isinstance(data, dict) else data
+                ids = sorted(
+                    {
+                        str(row.get("id") if isinstance(row, dict) else row)
+                        for row in (rows or [])
+                        if (row.get("id") if isinstance(row, dict) else row)
+                    }
+                )
+                if ids:
+                    return ids, ""
+                error = "empty list"
+                break
+    except Exception as exc:  # noqa: BLE001
+        error = f"{type(exc).__name__}"
+    return [], error
+
+
 PROXY_SCHEMES = ("http", "https", "socks5", "socks5h")
 
 
@@ -308,6 +429,15 @@ def _vault_name(feed_name: str, prefix: str = "CALENDAR_") -> str:
     return prefix + (re.sub(r"[^A-Z0-9]+", "_", feed_name.upper()).strip("_") or "FEED")
 
 
+def mcp_env_vault_name(server: str, key: str) -> str:
+    """The vault entry an MCP server's ``env`` value is kept under when it is added from the
+    app: ``MCP_<SERVER>_<KEY>``, both parts upper-cased with anything that is not a letter
+    or a digit as ``_`` (``amap`` + ``AMAP_MAPS_API_KEY`` is ``MCP_AMAP_AMAP_MAPS_API_KEY``)."""
+    stem = re.sub(r"[^A-Z0-9]+", "_", server.upper()).strip("_") or "SERVER"
+    field = re.sub(r"[^A-Z0-9]+", "_", key.upper()).strip("_") or "VALUE"
+    return f"MCP_{stem}_{field}"
+
+
 def _link_or_path(url: str) -> bool:
     """An http(s)/file link, or a path: absolute, ``~``, or a Windows drive letter."""
     return url.startswith(("http://", "https://", "file://", "/", "~")) or bool(
@@ -344,6 +474,13 @@ class Connections:
         self._toml_sources = [
             c for c in svc.settings.connectors.contacts.sources if c.name not in app_sources
         ]
+        # custom OpenAI-compatible endpoints, several at once (#294); the chat slot of before
+        # on an unlisted host becomes endpoint number one on the first start with the list
+        self.endpoints = Endpoints(self)
+        try:
+            self.endpoints.migrate()
+        except (OSError, ValueError, VaultError) as exc:
+            logger.warning("the endpoint list could not be set up: {}", exc)
 
     # ------------------------------------------------------------------ helpers
     @property
@@ -433,8 +570,12 @@ class Connections:
                     and getattr(self.svc, "hub", None) is not None
                     and s.llm.base_url.rstrip("/") == model_url(self.svc.hub.cloud.base_url)
                 ),
+                # the endpoint of the list the slot points at (#294); "" for any other host
+                "endpoint": self.endpoints.id_for(s.llm.endpoint),
             },
             "providers": self._providers(),
+            # the custom OpenAI-compatible endpoints, several at once (#294): never a key
+            "endpoints": self.endpoints.view(),
             "embeddings": self._embeddings_view(),
             "search": self._search_view(),
             "email": {
@@ -473,6 +614,12 @@ class Connections:
                     "connected": m.name in live_tools,
                     "from_app": m.name in app_mcp,
                     "builtin": False,
+                    # the server's environment: the names, and whether each value is a
+                    # vault reference; never a value (a plain one is what the app warns about)
+                    "env": [
+                        {"name": k, "vault": self.vault.has_placeholders(v)}
+                        for k, v in m.env.items()
+                    ],
                 }
                 for m in s.mcp.servers
             ]
@@ -548,12 +695,21 @@ class Connections:
 
     # ------------------------------------------------------------------ model
     def set_llm(self, body: dict[str, Any]) -> dict[str, Any]:
+        """The chat model. ``endpoint`` names one of the list (#294): the slot takes its
+        address and its key by reference, and ``provider``, ``base_url`` and ``api_key`` in
+        the body are ignored; the other fields apply as always."""
         llm = dict(self.data.get("llm") or {})
+        body = dict(body)
+        if body.get("endpoint"):
+            fields = self.endpoints.slot_fields(str(body["endpoint"]))
+            body.update({"provider": fields["provider"], "base_url": fields["base_url"]})
+            body["api_key"] = None
+            llm["api_key"] = fields["api_key"]
         for key in ("provider", "model", "base_url", "tool_mode", "image_model", "video_model"):
             if body.get(key) is not None:
                 llm[key] = str(body[key]).strip()
         if body.get("base_url") is not None:
-            llm["base_url"] = normalize_base_url(llm["base_url"])
+            llm["base_url"] = check_base_url(llm["base_url"])
         if llm.get("provider") not in (None, ""):
             # a protocol, "chatgpt", or a catalogue id (nanomuse/llm/providers.json)
             llm["provider"] = check_provider(str(llm["provider"]))
@@ -669,6 +825,7 @@ class Connections:
                     "id": pid,
                     "label": p["label"],
                     "needs_key": p["needs_key"],
+                    "optional_key": bool(p.get("optional_key")),
                     "keys_url": p.get("keys_url", ""),
                 }
                 for pid, p in SEARCH_PROVIDERS.items()
@@ -681,7 +838,7 @@ class Connections:
 
     def set_search(self, body: dict[str, Any]) -> dict[str, Any]:
         """Who answers web searches: DuckDuckGo (nothing to set), Brave or Tavily with a
-        key, or a SearXNG instance by URL."""
+        key, You.com with or without one, or a SearXNG instance by URL."""
         from nanomuse.search import PROVIDERS as SEARCH_PROVIDERS
 
         web = dict(self.data.get("search") or {})
@@ -708,11 +865,14 @@ class Connections:
 
     async def test_search(self) -> dict[str, Any]:
         """One search against the configured provider, no fallback."""
+        from nanomuse.search import PROVIDERS as SEARCH_PROVIDERS
+
         provider = self._search_provider() or WebSearchProvider(
             self.settings.connectors.search, vault=self.vault
         )
         if not provider.configured:
-            what = "an API key" if provider.name in ("brave", "tavily") else "the instance URL"
+            needs_key = SEARCH_PROVIDERS[provider.name]["needs_key"]
+            what = "an API key" if needs_key else "the instance URL"
             return {"ok": False, "error": f"{provider.label} needs {what} first"}
         return await provider.probe()
 
@@ -828,54 +988,40 @@ class Connections:
                 "chat_recommended": chat[0] if chat else "",
             }
         preset = PROVIDERS.get(preset_id) or {}
-        base_url = normalize_base_url(str(body.get("base_url") or preset.get("base_url") or ""))
+        base_url = check_base_url(str(body.get("base_url") or preset.get("base_url") or ""))
         catalogue: list[str] = list(preset.get("models") or [])
+        key = str(body.get("api_key") or "").strip()
+        endpoint = self.endpoints.get(str(body.get("endpoint") or ""))
+        if endpoint is not None:
+            # one of the endpoint list (#294): its address and its own key, and the models it
+            # was saved with when it does not answer now
+            base_url = str(endpoint["base_url"])
+            catalogue = [str(m) for m in endpoint.get("models") or []]
+            if not key:
+                key = self.vault.resolve(str(endpoint.get("api_key") or ""), strict=False)
         if not base_url:
             return {"models": catalogue, "source": "catalogue"}
-        key = str(body.get("api_key") or "").strip()
         if not key and normalize_base_url(self.settings.llm.base_url or "") == base_url:
             key = self.vault.resolve(self.settings.llm.api_key or "", strict=False)
-        headers = {"Authorization": f"Bearer {key}"} if key else {}
-        candidates = [f"{base_url}/models"]
-        if not re.search(r"/v\d+$", base_url):
-            candidates.append(f"{base_url}/v1/models")
-        error = ""
-        try:
-            import httpx
-
-            async with httpx.AsyncClient(timeout=8.0, follow_redirects=True) as client:
-                for url in candidates:
-                    try:
-                        r = await client.get(url, headers=headers)
-                    except httpx.HTTPError as exc:
-                        error = f"{type(exc).__name__}"
-                        continue
-                    if r.status_code == 404:
-                        error = "404"
-                        continue
-                    if r.status_code >= 400:
-                        error = f"HTTP {r.status_code}"
-                        break
-                    data = r.json()
-                    rows = data.get("data") if isinstance(data, dict) else data
-                    ids = sorted(
-                        {
-                            str(row.get("id") if isinstance(row, dict) else row)
-                            for row in (rows or [])
-                            if (row.get("id") if isinstance(row, dict) else row)
-                        }
-                    )
-                    if ids:
-                        return {
-                            "models": ids,
-                            "image_models": [i for i in ids if looks_like_image_model(i)],
-                            "video_models": [i for i in ids if looks_like_video_model(i)],
-                            "source": "live",
-                        }
-                    error = "empty list"
-                    break
-        except Exception as exc:  # noqa: BLE001
-            error = f"{type(exc).__name__}"
+        if self.vault.has_placeholders(key):
+            key = ""
+        ids, error = await fetch_models(base_url, key)
+        if ids:
+            return {
+                "models": ids,
+                "image_models": [i for i in ids if looks_like_image_model(i)],
+                "video_models": [i for i in ids if looks_like_video_model(i)],
+                "source": "live",
+            }
+        if endpoint is not None:
+            # the saved list serves the picture and clip pickers too
+            return {
+                "models": catalogue,
+                "image_models": [i for i in catalogue if looks_like_image_model(i)],
+                "video_models": [i for i in catalogue if looks_like_video_model(i)],
+                "source": "catalogue",
+                "error": error,
+            }
         return {"models": catalogue, "source": "catalogue", "error": error}
 
     async def test_llm(self) -> dict[str, Any]:
@@ -1217,6 +1363,7 @@ class Connections:
                 "connected": DEVICE_SERVER in live_tools,
                 "from_app": False,
                 "builtin": True,
+                "env": [],
             }
         ]
 
@@ -1260,6 +1407,8 @@ class Connections:
             "cloud": self.svc.app.llm_is_cloud(),
             "base_url": gui.base_url or "",
             "key_source": self._key_source(gui.api_key),
+            # the endpoint of the list the slot points at (#294); "" for any other host
+            "endpoint": self.endpoints.id_for(gui.endpoint) if gui.model else "",
             "max_steps": gui.max_steps,
             "phone": self.svc.phone.status(),
         }
@@ -1273,13 +1422,20 @@ class Connections:
         model; a catalogue id brings its endpoint along and must have models that see.
         """
         gui = dict(self.data.get("gui") or {})
+        body = dict(body)
+        if body.get("endpoint"):
+            # one of the endpoint list (#294): its address, its key by reference
+            fields = self.endpoints.slot_fields(str(body["endpoint"]))
+            body.update({"provider": fields["provider"], "base_url": fields["base_url"]})
+            body["api_key"] = None
+            gui["api_key"] = fields["api_key"]
         if body.get("enabled") is not None:
             gui["enabled"] = bool(body["enabled"])
         for key in ("provider", "model", "base_url"):
             if body.get(key) is not None:
                 gui[key] = str(body[key]).strip()
         if gui.get("base_url"):
-            gui["base_url"] = normalize_base_url(gui["base_url"])
+            gui["base_url"] = check_base_url(gui["base_url"])
         if gui.get("provider") not in (None, ""):
             gui["provider"] = self._check_slot_provider(
                 str(gui["provider"]), gui.get("base_url") or "", "vision"
@@ -1351,6 +1507,8 @@ class Connections:
             "model": media.model,
             "base_url": media.base_url or "",
             "key_source": self._key_source(media.api_key),
+            # the endpoint of the list the slot points at (#294); "" for any other host
+            "endpoint": self.endpoints.id_for(media.endpoint) if media.configured else "",
             "configured": media.configured,
             "from_app": bool(self.data.get(slot)),
             "effective_provider": resolved["provider"] if resolved else "",
@@ -1368,11 +1526,19 @@ class Connections:
         if slot not in _MEDIA_KEYS:
             raise ValueError("slot must be 'image' or 'video'")
         media = dict(self.data.get(slot) or {})
+        body = dict(body)
+        if body.get("endpoint"):
+            # one of the endpoint list (#294): its address, its key by reference
+            fields = self.endpoints.slot_fields(str(body["endpoint"]))
+            body.update({"provider": fields["provider"], "base_url": fields["base_url"]})
+            body["api_key"] = fields["api_key"] or None
+            if not fields["api_key"]:
+                media["api_key"] = ""
         for key in ("provider", "model", "base_url"):
             if body.get(key) is not None:
                 media[key] = str(body[key]).strip()
         if media.get("base_url"):
-            media["base_url"] = normalize_base_url(media["base_url"])
+            media["base_url"] = check_base_url(media["base_url"])
         if media.get("provider"):
             media["provider"] = self._check_slot_provider(
                 media["provider"], media.get("base_url") or "", slot
@@ -1473,6 +1639,10 @@ class Connections:
 
     # ------------------------------------------------------------------ mcp
     async def add_mcp(self, body: dict[str, Any]) -> dict[str, Any]:
+        """Connect a server and keep it. The values of its ``env`` go into the vault
+        (``MCP_<SERVER>_<KEY>``) and ``app-settings.json`` keeps ``{{vault:NAME}}``
+        references, as it does for every other secret; a value typed as a reference
+        already is kept as written."""
         cfg = MCPServerSettings.model_validate(
             {
                 k: v
@@ -1485,12 +1655,27 @@ class Connections:
             raise ValueError("the server needs a name")
         if not (cfg.command or cfg.url):
             raise ValueError("give either a command to run or a URL to connect to")
+        env: dict[str, str] = {}
+        for key, value in cfg.env.items():
+            if not key.strip():
+                raise ValueError("an environment variable needs a name")
+            if value and not self.vault.has_placeholders(value):
+                secret = mcp_env_vault_name(cfg.name, key)
+                self.vault.set(secret, value)
+                value = "{{vault:" + secret + "}}"
+            env[key] = value
+        cfg = cfg.model_copy(update={"env": env})
         await self.remove_mcp(cfg.name, save=False)
-        servers = [
-            m
-            for m in (self.data.get("mcp") or {}).get("servers") or []
-            if m.get("name") != cfg.name
-        ]
+        stored = (self.data.get("mcp") or {}).get("servers") or []
+        servers = [m for m in stored if m.get("name") != cfg.name]
+        # a server replaced under the same name: the vault entries its old `env` made
+        # and the new one does not name go with it
+        keep = set(self._mcp_env_secrets(cfg.name, env))
+        for old in stored:
+            if old.get("name") == cfg.name:
+                for secret in self._mcp_env_secrets(cfg.name, old.get("env") or {}):
+                    if secret not in keep:
+                        self.vault.delete(secret)
         servers.append(cfg.model_dump(mode="json"))
         self.data["mcp"] = {"servers": servers}
         self._save()
@@ -1523,11 +1708,29 @@ class Connections:
             await manager.close()
         self.settings.mcp.servers = [m for m in self.settings.mcp.servers if m.name != name]
         if save:
+            # the vault entries `add_mcp` made for this server's env go with it; one the
+            # person set themselves (any other name) stays
+            for m in servers:
+                if m.get("name") == name:
+                    for secret in self._mcp_env_secrets(name, m.get("env") or {}):
+                        self.vault.delete(secret)
             self.data["mcp"] = {"servers": [m for m in servers if m.get("name") != name]}
             self._save()
             self._publish()
             self._share_connectors()
         return True
+
+    @staticmethod
+    def _mcp_env_secrets(server: str, env: dict[str, Any]) -> list[str]:
+        """The vault entries an ``env`` block references under this server's own prefix
+        (``MCP_<SERVER>_``), the ones ``add_mcp`` created and ``remove_mcp`` may delete."""
+        prefix = mcp_env_vault_name(server, "x").rsplit("_", 1)[0] + "_"
+        out: list[str] = []
+        for value in env.values():
+            for match in PLACEHOLDER_RE.finditer(str(value)):
+                if match.group(1).startswith(prefix):
+                    out.append(match.group(1))
+        return out
 
     async def close(self) -> None:
         for manager in self._mcp.values():
@@ -1560,4 +1763,5 @@ __all__ = [
     "PROVIDERS",
     "VIDEO_KEY",
     "Connections",
+    "fetch_models",
 ]

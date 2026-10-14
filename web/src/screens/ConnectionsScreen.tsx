@@ -26,10 +26,15 @@ import {
   Upload,
 } from "lucide-react";
 import {
+  Children,
+  cloneElement,
+  isValidElement,
   useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
+  type ReactElement,
   type ReactNode,
 } from "react";
 import { accessibilityState, androidApp } from "../android";
@@ -43,14 +48,29 @@ import { ModelPicker } from "../components/ModelPicker";
 import { getLocale, useT } from "../i18n";
 import type { ModelGroup } from "../model-list";
 import { useStore } from "../store";
-import { CLOUD_ID, CLOUD_KEY_REF, CUSTOM_ID, currentChoice, handsValue, mediaChoices, slotValue, type MediaChoice } from "../models";
+import {
+  CLOUD_ID,
+  CLOUD_KEY_REF,
+  CUSTOM_ID,
+  currentChoice,
+  endpointChoice,
+  endpointGroups,
+  endpointLabel,
+  endpointOf,
+  handsValue,
+  mediaChoices,
+  slotValue,
+  type MediaChoice,
+} from "../models";
 import { CATALOGUE, catalogueIdFor, coversLine, editionFor, invalidateProviders, presetFor, providerName, regionOf, unavailableLine, type Capability } from "../providers";
 import { modelSees, orderPresets } from "../region";
-import type { Contact, ConnectionsData, SharedConnector, TestResult } from "../types";
+import type { Contact, ConnectionsData, CustomEndpoint, ProviderPreset, SharedConnector, TestResult } from "../types";
 import { cx, relativeTime } from "../util";
 
 /** the runtime's preset for the account's model, present in `providers` while signed in */
 const CLOUD_PRESET = "nanomuse_cloud";
+/** the provider tile that adds a custom endpoint to the runtime's list (#294); not a preset of the runtime's */
+const ADD_ENDPOINT = "add-endpoint";
 
 /**
  * Connections: the model, your mailbox, your calendar, a browser, MCP servers — plugged in and out from the
@@ -129,9 +149,15 @@ export function ModelCard({
   const t = useT();
   const [open, setOpen] = useState(!!compact);
   const presets = data.providers;
+  // the custom endpoints of the runtime's list (#294); a runtime without one offers the single
+  // "custom" slot as before
+  const endpoints = data.endpoints ?? [];
+  const hasList = data.endpoints !== undefined;
+  const currentEndpoint = endpoints.find((e) => e.id === data.llm.endpoint) ?? null;
   // a member of the relay may name any model of the provider's for its kind, not only the menu's
   const anyModel = !!state.hub?.account?.any_model;
   const currentPreset =
+    (currentEndpoint ? endpointChoice(currentEndpoint.id) : null) ??
     Object.entries(presets).find(
       ([id, p]) =>
         id !== "custom" &&
@@ -146,7 +172,18 @@ export function ModelCard({
         data.llm.base_url.startsWith(p.base_url),
     )?.[0] ??
     (data.llm.base_url ? "custom" : "deepseek");
+  // a tile's preset: the runtime's, the one that adds an endpoint, or one standing for an
+  // endpoint of the list
+  const presetOf = (id: string): ProviderPreset | undefined => {
+    if (id === ADD_ENDPOINT) return { label: t("Add an endpoint"), subtitle: presets.custom?.subtitle, group: "local", provider: "openai", base_url: "", key_optional: true };
+    const own = endpointOf(id);
+    if (!own) return presets[id];
+    const e = endpoints.find((x) => x.id === own);
+    return e ? { label: endpointLabel(e), group: "local", provider: "openai", base_url: e.base_url, models: e.models, no_key: true } : undefined;
+  };
   const [preset, setPreset] = useState(currentPreset);
+  // the endpoint tile just added: chosen as soon as the list arrives with it
+  const wantEndpoint = useRef("");
   const [model, setModel] = useState(data.llm.model);
   const [baseUrl, setBaseUrl] = useState(data.llm.base_url);
   const [key, setKey] = useState("");
@@ -167,6 +204,8 @@ export function ModelCard({
   // the hands model (contract C4): "" = the default — the relay's hands model with the
   // account, the chat model otherwise; set here, it goes to [gui] model
   const [guiModel, setGuiModel] = useState(data.gui?.model ?? "");
+  // the endpoint of the list the hands model answers through, when not the chat model's (#294)
+  const [guiEndpoint, setGuiEndpoint] = useState(data.gui?.endpoint ?? "");
   // the endpoint's own list of models, fetched when the provider, URL or key changes
   const [models, setModels] = useState<{
     list: string[];
@@ -182,7 +221,7 @@ export function ModelCard({
     gui: string[];
     source: "live" | "catalogue" | "loading";
   }>({
-    list: presets[currentPreset]?.models ?? [],
+    list: presetOf(currentPreset)?.models ?? [],
     image: [],
     video: [],
     menu: [],
@@ -205,27 +244,46 @@ export function ModelCard({
     setProxy(data.llm.proxy ?? "");
     setProxyTouched(false);
     setGuiModel(data.gui?.model ?? "");
+    setGuiEndpoint(data.gui?.endpoint ?? "");
+    const added = endpoints.find((e) => e.id === wantEndpoint.current);
+    if (added) {
+      // the endpoint just added stands selected, its first model in the field
+      wantEndpoint.current = "";
+      setPreset(endpointChoice(added.id));
+      setBaseUrl(added.base_url);
+      if (!added.models.includes(data.llm.model)) setModel(added.models[0] ?? "");
+      setTyped(false);
+      return;
+    }
     setPreset(currentPreset);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.llm, data.gui?.model]);
+  }, [data.llm, data.gui?.model, data.gui?.endpoint, data.endpoints]);
 
-  const p = presets[preset];
+  const p = presetOf(preset);
+  // the endpoint of the list the chosen tile stands for, if any
+  const ep = endpoints.find((e) => endpointChoice(e.id) === preset) ?? null;
+  // the tile that adds an endpoint to the list: its form instead of the model fields
+  const adding = preset === ADD_ENDPOINT;
   const effectiveUrl =
     preset === "custom" || !p?.base_url ? baseUrl : p.base_url;
 
   // ask the endpoint what it serves; the typed model is never replaced by the answer
   useEffect(() => {
-    if (!open) return;
+    if (!open || adding) return;
     let alive = true;
     const handle = setTimeout(
       () => {
         setModels((m) => ({ ...m, source: "loading" }));
         api
-          .llmModels({
-            preset,
-            base_url: effectiveUrl,
-            api_key: key || undefined,
-          })
+          .llmModels(
+            ep
+              ? { endpoint: ep.id }
+              : {
+                  preset,
+                  base_url: effectiveUrl,
+                  api_key: key || undefined,
+                },
+          )
           .then((r) => {
             if (!alive) return;
             setModels({
@@ -272,13 +330,13 @@ export function ModelCard({
 
   const pick = (id: string) => {
     setPreset(id);
-    const next = presets[id];
+    const next = presetOf(id);
     if (!next) return;
     if (next.base_url) setBaseUrl(next.base_url);
-    else if (presets[preset]?.base_url) setBaseUrl("");
+    else if (p?.base_url) setBaseUrl("");
     // a model typed by hand stays; an empty field or one from another preset's catalogue moves on
     const cameFromCatalogue =
-      !model || Object.values(presets).some((q) => q.models?.includes(model));
+      !model || Object.values(presets).some((q) => q.models?.includes(model)) || endpoints.some((e) => e.models.includes(model));
     if (
       cameFromCatalogue &&
       next.models?.length &&
@@ -318,6 +376,8 @@ export function ModelCard({
   const keyless = !!p?.no_key || (noKey && !!p?.key_optional);
   const status = data.llm.cloud
     ? { text: t("Your account's model"), tone: "ok" }
+    : data.llm.key_source === "none" && currentEndpoint
+      ? { text: t("No key"), tone: "ok" }
     : data.llm.key_source === "none" &&
         !presets[currentPreset]?.no_key &&
         !presets[currentPreset]?.key_optional
@@ -341,6 +401,14 @@ export function ModelCard({
       if (p?.cloud) {
         // the account's key stays the key; only the model is chosen here
         await api.cloudUseAsModel(model.trim());
+      } else if (ep) {
+        // an endpoint of the list: its address and key by id, never retyped here
+        await api.setLLM({
+          endpoint: ep.id,
+          model: model.trim(),
+          tool_mode: toolMode,
+          proxy: proxyTouched && data.llm.proxy !== undefined ? proxy.trim() : null,
+        });
       } else {
         await api.setLLM({
           provider: p?.provider ?? "openai",
@@ -352,8 +420,14 @@ export function ModelCard({
           proxy: proxyTouched && data.llm.proxy !== undefined ? proxy.trim() : null,
         });
       }
-      // the hands model rides on the chat model's endpoint and key (contract C4)
-      if (guiModel.trim() !== (data.gui?.model ?? "")) await api.setGui({ model: guiModel.trim() });
+      // the hands model rides on the chat model's endpoint and key (contract C4), unless it
+      // was picked from another endpoint of the list, which then lends its address and key
+      const guiWas = { model: data.gui?.model ?? "", endpoint: data.gui?.endpoint ?? "" };
+      if (guiModel.trim() !== guiWas.model || guiEndpoint !== guiWas.endpoint) {
+        if (guiEndpoint) await api.setGui({ endpoint: guiEndpoint, model: guiModel.trim() });
+        else if (guiWas.endpoint) await api.setGui({ model: guiModel.trim(), provider: "", base_url: "", api_key: "" });
+        else await api.setGui({ model: guiModel.trim() });
+      }
       setKey("");
       invalidateProviders();
       toast(t("Model saved"));
@@ -389,10 +463,18 @@ export function ModelCard({
     );
   // the region's own-key provider first (contract C5): Bailian on the mainland, OpenRouter elsewhere
   for (const g of groups) g.ids = orderPresets(g.ids, presets, state.hub?.account);
-  const needsUrl = preset === "custom" || !p?.base_url;
+  // the endpoints of the list stand first, the tile that adds one last (#294); the single
+  // "custom" slot stays only while the chat model is on an unlisted host outside the list
+  // (set in config.toml, say), or on a runtime without the list
+  const local = groups.find((g) => g.id === "local");
+  if (local) {
+    const rest = local.ids.filter((id) => id !== "custom" || !hasList || currentPreset === "custom");
+    local.ids = [...endpoints.map((e) => endpointChoice(e.id)), ...rest, ...(hasList ? [ADD_ENDPOINT] : [])];
+  }
+  const needsUrl = !ep && !adding && (preset === "custom" || !p?.base_url);
   // what the chosen provider covers, from the catalogue (contract C11); the account's model
   // covers all four through the relay, "custom" is whatever the endpoint happens to serve
-  const catalogueEntry = p?.cloud ? null : CATALOGUE.find((c) => c.id === catalogueIdFor(preset)) ?? null;
+  const catalogueEntry = p?.cloud || ep || adding ? null : CATALOGUE.find((c) => c.id === catalogueIdFor(preset)) ?? null;
   const region = regionOf(state.hub?.account);
   const locale = getLocale();
   const lacks = (cap: Capability) => !!catalogueEntry && !catalogueEntry.user_capabilities && !catalogueEntry.capabilities.includes(cap);
@@ -409,7 +491,7 @@ export function ModelCard({
       : model.trim();
   const handsOnCloud = !p?.cloud && lacks("vision") && !!cloudPreset;
   // what the hands use right now, as the runtime resolved it (the saved state, not the form)
-  const handsNow = data.gui ? handsValue(data.gui, data.llm, locale) : "";
+  const handsNow = data.gui ? handsValue(data.gui, data.llm, locale, CATALOGUE, endpoints) : "";
   const handsOptions = Array.from(
     new Set([
       ...(p?.cloud ? models.gui : []),
@@ -419,9 +501,17 @@ export function ModelCard({
   ).filter(Boolean);
   // the hands picker's one group: this provider's models that see, the catalogue's hands
   // default first (the relay's recommended one on nanoMuse Cloud), folded past eight
-  const handsProviderLabel = p?.cloud ? "nanoMuse Cloud" : catalogueEntry ? providerName(catalogueEntry, locale) : hostOf(effectiveUrl) || preset;
+  const handsProviderLabel = p?.cloud ? "nanoMuse Cloud" : ep ? endpointLabel(ep) : catalogueEntry ? providerName(catalogueEntry, locale) : hostOf(effectiveUrl) || preset;
   const handsPreset = p?.cloud ? (models.gui[0] ?? p.gui_model ?? "") : (catalogueEntry?.defaults.hands ?? p?.gui_model ?? "");
-  const handsGroups: ModelGroup[] = [{ key: "hands", label: handsProviderLabel, rows: handsOptions.map((id) => ({ id, name: id })), ...(handsPreset ? { default: handsPreset } : {}) }];
+  // ... and one group per other endpoint of the list, which lends the hands its address and key (#294)
+  const handsGroups: ModelGroup[] = [
+    { key: "hands", label: handsProviderLabel, rows: handsOptions.map((id) => ({ id, name: id })), ...(handsPreset ? { default: handsPreset } : {}) },
+    ...endpointGroups(endpoints, ep?.id ?? ""),
+  ];
+  // the hands model picked from an endpoint that is the chat model's own stands in its group
+  const handsGroup = guiEndpoint && guiEndpoint !== ep?.id ? endpointChoice(guiEndpoint) : "hands";
+  const handsEndpoint = endpoints.find((e) => e.id === guiEndpoint) ?? null;
+  const handsText = guiModel ? `${handsGroup === "hands" ? handsProviderLabel : handsEndpoint ? endpointLabel(handsEndpoint) : ""} · ${guiModel}` : t("Automatic");
   const willAppendV1 = needsUrl && /^https?:\/\/[^/]+\/?$/.test(baseUrl.trim());
 
   return (
@@ -430,8 +520,10 @@ export function ModelCard({
       title={t("Chat model")}
       summary={
         data.llm.cloud
-          ? `nanoMuse Cloud · ${data.llm.model || "—"}`
-          : `${data.llm.model || "—"}${data.llm.base_url ? ` · ${hostOf(data.llm.base_url)}` : ""}`
+          ? `nanoMuse Cloud · ${data.llm.model || t("No model yet")}`
+          : currentEndpoint
+            ? `${data.llm.model || t("No model yet")} · ${endpointLabel(currentEndpoint)}`
+            : `${data.llm.model || t("No model yet")}${data.llm.base_url ? ` · ${hostOf(data.llm.base_url)}` : ""}`
       }
       status={status}
       open={open}
@@ -448,7 +540,11 @@ export function ModelCard({
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {g.ids.map((id) => {
-                    const q = presets[id];
+                    const q = presetOf(id);
+                    if (!q) return null;
+                    const own = endpoints.find((e) => endpointChoice(e.id) === id);
+                    // an endpoint's tile reads its name over its host
+                    const subtitle = own ? (hostOf(own.base_url) !== q.label ? hostOf(own.base_url) : undefined) : q.subtitle ? t(q.subtitle) : undefined;
                     return (
                       <button
                         key={id}
@@ -465,13 +561,15 @@ export function ModelCard({
                           className={cx(
                             "block text-[13px]",
                             preset === id && "font-medium",
+                            id === ADD_ENDPOINT && "inline-flex items-center gap-1",
                           )}
                         >
+                          {id === ADD_ENDPOINT && <Plus size={13} />}
                           {q.label}
                         </span>
-                        {q.subtitle && (
+                        {subtitle && (
                           <span className="block text-[10.5px] opacity-80">
-                            {t(q.subtitle)}
+                            {subtitle}
                           </span>
                         )}
                       </button>
@@ -504,6 +602,30 @@ export function ModelCard({
           </div>
         </div>
       </Field>
+      {adding && (
+        <AddEndpointForm
+          onAdded={(e) => {
+            wantEndpoint.current = e.id;
+            invalidateProviders();
+            onChange();
+          }}
+        />
+      )}
+      {ep && (
+        <Field label={t("Endpoint")}>
+          <EndpointCard
+            endpoint={ep}
+            onChange={() => {
+              invalidateProviders();
+              onChange();
+            }}
+            onModels={(list) => {
+              setModels((m) => ({ ...m, list, source: "live" }));
+              if (list.length && !typed && !list.includes(model)) setModel(list[0]);
+            }}
+          />
+        </Field>
+      )}
       {needsUrl && (
         <Field
           label={t("Base URL")}
@@ -525,6 +647,7 @@ export function ModelCard({
           />
         </Field>
       )}
+      {!adding && (
       <Field
         label={t("Chat model")}
         hint={
@@ -541,6 +664,8 @@ export function ModelCard({
               ? t("{n} models from the endpoint", { n: models.list.length })
               : models.source === "loading"
               ? t("Asking the endpoint…")
+              : models.list.length && ep
+                ? t("{n} models saved with this endpoint", { n: models.list.length })
               : models.list.length
                 ? t(
                     "Could not list the endpoint's models; these are the usual ones.",
@@ -633,25 +758,35 @@ export function ModelCard({
           </div>
         )}
       </Field>
+      )}
+      {!adding && (
       <Field
         label={t("Hands model")}
         hint={
           p?.cloud
-            ? t("The model that looks at screens when the hands run: the phone, this computer, a page the browser cannot read. Your account's hands model is {model}; the chat model above is a different pick.", { model: handsDefault || "—" })
+            ? t("The model that looks at screens when the hands run: the phone, this computer, a page the browser cannot read. Your account's hands model is {model}; the chat model above is a different pick.", { model: handsDefault || t("none") })
             : handsOnCloud
-              ? t("The model that looks at screens when the hands run. This provider has no model that sees, so the hands use your account's, {model}, unless you pick one here.", { model: handsDefault || "—" })
-              : t("The model that looks at screens when the hands run: a small, fast one that takes pictures, on the same endpoint and key. Default: this provider's own hands model.")
+              ? t("The model that looks at screens when the hands run. This provider has no model that sees, so the hands use your account's, {model}, unless you pick one here.", { model: handsDefault || t("none") })
+              : endpoints.length > (ep ? 1 : 0)
+                ? t("The model that looks at screens when the hands run: a small, fast one that takes pictures. Pick one of this provider's, or one from another endpoint of your list, which then lends its address and key.")
+                : t("The model that looks at screens when the hands run: a small, fast one that takes pictures, on the same endpoint and key. Default: this provider's own hands model.")
         }
       >
         <ModelPicker
           label={t("Hands model")}
-          text={guiModel ? `${handsProviderLabel} · ${guiModel}` : t("Automatic")}
+          text={handsText}
           heads={[{ value: "", label: t("Automatic") }]}
           headValue={guiModel ? undefined : ""}
           groups={handsGroups}
-          current={guiModel ? { group: "hands", id: guiModel } : undefined}
-          onHead={() => setGuiModel("")}
-          onPick={(_group, row) => setGuiModel(row.id)}
+          current={guiModel ? { group: handsGroup, id: guiModel } : undefined}
+          onHead={() => {
+            setGuiModel("");
+            setGuiEndpoint("");
+          }}
+          onPick={(group, row) => {
+            setGuiModel(row.id);
+            setGuiEndpoint(endpointOf(group) ?? "");
+          }}
         />
         {handsNow && <p className="mt-1.5 text-[12px] text-muted">{t("Currently {value}", { value: handsNow })}</p>}
         {!p?.cloud && model.trim() && !guiModel && modelSees(model.trim()) === false && (
@@ -665,7 +800,8 @@ export function ModelCard({
           </div>
         )}
       </Field>
-      {!p?.no_key && (
+      )}
+      {!p?.no_key && !adding && (
         <Field
           label={t("API key")}
           hint={
@@ -682,6 +818,7 @@ export function ModelCard({
               value={key}
               onChange={(e) => setKey(e.target.value)}
               disabled={noKey && !!p?.key_optional}
+              aria-label={t("API key")}
               className={cx(inputCls, "pr-10 disabled:opacity-50")}
               placeholder={
                 data.llm.key_source === "vault" && preset === currentPreset
@@ -729,6 +866,7 @@ export function ModelCard({
           </div>
         </Field>
       )}
+      {!adding && (
       <Field
         label={t("Tool calling")}
         hint={t(
@@ -736,10 +874,11 @@ export function ModelCard({
         )}
       >
         <div className="flex gap-1.5">
-          {["auto", "native", "prompt"].map((m) => (
+          {TOOL_MODES.map(([m, label]) => (
             <button
               key={m}
               type="button"
+              aria-pressed={toolMode === m}
               onClick={() => setToolMode(m)}
               className={cx(
                 "rounded-full px-3 py-1.5 text-[13px] border",
@@ -748,12 +887,13 @@ export function ModelCard({
                   : "border-border text-muted",
               )}
             >
-              {m}
+              {t(label)}
             </button>
           ))}
         </div>
       </Field>
-      {!p?.cloud && data.llm.proxy !== undefined && (
+      )}
+      {!p?.cloud && !adding && data.llm.proxy !== undefined && (
         <Field
           label={t("Proxy (optional)")}
           hint={t("Only this provider's requests go through it. nanoMuse Cloud never does.")}
@@ -774,6 +914,7 @@ export function ModelCard({
           />
         </Field>
       )}
+      {!adding && (
       <div className="flex gap-2 pt-1">
         <button
           type="button"
@@ -802,6 +943,7 @@ export function ModelCard({
           {t("Test")}
         </button>
       </div>
+      )}
       {test && (
         <TestLine
           result={test}
@@ -812,6 +954,314 @@ export function ModelCard({
         />
       )}
     </Card>
+  );
+}
+
+/** the `tool_mode` values the runtime accepts, with the word each chip shows (translated) */
+const TOOL_MODES: Array<[string, string]> = [
+  ["auto", "Auto"],
+  ["native", "Native"],
+  ["prompt", "Prompt"],
+];
+
+// ------------------------------------------------------------------ endpoints of one's own (#294)
+/** what a slot is called in an endpoint's "used by" line */
+const SLOT_NAMES: Record<CustomEndpoint["slots"][number], string> = {
+  chat: "the chat model",
+  hands: "the hands",
+  image: "pictures",
+  video: "clips",
+};
+
+/**
+ * The form that adds a custom OpenAI-compatible endpoint to the runtime's list: a name, the
+ * address, a key of its own (or none), and the ids of its models when it does not list them
+ * at /models. The runtime keeps the key in the vault under the endpoint's own name; the
+ * entry then stands in the provider tiles and in the hands, pictures and clips pickers.
+ */
+function AddEndpointForm({ onAdded }: { onAdded: (e: CustomEndpoint) => void }) {
+  const t = useT();
+  const { toast } = useStore();
+  const [label, setLabel] = useState("");
+  const [baseUrl, setBaseUrl] = useState("");
+  const [key, setKey] = useState("");
+  const [showKey, setShowKey] = useState(false);
+  const [noKey, setNoKey] = useState(false);
+  const [typedModels, setTypedModels] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const willAppendV1 = /^https?:\/\/[^/]+\/?$/.test(baseUrl.trim());
+
+  const add = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const added = await api.addEndpoint({
+        label: label.trim(),
+        base_url: baseUrl.trim(),
+        api_key: noKey ? "" : key,
+        models: typedModels,
+      });
+      toast(t("Endpoint added"));
+      onAdded(added);
+    } catch (e) {
+      setError(t((e as Error).message));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3 rounded-2xl border border-border p-3">
+      <p className="text-[12.5px] text-muted leading-snug">
+        {t("An endpoint joins your list with its own key and stays there; add as many as you use. Pick one as the chat model, or use its models for the hands, pictures and clips.")}
+      </p>
+      <Field label={t("Name (optional)")} hint={t("How the endpoint reads in the lists; its host when left empty.")}>
+        <input value={label} onChange={(e) => setLabel(e.target.value)} className={inputCls} placeholder={t("for example: my gateway")} autoCapitalize="off" />
+      </Field>
+      <Field
+        label={t("Base URL")}
+        hint={willAppendV1 ? t("/v1 is added when the URL has no path.") : t("The endpoint that serves /chat/completions, for example http://127.0.0.1:8000/v1.")}
+      >
+        <input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} className={inputCls} placeholder="https://host/v1" inputMode="url" autoCapitalize="off" />
+      </Field>
+      <Field label={t("API key")} hint={noKey ? t("No key will be sent.") : t("Stored encrypted in the vault under this endpoint's own name.")}>
+        <div className="relative">
+          <input
+            type={showKey ? "text" : "password"}
+            value={key}
+            onChange={(e) => setKey(e.target.value)}
+            disabled={noKey}
+            aria-label={t("API key")}
+            className={cx(inputCls, "pr-10 disabled:opacity-50")}
+            placeholder="sk-…"
+            autoComplete="off"
+            autoCapitalize="off"
+            spellCheck={false}
+          />
+          <button type="button" onClick={() => setShowKey(!showKey)} aria-label={showKey ? t("Hide key") : t("Show key")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-muted">
+            {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        </div>
+        <label className="mt-1.5 inline-flex items-center gap-1.5 text-[12px] text-muted">
+          <input type="checkbox" checked={noKey} onChange={(e) => setNoKey(e.target.checked)} className="accent-accent" /> {t("No key")}
+        </label>
+      </Field>
+      <Field
+        label={t("Models (optional)")}
+        hint={t("Leave empty when the endpoint lists its models at /models. Otherwise type their ids, separated by commas.")}
+      >
+        <input value={typedModels} onChange={(e) => setTypedModels(e.target.value)} className={inputCls} placeholder="model-a, model-b" autoCapitalize="off" autoCorrect="off" spellCheck={false} />
+      </Field>
+      {error && <div className="rounded-2xl bg-rose-500/12 px-3 py-2 text-[12.5px] text-rose-700 dark:text-rose-300">{error}</div>}
+      <button type="button" disabled={busy || !baseUrl.trim()} onClick={() => void add()} className={primaryBtn}>
+        {busy ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} {t("Add endpoint")}
+      </button>
+    </div>
+  );
+}
+
+/**
+ * One endpoint of the list, under its tile: name and host, where its key is, the models it
+ * serves and the slots that answer through it, with the ways to change it: rename, change
+ * the key, retype the models, ask it for its models again, remove it. The slots that use
+ * the endpoint follow a rename, a new key or a move; removing it needs the chat model
+ * elsewhere first, and sets the hands, pictures or clips on it back to automatic.
+ */
+function EndpointCard({
+  endpoint,
+  onChange,
+  onModels,
+}: {
+  endpoint: CustomEndpoint;
+  onChange: () => void;
+  /** the endpoint listed its models again: the chat model picker follows */
+  onModels: (list: string[]) => void;
+}) {
+  const t = useT();
+  const { toast } = useStore();
+  const [mode, setMode] = useState<"" | "rename" | "key" | "models" | "remove">("");
+  const [label, setLabel] = useState(endpoint.label);
+  const [key, setKey] = useState("");
+  const [showKey, setShowKey] = useState(false);
+  const [noKey, setNoKey] = useState(false);
+  const [typedModels, setTypedModels] = useState(endpoint.models.join(", "));
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const modelsText = endpoint.models.join(", ");
+
+  useEffect(() => {
+    setLabel(endpoint.label);
+    setTypedModels(modelsText);
+    setMode("");
+    setKey("");
+    setNoKey(false);
+    setNote(null);
+  }, [endpoint.id, endpoint.label, modelsText]);
+
+  const run = async (work: () => Promise<unknown>, done: string) => {
+    setBusy(true);
+    setNote(null);
+    try {
+      await work();
+      if (done) toast(done);
+      setMode("");
+      onChange();
+    } catch (e) {
+      setNote(t((e as Error).message));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const refresh = async () => {
+    setBusy(true);
+    setNote(null);
+    try {
+      const r = await api.refreshEndpointModels(endpoint.id);
+      if (r.source === "live") {
+        onModels(r.models);
+        toast(t("{n} models from the endpoint", { n: r.models.length }));
+        onChange();
+      } else {
+        setNote(t("The endpoint did not list its models; the saved list stands.") + (r.error ? ` ${t(r.error)}` : ""));
+      }
+    } catch (e) {
+      setNote(t((e as Error).message));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const keyLine =
+    endpoint.key_source === "vault"
+      ? t("Key in vault")
+      : endpoint.key_source === "config"
+        ? t("Key from config")
+        : endpoint.key_source === "missing"
+          ? t("Key missing from vault")
+          : t("No key");
+  const usedBy = endpoint.slots.map((s) => t(SLOT_NAMES[s])).join(getLocale() === "zh-CN" ? "、" : ", ");
+  const chatUsesIt = endpoint.slots.includes("chat");
+  const linkCls = "text-[12.5px] text-accent disabled:opacity-50";
+
+  return (
+    <div className="space-y-2 rounded-2xl border border-border p-3 text-[13px]">
+      <div>
+        <span className="font-medium text-fg">{endpointLabel(endpoint)}</span>
+        <span className="text-muted"> · {hostOf(endpoint.base_url)}</span>
+      </div>
+      <div className="text-[12px] text-muted">
+        {keyLine} · {t("{n} models", { n: endpoint.models.length })}
+        {usedBy ? ` · ${t("Used by {slots}", { slots: usedBy })}` : ""}
+      </div>
+      {mode === "" && (
+        <div className="flex flex-wrap gap-x-3 gap-y-1">
+          <button type="button" className={linkCls} disabled={busy} onClick={() => setMode("rename")}>
+            {t("Rename")}
+          </button>
+          <button type="button" className={linkCls} disabled={busy} onClick={() => setMode("key")}>
+            {t("Change key")}
+          </button>
+          <button type="button" className={linkCls} disabled={busy} onClick={() => setMode("models")}>
+            {t("Edit models")}
+          </button>
+          <button type="button" className={linkCls} disabled={busy} onClick={() => void refresh()}>
+            {busy ? <Loader2 size={12} className="inline animate-spin" /> : <RefreshCw size={12} className="inline" />} {t("Ask for its models")}
+          </button>
+          <button type="button" className={cx(linkCls, "text-rose-600 dark:text-rose-300")} disabled={busy} onClick={() => setMode("remove")}>
+            {t("Remove")}
+          </button>
+        </div>
+      )}
+      {mode === "rename" && (
+        <div className="space-y-2">
+          <input value={label} onChange={(e) => setLabel(e.target.value)} className={inputCls} placeholder={hostOf(endpoint.base_url)} autoCapitalize="off" aria-label={t("Name")} />
+          <div className="flex gap-2">
+            <button type="button" disabled={busy} className={primaryBtn} onClick={() => void run(() => api.updateEndpoint(endpoint.id, { label: label.trim() }), t("Endpoint renamed"))}>
+              {t("Save")}
+            </button>
+            <button type="button" className={secondaryBtn} onClick={() => setMode("")}>
+              {t("Cancel")}
+            </button>
+          </div>
+        </div>
+      )}
+      {mode === "key" && (
+        <div className="space-y-2">
+          <div className="relative">
+            <input
+              type={showKey ? "text" : "password"}
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+              disabled={noKey}
+              className={cx(inputCls, "pr-10 disabled:opacity-50")}
+              placeholder={endpoint.key_source === "vault" ? "••••••••" : "sk-…"}
+              aria-label={t("API key")}
+              autoComplete="off"
+              autoCapitalize="off"
+              spellCheck={false}
+            />
+            <button type="button" onClick={() => setShowKey(!showKey)} aria-label={showKey ? t("Hide key") : t("Show key")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-muted">
+              {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+          <label className="inline-flex items-center gap-1.5 text-[12px] text-muted">
+            <input type="checkbox" checked={noKey} onChange={(e) => setNoKey(e.target.checked)} className="accent-accent" /> {t("No key")}
+          </label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={busy || (!noKey && !key.trim())}
+              className={primaryBtn}
+              onClick={() => void run(() => api.updateEndpoint(endpoint.id, { api_key: noKey ? "" : key.trim() }), t("Key saved"))}
+            >
+              {t("Save")}
+            </button>
+            <button type="button" className={secondaryBtn} onClick={() => setMode("")}>
+              {t("Cancel")}
+            </button>
+          </div>
+        </div>
+      )}
+      {mode === "models" && (
+        <div className="space-y-2">
+          <input value={typedModels} onChange={(e) => setTypedModels(e.target.value)} className={inputCls} placeholder="model-a, model-b" aria-label={t("Models")} autoCapitalize="off" autoCorrect="off" spellCheck={false} />
+          <div className="text-[12px] text-muted">{t("The ids of the models this endpoint serves, separated by commas; what it lists at /models is added after them.")}</div>
+          <div className="flex gap-2">
+            <button type="button" disabled={busy} className={primaryBtn} onClick={() => void run(() => api.updateEndpoint(endpoint.id, { models: typedModels }), t("Models saved"))}>
+              {t("Save")}
+            </button>
+            <button type="button" className={secondaryBtn} onClick={() => setMode("")}>
+              {t("Cancel")}
+            </button>
+          </div>
+        </div>
+      )}
+      {mode === "remove" && (
+        <div className="space-y-2">
+          <div className="text-[12.5px] text-muted">
+            {chatUsesIt
+              ? t("The chat model answers through this endpoint; pick another chat model first.")
+              : t("Its key goes with it, and the hands, pictures or clips set on it go back to automatic.")}
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={busy || chatUsesIt}
+              className={cx(primaryBtn, "bg-rose-600 hover:bg-rose-600/90")}
+              onClick={() => void run(() => api.removeEndpoint(endpoint.id), t("Endpoint removed"))}
+            >
+              <Trash2 size={16} /> {t("Remove")}
+            </button>
+            <button type="button" className={secondaryBtn} onClick={() => setMode("")}>
+              {t("Cancel")}
+            </button>
+          </div>
+        </div>
+      )}
+      {note && <div className="rounded-2xl bg-rose-500/12 px-3 py-2 text-[12.5px] text-rose-700 dark:text-rose-300">{note}</div>}
+    </div>
   );
 }
 
@@ -841,11 +1291,14 @@ export function MediaSlotCard({
   const region = regionOf(account);
   const locale = getLocale();
   const cloudBaseUrl = data.providers[CLOUD_PRESET]?.base_url ?? "";
+  // the custom endpoints of the runtime's list (#294), each with its own key
+  const endpoints = data.endpoints ?? [];
   const choices = mediaChoices(cap, {
     signedIn,
     chat: { provider: data.llm.provider, base_url: data.llm.base_url, cloud: !!data.llm.cloud },
     region,
     locale,
+    endpoints,
   });
   const current = currentChoice(info, cloudBaseUrl);
   const [open, setOpen] = useState(false);
@@ -868,7 +1321,9 @@ export function MediaSlotCard({
   const chosen = choices.find((c) => c.value === choice) ?? null;
   const entry = chosen?.entry ?? null;
   const edition = entry ? editionFor(entry, region) : null;
-  const endpointUrl = choice === CLOUD_ID ? cloudBaseUrl : choice === CUSTOM_ID ? baseUrl.trim() : (edition?.base_url ?? "");
+  // an endpoint of the list, chosen by id: its address and key are the runtime's to look up
+  const own = endpoints.find((e) => endpointChoice(e.id) === choice) ?? null;
+  const endpointUrl = choice === CLOUD_ID ? cloudBaseUrl : own ? own.base_url : choice === CUSTOM_ID ? baseUrl.trim() : (edition?.base_url ?? "");
   // the key the slot would use: one typed here, the one saved for this very provider, the
   // chat model's on its own host, the account's on nanoMuse Cloud
   const keySaved = current === choice && current !== "" && (info.key_source === "vault" || info.key_source === "config");
@@ -886,7 +1341,13 @@ export function MediaSlotCard({
       () => {
         setModels((m) => ({ ...m, source: "loading" }));
         api
-          .llmModels(choice === CLOUD_ID ? { preset: CLOUD_PRESET } : { preset: entry ? presetFor(entry.id) : "", base_url: endpointUrl, api_key: key || undefined })
+          .llmModels(
+            choice === CLOUD_ID
+              ? { preset: CLOUD_PRESET }
+              : own
+                ? { endpoint: own.id }
+                : { preset: entry ? presetFor(entry.id) : "", base_url: endpointUrl, api_key: key || undefined },
+          )
           .then((r) => {
             if (!alive) return;
             const list = (slot === "image" ? r.image_models : r.video_models) ?? [];
@@ -906,7 +1367,7 @@ export function MediaSlotCard({
 
   const title = slot === "image" ? t("Making pictures") : t("Making clips");
   const subtitle = slot === "image" ? t("Portraits of your Muse.") : t("Short clips of your Muse.");
-  const value = slotValue(info, locale);
+  const value = slotValue(info, locale, CATALOGUE, endpoints);
   const sentence = unavailableLine(t, cap, region, locale);
   const status = !info.effective_provider
     ? { text: t("Not set up"), tone: "warn" }
@@ -922,6 +1383,9 @@ export function MediaSlotCard({
         await api.setMedia(slot, { provider: "", model: "", base_url: "", api_key: "" });
       } else if (choice === CLOUD_ID) {
         await api.setMedia(slot, { provider: "openai", base_url: cloudBaseUrl, model: model.trim(), api_key: CLOUD_KEY_REF });
+      } else if (own) {
+        // an endpoint of the list lends the slot its address and key, by id
+        await api.setMedia(slot, { endpoint: own.id, model: model.trim() });
       } else if (choice === CUSTOM_ID) {
         await api.setMedia(slot, { provider: "openai", base_url: baseUrl.trim(), model: model.trim(), api_key: key ? key : null });
       } else {
@@ -940,8 +1404,9 @@ export function MediaSlotCard({
     }
   };
 
-  const groupTitle = (g: MediaChoice["group"]) => (g === "cloud" ? t("Your account") : g === "chat" ? t("The chat model's provider") : t("Add a provider"));
-  const groups = (["cloud", "chat", "add"] as const).map((g) => ({ g, items: choices.filter((c) => c.group === g) })).filter((x) => x.items.length);
+  const groupTitle = (g: MediaChoice["group"]) =>
+    g === "cloud" ? t("Your account") : g === "chat" ? t("The chat model's provider") : g === "endpoints" ? t("Your endpoints") : t("Add a provider");
+  const groups = (["cloud", "chat", "endpoints", "add"] as const).map((g) => ({ g, items: choices.filter((c) => c.group === g) })).filter((x) => x.items.length);
   const vaultName = slot === "image" ? "IMAGE_API_KEY" : "VIDEO_API_KEY";
 
   return (
@@ -1006,7 +1471,7 @@ export function MediaSlotCard({
           placeholder={defaultModel || undefined}
         />
       )}
-      {choice && choice !== CLOUD_ID && chosen?.group !== "chat" && (
+      {choice && choice !== CLOUD_ID && chosen?.group !== "chat" && !own && (
         <Field
           label={t("API key")}
           hint={keySaved ? t("A key is in the vault. Leave blank to keep it.") : t("Stored encrypted in the vault as {name}.", { name: vaultName })}
@@ -1016,6 +1481,7 @@ export function MediaSlotCard({
               type={showKey ? "text" : "password"}
               value={key}
               onChange={(e) => setKey(e.target.value)}
+              aria-label={t("API key")}
               className={cx(inputCls, "pr-10")}
               placeholder={keySaved ? "••••••••" : (entry?.key_hint || "sk-…")}
               autoComplete="off"
@@ -1034,6 +1500,7 @@ export function MediaSlotCard({
         </Field>
       )}
       {chosen?.group === "chat" && <p className="text-[12px] text-muted">{t("Uses the chat model's key.")}</p>}
+      {own && <p className="text-[12px] text-muted">{t("Uses the key saved with this endpoint.")}</p>}
       <div className="flex gap-2 pt-1">
         <button type="button" disabled={saving || needsKey || (choice === CUSTOM_ID && !baseUrl.trim())} onClick={() => void save()} className={primaryBtn}>
           {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />} {t("Save")}
@@ -1335,6 +1802,8 @@ export function SearchCard({
   const info = s.providers.find((p) => p.id === s.provider);
   const chosen = s.providers.find((p) => p.id === provider);
   const needsKey = !!chosen?.needs_key;
+  // You.com: works without a key, a key raises the daily limit; the field shows, as optional
+  const takesKey = needsKey || !!chosen?.optional_key;
   const status = s.configured
     ? { text: t("On"), tone: "ok" }
     : { text: t("Not set up"), tone: "warn" };
@@ -1357,7 +1826,7 @@ export function SearchCard({
       await api.setSearch({
         provider,
         base_url: provider === "searxng" ? baseUrl.trim() : "",
-        api_key: needsKey ? (key ? key : undefined) : "",
+        api_key: takesKey ? (key ? key : undefined) : "",
       });
       setKey("");
       toast(t("Saved"));
@@ -1398,7 +1867,7 @@ export function SearchCard({
     >
       <p className="text-[12.5px] text-muted leading-snug">
         {t(
-          "DuckDuckGo needs nothing, but it is scraped and rate-limits now and then. For searches that always work, use a provider with an API. Whichever you pick, a failed search falls back to DuckDuckGo with a note.",
+          "DuckDuckGo needs nothing, but it is scraped and rate-limits now and then. For searches that always work, use a provider with an API; You.com answers 100 a day without a key. Whichever you pick, a failed search falls back to DuckDuckGo with a note.",
         )}
       </p>
       <Field label={t("Provider")}>
@@ -1415,19 +1884,24 @@ export function SearchCard({
           ))}
         </div>
       </Field>
-      {needsKey && (
+      {takesKey && (
         <Field
-          label={t("API key")}
+          label={needsKey ? t("API key") : t("API key (optional)")}
           hint={
             s.key_source === "vault" && s.provider === provider
               ? t("A key is in the vault. Leave blank to keep it.")
-              : t("Stored encrypted in the vault as SEARCH_API_KEY.")
+              : needsKey
+                ? t("Stored encrypted in the vault as SEARCH_API_KEY.")
+                : t(
+                    "Without a key, 100 searches a day. A key raises the limit; stored encrypted in the vault as SEARCH_API_KEY.",
+                  )
           }
         >
           <input
             type="password"
             value={key}
             onChange={(ev) => setKey(ev.target.value)}
+            aria-label={t("API key")}
             className={inputCls}
             placeholder={
               s.key_source === "vault" && s.provider === provider
@@ -2104,13 +2578,15 @@ export function CalendarCard({
                 type="time"
                 value={dayStart}
                 onChange={(e) => setDayStart(e.target.value)}
+                aria-label={t("Working hours start")}
                 className={cx(inputCls, "w-auto")}
               />
-              <span className="text-muted">–</span>
+              <span className="text-muted">{t("to")}</span>
               <input
                 type="time"
                 value={dayEnd}
                 onChange={(e) => setDayEnd(e.target.value)}
+                aria-label={t("Working hours end")}
                 className={cx(inputCls, "w-auto")}
               />
               {(dayStart !== c.day_start || dayEnd !== c.day_end) && (
@@ -2465,6 +2941,7 @@ export function ContactsCard({
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              aria-label={t("Find someone, as the agent would")}
               className={cx(inputCls, "pl-9")}
               placeholder={t("Find someone, as the agent would")}
               autoComplete="off"
@@ -2854,6 +3331,24 @@ function PhoneCard({
 }
 
 // ------------------------------------------------------------------ mcp
+/**
+ * `KEY=value` lines typed in the MCP form, as the runtime's `env` block. A line without
+ * `=` or with an empty name is skipped; the value keeps everything after the first `=`.
+ * The runtime moves each value into the vault and keeps a `{{vault:MCP_<SERVER>_<KEY>}}`
+ * reference in app-settings.json; a value typed as a reference already is kept as typed.
+ */
+export function parseEnvLines(text: string): Record<string, string> {
+  const env: Record<string, string> = {};
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    const eq = line.indexOf("=");
+    if (eq <= 0) continue;
+    const key = line.slice(0, eq).trim();
+    if (key) env[key] = line.slice(eq + 1).trim();
+  }
+  return env;
+}
+
 function MCPCard({
   data,
   onChange,
@@ -2868,6 +3363,7 @@ function MCPCard({
   const [name, setName] = useState("");
   const [command, setCommand] = useState("");
   const [url, setUrl] = useState("");
+  const [envText, setEnvText] = useState("");
   const [risk, setRisk] = useState("moderate");
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -2879,12 +3375,14 @@ function MCPCard({
         name: name.trim(),
         command: parts[0] ?? null,
         args: parts.slice(1),
+        env: parseEnvLines(envText),
         url: url.trim() || null,
         risk,
       });
       setName("");
       setCommand("");
       setUrl("");
+      setEnvText("");
       setAdding(false);
       toast(t("Server connected"));
       onChange();
@@ -2964,6 +3462,18 @@ function MCPCard({
                   {t("{n} tools", { n: m.tools })} · {t(m.risk)}
                   {!m.from_app && !m.builtin && ` · ${t("from config.toml")}`}
                 </div>
+                {(m.env?.length ?? 0) > 0 && (
+                  <div className="text-[11.5px] text-muted truncate">
+                    {t("Environment: {names}", { names: (m.env ?? []).map((e) => e.name).join(", ") })}
+                  </div>
+                )}
+                {(m.env ?? []).some((e) => !e.vault) && (
+                  <div className="text-[11.5px] text-amber-700 dark:text-amber-300">
+                    {t("{names} is written as plain text in config.toml; keep it in the vault and write {{vault:NAME}} instead", {
+                      names: (m.env ?? []).filter((e) => !e.vault).map((e) => e.name).join(", "),
+                    })}
+                  </div>
+                )}
               </div>
               {m.from_app && (
                 <button
@@ -3032,6 +3542,21 @@ function MCPCard({
             />
           </Field>
           <Field
+            label={t("Environment")}
+            hint={t(
+              "One KEY=value per line for the command. Each value goes into the vault; the settings file keeps a reference, not the value.",
+            )}
+          >
+            <textarea
+              value={envText}
+              onChange={(e) => setEnvText(e.target.value)}
+              rows={2}
+              className={cx(inputCls, "resize-none font-mono text-[12.5px]")}
+              placeholder={"AMAP_MAPS_API_KEY=…"}
+              spellCheck={false}
+            />
+          </Field>
+          <Field
             label={t("or URL")}
             hint={t("A remote server over Streamable HTTP.")}
           >
@@ -3048,11 +3573,13 @@ function MCPCard({
             hint={t("Decides when the Sentinel asks you before a call.")}
           >
             <div className="flex gap-1.5">
-              {["safe", "moderate", "high"].map((r) => (
+              {/* the runtime's three risk levels (nanomuse/schema.py RiskLevel); any other word is a 400 */}
+              {["safe", "moderate", "sensitive"].map((r) => (
                 <button
                   key={r}
                   type="button"
                   onClick={() => setRisk(r)}
+                  aria-pressed={risk === r}
                   className={cx(
                     "rounded-full px-3 py-1.5 text-[13px] border",
                     risk === r
@@ -3323,6 +3850,43 @@ function OwnKeyHow() {
   );
 }
 
+type ControlProps = { id?: string; "aria-describedby"?: string };
+
+const CONTROL_TAGS = new Set(["input", "select", "textarea"]);
+
+function isControl(node: ReactNode): node is ReactElement<ControlProps> {
+  return isValidElement(node) && typeof node.type === "string" && CONTROL_TAGS.has(node.type);
+}
+
+/** `children` with its one native control (a direct child, or one level down inside a
+ * fragment or a wrapper element) given an id and the hint's id, so the field's label can
+ * point at it; `null` when there is no single control to point at. */
+function wireControl(
+  children: ReactNode,
+  id: string,
+  hintId?: string,
+): { node: ReactNode; id: string } | null {
+  const wire = (el: ReactElement<ControlProps>) => {
+    const used = el.props.id ?? id;
+    const node = cloneElement(el, {
+      id: used,
+      "aria-describedby": el.props["aria-describedby"] ?? hintId,
+    });
+    return { node, id: used };
+  };
+  if (isControl(children)) return wire(children);
+  if (!isValidElement<{ children?: ReactNode }>(children)) return null;
+  const inner = Children.toArray(children.props.children);
+  const controls = inner.filter(isControl);
+  if (controls.length !== 1) return null;
+  const one = wire(controls[0]);
+  const wired = inner.map((n) => (n === controls[0] ? one.node : n));
+  return { node: cloneElement(children, undefined, ...wired), id: one.id };
+}
+
+/** A labelled control. The label is tied to the control by id when the children hold one
+ * native input, select or textarea; a set of controls (chips, two inputs) is a group named by
+ * the label instead. */
 function Field({
   label,
   hint,
@@ -3332,12 +3896,27 @@ function Field({
   hint?: string;
   children: ReactNode;
 }) {
+  const id = useId();
+  const hintId = hint ? `${id}-hint` : undefined;
+  const labelId = `${id}-label`;
+  const wired = wireControl(children, id, hintId);
   return (
     <div>
-      <label className="text-[12px] text-muted">{label}</label>
-      <div className="mt-1">{children}</div>
+      <label id={labelId} htmlFor={wired?.id} className="text-[12px] text-muted">
+        {label}
+      </label>
+      <div
+        className="mt-1"
+        role={wired ? undefined : "group"}
+        aria-labelledby={wired ? undefined : labelId}
+        aria-describedby={wired ? undefined : hintId}
+      >
+        {wired ? wired.node : children}
+      </div>
       {hint && (
-        <div className="mt-1 text-[11.5px] text-muted leading-snug">{hint}</div>
+        <div id={hintId} className="mt-1 text-[11.5px] text-muted leading-snug">
+          {hint}
+        </div>
       )}
     </div>
   );

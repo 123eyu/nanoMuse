@@ -45,6 +45,9 @@
   --color-accent-soft-fg: var(--om-accent-soft-fg);
   --color-bubble-user: var(--om-bubble-user);
   --color-bubble-user-fg: var(--om-bubble-user-fg);
+  --color-bubble-agent: var(--om-bubble-agent);
+  --color-ink: var(--om-ink);
+  --color-ink-fg: var(--om-ink-fg);
   --font-sans:
     "Figtree", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
     "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
@@ -54,11 +57,16 @@
    system: light is the default everywhere, dark only when picked (src/theme.ts). */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-/* The palette is Muse's: near-white and near-black surfaces, one blue, grey for the agent's
-   bubbles and light blue for yours. `accent-soft` is the pale blue the selected tab sits on,
-   with the ink that reads on it: the Android app's primaryContainer and onPrimaryContainer. */
+/* The palette is Muse's: white and near-black surfaces, one blue. The conversation itself is
+   monochrome, as on the phone (ChatColors.kt): `ink` is black in the light theme and white in
+   the dark one, with `ink-fg` the opposite; it is your message pill (`bubble-user`, the same
+   values), the send button and the scroll-to-latest disc. The agent's pill (`bubble-agent`) is
+   a neutral grey a step off the canvas; in the dark it is the same step off `#181819` that the
+   phone's `#1c1c1e` is off black. The blue stays with links and the status line. `accent-soft`
+   is the pale blue the selected tab sits on, with the ink that reads on it: the Android app's
+   primaryContainer and onPrimaryContainer. */
 :root {
-  --om-bg: #fcfcfc;
+  --om-bg: #ffffff;
   --om-surface: #ffffff;
   --om-surface-2: #f2f2f4;
   --om-border: #e7e7ea;
@@ -67,8 +75,12 @@
   --om-accent: #0064d4;
   --om-accent-soft: #e5f0ff;
   --om-accent-soft-fg: #012f80;
-  --om-bubble-user: #d8e9ff;
-  --om-bubble-user-fg: #111112;
+  --om-ink: #000000;
+  --om-ink-fg: #ffffff;
+  --om-bubble-user: #000000;
+  --om-bubble-user-fg: #ffffff;
+  --om-bubble-user-selection: rgb(255 255 255 / 0.3);
+  --om-bubble-agent: #f2f2f7;
   color-scheme: light;
 }
 
@@ -82,8 +94,12 @@ html[data-theme="dark"] {
   --om-accent: #1793ff;
   --om-accent-soft: #1a2b4a;
   --om-accent-soft-fg: #e5f0ff;
-  --om-bubble-user: #1c3d66;
-  --om-bubble-user-fg: #ffffff;
+  --om-ink: #ffffff;
+  --om-ink-fg: #000000;
+  --om-bubble-user: #ffffff;
+  --om-bubble-user-fg: #000000;
+  --om-bubble-user-selection: rgb(0 0 0 / 0.3);
+  --om-bubble-agent: #2a2a2d;
   color-scheme: dark;
 }
 
@@ -120,15 +136,43 @@ html.desktop[data-platform="darwin"] .titlebar-room {
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }
-/* The floating tab bar (App.tsx). The pill is 62px tall (46px tap boxes inside 8px of padding)
-   and floats 12px above the bottom edge, over the safe area; `tabbar-room` is the same 74px as
+/* The floating tab bar (App.tsx). The pill is 58px tall (46px slots inside 6px of padding)
+   and floats 12px above the bottom edge, over the safe area; `tabbar-room` is the same 70px as
    padding under the screens, so nothing scrolls under the pill and the chat's composer stays
    above it. Both are `@utility`, not plain classes, so `wide:pb-0` on the same element wins. */
 @utility tabbar-float {
   bottom: calc(12px + env(safe-area-inset-bottom));
 }
 @utility tabbar-room {
-  padding-bottom: calc(74px + env(safe-area-inset-bottom));
+  padding-bottom: calc(70px + env(safe-area-inset-bottom));
+}
+
+/* The chat's header is a scrim, not a bar (ChatScreen.tsx): it lies over the conversation, which
+   scrolls under it and dissolves into the canvas. The shade is the canvas at 80 percent at the
+   top edge, 35 percent past the middle, clear at the bottom, as the phone draws it. The wheel
+   and a touch over the empty parts reach the list underneath; only the buttons take them. */
+.header-scrim {
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--om-bg) 80%, transparent) 0%,
+    color-mix(in srgb, var(--om-bg) 35%, transparent) 55%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+.header-scrim :is(button, a, [role="menu"]) {
+  pointer-events: auto;
+}
+/* While older messages are being read, 80px at the top edge fade fully into the canvas, so a
+   message half under the header reads as leaving rather than cut. Comes and goes with the scroll. */
+.list-fade-top {
+  background: linear-gradient(to bottom, var(--om-bg), transparent);
+  transition: opacity 250ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .list-fade-top {
+    transition: none;
+  }
 }
 
 /* Scrollbars: thin and quiet on a desktop, none at all at phone widths or on touch screens —
@@ -212,8 +256,15 @@ html.desktop[data-platform="darwin"] .titlebar-room {
   text-underline-offset: 2px;
   word-break: break-all;
 }
+/* On the ink pill a link keeps the pill's own text colour (the blue does not read on black or
+   on white at 15 px); the underline tells it apart. A selection is a translucent wash of that
+   text colour, so the selected words stay readable on the pill in both themes. */
 .bubble-user .md a {
-  color: var(--om-accent);
+  color: var(--om-bubble-user-fg);
+}
+.bubble-user ::selection {
+  background: var(--om-bubble-user-selection);
+  color: var(--om-bubble-user-fg);
 }
 .md code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -426,4 +477,13 @@ html.desktop[data-platform="darwin"] .titlebar-room {
 }
 .drawer-in {
   animation: om-drawer-in 0.2s ease-out;
+}
+/* with reduced motion asked for, sheets, drawers and toasts appear in place and the typing dots hold still */
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .sheet-in,
+  .drawer-in,
+  .typing-dot {
+    animation: none;
+  }
 }

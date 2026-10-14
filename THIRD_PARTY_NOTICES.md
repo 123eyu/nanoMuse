@@ -61,9 +61,17 @@ Test-only: JUnit 4.13.2 (**EPL-1.0**), MockWebServer 4.12.0 (**Apache-2.0**), ko
 
 The name nanoMuse and the mark in `assets/brand/` are the project's own. Use them to refer to this project; do not use them to suggest that something else is nanoMuse or endorsed by it.
 
-## The runtime, the relay, the web console and the showcase (`nanomuse/`, `cloud/`, `web/`, `demo/`)
+### The default face
+
+The dragon that every app wears until a person picks another is the project's own asset, under the same GPL-3.0-or-later as the rest of the repository. The maintainer made it on 2026-09-25 (commit `58ccf1aa`): the five stills (`idle`, `working`, `waiting`, `happy`, `error`; WebP, 1024 × 1024) were drawn and posed with Alibaba Cloud Model Studio's `qwen-image-3.0-pro`, and the four short clips were animated from them with MiniMax's `MiniMax-H3`. The one set of files is shipped byte for byte in `web/public/avatars/dragon-*` (and the built copy under `nanomuse/server/static/avatars/`), `harness/dsh-nanomuse/assets/dragon-*`, the Android app's `res/drawable-nodpi/nm_avatar_*.webp` and `res/raw/nm_motion_*.mp4`, the iOS app's `NanoMuse/Resources/dragon-*`, and `demo/mobilegym/apps/nanoMuse/res/dragon-idle.webp`. The terms of the two services under which generated output may be redistributed are not recorded in this repository; the maintainer is the one to confirm them.
+
+## The runtime, the relay, the web console, the desktop app and the showcase (`nanomuse/`, `cloud/`, `web/`, `harness/`, `demo/`)
 
 Our own code, GPL-3.0-or-later like the rest. Third-party code inside it keeps its own licence and notice; the ports named below say where they come from.
+
+### DeepSeek Harness (MIT)
+
+The desktop app is a plugin for [DeepSeek Harness](https://www.npmjs.com/package/@deepseek-ai/dsh) (`@deepseek-ai/dsh` and the `@deepseek-ai/dsh-*` packages, 0.2.0-rc.2, MIT), carried inside nanoMuse Desktop unmodified with every package's licence file; it is not vendored in this repository (`harness/dsh-nanomuse/package.json`, `harness/desktop/scripts/prepare-dsh.mjs`). "DeepSeek Harness" and "DSH" are DeepSeek's names; *harness* in `harness/` is the word ([harness/README.md](harness/README.md#licence-and-names)). The shell is [Electron](https://github.com/electron/electron) (MIT), installed by npm at build time.
 
 ### MemGUI-Bench (MIT)
 
@@ -107,7 +115,11 @@ The showcase's Caddy is built with [caddy-dns/cloudflare](https://github.com/cad
 
 ### Figtree (SIL Open Font License 1.1)
 
-The web app's typeface, [Figtree](https://github.com/erikdkennedy/figtree) by Erik Kennedy, ships in `web/public/fonts/` under the OFL (`web/public/fonts/OFL.txt`).
+The web app's typeface, [Figtree](https://github.com/erikdkennedy/figtree) by Erik Kennedy, ships in `web/public/fonts/` under the OFL (`web/public/fonts/OFL.txt`). The desktop app and the docs site are set in the system's fonts (`harness/dsh-nanomuse/src/client/styles.ts`, `website/.vitepress/theme/custom.css`; VitePress's default theme still ships its own Inter files, OFL, in the built site); the Android app's monospace face, JetBrains Mono under `res/font/`, is upstream's and covered by the OpenMinis inventory above.
+
+### simple-icons (CC0 1.0)
+
+The brand marks beside the services in the desktop app's connector catalogue are SVG paths from [simple-icons](https://simpleicons.org/) 16.33.0, written into `harness/dsh-nanomuse/src/client/brand-marks.ts` by `harness/dsh-nanomuse/scripts/brand-marks.mjs`. The set is CC0 1.0; the marks and names themselves belong to the services they stand for and only say which service a row is.
 
 ### nanobot (MIT)
 
@@ -126,11 +138,11 @@ Each file carries the attribution line; rewritten in nanoMuse's structure (the o
 
 ### Python and JavaScript dependencies
 
-Installed from PyPI and npm, not vendored; each carries its own license: openai, pydantic, httpx, typer, rich, loguru, cryptography, tenacity, ddgs, beautifulsoup4, html2text, mcp, fastapi, uvicorn, qrcode, pywebpush, python-dateutil, pillow, pypdf (Python); lark-oapi, dingtalk-stream, wecom-aibot-sdk-python when the `channels` extras are installed; react, react-dom, react-markdown, remark-gfm, lucide-react, tailwindcss, vite (web); `@computer-use/nut-js`, `@computer-use/node-mac-permissions`, `@computer-use/mac-screen-capture-permissions` (desktop, above). `pip show <name>` / `npm view <name> license` for any of them.
+Installed from PyPI and npm, not vendored; each carries its own license: openai, pydantic, httpx, typer, rich, loguru, cryptography, tenacity, ddgs, beautifulsoup4, html2text, mcp, fastapi, uvicorn, qrcode, pywebpush, python-dateutil, pillow, pypdf, zstandard (Python); lark-oapi, dingtalk-stream, wecom-aibot-sdk-python when the `channels` extras are installed; react, react-dom, react-markdown, remark-gfm, lucide-react, tailwindcss, vite (web); `@computer-use/nut-js`, `@computer-use/node-mac-permissions`, `@computer-use/mac-screen-capture-permissions` (desktop, above). `pip show <name>` / `npm view <name> license` for any of them.
 
 ### Tools called, not bundled
 
-[bubblewrap](https://github.com/containers/bubblewrap) (LGPL-2.0-or-later) sandboxes commands on Linux when installed; [Playwright](https://github.com/microsoft/playwright) (Apache-2.0) drives the browser tool when the `browser` extra is installed. Neither is part of the package.
+[bubblewrap](https://github.com/containers/bubblewrap) (LGPL-2.0-or-later) sandboxes commands on Linux when installed; [Playwright](https://github.com/microsoft/playwright) (Apache-2.0) drives the browser tool when the `browser` extra is installed. Neither is part of the package. The relay downloads [ip2region](https://github.com/lionsoul2014/ip2region)'s `xdb` database (Apache-2.0) once into its data directory to name the country, province and city of an address on the operator's page (`cloud/nanomuse_cloud/geo.py`); the file is not in this repository.
 
 ## Learned from, no code taken
 

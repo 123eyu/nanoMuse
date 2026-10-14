@@ -119,17 +119,17 @@ needed on the machine:
 | --- | --- |
 | Windows | `nanoMuse-Desktop-<v>-win-x64.exe` (NSIS; no certificate, so SmartScreen asks for *Run anyway*) |
 | macOS | `nanoMuse-Desktop-<v>-mac-arm64.dmg`, `-mac-x64.dmg` (and `.zip`; ad-hoc signed unless the Apple secrets are set, then *Open Anyway* once in System Settings → Privacy & Security) |
-| Linux | `nanoMuse-Desktop-<v>-linux-x64.AppImage`, `.deb` |
+| Linux | `nanoMuse-Desktop-<v>-linux-x64.deb` (preferred), `.AppImage`, `.tar.gz` |
 
 How it runs, in one paragraph: the shell starts the harness's Host as a child process —
 its own Electron binary in Node mode (`ELECTRON_RUN_AS_NODE`, `--expose-internals`, the way
 DeepSeek Harness's desktop does; the harness's `require-builtin` addon accepts exactly the
 Electron the harness was built against, so [`package.json`](desktop/package.json) pins
-`44.0.0`) running the `dsh` under `resources/dsh`, where npm installed `@deepseek-ai/dsh`
+one exact Electron version, no range) running the `dsh` under `resources/dsh`, where npm installed `@deepseek-ai/dsh`
 and `dsh-nanomuse` side by side at build time. The profile the Host boots lives under
 `~/.nanomuse/desktop/profiles/nanomuse` (its own home; the CLI's `~/.dsh` is not touched; a
 home left by nanoMuse Harness 0.1.28–0.1.29 under `~/.nanomuse/harness` is taken over once):
-a manifest naming the three bundles and a link `node_modules/dsh-nanomuse` to the copy
+a manifest naming the four bundles (dsh's base and web app, the schedule bundle, ours) and a link `node_modules/dsh-nanomuse` to the copy
 under resources, refreshed every start, which is how the Loader finds a bundle that is not
 among the harness's own packages. The shell reads the Host's `dsh web: http://127.0.0.1:…`
 line and loads that URL; external links open in the browser; a Host that does not come up
@@ -145,6 +145,7 @@ for the hands):
 cd harness/dsh-nanomuse && pnpm install && pnpm build          # the bundle
 cd ../desktop && npm ci
 node scripts/prepare-dsh.mjs                                     # dsh + the bundle → dsh/ (npm, public registry, this platform's prebuilds)
+node scripts/check-hooks.mjs                                     # the data-* hooks and class stems styles.ts leans on are in that dsh
 python ../../scripts/desktop-app/build-runtime.py --target harness/desktop/runtime   # optional: the hands
 npm start                                                        # or: npm run dist (installers under dist/)
 node scripts/smoke.mjs                                           # boots the staged harness once in Node mode
@@ -192,7 +193,7 @@ dsh-nanomuse/
     MuseSidebar.tsx     the rail (Chats, Search, Feed, Ideas, Goals, Library, Devices, hamburger) and the column that holds the chats
     FeedPanel.tsx, IdeasPanel.tsx, GoalsPanel.tsx, LibraryPanel.tsx
                         the four rooms, Muse's layouts; rooms.ts is their SSE store and fetch helper
-    LiveStage.tsx       the live stage: the latest frame, the caption, the cursor marker, expand and take over
+    Trajectory.tsx      the trajectory of a hands run in the chat: each step's screenshot with the action drawn on it and the agent's words
     Memory.tsx          the Memory tab's list, Muse's import-memory sheet, the Data controls rows (download, reset)
     AvatarStudio.tsx    the avatar studio: describe, four candidates in a grid, pick, the poses, worn on the account
     Pages.tsx           Settings → Connectors, Permissions, File system access, Dictation

@@ -261,9 +261,11 @@ final class NanoMuseSync: ObservableObject {
     }
 
     /// Whether the lists show this session right now: C10 (`visible(owner:current:)` over the
-    /// sync tables) and C12 (the owner row, `NanoMuseAccountData.shows`) both agree.
+    /// sync tables) and C12 (the owner row, `NanoMuseAccountData.shows`) both agree, and it is
+    /// not the feed's working conversation, which is the agent's and no chat of the person's.
     func shows(_ sessionId: String) -> Bool {
-        Self.visible(owner: owner(of: sessionId), current: accountKey) && NanoMuseAccountData.shared.shows(sessionId)
+        !NanoMuseFeedFlow.isFeedSession(sessionId)
+            && Self.visible(owner: owner(of: sessionId), current: accountKey) && NanoMuseAccountData.shared.shows(sessionId)
     }
 
     /// C12: the account's table goes with its chats (a sign-out without *Keep*, *Delete
@@ -296,7 +298,10 @@ final class NanoMuseSync: ObservableObject {
     }
 
     /// NanoMuseCloud signed an account in or out: the tables are re-filed now rather than at
-    /// the next push, so the lists and the main chat follow at once.
+    /// the next push, so the lists and the main chat follow at once. Signed in, the account's
+    /// chats come down now (Android's `ConversationSync.signedIn`): before, nothing pulled
+    /// until the app was sent to the background and back or a session changed, so a fresh
+    /// sign-in sat on an empty draft while the other device's main chat waited on the relay.
     func accountChanged() {
         load()
         if accountKey.isEmpty {
@@ -306,7 +311,20 @@ final class NanoMuseSync: ObservableObject {
             NanoMusePresence.shared.reset()
             revision += 1
             NotificationCenter.default.post(name: .sessionDidUpdate, object: nil)
+            return
         }
+        signedIn()
+    }
+
+    /// A new key for the signed-in account: the stop after a 401 is over, whatever account the
+    /// key is for (signing in again as the same account used to stay halted until the app was
+    /// killed), the tail comes down, the minute pull starts, and this phone's own history
+    /// follows (the pull schedules the push).
+    private func signedIn() {
+        haltedAccount = nil
+        guard started, active else { return }
+        pull()
+        if inForeground { startPullTimer() }
     }
 
     /// The signed-in account is not the one `store` is for: file the current table, take the
@@ -371,6 +389,11 @@ final class NanoMuseSync: ObservableObject {
         inForeground = true
         guard active else { return }
         pull()
+        startPullTimer()
+    }
+
+    /// The minute pull while the app is in front (contract C7: at launch, on the hub's `sync` frame, and once a minute).
+    private func startPullTimer() {
         pullTimer?.invalidate()
         pullTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.pull() }
@@ -762,7 +785,11 @@ final class NanoMuseSync: ObservableObject {
                 return nil
             }
         }
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        // The model's `<system-reminder>` notes ride inside the person's text here and are
+        // hidden by every screen; the other devices store the record as is, so they go before
+        // the push (Android's Transcript does the same). A turn that was only a reminder, such
+        // as the stop-and-continue nudge, is not a message at all.
+        let trimmed = RawMessage.stripSystemReminders(text).trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty || !attachments.isEmpty else { return nil }
         var record: [String: Any] = [
             "mid": message.id.lowercased(),

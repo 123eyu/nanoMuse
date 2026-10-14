@@ -45,6 +45,9 @@ class CredentialVault:
             return self.key_path.read_bytes().strip()
         self.key_path.parent.mkdir(parents=True, exist_ok=True)
         key = Fernet.generate_key()
+        # the file exists with mode 0600 before the key is in it, so there is no moment
+        # when another local user could read it (chmod after write_bytes left one)
+        self.key_path.touch(mode=0o600, exist_ok=True)
         self.key_path.write_bytes(key)
         try:
             os.chmod(self.key_path, 0o600)
@@ -69,7 +72,7 @@ class CredentialVault:
             raw = self.fernet.decrypt(self.path.read_bytes())
         except InvalidToken as exc:
             raise VaultError(
-                f"cannot decrypt {self.path} – wrong key? (key file: {self.key_path})"
+                f"cannot decrypt {self.path}: wrong key? (key file: {self.key_path})"
             ) from exc
         data = json.loads(raw.decode("utf-8"))
         self._cache = {str(k): str(v) for k, v in data.items()}
@@ -79,6 +82,7 @@ class CredentialVault:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         token = self.fernet.encrypt(json.dumps(data, ensure_ascii=False).encode("utf-8"))
         tmp = self.path.with_suffix(".tmp")
+        tmp.touch(mode=0o600, exist_ok=True)
         tmp.write_bytes(token)
         try:
             os.chmod(tmp, 0o600)

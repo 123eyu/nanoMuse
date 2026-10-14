@@ -6,9 +6,11 @@
 //  the next report.
 //
 //  Since 0.1.40 the composer column (the cards, the tool strip, the input
-//  bar) is a row under the message list, inside the safe area
-//  (NanoMuseComposerHost): one attachment point — no overlay of a UIKit
-//  list, no second host to switch to. The watch stays as the last net for
+//  bar) has one attachment point (NanoMuseComposerHost): no overlay of a
+//  UIKit list, no second host to switch to. 0.1.40 to 1.0.3 laid it out as
+//  a row under a shorter list; since 1.0.4 the list keeps its full height
+//  and the column stands over it, padded above the floating pill bar by the
+//  bar's height (`nmBottomOverlay`). The watch stays as the last net for
 //  the failure upstream saw on the device — a host that survives with no
 //  subviews after a sheet, a keyboard or a background pass, while SwiftUI
 //  has nothing to re-render for — and it keeps what it sees, so Settings →
@@ -37,8 +39,8 @@
 //  chat ran under the shell's bottom bar once the keyboard had come and
 //  gone (NanoMuseShell.swift, NanoMuseHomeView.body), so the column sat
 //  behind the bar, laid out and healthy by every measure the watch has.
-//  There is one host now, the bar is a row, and the check page says what
-//  the device sees.
+//  There is one host now, the chat knows the bar's height, and the check
+//  page says what the device sees.
 //
 
 import os

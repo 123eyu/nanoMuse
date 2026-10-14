@@ -6,10 +6,8 @@ is derived from the icon so the whole app matches the tile on the home screen.
 ## The mark
 
 One continuous pen stroke that reads as an **N**: a hooked entry, one rounded peak, a long
-diagonal, a tight valley, and an upward exit. It follows the same visual grammar as Muse's
-single-stroke mark (Muse's is an M with three arches; ours is an N with one), the same way
-OpenManus rhymes with Manus while being a different gesture. The mark is abstract on purpose:
-it is a gesture first and a letter second.
+diagonal, a tight valley, and an upward exit: an N with one arch, drawn without lifting the
+pen. The mark is abstract on purpose: it is a gesture first and a letter second.
 
 - Source of truth: `assets/brand/nanomuse-icon-source-1024.png` (final render, white squircle on
   brand blue). Everything else is derived from it.
@@ -45,23 +43,31 @@ Measured from the icon.
 
 | Token | Value | Contrast | Use |
 |---|---|---|---|
-| `primary` | `#015CFB` | 5.35 on white | links, primary buttons (white text), active tab, send button, status line |
-| `primary.container` | `#E5F0FF` | — | user bubble, selected rows, chips |
+| `primary` | `#015CFB` | 5.35 on white | links, primary buttons (white text), status line |
+| `primary.container` | `#E5F0FF` | — | selected rows, chips |
+| `ink` | `#000000` | 21 on white | your message pill (white text), the send button and the scroll-to-latest disc (white arrow), the selected tab's disc |
+| `pill` | `#F2F2F7` |  | the agent's message pill |
 | `primary.tint` | `#EEF5FF` | — | subtle highlighted surfaces |
-| `bg.grouped` | `#F2F2F7` | — | page background (unchanged from OpenMinis) |
+| `bg` | `#FFFFFF` |  | the chat, the pill bar, the menus and the drawer |
+| `bg.grouped` | `#F2F2F7` | — | the settings pages (unchanged from OpenMinis) |
 | `surface` | `#FFFFFF` | — | cards, input |
 
 ### Dark theme
 
 | Token | Value | Contrast | Use |
 |---|---|---|---|
-| `primary` | `#58A6FF` | 8.3 on `#000`, 6.7 on `#1C1C1E` | links, buttons (black text), active tab, status line |
-| `primary.container` | `#1A2B4A` | — | user bubble |
+| `primary` | `#58A6FF` | 8.3 on `#000`, 6.7 on `#1C1C1E` | links, buttons (black text), status line |
+| `primary.container` | `#1A2B4A` | — | selected rows, chips |
+| `ink` | `#FFFFFF` | 21 on `#000` | your message pill (black text), the send button and the scroll-to-latest disc (black arrow), the selected tab's disc |
+| `pill` | `#1C1C1E` |  | the agent's message pill |
 | `bg` / `surface` / `surface.2` | `#000000` / `#1C1C1E` / `#2C2C2E` | — | unchanged from OpenMinis |
 
 Rules: one accent hue only. Code blocks, thinking text and links that OpenMinis coloured with
-iOS blue, orange and green become `primary` plus neutrals. Rust orange from the red panda stays
-inside the avatar; it is not a UI colour.
+iOS blue, orange and green become `primary` plus neutrals. The conversation itself is
+monochrome: your pill, the send button and the selected tab are the ink colour on the
+canvas, and the blue is left to links and the status line (`ChatColors.kt`, written by
+`scripts/rebrand.py`). The dragon's own colours stay inside the avatar; they are not UI
+colours.
 
 ## Android mapping (done in S1)
 
@@ -78,4 +84,4 @@ inside the avatar; it is not a UI colour.
 - Don't recolour the mark outside the blue gradient / flat white / flat black.
 - Don't rotate, outline, or add a shadow to the stroke.
 - Don't place the mark on the brand blue without the white tile (contrast).
-- Don't use Meta's Muse mark, name or blue as an asset; the kinship is in the gesture only.
+- Don't use another product's mark, name or blue as an asset; the only mark is ours.

@@ -45,15 +45,33 @@ async def relay_request(
             502, "relay_unreachable", "nanoMuse Cloud is not reachable right now."
         ) from exc
     if r.status_code >= 400:
-        try:
-            err = r.json().get("error", {})
-        except ValueError:
-            err = {}
+        code, message = error_fields(r)
         raise RelayError(
             r.status_code if r.status_code < 500 else 502,
-            str(err.get("code") or "relay_error"),
-            str(err.get("message") or "nanoMuse Cloud refused the request."),
+            code or "relay_error",
+            message or "nanoMuse Cloud refused the request.",
         )
     if r.status_code == 204 or not r.content:
         return {}
     return r.json()
+
+
+def error_fields(r: httpx.Response) -> tuple[str, str]:
+    """The ``code`` and ``message`` of an error body in the relay's shape
+    (``{"error": {"code", "message"}}``), empty where the body has no such thing. A body that
+    is not JSON, or JSON of another shape (a list, a string, ``{"error": "text"}``, FastAPI's
+    ``{"detail": …}``), is not an exception here: the refusal goes to the visitor with the
+    status and a general message rather than as a 500 from this process."""
+    try:
+        body = r.json()
+    except ValueError:
+        return "", ""
+    if not isinstance(body, dict):
+        return "", ""
+    err = body.get("error")
+    if isinstance(err, dict):
+        return str(err.get("code") or ""), str(err.get("message") or "")
+    if isinstance(err, str):
+        return "", err
+    detail = body.get("detail") or body.get("message")
+    return "", detail if isinstance(detail, str) else ""

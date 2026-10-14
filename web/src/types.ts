@@ -988,6 +988,22 @@ export interface MediaSlotData {
   effective_model: string;
   /** `app` / `config` for a choice, `chat` for the chat provider's own model, `cloud` for the relay, "" for none */
   effective_source: "app" | "config" | "chat" | "cloud" | "";
+  /** the custom endpoint (of `ConnectionsData.endpoints`) the slot stands on; "" or absent otherwise (#294) */
+  endpoint?: string;
+}
+
+/**
+ * A custom OpenAI-compatible endpoint the runtime keeps in its list (#294): a name, an
+ * address, a key of its own in the vault, and the models it serves. Never the key itself.
+ */
+export interface CustomEndpoint {
+  id: string;
+  label: string;
+  base_url: string;
+  key_source: "none" | "vault" | "config" | "missing";
+  models: string[];
+  /** the slots that answer through it today */
+  slots: Array<"chat" | "hands" | "image" | "video">;
 }
 
 export interface ConnectionsData {
@@ -1008,8 +1024,12 @@ export interface ConnectionsData {
     video_model?: string;
     /** `[llm] proxy` for this slot's requests; credentials masked; "" = none (older runtimes: absent) */
     proxy?: string;
+    /** the custom endpoint the chat model answers through; "" when none (older runtimes: absent) */
+    endpoint?: string;
   };
   providers: Record<string, ProviderPreset>;
+  /** The custom endpoints in the runtime's list (#294); absent on a runtime before it kept one. */
+  endpoints?: CustomEndpoint[];
   /** Recall by meaning: memories embedded through an OpenAI-compatible /embeddings endpoint. */
   embeddings: {
     mode: "auto" | "on" | "off";
@@ -1032,14 +1052,21 @@ export interface ConnectionsData {
     status: string;
   };
   search: {
-    provider: "duckduckgo" | "brave" | "tavily" | "searxng";
+    provider: "duckduckgo" | "brave" | "tavily" | "you" | "searxng";
     /** SearXNG instance */
     base_url: string;
     key_source: "none" | "vault" | "config" | "missing";
     /** what the provider needs is there (a key, or an instance URL) */
     configured: boolean;
     from_app: boolean;
-    providers: Array<{ id: string; label: string; needs_key: boolean; keys_url: string }>;
+    providers: Array<{
+      id: string;
+      label: string;
+      needs_key: boolean;
+      /** works without a key; one raises the limit (You.com) */
+      optional_key?: boolean;
+      keys_url: string;
+    }>;
   };
   email: {
     enabled: boolean;
@@ -1071,6 +1098,8 @@ export interface ConnectionsData {
     cloud?: boolean;
     base_url: string;
     key_source: "none" | "vault" | "config" | "missing";
+    /** the custom endpoint the hands model answers through when set here; "" otherwise (#294) */
+    endpoint?: string;
     max_steps: number;
     phone: PhoneStatus;
   };
@@ -1107,6 +1136,12 @@ export interface ConnectionsData {
     from_app: boolean;
     /** the phone's own capabilities (local build): always there, cannot be removed */
     builtin?: boolean;
+    /**
+     * The server's environment variables: the names, and whether each value is a vault
+     * reference (`{{vault:NAME}}`); never a value. A plain value is one written as text in
+     * config.toml. Older runtimes leave it out.
+     */
+    env?: Array<{ name: string; vault: boolean }>;
   }>;
   /**
    * Connections the account's other devices hold (contract C3): a name, an address and how

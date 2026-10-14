@@ -9,7 +9,10 @@
 
 FROM node:22-bookworm-slim AS site
 ARG MOBILEGYM_REPO=https://github.com/Purewhiter/mobilegym.git
-ARG MOBILEGYM_REF=main
+# which MobileGym: empty (the default) takes the commit pinned in demo/showcase/mobilegym.ref,
+# so the phone the visitors get is the one the showcase was tested with and not whatever
+# MobileGym's main is on the day the image is built; a branch, tag or commit here overrides
+ARG MOBILEGYM_REF=
 ARG NANOMUSE_DEMO=/api/demo
 # where the phone's media (MobileGym's companion dataset: app images, launcher widgets, icon
 # themes) comes from: /cdn on this origin (the gateway serves ./data/mobilegym-data there), or
@@ -19,7 +22,14 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends git ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
-RUN git clone --depth 1 --branch "${MOBILEGYM_REF}" "${MOBILEGYM_REPO}" mobilegym
+COPY demo/showcase/mobilegym.ref /src/mobilegym.ref
+# a fetch by name, not a clone with --branch, so a commit id works as well as a branch or tag
+RUN ref="${MOBILEGYM_REF:-$(grep -v '^#' /src/mobilegym.ref | tr -d '[:space:]')}" \
+ && git init -q mobilegym \
+ && git -C mobilegym remote add origin "${MOBILEGYM_REPO}" \
+ && git -C mobilegym fetch -q --depth 1 origin "${ref}" \
+ && git -C mobilegym checkout -q --detach FETCH_HEAD \
+ && echo "MobileGym ${ref} is $(git -C mobilegym rev-parse HEAD)"
 COPY demo/mobilegym/apps/nanoMuse mobilegym/apps/nanoMuse
 # the showcase's one change to MobileGym's seed (张伟's 微信 message invites to a hike, for the
 # page's weather line); the build fails if upstream's sentence is no longer there as expected

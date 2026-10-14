@@ -200,9 +200,18 @@ function SkillView({ name, onBack, onUse, onGone }: { name: string; onBack: () =
   const { toast } = useStore();
   const t = useT();
   const [skill, setSkill] = useState<SkillDetail | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
 
-  const load = () => api.skill(name).then(setSkill).catch((e: Error) => toast(e.message));
+  // the first fetch failing shows Try again in place of the page; a re-read after a save
+  // (the page is already there) only says so
+  const load = () => {
+    setError(null);
+    return api
+      .skill(name)
+      .then(setSkill)
+      .catch((e: Error) => (skill ? toast(e.message) : setError(e.message || "Could not load.")));
+  };
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -248,7 +257,8 @@ function SkillView({ name, onBack, onUse, onGone }: { name: string; onBack: () =
         }
       />
       <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-4">
-        {!skill && (
+        {!skill && error && <LoadError message={error} onRetry={() => void load()} />}
+        {!skill && !error && (
           <div className="py-10 flex justify-center text-muted">
             <Loader2 className="animate-spin" size={20} />
           </div>
@@ -352,6 +362,7 @@ function SkillEditor({ initial, onCancel, onSaved }: { initial?: SkillDetail; on
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://github.com/…/skills/pdf"
+                aria-label={t("From a link")}
                 inputMode="url"
                 autoComplete="off"
                 className="flex-1 min-w-0 rounded-2xl bg-surface-2 px-3.5 py-2.5 text-[14px] outline-none focus:ring-2 focus:ring-accent/40"

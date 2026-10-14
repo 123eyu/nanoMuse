@@ -1,5 +1,6 @@
-"""Web search providers: DuckDuckGo by default, Brave / Tavily / SearXNG by settings, the
-fallback to DuckDuckGo with a note, keys from the vault, the tool, the API and the doctor."""
+"""Web search providers: DuckDuckGo by default, Brave / Tavily / You.com / SearXNG by
+settings, the fallback to DuckDuckGo with a note, keys from the vault, the tool, the API and
+the doctor."""
 
 from __future__ import annotations
 
@@ -132,6 +133,73 @@ async def test_tavily(wire: Wire, ddg):
         "max_results": 5,
         "search_depth": "basic",
     }
+
+
+async def test_you_without_a_key(wire: Wire, ddg):
+    wire.body = {
+        "results": {
+            "web": [
+                {"title": "Y", "url": "https://y.example", "description": " first "},
+                {"title": "Z", "url": "https://z.example", "snippets": ["from snippets", "more"]},
+            ],
+            "news": [{"title": "N", "url": "https://n.example", "description": "news"}],
+        }
+    }
+    p = WebSearchProvider(SearchSettings(provider="you"))
+    # no key is a configured provider, not a fallback to DuckDuckGo
+    assert p.configured and p.host == "api.you.com"
+    assert p.describe() == "You.com (no key: 100 searches a day)"
+    results, note = await p.search("nanomuse", 3, "cn-zh")
+    assert note == "" and ddg == []
+    assert [(r.title, r.snippet) for r in results] == [
+        ("Y", "first"),
+        ("Z", "from snippets"),
+        ("N", "news"),
+    ]
+    req = wire.requests[0]
+    assert req.method == "GET" and req.url.host == "api.you.com"
+    assert req.url.path == "/v1/agents/search"
+    assert "X-API-Key" not in req.headers
+    assert req.headers["User-Agent"] == "youdotcom-integration/nano-muse-nanomuse"
+    assert req.url.params["query"] == "nanomuse" and req.url.params["count"] == "3"
+    assert req.url.params["country"] == "CN"
+    await p.search("x", 1, "")
+    assert "country" not in wire.requests[1].url.params
+    # web results come first; the count caps the list
+    results, _ = await p.search("nanomuse", 2, "")
+    assert [r.title for r in results] == ["Y", "Z"]
+    # past the daily limit: a clear reason, then DuckDuckGo once
+    wire.status = 429
+    results, note = await p.search("nanomuse", 2, "")
+    assert (
+        note == "You.com failed (the keyless limit is used up (HTTP 429)); results from DuckDuckGo"
+    )
+    assert [r.title for r in results] == ["nanoMuse", "Muse"] and len(ddg) == 1
+    wire.status = 401
+    _, note = await p.search("nanomuse", 2, "")
+    assert "the keyless limit is used up (HTTP 401)" in note
+
+
+async def test_you_with_a_key(wire: Wire, ddg):
+    wire.body = {
+        "results": {"web": [{"title": "K", "url": "https://k.example", "description": "d"}]}
+    }
+    p = WebSearchProvider(SearchSettings(provider="you", api_key="ydc-key"))
+    # the Sentinel sees the host the search really goes to
+    assert p.configured and p.host == "ydc-index.io"
+    assert p.describe() == "You.com (key set)"
+    results, note = await p.search("nanomuse", 2, "")
+    assert note == "" and ddg == [] and results[0].title == "K"
+    req = wire.requests[0]
+    assert (
+        req.method == "GET" and req.url == "https://ydc-index.io/v1/search?query=nanomuse&count=2"
+    )
+    assert req.headers["X-API-Key"] == "ydc-key"
+    assert req.headers["User-Agent"] == "youdotcom-integration/nano-muse-nanomuse"
+    # a refused key reads as one, not as the keyless limit
+    wire.status = 401
+    _, note = await p.search("nanomuse", 2, "")
+    assert "the key was refused (HTTP 401)" in note
 
 
 async def test_searxng(wire: Wire, ddg):
@@ -285,8 +353,25 @@ def test_connections_search(settings: Settings, wire: Wire, ddg):
         view = client.get("/api/connections").json()["search"]
         assert view["provider"] == "duckduckgo" and view["configured"] and not view["from_app"]
         assert view["key_source"] == "none"
-        assert [p["id"] for p in view["providers"]] == ["duckduckgo", "brave", "tavily", "searxng"]
+        assert [p["id"] for p in view["providers"]] == [
+            "duckduckgo",
+            "brave",
+            "tavily",
+            "you",
+            "searxng",
+        ]
         assert view["providers"][1]["needs_key"] and view["providers"][1]["keys_url"]
+        assert not view["providers"][1]["optional_key"]
+        you = view["providers"][3]
+        assert not you["needs_key"] and you["optional_key"] and you["keys_url"]
+
+        # You.com without a key is configured: the picker needs nothing more
+        r = client.put("/api/connections/search", json={"provider": "you"}).json()
+        assert r["provider"] == "you" and r["configured"] is True and r["key_source"] == "none"
+        wire.body = {"results": {"web": [{"title": "Y", "url": "https://y", "description": "d"}]}}
+        r = client.post("/api/connections/search/test").json()
+        assert r["ok"] and r["provider"] == "You.com" and r["results"] == 1
+        assert wire.requests[-1].url.host == "api.you.com"
 
         # Brave without a key: allowed, but not configured — searches fall back
         r = client.put("/api/connections/search", json={"provider": "brave"})

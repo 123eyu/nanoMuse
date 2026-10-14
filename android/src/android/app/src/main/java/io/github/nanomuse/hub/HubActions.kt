@@ -296,7 +296,11 @@ object HubActions {
         if (sessionId == null) { call.fail("no_model", "the phone has no model to think with; sign in to nanoMuse Cloud there"); return }
         call.event(JSONObject().put("stage", "thinking").put("session", sessionId))
         AgentForegroundService.startService(app, sessionCount = 1, toolStatus = context.getString(R.string.nm_hub_task_from, call.senderName))
-        val prompt = if (call.senderKind == "web") text else context.getString(R.string.nm_hub_task_prefix, call.senderName) + "\n\n" + text
+        val prompt = HubTasks.prompt(
+            text,
+            prefix = if (call.senderKind == "web") null else context.getString(R.string.nm_hub_task_prefix, call.senderName),
+            language = call.args.optString("language"),
+        )
         val relay = relayApprovals(context, call, sessionId)
         running.started(call.id, senderId, conversation, sessionId)
         val stopped: Boolean

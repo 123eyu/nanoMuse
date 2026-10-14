@@ -91,8 +91,15 @@ object RiskGate {
      * instead of a stale card living on until the timeout.
      */
     suspend fun ask(request: RiskRequest): RiskDecision = suspendCancellableCoroutine { cont ->
+        // The withdrawal is registered before the request is queued, and the queueing checks
+        // that the caller is still there. Before, a cancel that landed before the register ran
+        // relied on the two hops reaching the main thread in order; had the register waited on
+        // the lock, the withdrawal would have found nothing and the dead request would have sat
+        // on the card until the three-minute timeout.
+        cont.invokeOnCancellation { scope.launch { resolve(request.id, RiskDecision.DENY, record = false) } }
         scope.launch {
             mutex.withLock {
+                if (!cont.isActive) return@withLock
                 awaiters[request.id] = cont
                 timeouts[request.id] = scope.launch {
                     delay(TIMEOUT_MS)
@@ -107,7 +114,6 @@ object RiskGate {
                 }
             }
         }
-        cont.invokeOnCancellation { scope.launch { resolve(request.id, RiskDecision.DENY, record = false) } }
     }
 
     fun decide(id: String, decision: RiskDecision) {

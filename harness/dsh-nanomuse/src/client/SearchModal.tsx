@@ -44,8 +44,9 @@ function Modal({ t, useSessions, actions }: SearchModalProps): ReactNode {
     ? useSessions((s) => s.ids.map((id) => s.byId[id]).filter((c) => c !== undefined && c.origin !== 'subagent' && !c.blank).map((c) => ({ id: c!.id, title: c!.displayTitle, at: c!.updatedAt })))
     : []
   const hits = useMemo<Hit[]>(() => {
+    // nor are the rooms' running batches (the feed being written)
     const rows = chats
-      .filter((c) => !sync.foreign.has(c.id))
+      .filter((c) => !sync.foreign.has(c.id) && !rooms.batches.includes(c.id))
       .map((c) => {
         const record = rooms.activity.find((r) => r.sessionId === c.id)
         return { id: c.id, title: c.title, preview: record?.words || record?.request || '', at: Math.max(c.at, record?.updatedAt ?? 0) }
@@ -53,7 +54,7 @@ function Modal({ t, useSessions, actions }: SearchModalProps): ReactNode {
       .sort((a, b) => b.at - a.at)
     const q = query.trim().toLowerCase()
     return (q ? rows.filter((r) => r.title.toLowerCase().includes(q) || r.preview.toLowerCase().includes(q)) : rows).slice(0, 12)
-  }, [chats, rooms.activity, query, sync.foreign])
+  }, [chats, rooms.activity, rooms.batches, query, sync.foreign])
 
   useEffect(() => { field.current?.focus() }, [])
   useEffect(() => { setIndex(0) }, [query])

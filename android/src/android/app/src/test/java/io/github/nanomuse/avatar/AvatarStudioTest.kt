@@ -203,6 +203,67 @@ class AvatarStudioTest {
         }
     }
 
+    @Test fun `a replacement does not wait for an old PNG and keeps its own files`() = runBlocking {
+        AvatarStore.useDirForTests(tmp.newFolder())
+        val encoding = CountDownLatch(1)
+        val releaseEncoding = CountDownLatch(1)
+        val replacementStarted = CountDownLatch(1)
+        val first = AtomicBoolean(true)
+        val holdOld = CompletableDeferred<Unit>()
+        val holdNew = CompletableDeferred<Unit>()
+        fun encodedPicture(contents: String, blocked: Boolean): Bitmap {
+            val bitmap = org.mockito.Mockito.mock(Bitmap::class.java)
+            org.mockito.Mockito.doAnswer { call ->
+                if (blocked) {
+                    encoding.countDown()
+                    check(releaseEncoding.await(10, TimeUnit.SECONDS))
+                }
+                call.getArgument<java.io.OutputStream>(2).write(contents.toByteArray())
+                true
+            }.`when`(bitmap).compress(org.mockito.Mockito.any(), org.mockito.Mockito.anyInt(), org.mockito.Mockito.any())
+            return bitmap
+        }
+        val oldPicture = encodedPicture("old", true)
+        val newPicture = encodedPicture("new", false)
+        AvatarStudio.drawer = { _, _, _, prompt ->
+            if ("panda" in prompt) {
+                if (!first.compareAndSet(true, false)) holdOld.await()
+                oldPicture
+            } else {
+                holdNew.await()
+                newPicture
+            }
+        }
+        AvatarStudio.startCandidates(context, endpoint, "panda", AvatarStudio.Style.MUSE, null)
+        val oldJob = AvatarStudio.candidateJob!!
+        var replacement: Thread? = null
+        try {
+            assertTrue("old picture entered PNG encoding", encoding.await(5, TimeUnit.SECONDS))
+            replacement = thread(isDaemon = true) {
+                AvatarStudio.startCandidates(context, endpoint, "whale", AvatarStudio.Style.MUSE, null)
+                replacementStarted.countDown()
+            }
+            assertTrue("Again must not wait for the old PNG writer", replacementStarted.await(2, TimeUnit.SECONDS))
+            holdNew.complete(Unit)
+            withTimeout(5_000) { AvatarStudio.candidateJob!!.join() }
+            releaseEncoding.countDown()
+            withTimeout(5_000) { oldJob.join() }
+            val slots = AvatarStudio.slots.value
+            assertTrue(slots.toString(), slots.all { it is Slot.Ready })
+            slots.forEach { assertEquals("new", (it as Slot.Ready).file.readText()) }
+            assertEquals((0 until AvatarStudio.CANDIDATES).map { "$it.png" }.toSet(),
+                AvatarStore.candidatesDir().list()!!.toSet())
+        } finally {
+            releaseEncoding.countDown()
+            holdOld.complete(Unit)
+            holdNew.complete(Unit)
+            replacement?.join(5_000)
+            oldJob.cancel()
+            AvatarStudio.candidateJob?.cancel()
+            withTimeout(5_000) { oldJob.join(); AvatarStudio.candidateJob?.join() }
+        }
+    }
+
     @Test fun `four candidates get four different prompts from one description`() {
         val prompts = (0 until 4).map { AvatarStudio.buildPrompt("A round red panda", AvatarStudio.Style.FLAT, it) }
         assertEquals(4, prompts.toSet().size)

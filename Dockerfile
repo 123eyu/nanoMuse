@@ -52,6 +52,10 @@ USER muse
 VOLUME ["/data", "/workspace"]
 EXPOSE 8787
 
+# For the default `serve` command; a container running `chat` or `run` has no server and
+# shows unhealthy, which `--no-healthcheck` on `docker run` turns off.
+HEALTHCHECK --interval=30s --timeout=5s CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8787/api/health', timeout=3).status == 200 else 1)"
+
 ENTRYPOINT ["nanomuse"]
 # The phone app. Override with `chat`, `run "..."`, `daemon`, ...
 CMD ["serve", "--host", "0.0.0.0", "--no-qr"]

@@ -65,6 +65,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openminis.app.R
@@ -100,6 +101,7 @@ fun FeedTab(
     header: @Composable () -> Unit,
     onDiscuss: (FeedPost) -> Unit,
     onEditRoutine: (String) -> Unit,
+    bottomInset: Dp = 0.dp,
 ) {
     val context = LocalContext.current
     val posts by FeedStore.posts.collectAsState()
@@ -116,7 +118,8 @@ fun FeedTab(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(MuseTones.canvas),
-        contentPadding = PaddingValues(bottom = 28.dp),
+        // The last card ends above the floating pill, which overlays the page.
+        contentPadding = PaddingValues(bottom = 28.dp + bottomInset),
     ) {
         item(key = "header") { header() }
 
@@ -365,7 +368,8 @@ private fun IntroCard(onEdit: () -> Unit, onAck: () -> Unit) {
 private fun EmptyState(generating: Boolean, onWriteNow: () -> Unit) {
     val context = LocalContext.current
     val task = remember { FeedFlow.task(context) }
-    val time = task?.let { "%02d:%02d".format(it.timeOfDayHour, it.timeOfDayMinute) } ?: "%02d:%02d".format(FeedFlow.DEFAULT_HOUR, FeedFlow.DEFAULT_MINUTE)
+    val time = task?.let { "%02d:%02d".format(java.util.Locale.ROOT, it.timeOfDayHour, it.timeOfDayMinute) }
+        ?: "%02d:%02d".format(java.util.Locale.ROOT, FeedFlow.DEFAULT_HOUR, FeedFlow.DEFAULT_MINUTE)
     StaticCard("🖼️", stringResource(R.string.nm_feed_empty_title), stringResource(R.string.nm_feed_empty_body, time))
     StaticCard("📝", stringResource(R.string.nm_feed_empty_how_title), stringResource(R.string.nm_feed_empty_how_body))
     FeedCard {
@@ -453,7 +457,7 @@ private fun FeedSettingsSheet(onDismiss: () -> Unit, onEditRoutine: (String) -> 
                     Row(Modifier.padding(horizontal = 14.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text(stringResource(R.string.nm_feed_routine_switch), fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface)
-                            val time = task?.let { "%02d:%02d".format(it.timeOfDayHour, it.timeOfDayMinute) }
+                            val time = task?.let { "%02d:%02d".format(java.util.Locale.ROOT, it.timeOfDayHour, it.timeOfDayMinute) }
                             Text(
                                 if (time != null) stringResource(R.string.nm_feed_routine_time, time) else stringResource(R.string.nm_feed_routine_needs_model),
                                 fontSize = 12.sp,

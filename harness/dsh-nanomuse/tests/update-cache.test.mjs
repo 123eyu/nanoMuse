@@ -4,11 +4,13 @@
 // `update(false)` does not answer from a cache another version made.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Service } from '@deepseek-ai/cordis'
 import NanomuseCloud, { BUNDLE_VERSION, LLM_ROW, updateForThisVersion } from '../lib/cloud.js'
+import { UPDATE_EVERY_MS, UPDATE_RETRY_MS, updateCacheFresh } from '../lib/desk.js'
 
 process.env.NANOMUSE_PY = join(tmpdir(), 'nanomuse-runtime-that-does-not-exist')
 
@@ -47,11 +49,17 @@ async function cloudWith(update) {
   return { svc, done: () => rm(home, { recursive: true, force: true }) }
 }
 
-const PREVIOUS = '1.0.1'
+/** The version `package.json` carries: the bundle under test must report it, whatever the release. */
+const PKG_VERSION = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version
+/** A version below any release the tests run under. */
+const PREVIOUS = '0.1.0'
+/** One patch release beyond the version under test. */
+const BEYOND = PKG_VERSION.replace(/(\d+)$/, (n) => String(Number(n) + 1))
 const checkedByPrevious = (latest) => ({ current: PREVIOUS, latest, newer: true, page: 'https://github.com/nano-muse/nanoMuse/releases', assets: [], notes: '', source: 'nanomuse.cn', checkedAt: Date.now() })
 
-test('the bundle version the tests run under is a release, not the fallback', () => {
-  assert.equal(BUNDLE_VERSION, '1.0.2')
+test('the bundle version the tests run under is the package version, a release, not the fallback', () => {
+  assert.equal(BUNDLE_VERSION, PKG_VERSION)
+  assert.match(BUNDLE_VERSION, /^\d+\.\d+\.\d+$/)
   assert.notEqual(BUNDLE_VERSION, PREVIOUS)
 })
 
@@ -62,14 +70,14 @@ test('a cached check made by the previous version is read against this one', () 
   assert.equal(same.latest, BUNDLE_VERSION)
   assert.equal(same.newer, false)
   // a release beyond the one installed is still newer
-  const beyond = updateForThisVersion(checkedByPrevious('1.0.3'))
+  const beyond = updateForThisVersion(checkedByPrevious(BEYOND))
   assert.equal(beyond.current, BUNDLE_VERSION)
   assert.equal(beyond.newer, true)
   // the time of the check is kept: no extra request on this start
   const cached = checkedByPrevious(BUNDLE_VERSION)
   assert.equal(updateForThisVersion(cached).checkedAt, cached.checkedAt)
   // a cache this version made is returned as it is
-  const own = { ...checkedByPrevious('1.0.3'), current: BUNDLE_VERSION }
+  const own = { ...checkedByPrevious(BEYOND), current: BUNDLE_VERSION }
   assert.equal(updateForThisVersion(own), own)
   // a cache without a `latest` (an older state file) says nothing is newer rather than throwing
   const bare = updateForThisVersion({ checkedAt: 1 })
@@ -77,7 +85,7 @@ test('a cached check made by the previous version is read against this one', () 
   assert.equal(bare.latest, '')
 })
 
-test('right after installing 1.0.2 over 1.0.1, the sidebar is not told to update to 1.0.2', async () => {
+test('right after installing this version over the previous one, the sidebar is not told to update to it', async () => {
   const out = await cloudWith(checkedByPrevious(BUNDLE_VERSION))
   try {
     const live = out.svc.live()
@@ -85,6 +93,61 @@ test('right after installing 1.0.2 over 1.0.1, the sidebar is not told to update
     assert.equal(live.update.latest, BUNDLE_VERSION)
     assert.equal(live.update.newer, false)
   } finally {
+    await out.done()
+  }
+})
+
+test('a failed check is cached an hour, a successful one a day, and another version\'s never', () => {
+  const now = Date.now()
+  const good = { ...checkedByPrevious(BEYOND), current: BUNDLE_VERSION, checkedAt: now }
+  const failed = { ...good, latest: '', newer: false, source: 'none', error: 'nanomuse.cn: 503; github: 403' }
+  assert.equal(updateCacheFresh(good, BUNDLE_VERSION, now + UPDATE_EVERY_MS - 1), true)
+  assert.equal(updateCacheFresh(good, BUNDLE_VERSION, now + UPDATE_EVERY_MS), false)
+  assert.equal(updateCacheFresh(failed, BUNDLE_VERSION, now + UPDATE_RETRY_MS - 1), true)
+  assert.equal(updateCacheFresh(failed, BUNDLE_VERSION, now + UPDATE_RETRY_MS), false, 'a failure is tried again after an hour')
+  assert.ok(UPDATE_RETRY_MS < UPDATE_EVERY_MS)
+  assert.equal(updateCacheFresh(undefined, BUNDLE_VERSION, now), false)
+  assert.equal(updateCacheFresh({ ...good, current: PREVIOUS }, BUNDLE_VERSION, now), false)
+})
+
+test('a check that read nothing is not kept for the day: the next quiet check asks again, the About row asks at once', async () => {
+  const out = await cloudWith(undefined)
+  const realFetch = globalThis.fetch
+  let asked = 0
+  let down = true
+  // both sources down first, then the mirror answers; nothing leaves the test
+  globalThis.fetch = async () => {
+    asked += 1
+    if (down) return { ok: false, status: 503, json: async () => ({}) }
+    return { ok: true, status: 200, json: async () => ({ repo: 'nano-muse/nanoMuse', releases: [{ tag: `v${BUNDLE_VERSION}`, assets: [] }] }) }
+  }
+  try {
+    const failed = await out.svc.update(false)
+    assert.equal(failed.source, 'none')
+    assert.ok(failed.error)
+    assert.equal(asked, 2, 'the mirror and GitHub, once each')
+    // within the hour the failure stands for a quiet check...
+    asked = 0
+    assert.equal(await out.svc.update(false), failed)
+    assert.equal(asked, 0)
+    // ...never for the About row's button
+    down = false
+    const forced = await out.svc.update(true)
+    assert.equal(asked, 1)
+    assert.equal(forced.source, 'nanomuse.cn')
+    assert.equal(forced.latest, BUNDLE_VERSION)
+    // a failure older than an hour is asked again by a quiet check, where a success would still be cached
+    down = true
+    asked = 0
+    out.svc.state.update = { ...failed, checkedAt: Date.now() - UPDATE_RETRY_MS - 1 }
+    assert.equal((await out.svc.update(false)).source, 'none')
+    assert.equal(asked, 2)
+    asked = 0
+    out.svc.state.update = { ...forced, checkedAt: Date.now() - UPDATE_RETRY_MS - 1 }
+    assert.equal((await out.svc.update(false)).source, 'nanomuse.cn')
+    assert.equal(asked, 0)
+  } finally {
+    globalThis.fetch = realFetch
     await out.done()
   }
 })

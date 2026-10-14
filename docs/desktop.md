@@ -2,7 +2,7 @@
 
 The computer's Muse, in a window: nanoMuse built on
 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`), laid out
-like the Muse desktop ([desktop-muse.md](desktop-muse.md)), with the account, the face,
+screen by screen in [desktop-muse.md](desktop-muse.md), with the account, the face,
 Hands on this computer's screen and Reach to every other device of the account as
 plugins ([harness.md](harness.md)). Windows 10+, macOS 12+ and Linux x64; one
 installer each, nothing to install first: the harness, the nanoMuse bundle and the
@@ -15,7 +15,15 @@ runtime for the hands are inside.
 | Linux | `nanoMuse-Desktop-<version>-linux-x64.deb` (preferred) / `.AppImage` / `.tar.gz`; see [Linux notes](#linux-notes) |
 
 Every release carries them (`.github/workflows/desktop-app.yml`; `SHA256SUMS-desktop.txt`
-beside them). The code is under [`harness/`](../harness/): the bundle of plugins in
+beside them). Windows releases also carry the update metadata electron-updater reads: `latest.yml`,
+which names the installer and its SHA-512, and the installer's `.exe.blockmap`. CI checks the set with electron-updater itself before
+anything is attached: it must find the candidate version in `latest.yml`, download the
+installer from a test feed and verify it, and refuse one whose bytes do not match
+(`harness/desktop/scripts/update-feed-check.mjs`). The feed the metadata is built for is the
+download mirror's [nanomuse.cn/dl/win/](https://nanomuse.cn/dl/win/), which moves to a new
+release only once its `latest.yml`, installer and `.blockmap` are all there and the installer's
+bytes match; until then it serves the previous release. The code is under
+[`harness/`](../harness/): the bundle of plugins in
 `harness/dsh-nanomuse`, the Electron shell in `harness/desktop`; how to build it yourself is
 in [harness/README.md](../harness/README.md). Up to 0.1.29 the same installers wrapped the
 Python runtime and the web app in an Electron shell of their own (`desktop/app`) and the
@@ -27,11 +35,11 @@ desktop, and it installs over the old one (same application id).
 A dsh Host started by the shell as a child process, showing the harness's web app in a
 window of ours: the rail (Chats, Search, Feed, Ideas, Goals, Library, Devices, the
 hamburger), the chats column with the main chat and the side chats, the face and name
-pinned over the conversation with a live status line and *Stop*, Muse's permission card
+pinned over the conversation with a live status line and *Stop*, the permission card
 over the harness's approvals, the trajectory of a hands run in the chat (each step's
 screenshot with the action drawn on it and the agent's words, to look back at during
 and after the run), the profile panel with memory,
-Muse's Settings pages (Connectors, Computer use, File system access, Dictation,
+the Settings pages (Connectors, Computer use, File system access, Dictation,
 Permissions, Data controls with export and reset), the full-window first run. The agent
 is dsh's (its agent loop, tools, skills, goals, plan mode, compaction, sub-agents, MCP),
 speaking as nanoMuse through the `nanomuse` preset, with:
@@ -44,6 +52,14 @@ speaking as nanoMuse through the `nanomuse` preset, with:
   usage by kind and by model, the password, the devices holding a key, the timeline, deletion),
   read through the host's pass-through routes (`/nanomuse/cloud/me`, `/sessions`,
   `/account-events`, `/password`, `/sign-out-all`, `/delete-account`, `/config`);
+- **a clip of your own as the face**: *Your own clip…* under the pen on the agent's page
+  and in the avatar studio takes an MP4 or MOV of up to 15 seconds and 30 MB, with H.264
+  video, or HEVC when this computer can decode it (Windows and macOS have the decoder, most
+  Linux builds do not; a clip the preview cannot play is refused there), previews it in the
+  face's round frame, and plays it muted in a loop for every mood;
+  it stays on this computer as `$DSH_HOME/nanomuse/avatar/own-clip.mp4`, is never sent to
+  nanoMuse Cloud, and *Default face* removes it (the fallback rule is in
+  [avatar.md](avatar.md));
 - **Hands** on this computer: `nanomuse mcp` from the bundled runtime over stdio, the
   runtime's `computer_screen` and `computer_act` tools with their approvals, so "what is
   on my screen?" and "open the settings and turn the volume down" work out of the box.
@@ -57,7 +73,7 @@ speaking as nanoMuse through the `nanomuse` preset, with:
   The runtime's own backends remain the fallback when the app is not the one running it.
   The connectors the runtime's `config.toml` turns on (mailbox, calendar, address book)
   arrive over the same server, and Settings → Connectors shows how to set each one up;
-- **the rooms**: Feed, Ideas, Goals and Library as Muse has them, kept by the host in
+- **the rooms**: Feed, Ideas, Goals and Library as the phone has them, kept by the host in
   `nanomuse/rooms.json` and written by the agent in hidden chats (feed and ideas) or
   chats of their own (goals, with the harness's schedule plugin for their automations;
   Library creations under `~/nanoMuse/Library`), plus memory: what it remembers about
@@ -67,9 +83,9 @@ speaking as nanoMuse through the `nanomuse` preset, with:
   `device_notify` and `delegate` for the phone and the other computers; the phone's
   `delegate` landing here as a dsh session "From <device>" with its approvals relayed
   back; remote control (`shell`, `files`, `open`, `screen`) behind a switch;
-- **Coding agents**: *Settings → Coding agents*, with this computer's Cursor, Codex and
-  Claude Code chats (read from disk, a message starts the agent's own CLI, the run
-  streams in with its tools, *Stop* ends it) and then the account's other computers',
+- **Coding agents**: *Settings → Coding agents*, with this computer's Cursor, Codex,
+  Claude Code and DeepSeek Harness chats (read from disk, a message starts the agent's own
+  CLI, the run streams in with its tools, *Stop* ends it) and then the account's other computers',
   over the `coding.*` hub actions this computer announces too; a device card's *Coding
   agents* chip opens the page on that computer ([coding-agents.md](coding-agents.md)).
 - **Network** (Settings → nanoMuse Cloud → Network): one proxy for what the app sends out
@@ -77,7 +93,8 @@ speaking as nanoMuse through the `nanomuse` preset, with:
   shown masked). Everything the dsh Host sends goes through it: your own keys, the ChatGPT
   sign-in's calls, *List models*, the pages the tools read, connectors, the update check,
   and the hands' runtime (`nanomuse mcp` inherits the same variables). nanoMuse Cloud (the relay, the hub's WebSocket, the sync) and loopback never
-  do. The shell keeps it in `desktop.json` next to *open at login* and puts it on the dsh
+  do. The shell keeps it in `desktop.json` (mode 0600, since the address may carry a
+  password) next to *open at login* and puts it on the dsh
   Host's environment at start (`HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY` for SOCKS, `NO_PROXY`
   with `localhost,127.0.0.1,::1`, `cloud.nanomuse.cn` and the relay the plugin talks to, and
   `NODE_USE_ENV_PROXY=1`, which is what makes Node's fetch read them), so it takes effect
@@ -94,6 +111,16 @@ speaking as nanoMuse through the `nanomuse` preset, with:
   what puts a row here. The Computer use page and the profile drawer keep their own shorter
   lists; this one is the complete one. The host answers `GET /nanomuse/cloud/grants` with
   the list and `POST /grants/revoke {id}` for any row of it.
+- **A real quit protects the work in progress.** Quit (the menu's Quit, Ctrl+Q, the tray's
+  Quit, or closing the last window when there is no tray) first asks the Host what is still
+  on: a reply being written, the hands on the screen, a task another device asked for, an
+  approval waiting on you. The question names that work and *Keep running* is the default;
+  only an explicit confirmation ends it, and the quit waits for the work to end before it
+  stops the Host. A task that arrives while the quit hands over is refused with the usual
+  busy answer, so the asking device can send it again. Closing the window with the menu-bar
+  switch on stays in the tray and has never been a quit. The routes are the plugin's
+  `GET /nanomuse/cloud/work` (the aggregate), `POST /work/gate {open}` (the hand-over) and
+  `POST /work/stop` (the confirmed end).
 
 ## When the allowance is used up, and the relay's other answers
 
@@ -110,7 +137,7 @@ show, under the turn that did not run, in the chat:
   the *Step-by-step guide* ([own-key.md](own-key.md));
 - **a plan you already pay for**: the ChatGPT sign-in, right there, with the relay's caveat
   about it;
-- **invite a friend**: the bonus for each of you and *Copy the link*;
+- **invite a friend**: the bonus for each of you, paid after the friend's first request, and *Copy the link*;
 - a star on GitHub, once, when the nudge policy allows it: the card's title and buttons are
   the app's; its sentence is the app's too unless the relay's policy carries one (`star.text`,
   `star.text_zh`, up to 200 characters; a Chinese UI takes `text_zh`, else `text`;

@@ -96,7 +96,7 @@ export function makeMediaSection(t: Translate) {
     const check = () => {
       setBusy('check')
       setError('')
-      void call<{ models: string[] }>('media/check')
+      void call<{ models: string[] }>('media/check', {})
         .then((r) => {
           setChecked(r.models.length)
           reload()

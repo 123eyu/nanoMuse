@@ -2,7 +2,7 @@
  * The agent's page, the panel the face opens (android …/ui/profile/AgentProfileScreen.kt
  * on a desktop): the big face with a pen badge whose menu is the phone's — Change
  * avatar (words land in the chat, the flow in AvatarChat.tsx takes them), Edit name,
- * Avatar studio… — a share button, the name, "online" under it, and four panes:
+ * Your own clip… and Default face (OwnClipChooser.tsx, #324), Avatar studio… — a share button, the name, "online" under it, and four panes:
  * Activity (what each chat did, day by day; an entry opens the task's steps),
  * Approvals (the standing "always allow" grants with Manage permissions, then the
  * answers given on cards), Daily (the goals' routines, Manage routines) and Soul &
@@ -18,6 +18,7 @@ import { IconAlarm, IconBell, IconCheck, IconChevronDown, IconChevronRight, Icon
 import { AvatarShareSheet } from './AvatarShare.tsx'
 import { studioBus } from './AvatarStudio.tsx'
 import { prefillComposer } from './composer.ts'
+import { useOwnClipChooser } from './OwnClipChooser.tsx'
 import { useLive, type LiveProfile } from './live.ts'
 import type { ChatListState, ChatStatus } from './MuseChats.tsx'
 import { usePrefs } from './prefs.ts'
@@ -59,6 +60,8 @@ function Drawer({ t, stop, openSchedules, useSessions, useSessionStatus }: Profi
   const [share, setShare] = useState(false)
   const [detail, setDetail] = useState<string | null>(null)
   const panel = useRef<HTMLDivElement>(null)
+  // a clip of the person's own as the face (#324): the dialog, the preview and the refusal live here
+  const clipChooser = useOwnClipChooser(t)
 
   // Like Muse's panel it stays beside the chat until closed (×, Escape); the
   // chat column makes room for it meanwhile.
@@ -121,6 +124,10 @@ function Drawer({ t, stop, openSchedules, useSessions, useSessionStatus }: Profi
           ? h('div', { className: 'nm-menu nm-pf-menu', role: 'menu' },
               h('button', { type: 'button', role: 'menuitem', className: 'nm-menu-item', onClick: changeAvatar }, h('span', { className: 'nm-menu-item-label' }, t('pfChangeAvatar'))),
               h('button', { type: 'button', role: 'menuitem', className: 'nm-menu-item', onClick: () => { setMenu(false); setEditing('name') } }, h('span', { className: 'nm-menu-item-label' }, t('pfEditName'))),
+              h('button', { type: 'button', role: 'menuitem', className: 'nm-menu-item', disabled: clipChooser.busy, onClick: () => { setMenu(false); clipChooser.choose() } }, h('span', { className: 'nm-menu-item-label' }, t('pfOwnClip'))),
+              live.ownClip
+                ? h('button', { type: 'button', role: 'menuitem', className: 'nm-menu-item', onClick: () => { setMenu(false); void call('own-clip/clear', {}).catch(() => undefined) } }, h('span', { className: 'nm-menu-item-label' }, t('ocDefault')))
+                : null,
               h('button', { type: 'button', role: 'menuitem', className: 'nm-menu-item', onClick: () => { setMenu(false); profileBus.close(); studioBus.open?.(live.profile.description || '', live.profile.style || 'muse') } }, h('span', { className: 'nm-menu-item-label' }, t('pfAvatarStudio'))),
               h('button', { type: 'button', role: 'menuitem', className: 'nm-menu-item', onClick: () => { setMenu(false); setEditing('look') } }, h('span', { className: 'nm-menu-item-label' }, t('pfChangeLook'))))
           : null),
@@ -132,7 +139,8 @@ function Drawer({ t, stop, openSchedules, useSessions, useSessionStatus }: Profi
       : null,
     h('div', { className: 'nm-pf-body' }, body),
     share ? h(AvatarShareSheet, { t, name, onClose: () => setShare(false) }) : null,
-    detail ? h(TaskDetail, { t, sessionId: detail, useSessions, onClose: () => setDetail(null) }) : null)
+    detail ? h(TaskDetail, { t, sessionId: detail, useSessions, onClose: () => setDetail(null) }) : null,
+    clipChooser.element)
 }
 
 /** The words under the face for a running task: the step under way, else the job itself

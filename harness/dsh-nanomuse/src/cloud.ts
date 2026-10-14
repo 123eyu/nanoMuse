@@ -27,7 +27,7 @@
  */
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { ApprovalDesk, appOf, checkForUpdate, compareVersions, DEVICE_GRANT_PREFIX, HoldDesk, modelFor, pickChatModel, pickHandsModel, REMOTE_CONTROL_GRANT_ID, sharedConnectors, standingGrants, takesImages, type Grant, type Hold, type HoldTool, type PendingApproval, type StandingGrant, type UpdateInfo } from './desk.ts'
+import { ApprovalDesk, appOf, checkForUpdate, compareVersions, DEVICE_GRANT_PREFIX, HoldDesk, modelFor, pickChatModel, pickHandsModel, REMOTE_CONTROL_GRANT_ID, sharedConnectors, standingGrants, takesImages, UPDATE_RETRY_MS, updateCacheFresh, type Grant, type Hold, type HoldTool, type PendingApproval, type StandingGrant, type UpdateInfo } from './desk.ts'
 import { arch, homedir, hostname, release, type, userInfo } from 'node:os'
 import { dirname, join } from 'node:path'
 import { createHmac, randomBytes, randomUUID } from 'node:crypto'
@@ -37,7 +37,7 @@ import type {} from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-settings'
 import type { ToolDispatchExecution, ToolExecutionResult } from '@deepseek-ai/dsh-tools'
 import { createUserMessage, type ContentBlock, type StreamChunk } from '@deepseek-ai/dsh-llm'
-import type { Session, SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
+import type { Session, SessionEvent, SessionId, AgentCancelCause } from '@deepseek-ai/dsh-session'
 import type { SessionCreateRequest } from '@deepseek-ai/dsh-api-session-controller/types'
 import type {} from '@deepseek-ai/dsh-api-session-controller'
 import type {} from '@deepseek-ai/dsh-user-approval'
@@ -50,13 +50,15 @@ import { ProfileStore, type Profile } from './profile.ts'
 import { cloudOffFailure, relayFailure, transportFailure, type RelayRefusal } from './refusals.ts'
 import { Relay, RelayError, type Account, type Estimate, type Invite, type ProfileWrite, type RelayModel, type SignIn } from './relay.ts'
 import { TaskRunner, textOf } from './task.ts'
+import { Turns, aggregateWork, type WorkItem } from './work.ts'
 import { SCREEN_RUN_IDLE_MS, ScreenRuns, Trajectory, type ScreenRun, type StepAction, type TrajectoryView } from './trajectory.ts'
 import { RemoteStore, SyncEngine, SyncRelay, type RemoteLine, type SessionInfo, type SessionLine, type SyncState } from './sync.ts'
 import { AvatarMotion, ANIMATED, type MotionMood, type MotionView } from './motion.ts'
+import { OwnClip, type OwnClipView } from './own-clip.ts'
 import { DEFAULT_VIDEO_MODEL, hostOf, KNOWN_DASHSCOPE_MODELS, looksLikeVideoModel, probe as probeVideoModel, speaksDashScope, type VideoEndpoint } from './video.ts'
 import { editImage as ownEditImage, generateImage as ownGenerateImage, imageShapeOf, type ImageEndpoint } from './images.ts'
 import { checkMove, checkScreenshot, displayInfo, isBlack, runtimeInfo, screenHead, type MoveCheck, type RuntimeInfo, type ScreenshotCheck } from './hands-check.ts'
-import { apiOf, baseUrlFor, CAPABILITIES, capabilitiesForAuth, capabilitiesOf, CHATGPT_KEY_REF, CHATGPT_PROVIDER, ChatGptDesk, keyRefFor, listModelRows, listModels, loadCatalogue, modelsOf, ownProviderRow, parseModelReasoning, regionOf, typedModelIds, type Capability, type ChatGptState, type LoginView, type OwnModel, type OwnProvider, type ProviderEntry, type Region } from './providers.ts'
+import { apiOf, baseUrlFor, CAPABILITIES, capabilitiesForAuth, capabilitiesOf, CHATGPT_KEY_REF, CHATGPT_PROVIDER, ChatGptDesk, hasUserinfo, keyRefFor, listModelRows, listModels, loadCatalogue, modelsOf, ownProviderRow, parseModelReasoning, regionOf, typedModelIds, USERINFO_TEXT, type Capability, type ChatGptState, type LoginView, type OwnModel, type OwnProvider, type ProviderEntry, type Region } from './providers.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -273,6 +275,8 @@ export interface LiveState {
   update: UpdateInfo | null
   /** The face's clips: which exist (with a cache key) and how the drawing goes (desk-b). */
   motion: MotionView
+  /** The person's own clip as the face (#324): its size, cache key and whether a first frame was kept; null for none. Absent on an older host. */
+  ownClip?: OwnClipView | null
   /** When the hands last saw an all-black screen (macOS: Screen Recording missing, or granted after the app started); 0 when they have not. */
   blackScreenAt: number
   /** Conversation sync (C8): `rev` moves with every change pulled or pushed; the session that is the account's main conversation. */
@@ -438,9 +442,6 @@ export interface MediaView {
   motion: MotionView
 }
 
-/** One check a day, at most, by itself; the About row may ask any time. */
-const UPDATE_EVERY_MS = 24 * 60 * 60_000
-
 /**
  * A cached check, read against the bundle that runs now. The state file outlives an
  * update: right after 1.0.2 was installed over 1.0.1, the check 1.0.1 made within the day
@@ -472,6 +473,15 @@ function trustedOf(raw: Record<string, unknown>): Record<string, { name: string;
   return out
 }
 
+/** What a hand-made endpoint is called when the person gives it no name: its host, with the port when it has one. */
+function hostNameOf(url: string): string {
+  try {
+    return new URL(url).host
+  } catch {
+    return url
+  }
+}
+
 /** The own-key rows as `cloud.json` has them: malformed ones dropped, never a key (the credential store has those). */
 function ownProvidersOf(raw: Record<string, unknown>): Record<string, OwnProvider> {
   const out: Record<string, OwnProvider> = {}
@@ -480,6 +490,8 @@ function ownProvidersOf(raw: Record<string, unknown>): Record<string, OwnProvide
     const p = value as Partial<OwnProvider>
     if (typeof p.baseURL !== 'string' || !Array.isArray(p.capabilities)) continue
     out[id] = {
+      // the key is the id; a row written before the endpoint list (#294) carries none of its own
+      id,
       provider: typeof p.provider === 'string' && p.provider ? p.provider : id,
       label: typeof p.label === 'string' && p.label ? p.label : id,
       protocol: p.protocol === 'anthropic' || p.protocol === 'gemini' || p.protocol === 'openai-responses' ? p.protocol : 'openai',
@@ -593,6 +605,10 @@ export default class NanomuseCloud extends Service {
   private readonly trajectory = new Trajectory()
   /** Which session has this computer's screen right now, for the glow and the capsule. */
   private readonly screenRuns = new ScreenRuns()
+  /** The turns open on every session, for the exit's aggregate (src/work.ts). */
+  private readonly turns = new Turns()
+  /** The exit's gate: closed while the desktop shell hands over, new tasks refused and turns that open are stopped at once. */
+  private gateClosed = false
   private runTimer: NodeJS.Timeout | undefined
   private stageTimer: NodeJS.Timeout | undefined
   private signedInCache = false
@@ -614,16 +630,20 @@ export default class NanomuseCloud extends Service {
   private readonly approvalDesk = new ApprovalDesk(() => this.broadcast(), (req) => this.granted(req.toolName))
   private readonly holdDesk = new HoldDesk(() => this.broadcast())
   private updateCheck: Promise<UpdateInfo> | undefined
+  /** The hourly retry after a check that read nothing; one at a time, dropped at shutdown. */
+  private updateRetry: ReturnType<typeof setTimeout> | undefined
   private lastSharedConnectors = ''
   /** The face's clips (desk-b). */
   readonly motion: AvatarMotion
+  /** The person's own clip as the face (#324), this computer's alone. */
+  readonly ownClip: OwnClip
   private blackScreenAt = 0
   private handsMount: HandsMount = { at: 0, ok: true, reason: '' }
   /** The own-key catalogue (C11), from `assets/providers.json`. */
   private catalogue: ProviderEntry[] = []
   /** The ChatGPT sign-in and its proxy (C11), over the runtime's `nanomuse chatgpt`. */
   readonly chatgpt: ChatGptDesk
-  /** The Cursor, Codex and Claude Code sessions on this computer, for the page and the other devices (`docs/coding-agents.md`). */
+  /** The Cursor, Codex, Claude Code and DeepSeek Harness sessions on this computer, for the page and the other devices (`docs/coding-agents.md`). */
   readonly coding: CodingService
 
   constructor(ctx: Context, private readonly config: Config) {
@@ -648,6 +668,10 @@ export default class NanomuseCloud extends Service {
       still: (mood) => this.faceStill(mood),
       onChange: () => this.broadcast(),
       log: (level, text) => this.ctx.logger[level](text),
+    })
+    this.ownClip = new OwnClip({
+      dir: join(this.dir(), 'avatar'),
+      onChange: () => this.broadcast(),
     })
     this.hub = new HubClient({
       url: this.relay.hubURL,
@@ -684,6 +708,7 @@ export default class NanomuseCloud extends Service {
     // The face's clips follow the face (C3): a face drawn here or pulled from the account drops the
     // old clips and, with the Media setting on and a video model at hand, is animated again.
     await this.motion.init().catch((error: unknown) => this.ctx.logger.warn('nanomuse: avatar clips not read: %s', message(error)))
+    await this.ownClip.init().catch((error: unknown) => this.ctx.logger.warn('nanomuse: own clip not read: %s', message(error)))
     this.profile.onChange(() => void this.animateNewFace().catch((error: unknown) => this.ctx.logger.warn('nanomuse: avatar motion: %s', message(error))))
     this.hub.onState(() => this.broadcast())
     this.hub.onDevices(() => this.broadcast())
@@ -736,6 +761,7 @@ export default class NanomuseCloud extends Service {
           this.state.taskSessions = { ...this.state.taskSessions, [key]: sessionId }
           void this.writeState().catch((error: unknown) => this.ctx.logger.warn('nanomuse: state write failed: %s', message(error)))
         },
+        closed: () => this.gateClosed,
       })
       this.tasks = runner
       ctx.effect(() => runner.attach(), 'nanomuse cloud: tasks')
@@ -911,6 +937,21 @@ export default class NanomuseCloud extends Service {
         }),
       'nanomuse cloud: trajectory',
     )
+    // The turns of every session, for the desktop shell's protected exit (src/work.ts): a chat
+    // reply, a goal's automation or a task another device asked for is a turn here. While the
+    // exit hands over (the gate closed), a turn that opens all the same is stopped at once;
+    // nothing runs under the hand-over, and what the asker sent comes back as refused.
+    this.ctx.effect(
+      () =>
+        this.ctx.on('session/event', (session: Session, event: SessionEvent) => {
+          const id = String(session.id)
+          if (event.type === 'turn/start') {
+            this.turns.began(id)
+            if (this.gateClosed) void this.abortSession(id, { kind: 'hook', reason: 'this computer is ending its work; nothing starts under the hand-over' })
+          } else if (event.type === 'turn/end') this.turns.ended(id)
+        }),
+      'nanomuse cloud: turns for the protected exit',
+    )
     // The relay's refusals, read on their way back (C12): a spent allowance, a request too large,
     // a retired key, a relay that did not answer — as a card in the chat, not the wire's text,
     // and not retried as if they were rate limits.
@@ -938,6 +979,8 @@ export default class NanomuseCloud extends Service {
       this.hub.stop('shutting down')
       this.coding.close()
       this.chatgpt.stop()
+      if (this.updateRetry) clearTimeout(this.updateRetry)
+      this.updateRetry = undefined
       for (const res of this.streams) res.end()
       this.streams.clear()
     }, 'nanomuse cloud: hub')
@@ -960,19 +1003,24 @@ export default class NanomuseCloud extends Service {
       })
     }
     // Once a day, quietly: a newer release puts a badge on Settings and a row in the ••• menu.
-    if (!this.state.update || Date.now() - this.state.update.checkedAt > UPDATE_EVERY_MS) {
+    // A check that read nothing (the network down at start) counts for an hour, not a day.
+    if (!updateCacheFresh(this.state.update, BUNDLE_VERSION)) {
       setTimeout(() => void this.update(false).catch(() => undefined), 15_000).unref?.()
     }
   }
 
   // ---- the update check (B5) -------------------------------------------------------
 
-  /** The newest release against what runs here; cached a day unless `force`. */
+  /**
+   * The newest release against what runs here; cached a day unless `force`, an hour when
+   * the last check read nothing. The About row's own button is `force`: a failed check in
+   * the cache never stands in its way.
+   */
   update(force: boolean): Promise<UpdateInfo> {
     const cached = this.state.update
     // a cache made by another version of this bundle (the one that ran before an update was
     // installed) compared the wrong `current`; it is not an answer for this one (#341)
-    if (!force && cached && cached.current === BUNDLE_VERSION && Date.now() - cached.checkedAt < UPDATE_EVERY_MS) return Promise.resolve(cached)
+    if (!force && cached && updateCacheFresh(cached, BUNDLE_VERSION)) return Promise.resolve(cached)
     if (this.updateCheck) return this.updateCheck
     // the bare number: 0.1.40 compared the labelled `VERSION` ("dsh-nanomuse 0.1.40"), which
     // parsed as 0, so every release read as newer and the installed one was offered again
@@ -981,12 +1029,25 @@ export default class NanomuseCloud extends Service {
         this.state = { ...this.state, update: info }
         await this.writeState().catch(() => undefined)
         this.broadcast()
+        this.scheduleUpdateRetry(info)
         return info
       })
       .finally(() => {
         this.updateCheck = undefined
       })
     return this.updateCheck
+  }
+
+  /** After a check that read neither source: one quiet try an hour later, replacing any retry still waiting. */
+  private scheduleUpdateRetry(info: UpdateInfo): void {
+    if (this.updateRetry) clearTimeout(this.updateRetry)
+    this.updateRetry = undefined
+    if (info.source !== 'none') return
+    this.updateRetry = setTimeout(() => {
+      this.updateRetry = undefined
+      void this.update(false).catch(() => undefined)
+    }, UPDATE_RETRY_MS)
+    this.updateRetry.unref?.()
   }
 
   // ---- the relay's refusals in the chat (C12) ---------------------------------------
@@ -1346,6 +1407,59 @@ export default class NanomuseCloud extends Service {
     return false
   }
 
+  // ---- the work a protected exit ends (src/work.ts) ------------------------------------
+
+  /**
+   * The work a real quit (later, a restart-update) would end, over every source there is:
+   * the turns of all sessions, the hands' calls, the tasks other devices asked for and the
+   * approvals waiting on this screen, one line per kind (src/work.ts's aggregateWork).
+   */
+  private workBusy(): WorkItem[] {
+    return aggregateWork({
+      turnSessions: this.turns.sessions(),
+      taskRuns: this.tasks?.origins() ?? [],
+      handsBusy: this.handsBusy(),
+      approvals: this.approvalDesk.list().length,
+    })
+  }
+
+  /**
+   * The gate for new work while the exit hands over: closed, a task another device sends is
+   * refused with the usual `busy` error and a turn that opens all the same is stopped at once.
+   */
+  setWorkGate(open: boolean): boolean {
+    this.gateClosed = !open
+    this.ctx.logger.info('nanomuse cloud: the exit gate is %s', this.gateClosed ? 'closed; new work is refused until it opens' : 'open')
+    return !this.gateClosed
+  }
+
+  /** Stop the turn on one session, whatever it is, and wait for the agent to go quiet. */
+  private async abortSession(sessionId: string, cause: AgentCancelCause): Promise<void> {
+    const controller = this.sessionCtx?.sessionController
+    if (!controller) return
+    const resolved = await controller.resolveAgent(sessionId as SessionId).catch(() => undefined)
+    if (!resolved || !('agent' in resolved)) return
+    resolved.agent.cancel(cause)
+    await resolved.agent.whenIdle().catch(() => undefined)
+  }
+
+  /**
+   * End the work in progress (the person confirmed the exit): every turn is cancelled,
+   * which settles the tasks' hub calls, the hands' holds and the approvals waiting, and
+   * the aggregate is checked again until it is empty or the rounds run out. The shell's
+   * exit waits for this, and only then stops the Host.
+   */
+  async stopAllWork(): Promise<WorkItem[]> {
+    this.gateClosed = true
+    for (let round = 0; round < 5; round++) {
+      const busy = this.workBusy()
+      if (busy.length === 0) return []
+      if (round > 0) this.ctx.logger.warn('nanomuse cloud: work still on for the exit (round %d): %s', round, busy.map((item) => item.kind).join(', '))
+      for (const sessionId of this.turns.sessions()) await this.abortSession(sessionId, { kind: 'user' })
+    }
+    return this.workBusy()
+  }
+
   /**
    * `hands-tools.ts` says how its last mount of the hands' MCP client went: the Computer-use
    * page and the Connectors row show the reason when the hands are off. `at` 0 before the
@@ -1442,22 +1556,36 @@ export default class NanomuseCloud extends Service {
    * chat models the endpoint listed (or the catalogue's defaults) — goes into the harness's model
    * adapter the way the Models page writes one. The row's capabilities are the catalogue's;
    * `custom` takes what the person says.
+   *
+   * A vendor has one row, named after its catalogue id, so saving its key again replaces it.
+   * A hand-made endpoint (`custom`) is one row per endpoint (#294): without `row`, a new one
+   * joins under the lowest free id (`custom`, `custom-2`, ...); with `row`, that row is the one
+   * changed, and an empty key keeps the key it has.
    */
-  async saveProvider(input: { id: string; apiKey?: string; baseURL?: string; label?: string; capabilities?: string[]; models?: string[]; lang?: string }): Promise<OwnProvider> {
+  async saveProvider(input: { id: string; row?: string; apiKey?: string; baseURL?: string; label?: string; capabilities?: string[]; models?: string[]; lang?: string }): Promise<OwnProvider> {
     const id = input.id.trim().toLowerCase()
     if (id === CHATGPT_PROVIDER || id === PROVIDER_ID) throw new RelayError(400, 'bad_provider', 'That row is written by a sign-in, not a key')
     const entry = this.catalogue.find((p) => p.id === id)
     if (!entry) throw new RelayError(404, 'unknown_provider', 'Not in the catalogue')
+    const wantedRow = (input.row ?? '').trim().toLowerCase()
+    const existing = wantedRow ? this.state.providers?.[wantedRow] : this.state.providers?.[id]
+    if (wantedRow && (!existing || existing.provider !== id)) throw new RelayError(404, 'not_found', 'No such row')
+    const rowId = wantedRow || (entry.id === 'custom' ? this.freeCustomRowId() : id)
     const region = this.region(input.lang ?? '')
-    const baseURL = (input.baseURL ?? '').trim().replace(/\/+$/, '') || baseUrlFor(entry, region)
+    const baseURL = (input.baseURL ?? '').trim().replace(/\/+$/, '') || (wantedRow ? existing?.baseURL : undefined) || baseUrlFor(entry, region)
     if (!/^https?:\/\//.test(baseURL)) throw new RelayError(400, 'bad_url', 'The address must start with http:// or https://')
-    const apiKey = (input.apiKey ?? '').trim()
+    // `user:pass@` would be kept in cloud.json and the model adapter's row and shown back as typed
+    if (hasUserinfo(baseURL)) throw new RelayError(400, 'url_userinfo', USERINFO_TEXT)
+    let apiKey = (input.apiKey ?? '').trim()
+    // a row changed without a new key keeps the one it has, read back to ask the endpoint for its models
+    const keptKeyRef = !apiKey && wantedRow && existing?.keyRef ? existing.keyRef : ''
+    if (keptKeyRef) apiKey = await this.credential(keptKeyRef)
     if (!apiKey && !entry.auth.includes('none')) throw new RelayError(400, 'no_key', 'This provider needs a key')
     // not `bad_key`: the client reads that code as a retired sign-in
     if (apiKey && /\s/.test(apiKey)) throw new RelayError(400, 'key_shape', 'A key has no spaces in it')
     let capabilities: Capability[] = entry.capabilities
     if (entry.user_capabilities) {
-      const said = (input.capabilities ?? []).filter((c): c is Capability => (CAPABILITIES as readonly string[]).includes(c))
+      const said = (input.capabilities ?? (wantedRow ? existing?.capabilities : undefined) ?? []).filter((c): c is Capability => (CAPABILITIES as readonly string[]).includes(c))
       capabilities = CAPABILITIES.filter((c) => c === 'chat' || said.includes(c))
     }
     // A vendor that wants a session id per conversation (OpenCode Go) is reached through the
@@ -1468,24 +1596,52 @@ export default class NanomuseCloud extends Service {
     const listed = catalogRoute ? served.map((m) => ({ id: m })) : await listModelRows(entry.protocol, baseURL, apiKey)
     // The ids the person typed (a gateway that does not answer `GET /models`, or one model
     // wanted out of hundreds): first in the list, the endpoint's own after them; a typed id the
-    // list also has keeps what the list said about it (OpenRouter's thinking levels).
-    const typed = typedModelIds(input.models).filter((m) => !catalogRoute || served.includes(m))
+    // list also has keeps what the list said about it (OpenRouter's thinking levels). A row
+    // changed without new ids keeps the ones it had.
+    const typedInput = input.models ?? (wantedRow ? existing?.models.map((m) => m.id) : undefined)
+    const typed = typedModelIds(typedInput).filter((m) => !catalogRoute || served.includes(m))
     let models = modelsOf({ ...entry, capabilities }, [...typed.map((id) => listed.find((m) => m.id === id) ?? { id }), ...listed.filter((m) => !typed.includes(m.id))])
     if (entry.user_capabilities) models = models.map((m) => ({ ...m, vision: capabilities.includes('vision') }))
     // A row with no chat model cannot be served (the model adapter refuses a route that resolves
     // no models) and nothing could pick from it: a plain sentence, before anything is written.
     if (!models.some((m) => m.kind === 'chat')) throw new RelayError(400, 'no_models', 'The endpoint did not list its models (GET /models). Type the ids of the models it serves, separated by commas.')
-    const keyRef = apiKey ? keyRefFor(id) : ''
-    if (keyRef) await this.ctx.credentials.set(credentialRef(keyRef), apiKey)
-    const label = (input.label ?? '').trim() || (input.lang?.toLowerCase().startsWith('zh') ? entry.name_zh : entry.name)
-    const row: OwnProvider = { provider: id, label, protocol: entry.protocol, baseURL, keyRef, capabilities, models, at: Date.now(), ...(catalogRoute ? { catalogRoute } : {}) }
-    await this.ctx.settings.update(LLM_ROW, { providers: { [id]: ownProviderRow(row, entry.reasoning) } })
-    this.state = { ...this.state, providers: { ...this.state.providers, [id]: row } }
+    const keyRef = keptKeyRef || (apiKey ? keyRefFor(rowId) : '')
+    if (keyRef && !keptKeyRef) await this.ctx.credentials.set(credentialRef(keyRef), apiKey)
+    // a hand-made endpoint reads as its host unless named, so several are told apart
+    const fallbackLabel = entry.id === 'custom' ? hostNameOf(baseURL) : input.lang?.toLowerCase().startsWith('zh') ? entry.name_zh : entry.name
+    const label = (input.label ?? '').trim() || (wantedRow ? existing?.label : undefined) || fallbackLabel
+    const row: OwnProvider = { id: rowId, provider: id, label, protocol: entry.protocol, baseURL, keyRef, capabilities, models, at: Date.now(), ...(catalogRoute ? { catalogRoute } : {}) }
+    await this.ctx.settings.update(LLM_ROW, { providers: { [rowId]: ownProviderRow(row, entry.reasoning) } })
+    this.state = { ...this.state, providers: { ...this.state.providers, [rowId]: row } }
     await this.writeState()
-    await this.adoptOwnDefault(id, row)
+    await this.adoptOwnDefault(rowId, row)
     await this.writeHands()
     this.broadcast()
     return row
+  }
+
+  /** The lowest free id for a hand-made endpoint's row: `custom`, then `custom-2`, `custom-3`, ... (#294). */
+  private freeCustomRowId(): string {
+    const taken = this.state.providers ?? {}
+    if (!taken.custom) return 'custom'
+    for (let n = 2; ; n++) if (!taken[`custom-${n}`]) return `custom-${n}`
+  }
+
+  /**
+   * `POST /providers/rename`: a new name for an own row, in the pickers and the model adapter
+   * alike; empty goes back to the row's host (a hand-made endpoint) or the catalogue's name.
+   */
+  async renameProvider(id: string, label: string, lang = ''): Promise<OwnProvider> {
+    const row = this.state.providers?.[id]
+    if (!row || id === CHATGPT_PROVIDER) throw new RelayError(404, 'not_found', 'No such row')
+    const entry = this.catalogue.find((p) => p.id === row.provider)
+    const name = label.trim().slice(0, 80) || (row.provider === 'custom' ? hostNameOf(row.baseURL) : lang.toLowerCase().startsWith('zh') ? entry?.name_zh : entry?.name) || id
+    const renamed: OwnProvider = { ...row, label: name }
+    await this.ctx.settings.update(LLM_ROW, { providers: { [id]: ownProviderRow(renamed, entry?.reasoning) } })
+    this.state = { ...this.state, providers: { ...this.state.providers, [id]: renamed } }
+    await this.writeState()
+    this.broadcast()
+    return renamed
   }
 
   /**
@@ -1684,7 +1840,7 @@ export default class NanomuseCloud extends Service {
     const ids = listed.length ? listed : ['gpt-5.6-sol', 'gpt-5.4', 'gpt-5.4-mini']
     const label = this.chatgpt.login.label || this.state.chatgpt?.label || 'ChatGPT'
     const own: OwnModel[] = ids.map((id) => ({ id, name: id, vision: capabilities.includes('vision'), kind: 'chat' as const }))
-    const row: OwnProvider = { provider: CHATGPT_PROVIDER, label, protocol: 'openai', baseURL: url, keyRef: CHATGPT_KEY_REF, capabilities, models: own, at: Date.now() }
+    const row: OwnProvider = { id: CHATGPT_PROVIDER, provider: CHATGPT_PROVIDER, label, protocol: 'openai', baseURL: url, keyRef: CHATGPT_KEY_REF, capabilities, models: own, at: Date.now() }
     await this.ctx.settings.update(LLM_ROW, { providers: { [CHATGPT_PROVIDER]: ownProviderRow(row) } })
     const fresh = !this.state.chatgpt
     this.state = { ...this.state, providers: { ...this.state.providers, [CHATGPT_PROVIDER]: row }, chatgpt: { label, at: this.state.chatgpt?.at ?? Date.now() } }
@@ -1942,6 +2098,7 @@ export default class NanomuseCloud extends Service {
       handsModel: this.handsModel(),
       update: this.state.update ?? null,
       motion: this.motion.view(),
+      ownClip: this.ownClip.view(),
       blackScreenAt: this.blackScreenAt,
       sync: this.sync ? { rev: this.sync.view().rev, mainSession: this.sync.state.mainSession } : { rev: 0, mainSession: '' },
       ownKeys: {
@@ -3180,6 +3337,14 @@ export default class NanomuseCloud extends Service {
       if (req.method === 'GET' && route === '/status') return send(res, 200, await this.status())
       if (req.method === 'GET' && route === '/events') return this.stream(req, res)
       if (req.method === 'GET' && route === '/live') return send(res, 200, this.live())
+      // the desktop shell's protected exit (src/work.ts): the aggregate a real quit would end,
+      // the gate new work respects while it hands over, and the confirmed stop of the work
+      if (req.method === 'GET' && route === '/work') return send(res, 200, { busy: this.workBusy() })
+      if (req.method === 'POST' && route === '/work/gate') {
+        const body = await json(req)
+        return send(res, 200, { open: this.setWorkGate(body.open !== false) })
+      }
+      if (req.method === 'POST' && route === '/work/stop') return send(res, 200, { busy: await this.stopAllWork() })
       if (req.method === 'GET' && route === '/stage/frame') {
         // `seq` names a step's picture (0.1.40); without it, the newest
         const frame = this.trajectory.frameOf(Number(url.searchParams.get('seq') ?? 0) || 0)
@@ -3410,6 +3575,7 @@ export default class NanomuseCloud extends Service {
       if (req.method === 'POST' && route === '/providers/save') {
         const body = await json(req)
         const input: Parameters<typeof this.saveProvider>[0] = { id: String(body.id ?? '') }
+        if (typeof body.row === 'string' && body.row) input.row = body.row
         if (typeof body.apiKey === 'string') input.apiKey = body.apiKey
         if (typeof body.baseURL === 'string') input.baseURL = body.baseURL
         if (typeof body.label === 'string') input.label = body.label
@@ -3418,7 +3584,11 @@ export default class NanomuseCloud extends Service {
         if (Array.isArray(body.models) || typeof body.models === 'string') input.models = typedModelIds(body.models)
         const row = await this.serialize(() => this.saveProvider(input))
         // the "Use it for" card: the slots this row could take and the model each would get
-        return send(res, 200, { ...row, offer: this.slotOffer(row.provider) })
+        return send(res, 200, { ...row, offer: this.slotOffer(row.id) })
+      }
+      if (req.method === 'POST' && route === '/providers/rename') {
+        const body = await json(req)
+        return send(res, 200, await this.serialize(() => this.renameProvider(String(body.id ?? ''), String(body.label ?? ''), typeof body.lang === 'string' ? body.lang : '')))
       }
       if (req.method === 'POST' && route === '/providers/adopt') {
         const body = await json(req)
@@ -3468,6 +3638,28 @@ export default class NanomuseCloud extends Service {
       }
       if (req.method === 'POST' && route === '/media/dismiss') {
         this.motion.clearProgress()
+        return send(res, 204)
+      }
+      // A clip of the person's own as the face (#324): the picked file comes as the body, is looked at and
+      // kept as a pending copy for the preview; "Use" makes it the clip, "Cancel" drops it, "Default face" removes it.
+      if (req.method === 'POST' && route === '/own-clip/stage') {
+        const staged = await this.ownClip.stage(req)
+        if (staged.ok) return send(res, 200, staged)
+        const seconds = Math.floor((staged.probe.durationMs ?? 0) / 1000)
+        return send(res, staged.why === 'too_large' ? 413 : 415, { error: { code: `clip_${staged.why}`, message: `The clip was refused: ${staged.why}` }, seconds, bytes: staged.probe.bytes })
+      }
+      if (req.method === 'POST' && route === '/own-clip/use') {
+        const body = await json(req, 2 * 1024 * 1024)
+        const poster = typeof body.poster === 'string' && body.poster ? Buffer.from(body.poster, 'base64') : undefined
+        if (!(await this.ownClip.use(poster))) return send(res, 409, { error: { code: 'no_pending', message: 'No clip waiting to be used' } })
+        return send(res, 200, { ownClip: this.ownClip.view() })
+      }
+      if (req.method === 'POST' && route === '/own-clip/discard') {
+        await this.ownClip.discard()
+        return send(res, 204)
+      }
+      if (req.method === 'POST' && route === '/own-clip/clear') {
+        await this.ownClip.clear()
         return send(res, 204)
       }
       // Settings → Computer use: the runtime and the "try it" checks (desk-b)

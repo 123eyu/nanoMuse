@@ -16,25 +16,35 @@
 #    Contributors / Contributors / Full Changelog filled in from the merged pull requests by
 #    scripts/release_notes.py); --prerelease marks it as one instead and leaves Latest alone.
 #
-# --publish-only skips 1-5 and publishes the dist/ APK that is already there — for a version
+# --publish-only skips 1-5 and publishes the dist/ APK that is already there, for a version
 # whose sources are an older commit (pass --target <commit> so the tag lands on it). The APK
 # is still checked: its badging must say <version>, the .sha256 must match, debug key refused.
+#
+# Publishing refuses a commit that is not on origin/main (a release is cut from main, after
+# the release pull request merged) and a working tree with uncommitted changes to tracked
+# files (the APK would not match the tag).
 set -euo pipefail
+usage() { sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'; }
+case "${1:-}" in -h|--help) usage; exit 0 ;; esac
 source "$(dirname "${BASH_SOURCE[0]}")/android/env.sh"
 
 version="${1:-}"
-[ -n "$version" ] || { echo "usage: $0 <version> [--publish] [--publish-only] [--target COMMIT] [--notes FILE] [--allow-debug-key] [--prerelease]" >&2; exit 2; }
+[[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+  echo "usage: $0 <version> [--publish] [--publish-only] [--target COMMIT] [--notes FILE] [--allow-debug-key] [--prerelease]" >&2
+  echo "the version is x.y.z (got '${version:-nothing}'); --help explains" >&2
+  exit 2
+}
 shift
 publish=0 publish_only=0 allow_debug=0 prerelease=0 notes="" target=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --publish) publish=1 ;;
     --publish-only) publish=1; publish_only=1 ;;
-    --target) target="$2"; shift ;;
+    --target) [ $# -ge 2 ] || { echo "--target needs a commit" >&2; exit 2; }; target="$2"; shift ;;
     --allow-debug-key) allow_debug=1 ;;
     --prerelease) prerelease=1 ;;
-    --notes) notes="$2"; shift ;;
-    *) echo "unknown option $1" >&2; exit 2 ;;
+    --notes) [ $# -ge 2 ] || { echo "--notes needs a file" >&2; exit 2; }; notes="$2"; shift ;;
+    *) echo "unknown option $1 (try --help)" >&2; exit 2 ;;
   esac
   shift
 done
@@ -45,8 +55,8 @@ command -v sha256sum >/dev/null 2>&1 || sha256sum() { shasum -a 256 "$@"; }
 out="$NM_ROOT/dist/nanoMuse-$version-arm64.apk"
 
 # Every part of the release carries the same version: the runtime, the desktop app, the web
-# app (the APK is checked by badging below). Packages are named after
-# these, so one left behind shows up as a wrong file name on the release.
+# app, the iPhone app's MARKETING_VERSION (the APK is checked by badging below). Packages are
+# named after these, so one left behind shows up as a wrong file name on the release.
 echo "== versions"
 versions_ok=1
 check_version() { # file, what grep should find in it
@@ -58,6 +68,7 @@ check_version web/package.json "\"version\": \"$version\""
 check_version CITATION.cff "^version: $version$"
 check_version harness/dsh-nanomuse/package.json "\"version\": \"$version\""
 check_version harness/desktop/package.json "\"version\": \"$version\""
+check_version android/src/ios/Minis.xcodeproj/project.pbxproj "MARKETING_VERSION = $version;"
 [ $versions_ok = 1 ] || { echo "the versions above disagree — bump them first" >&2; exit 1; }
 
 # Signature + badging of one APK; exits on the debug key unless allowed.
@@ -114,14 +125,29 @@ if [ $publish = 1 ]; then
   tag="v$version"
 
   cd "$NM_ROOT"
+  # Nothing half done goes out: the tree is committed, and the commit the tag lands on is
+  # on origin/main (a release is cut from main once its pull request merged).
+  if [ -n "$(git status --porcelain --untracked-files=no --ignore-submodules=untracked)" ]; then
+    echo "the working tree has uncommitted changes; commit or stash them before publishing" >&2
+    git status --short --untracked-files=no --ignore-submodules=untracked >&2
+    exit 1
+  fi
   if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
     echo "== tag $tag exists at $(git rev-parse --short "$tag^{commit}")"
     [ -z "$target" ] || [ "$(git rev-parse "$tag^{commit}")" = "$(git rev-parse "$target^{commit}")" ] || {
       echo "tag $tag already points elsewhere than --target $target" >&2; exit 1; }
+    commit="$(git rev-parse "$tag^{commit}")"
   else
-    target="${target:-HEAD}"
-    echo "== tag $tag -> $(git rev-parse --short "$target^{commit}")"
-    git tag -a "$tag" "$target" -m "nanoMuse $version"
+    commit="$(git rev-parse "${target:-HEAD}^{commit}")"
+  fi
+  git fetch -q origin main
+  git merge-base --is-ancestor "$commit" origin/main || {
+    echo "$(git rev-parse --short "$commit") is not on origin/main; merge the release pull request first" >&2
+    exit 1
+  }
+  if ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+    echo "== tag $tag -> $(git rev-parse --short "$commit")"
+    git tag -a "$tag" "$commit" -m "nanoMuse $version"
   fi
   git push origin "refs/tags/$tag"
 

@@ -127,6 +127,8 @@
     <string name="nm_routine_run_now">今すぐ実行</string>
     <string name="nm_routine_delete">削除</string>
     <string name="nm_routine_paused">オフ</string>
+    <!-- The chat row a routine sent: its label and the clock time it fired -->
+    <string name="nm_routine_wake_caption">ルーティン · %1$s · %2$s</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">アイデア</string>
@@ -348,6 +350,23 @@
     <string name="nm_avatar_use_this">これにする</string>
     <string name="nm_avatar_use_this_hint">次に、表情（作業中、待機中、完了、おっと）をこの画像からバックグラウンドで描きます。</string>
     <string name="nm_avatar_footer">画像は端末の minis-global/nanomuse/avatar に保存されます。顔 1 つにつきプロバイダから 5 枚の画像を使います: 選んだ 1 枚と 4 つの表情です。</string>
+    <string name="nm_own_clip_title">自分の動画</string>
+    <string name="nm_own_clip_body">自分の短い動画が待機中の顔として再生され、他の状態でも同じ動画が使われます。H.264 の MP4 または MOV、最長 15 秒、最大 30 MB。無音でループ再生されます。</string>
+    <string name="nm_own_clip_on">自分の動画が有効で、すべての状態で再生されます。静止画が使われる場所では描かれた画像がそのまま使われます。「標準の顔」で取り除けます。</string>
+    <string name="nm_own_clip_local">動画はこの端末にだけ保存されます。nanoMuse Cloud にアップロードされず、他の端末にも同期されません。</string>
+    <string name="nm_own_clip_choose">動画を選ぶ</string>
+    <string name="nm_own_clip_replace">動画を差し替える</string>
+    <string name="nm_own_clip_default">標準の顔</string>
+    <string name="nm_own_clip_menu">自分の動画…</string>
+    <string name="nm_own_clip_preview_title">プレビュー</string>
+    <string name="nm_own_clip_preview_body">顔として再生されるとこうなります: 無音、ループ、円形に切り抜き。</string>
+    <string name="nm_own_clip_details">%1$d 秒 · %2$s</string>
+    <string name="nm_own_clip_use">使う</string>
+    <string name="nm_own_clip_refused_format">このファイルはここでは使えません。H.264 の MP4 または MOV で、15 秒以内かつ 30 MB 以内のものを選んでください。</string>
+    <string name="nm_own_clip_refused_long">この動画は %1$d 秒あります。上限は 15 秒、および 30 MB です。</string>
+    <string name="nm_own_clip_refused_large">この動画は %1$s あります。上限は 30 MB、および 15 秒です。</string>
+    <string name="nm_own_clip_unreadable">動画を読み込めませんでした。別のものを試してください。</string>
+    <string name="nm_a11y_own_clip_preview">自分の動画のプレビュー</string>
 
     <!-- First run (Muse-style welcome; the steps are OpenMinis' provider and model screens) -->
     <string name="nm_setup_title">nanoMuse へようこそ</string>
@@ -591,6 +610,8 @@
     <string name="nm_risk_title_device">「%1$s」にこの端末の操作を許可しますか？</string>
     <string name="nm_risk_desc_device">アカウント上の別のデバイス「%1$s」が、この端末で次の操作をしようとしています: %2$s。具体的な内容は下に表示されています。「常に」を選ぶと、そのデバイスは確認なしでここでこうした操作ができます。取り消すには権限から。</string>
     <string name="nm_risk_preview_device">デバイスからの依頼内容</string>
+    <string name="nm_risk_preview_show_all">すべて表示（%1$d 行）</string>
+    <string name="nm_risk_preview_show_less">折りたたむ</string>
     <string name="nm_risk_class_remote">リモート操作</string>
     <string name="nm_hub_remote_reason">%1$s はこの端末を操作できます</string>
 
@@ -624,7 +645,6 @@
     <string name="nm_welcome_skip">今はスキップ</string>
     <string name="nm_welcome_hands_fine_print">これらがなくてもほかの機能はすべて使えます。必要になったら設定 → ハンズにあります。</string>
     <string name="nm_welcome_meet_fine_print">取り消せない操作（削除、送信、支払い）の前には、立ち止まってまずあなたに確認します。</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">nanoMuse Cloud で始める</string>
     <string name="nm_cloud_signin_subtitle">スマートフォンかメールにコードを送ります。パスワードを設定済みならそれでも。</string>
     <string name="nm_cloud_mode_code">コードで</string>
@@ -632,7 +652,7 @@
     <string name="nm_cloud_password">パスワード</string>
     <string name="nm_cloud_forgot_password">パスワードを忘れた場合はコードでサインイン</string>
     <string name="nm_cloud_identifier">中国本土の電話番号またはメールアドレス</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · you@example.com</string>
+    <string name="nm_cloud_identifier_hint">you@example.com</string>
     <string name="nm_cloud_code">コード</string>
     <string name="nm_cloud_send_code">コードを送信</string>
     <string name="nm_cloud_resend">再送信</string>
@@ -642,7 +662,6 @@
     <!-- Your own relay (0.1.38): the sign-in screen's server form and the account page's row -->
     <string name="nm_cloud_other_server">別のサーバーを使う</string>
     <string name="nm_cloud_server_url">リレーのアドレス</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
     <string name="nm_cloud_server_check">確認</string>
     <string name="nm_cloud_server_use">このサーバーを使う</string>
     <string name="nm_cloud_server_now">サーバー: %1$s</string>
@@ -704,6 +723,8 @@
     <string name="nm_cloud_err_password_short">パスワードは 8 文字以上必要です。</string>
     <string name="nm_cloud_err_password_weak">そのパスワードは推測されやすすぎます。</string>
     <string name="nm_cloud_err_signup_closed">このリレーでは新規登録を一時停止しています。すでにあるアカウントはそのままサインインできます。</string>
+    <string name="nm_cloud_err_domain_limited">このドメインのアドレスは、このリレーでの本日の登録上限に達しました。明日もう一度試すか、別のアドレスを使ってください。</string>
+    <string name="nm_cloud_err_channel_unsupported">このリレーはその種類のアドレスには確認コードを送りません。別の種類（メールアドレスか電話番号）を使うか、パスワードでサインインしてください。</string>
     <string name="nm_cloud_err_too_large">このメッセージはモデルには大きすぎます。短くするか、添付をいくつか外すか、新しいチャットを始めてください。</string>
     <string name="nm_cloud_err_content_rejected">モデル提供元のコンテンツ審査がこのリクエストを通しませんでした。言い方を変えてみてください。続くようなら新しいチャットを始めてください。問題とされた言葉は会話のもっと前にあることもあります。</string>
     <string name="nm_cloud_err_provider_busy">モデル提供元が混み合っています。少ししてからもう一度お試しください。</string>
@@ -750,7 +771,7 @@
     <string name="nm_face_cost_not_now">今はしない</string>
     <string name="nm_face_cost_declined">わかりました、顔はこのままにします。</string>
     <string name="nm_cloud_invite_title">友だちを招待</string>
-    <string name="nm_cloud_invite_why">あなたのコードで登録した人 1 人ごとに、あなたの無料枠に ¥%1$s、相手にも ¥%1$s が加わります。期限はありません。</string>
+    <string name="nm_cloud_invite_why">友だちがあなたのコードで登録して最初のリクエストを送ると、2 人とも ¥%1$s を受け取ります。期限はありません。</string>
     <string name="nm_cloud_invite_code">あなたのコード</string>
     <string name="nm_cloud_invite_share">リンクを共有</string>
     <string name="nm_cloud_invite_copy">コピー</string>
@@ -788,7 +809,7 @@
     <string name="nm_cap_clips_unavailable">クリップには動画モデルのあるプロバイダが必要です：Alibaba Cloud 百煉。</string>
     <string name="nm_cap_hands_unavailable">ハンズには画面を見られるモデルが必要です：百煉、OpenRouter、OpenAI、Anthropic、Gemini、またはビジョンモデルのあるプロバイダ。</string>
     <string name="nm_cap_chat_unavailable">チャットにはチャットモデルのあるプロバイダが必要です：キーを追加するか、サインインしてください。</string>
-    <string name="nm_ways_invite_title">友だちを招待: あなたのリンクで登録した人 1 人ごとに、あなたに +¥%1$s、相手に +¥%2$s。</string>
+    <string name="nm_ways_invite_title">友だちを招待: あなたのリンクで登録した人が最初のリクエストを送るごとに、あなたに +¥%1$s、相手に +¥%2$s。</string>
     <string name="nm_ways_invite_share">リンクを共有</string>
     <string name="nm_ways_invite_copy">リンクをコピー</string>
     <string name="nm_cloud_ev_contribute_on">データ管理: 改善への協力をオンにしました</string>
@@ -1118,4 +1139,16 @@
     <string name="nm_a11y_liked">いいね済み</string>
     <string name="nm_a11y_not_liked">いいねしていません</string>
     <string name="nm_a11y_post_details">投稿の詳細</string>
+    <string name="nm_claude_sign_in_unavailable">このビルドでは Claude アカウントでのサインインは使えません。代わりに API キーで Anthropic を追加してください。</string>
+    <string name="nm_oauth_rescue_hint">ブラウザが localhost でエラーページを表示する場合、端末のプロキシや VPN がコールバックを横取りしています。localhost をその除外リストに加えるか、そのページのアドレスをコピーしてここに貼り付けてください。</string>
+    <string name="nm_oauth_rescue_placeholder">ここにアドレスを貼り付け</string>
+    <string name="nm_oauth_rescue_continue">続ける</string>
+    <string name="nm_oauth_rescue_no_code">このアドレスにはサインインコードが含まれていません。</string>
+    <string name="nm_oauth_rescue_failed">サインインはもうこのアドレスを待っていません。「サインイン」をタップしてやり直してください。</string>
+    <!-- Font scale labels -->
+    <string name="nm_font_scale_extra_small">とても小さい</string>
+    <string name="nm_font_scale_small">小さい</string>
+    <string name="nm_font_scale_medium">中</string>
+    <string name="nm_font_scale_large">大きい</string>
+    <string name="nm_font_scale_extra_large">とても大きい</string>
 </resources>

@@ -1,6 +1,8 @@
 """HTTP: the sign-up endpoints the app calls, and the OpenAI-shaped proxy.
 
-    POST /v1/auth/code        {identifier}                      → 204 (400 phone_region: a number the SMS sender cannot reach)
+    GET  /healthz                                               → {ok, version, models, paused}
+    GET  /v1/config                                             → the public figures the apps print (allowance, bonus, links, code_ttl_s, password_min_len); a minute's cache
+    POST /v1/auth/code        {identifier}                      → 204 (400 phone_region: a number the SMS sender cannot reach; a disabled account gets the same 204 and no code is sent; 429 domain_limited: a new address of a domain at its day's sign-up limit)
     POST /v1/auth/verify      {identifier, code, device, invite?} → {api_key, base_url, account, tokens, models}
     POST /v1/auth/login       {identifier, password, device}    → the same, for accounts that set a password
     POST /v1/auth/password    {password, current?}              → 204 (set / change; "" + current removes)
@@ -24,14 +26,17 @@
     POST /v1/auth/sign-out-all {all?}                           → {signed_out} (every other device; all=true takes this one too)
     POST /v1/auth/session-key {device?, ttl_s?}                 → {api_key, expires_at} (a key that lapses on its own; nanoMuse Web's containers)
     POST /v1/auth/delete                                        → 204 (the whole account, every key)
+    GET  /v1/me/profile       ?face=false                       → the agent's name, look and connectors, shared by the account's devices
+    PUT  /v1/me/profile       {device, name?, avatar?, face?, connectors?} → {rev, device}; partial since 0.25
+    DELETE /v1/me/profile                                       → 204
     GET  /v1/models                                             → OpenAI list, with modalities; for a member, the usable models under the operator's key after the menu (catalog: true)
+    GET  /v1/models/{id}      ?kind=chat                        → one model, or a member's typed id checked (listed, priced_as)
     POST /v1/chat/completions                                   → forwarded; stream or not
     POST /v1/images/generations                                 → DashScope native, returned as b64_json
     POST /v1/images/edits     multipart                         → same, with the picture
     POST /api/v1/services/aigc/video-generation/video-synthesis → DashScope's async video API, relayed
     GET  /api/v1/tasks/{id}                                     → its task poll (own tasks only)
     GET  /api/v1/uploads?action=getPolicy&model=…               → its temporary-storage policy
-    GET  /healthz
     WS   /v1/hub                                                → the devices of one account meet (hub.py)
     GET  /v1/devices                                            → remembered devices with presence
     DELETE /v1/devices/{id}                                     → forget an offline device
@@ -51,6 +56,8 @@
     GET  /v1/admin/accounts/{id}/ledger X-Admin-Token ?limit=&before= → the account's statement, every line, page by page (before = last id shown)
     GET  /v1/admin/accounts/{id}/events X-Admin-Token ?limit=&before= → the account's timeline, every entry, page by page
     GET  /v1/admin/address    X-Admin-Token  ?ip=…              → the accounts seen from one address
+    GET  /v1/admin/invites    X-Admin-Token  ?limit=200&per=20  → who invited whom: the funnel and the inviters ranked by the accounts their code brought, with the newest `per` of them
+    POST /v1/admin/invites/abuse X-Admin-Token {account_id | identifier, disable?, delete_unused?} → take back an inviter's invite credit, disable it, delete the invited accounts that never used anything; {reclaimed_cny, disabled, deleted, kept}
     GET  /v1/admin/usage      X-Admin-Token  ?days=14           → charged tokens and yuan per day and kind
     GET  /v1/admin/overview   X-Admin-Token  ?days=30           → the dashboard: accounts, today / week / period by kind and model, signals, events
     GET  /v1/admin/events     X-Admin-Token  ?limit=200&kind=…  → the timeline across accounts (never message content)
@@ -61,6 +68,20 @@
     GET  /v1/admin/samples    X-Admin-Token  ?account_id=&limit=&since=&before=&before_id= → kept turns (accounts with the switch on only)
     GET  /v1/admin/samples/export X-Admin-Token ?since=&account_id= → the same as JSON lines, without account ids or addresses
     GET  /v1/admin/sync       X-Admin-Token                     → conversation sync in aggregate: accounts on / off, conversations, messages, bytes (never a text)
+    GET  /v1/admin/health     X-Admin-Token                     → aggregates only: requests under way, the hub, the last hour, the database, problems (what selfcheck.sh reads)
+    GET  /v1/admin/places     X-Admin-Token  ?days=30           → accounts, sign-ins, requests and demo visitors by country and province
+    GET  /v1/admin/catalog    X-Admin-Token                     → the provider's models under the operator's key and what the probes found
+    GET  /v1/admin/github     X-Admin-Token  ?days=30           → stars, forks, watchers, issues, release downloads by day;  POST …/github/refresh reads now
+    GET  /v1/admin/stats      X-Admin-Token  ?days=30           → every figure of the Stats page;  GET …/stats/{id} one figure, …/stats/{id}.csv as CSV
+    GET  /v1/admin/settings   X-Admin-Token                     → the runtime settings in force (0.15);  POST …/settings {allowance_cny?, invite_bonus_cny?, signup_open?} sets them
+    POST /v1/admin/allowance/apply X-Admin-Token                → the raised allowance reaches the accounts below it
+    POST /v1/admin/credit-all X-Admin-Token  {cny, note?}       → the same credit into every limited pool
+    GET  /v1/admin/controls … X-Admin-Token                     → the switches, the threshold rules and the audit log (0.22; the routes are listed above their handlers)
+
+    Every operator action on an account or on money writes a line in the audit log (who, from
+    X-Admin-Actor or `console`; the account by the first eight characters of its id) and, where
+    the account keeps a timeline, a line on it too. A deletion writes `account.deleted` across
+    accounts, since the account's own timeline goes with it.
 
 The video paths mirror the provider's own so the app's VideoGen, which
 already speaks that API, only needs to point its host at the relay.
@@ -300,6 +321,8 @@ def create_app(
         finally:
             rules_task.cancel()
             video_task.cancel()
+            # waited for, so neither cancellation lands after the database is closed
+            await asyncio.gather(rules_task, video_task, return_exceptions=True)
             await collector.stop()
             await http.aclose()
 
@@ -332,8 +355,12 @@ def create_app(
     OPEN_WHILE_PAUSED = ("/healthz", "/app", "/v1/admin/", "/v1/config")
     SERVICE_PAUSED_MESSAGE = "nanoMuse Cloud is paused by its operator for now; your sign-in and your data are kept. Try again later."
 
+    # whose X-Forwarded-For to believe: TRUSTED_PROXIES when set, else every non-global peer;
+    # the same list uvicorn's proxy-headers middleware runs with (__main__.py)
+    trusted_proxies = client_info.parse_trusted_proxies(settings.trusted_proxies)
+
     def client_ip(request: Request) -> str:
-        return client_info.visitor_ip(request.headers, request.client.host if request.client else None)
+        return client_info.visitor_ip(request.headers, request.client.host if request.client else None, trusted_proxies)
 
     def client_place(request: Request):
         """Where the request came from (geo.py), for the region in /v1/me and the "ways on"
@@ -344,7 +371,9 @@ def create_app(
     async def _remember_client(request: Request, call_next):
         # the address and the client software behind this request, for the rows the
         # database writes while it is handled (client.py)
-        token = client_info.set_current(client_info.from_headers(request.headers, request.client.host if request.client else None))
+        token = client_info.set_current(
+            client_info.from_headers(request.headers, request.client.host if request.client else None, trusted_proxies)
+        )
         path = request.url.path
         request.state.error_code = ""
         try:
@@ -534,6 +563,7 @@ def create_app(
     @app.delete("/v1/me/sessions/{prefix}", status_code=204)
     async def me_revoke_session(prefix: str, caller: Caller = Depends(caller_dep)) -> Response:
         cloud.revoke_session(caller, prefix)
+        await _drop_signed_out(caller.account_id)
         return Response(status_code=204)
 
     @app.get("/v1/me/events")
@@ -543,7 +573,15 @@ def create_app(
     @app.post("/v1/auth/sign-out", status_code=204)
     async def sign_out(caller: Caller = Depends(caller_dep)) -> Response:
         cloud.sign_out(caller)
+        await _drop_signed_out(caller.account_id)
         return Response(status_code=204)
+
+    async def _drop_signed_out(account_id: str) -> None:
+        # a key that was just revoked may still hold a hub socket (the device signed out
+        # from elsewhere); the hub closes it with 4001 now rather than at the next reconnect
+        hub = getattr(app.state, "hub", None)
+        if hub is not None:
+            await hub.drop_signed_out(account_id)
 
     @app.post("/v1/auth/session-key")
     async def session_key(request: Request, caller: Caller = Depends(caller_dep)) -> dict:
@@ -563,18 +601,24 @@ def create_app(
         """Every other device; {"all": true} takes this one too."""
         body = await _json(request)
         n = cloud.sign_out_all(caller, keep_current=not bool(body.get("all")))
+        await _drop_signed_out(caller.account_id)
         return {"signed_out": n}
+
+    async def _forget_account_live_state(account_id: str) -> None:
+        """What a deletion must take with it besides the rows: the account's hub sockets
+        (closed with 4001 `account_gone`) and its live "working" notes, which are memory,
+        not rows, so `Database.delete_account` cannot reach them. The person's own
+        deletion, the operator's and the invite-abuse clean-up all come through here."""
+        hub = getattr(app.state, "hub", None)
+        if hub is not None:
+            await hub.drop_account(account_id)
+        sync = getattr(app.state, "sync", None)
+        if sync is not None:
+            sync.presence.forget(account_id)
 
     @app.post("/v1/auth/delete", status_code=204)
     async def delete_account(caller: Caller = Depends(caller_dep)) -> Response:
-        hub = getattr(app.state, "hub", None)
-        if hub is not None:
-            await hub.drop_account(caller.account_id)
-        # the live "working" notes of the account go with it — they are memory, not rows,
-        # and `delete_account` below cannot reach them
-        sync = getattr(app.state, "sync", None)
-        if sync is not None:
-            sync.presence.forget(caller.account_id)
+        await _forget_account_live_state(caller.account_id)
         cloud.delete_account(caller)
         return Response(status_code=204)
 
@@ -936,7 +980,10 @@ def create_app(
         prompt = str(body.get("prompt", "")).strip()
         if not prompt:
             raise CloudError(400, "bad_request", "prompt is required")
-        n = int(body.get("n") or 1)
+        try:
+            n = int(body.get("n") or 1)
+        except (TypeError, ValueError) as e:
+            raise CloudError(400, "bad_request", "n is a whole number") from e
         if n != 1:
             raise CloudError(400, "bad_request", "nanoMuse Cloud draws one picture per request")
         params = {"size": size, "watermark": False}
@@ -1132,7 +1179,9 @@ def create_app(
             cloud.db.note_video_check(task_id)
             done += 1
             if charged is not None:
-                log.info("video task %s settled by the relay for %s: %s, charged %d", task_id[:12], str(task["account_id"])[:8], status, charged)
+                log.info(
+                    "video task %s settled by the relay for %s: %s, charged %d", task_id[:12], str(task["account_id"])[:8], status, charged
+                )
         return done
 
     app.state.settle_video_tasks = settle_video_tasks  # the tests call it directly
@@ -1162,7 +1211,7 @@ def create_app(
         @app.websocket("/v1/hub")
         async def hub_socket(ws: WebSocket) -> None:
             # the socket's address and client, for the device rows written while it is open
-            token = client_info.set_current(client_info.from_headers(ws.headers, ws.client.host if ws.client else None))
+            token = client_info.set_current(client_info.from_headers(ws.headers, ws.client.host if ws.client else None, trusted_proxies))
             try:
                 if not (cloud.controls.on("hub") and cloud.controls.on("cloud_service")):
                     # 0.22: the operator's *Hub* (or *Cloud service*) switch is off — accept
@@ -1191,7 +1240,10 @@ def create_app(
         def hub_dep(caller: Caller = Depends(caller_dep)) -> Caller:
             if not cloud.controls.on("hub"):
                 raise CloudError(
-                    503, "hub_paused", "The device hub is paused on this relay for now; each device keeps working on its own.", {"paused": True}
+                    503,
+                    "hub_paused",
+                    "The device hub is paused on this relay for now; each device keeps working on its own.",
+                    {"paused": True},
                 )
             return caller
 
@@ -1268,6 +1320,12 @@ def create_app(
             problems.append("the database is not writable")
         if not settings.upstream_key:
             problems.append("no upstream key")
+        # invites being farmed: a code bringing many accounts in a day, or inviters whose
+        # people never use anything; each alert is one sentence here and the detail below
+        alerts = cloud.invite_alerts()
+        for alert in alerts:
+            problems.append(f"{alert['message']}; {alert['hint']}")
+        out["alerts"] = alerts
         out["ok"] = not problems
         out["problems"] = problems
         return out
@@ -1374,19 +1432,26 @@ def create_app(
         out["demo"] = await demo_admin({"account": account_id})
         return with_places(out)
 
+    def _kinds(kind: str) -> tuple[str, ...] | None:
+        """`?kind=a,b` as the tuple the database filters on; empty means every kind."""
+        return tuple(k.strip() for k in kind.split(",") if k.strip())[:20] or None
+
     @app.get("/v1/admin/accounts/{account_id}/ledger", dependencies=[Depends(admin_dep)])
-    async def admin_account_ledger(account_id: str, limit: int = 200, before: int = 0) -> dict:
+    async def admin_account_ledger(account_id: str, limit: int = 200, before: int = 0, kind: str = "", q: str = "") -> dict:
         """One page of the account's statement, newest first; `before` is the id of the
-        last row shown. Every line is reachable this way."""
+        last row shown. Every line is reachable this way. `kind` (0.26, a comma list) and
+        `q` (a text the model name or the note contains) narrow the page and its `total`."""
         if cloud.db.account(account_id) is None:
             raise CloudError(404, "no_account", "No such account")
-        return with_places(cloud.ledger_page(account_id, max(1, min(limit, 1000)), max(0, before)))
+        return with_places(cloud.ledger_page(account_id, max(1, min(limit, 1000)), max(0, before), _kinds(kind), q.strip()[:80]))
 
     @app.get("/v1/admin/accounts/{account_id}/events", dependencies=[Depends(admin_dep)])
-    async def admin_account_events(account_id: str, limit: int = 200, before: int = 0) -> dict:
+    async def admin_account_events(account_id: str, limit: int = 200, before: int = 0, kind: str = "", q: str = "") -> dict:
+        """The account's timeline, newest first, paged with `before`; `kind` and `q` (0.26)
+        narrow it the same way as the statement, `q` matching the kind name or the detail."""
         if cloud.db.account(account_id) is None:
             raise CloudError(404, "no_account", "No such account")
-        return with_places(cloud.events_page(account_id, max(1, min(limit, 1000)), max(0, before)))
+        return with_places(cloud.events_page(account_id, max(1, min(limit, 1000)), max(0, before), _kinds(kind), q.strip()[:80]))
 
     @app.get("/v1/admin/address", dependencies=[Depends(admin_dep)])
     async def admin_address(ip: str = "") -> dict:
@@ -1398,10 +1463,38 @@ def create_app(
         out["place"] = place.as_dict() if place is not None else None
         return with_places(out)
 
+    @app.get("/v1/admin/invites", dependencies=[Depends(admin_dep)])
+    async def admin_invites(limit: int = 200, per: int = 20) -> dict:
+        """The inviters in order of how many accounts their code brought, with what those
+        accounts did and the newest `per` of them, and the funnel; an account's detail
+        page lists its invitees in full."""
+        return with_places(cloud.admin_invites(max(1, min(limit, 1000)), max(0, min(per, 100))))
+
+    @app.post("/v1/admin/invites/abuse", dependencies=[Depends(admin_dep)])
+    async def admin_invite_abuse(request: Request) -> dict:
+        """{account_id, disable?: bool, delete_unused?: bool}: take back the invite credit an
+        inviter farmed (never below what it has spent), disable it when asked, and when asked
+        delete every account it brought that never used the relay. Answers
+        {reclaimed_cny, disabled, deleted, kept}; 404 no_account when unknown."""
+        body = await _json(request)
+        account_id = cloud.admin_resolve(str(body.get("account_id", "")), str(body.get("identifier", "")))
+        disable = bool(body.get("disable", False))
+        hub = getattr(app.state, "hub", None)
+        if disable and hub is not None:
+            await hub.drop_account(account_id)
+        out = cloud.admin_invite_abuse(
+            account_id, disable=disable, delete_unused=bool(body.get("delete_unused", False)), actor=_actor(request)
+        )
+        # the deleted invitees' sockets and live notes go with their rows, as on any deletion
+        for invitee_id in out.pop("deleted_ids", []):
+            await _forget_account_live_state(invitee_id)
+        return out
+
     @app.get("/v1/admin/events", dependencies=[Depends(admin_dep)])
-    async def admin_events(limit: int = 200, kind: str = "") -> dict:
-        kinds = tuple(k.strip() for k in kind.split(",") if k.strip()) or None
-        return with_places({"events": cloud.admin_events(limit, kinds)})
+    async def admin_events(limit: int = 200, kind: str = "", before: int = 0) -> dict:
+        """Everyone's timeline, newest first; `kind` is a comma list; `before` (0.26) is
+        the id of the last row shown, so the page reads on past the first 200."""
+        return with_places({"events": cloud.admin_events(limit, _kinds(kind), max(0, before))})
 
     @app.get("/v1/admin/samples", dependencies=[Depends(admin_dep)])
     async def admin_samples(account_id: str = "", limit: int = 100, since: int = 0, before: int = 0, before_id: str = "") -> dict:
@@ -1443,7 +1536,11 @@ def create_app(
     async def admin_grant(request: Request) -> dict:
         body = await _json(request)
         account_id = cloud.admin_resolve(str(body.get("account_id", "")), str(body.get("identifier", "")))
-        return cloud.admin_grant(account_id, int(body.get("tokens", 0)))
+        try:
+            tokens = int(body.get("tokens", 0))
+        except (TypeError, ValueError) as e:
+            raise CloudError(400, "bad_request", "tokens is a whole number") from e
+        return cloud.admin_grant(account_id, tokens, actor=_actor(request))
 
     @app.post("/v1/admin/credit", dependencies=[Depends(admin_dep)])
     async def admin_credit(request: Request) -> dict:
@@ -1455,7 +1552,7 @@ def create_app(
             cny = float(body.get("cny", 0))
         except (TypeError, ValueError) as e:
             raise CloudError(400, "bad_request", "cny is a number") from e
-        return cloud.admin_credit(account_id, cny, str(body.get("note", ""))[:200])
+        return cloud.admin_credit(account_id, cny, str(body.get("note", ""))[:200], actor=_actor(request))
 
     @app.post("/v1/admin/credit-all", dependencies=[Depends(admin_dep)])
     async def admin_credit_all(request: Request) -> dict:
@@ -1465,7 +1562,7 @@ def create_app(
             cny = float(body.get("cny", 0))
         except (TypeError, ValueError) as e:
             raise CloudError(400, "bad_request", "cny is a number") from e
-        return cloud.admin_credit_all(cny, str(body.get("note", ""))[:200])
+        return cloud.admin_credit_all(cny, str(body.get("note", ""))[:200], actor=_actor(request))
 
     @app.post("/v1/admin/pool", dependencies=[Depends(admin_dep)])
     async def admin_pool(request: Request) -> dict:
@@ -1474,13 +1571,13 @@ def create_app(
         down. Never below zero."""
         body = await _json(request)
         account_id = cloud.admin_resolve(str(body.get("account_id", "")), str(body.get("identifier", "")))
-        return cloud.admin_set_pool(account_id, body)
+        return cloud.admin_set_pool(account_id, body, actor=_actor(request))
 
     @app.post("/v1/admin/pool/batch", dependencies=[Depends(admin_dep)])
     async def admin_pool_batch(request: Request) -> dict:
         """{account_ids: [...] | all: true, left_cny | grant_cny | delta_cny, note?}: the same
         change to a set of accounts, or to every limited one (0.16)."""
-        return cloud.admin_set_pool_many(await _json(request))
+        return cloud.admin_set_pool_many(await _json(request), actor=_actor(request))
 
     @app.get("/v1/admin/settings", dependencies=[Depends(admin_dep)])
     async def admin_settings_get() -> dict:
@@ -1492,7 +1589,7 @@ def create_app(
     async def admin_settings_set(request: Request) -> dict:
         """{allowance_cny?, invite_bonus_cny?, signup_open?}: set (a value) or clear back to
         the environment (null). In force at once, kept across restarts."""
-        return cloud.admin_update_settings(await _json(request))
+        return cloud.admin_update_settings(await _json(request), actor=_actor(request))
 
     # -- 0.22: the Controls page — switches, thresholds, the audit log -------------------------
 
@@ -1621,16 +1718,16 @@ def create_app(
         return cloud.admin_put_nudges(await _json(request))
 
     @app.post("/v1/admin/allowance/apply", dependencies=[Depends(admin_dep)])
-    async def admin_allowance_apply() -> dict:
+    async def admin_allowance_apply(request: Request) -> dict:
         """Bring every account given a smaller allowance up to the current one (0.15)."""
-        return cloud.admin_apply_allowance()
+        return cloud.admin_apply_allowance(actor=_actor(request))
 
     @app.post("/v1/admin/disable", dependencies=[Depends(admin_dep)])
     async def admin_disable(request: Request) -> Response:
         body = await _json(request)
         account_id = cloud.admin_resolve(str(body.get("account_id", "")), str(body.get("identifier", "")))
         disabled = bool(body.get("disabled", True))
-        cloud.admin_disable(account_id, disabled)
+        cloud.admin_disable(account_id, disabled, actor=_actor(request))
         hub = getattr(app.state, "hub", None)
         if disabled and hub is not None:
             await hub.drop_account(account_id)
@@ -1640,17 +1737,15 @@ def create_app(
     async def admin_unlimited(request: Request) -> Response:
         body = await _json(request)
         account_id = cloud.admin_resolve(str(body.get("account_id", "")), str(body.get("identifier", "")))
-        cloud.admin_unlimited(account_id, bool(body.get("unlimited", True)))
+        cloud.admin_unlimited(account_id, bool(body.get("unlimited", True)), actor=_actor(request))
         return Response(status_code=204)
 
     @app.post("/v1/admin/delete", dependencies=[Depends(admin_dep)])
     async def admin_delete(request: Request) -> Response:
         body = await _json(request)
         account_id = cloud.admin_resolve(str(body.get("account_id", "")), str(body.get("identifier", "")))
-        hub = getattr(app.state, "hub", None)
-        if hub is not None:
-            await hub.drop_account(account_id)
-        cloud.admin_delete(account_id)
+        await _forget_account_live_state(account_id)
+        cloud.admin_delete(account_id, actor=_actor(request))
         return Response(status_code=204)
 
     # -- helpers ------------------------------------------------------------------------------------

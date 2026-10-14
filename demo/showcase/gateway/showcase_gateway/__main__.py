@@ -14,8 +14,11 @@ def main() -> None:
         factory=True,
         host=settings.listen_host,
         port=settings.listen_port,
-        proxy_headers=settings.trust_proxy,
-        forwarded_allow_ips="*" if settings.trust_proxy else None,
+        # uvicorn is not told to rewrite the client from X-Forwarded-For: it would do so for
+        # any peer, the session containers included, and the access log would carry the
+        # visitors' addresses. The gateway reads the header itself, from the edge proxy only
+        # (peers.py), so request.client stays the peer that connected.
+        proxy_headers=False,
         log_level="info",
         ws_ping_interval=20,
         ws_ping_timeout=20,

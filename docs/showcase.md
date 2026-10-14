@@ -65,7 +65,7 @@ The second rung (a page with your login, in the app) before any screen: 京东 h
 
 Third rung: a public site, no login, browsed in the background while you do something else. The agent does not book; "只看不订" is also what the `browser` tool's Sentinel rules enforce for order and payment buttons.
 
-**Trace:** see the note at the end of this page for the run on 2026-09-24.
+**Trace:** *pending*: tried on the computer on 2026-09-24, where 去哪儿 sent the headless desktop Chromium to its homepage and rendered only the footer (bot detection); 21 tool calls, then stopped. To be run through the phone's WebView, the backend meant for it; the [launch checklist](launch-checklist.md#9-chinese-services-and-the-showcase-p0) tracks it.
 
 ## 5. Book a meeting and tell the group
 
@@ -82,7 +82,7 @@ Two CLIs, two approvals, no app opened. **Trace:** *pending*: 腾讯会议 and �
 
 ## 6. Clipboard → calendar + alarm
 
-> （copies a message: 「周五上午10点，海淀区中关村大街1号3层会议室，带上合同」）把剪贴板里的这个安排加到日历，提前一小时给我设个闹钟。
+> （copies a message: 「周五上午 10 点，海淀区中关村大街 1 号 3 层会议室，带上合同」）把剪贴板里的这个安排加到日历，提前一小时给我设个闹钟。
 
 | Hand | What it does |
 |---|---|
@@ -118,7 +118,7 @@ Four more screen cases are written up in the `train-tickets` and `phone-messages
 
 ## Never in public material
 
-The agent can read 微信 on the phone's screen when you ask it to, and some people will. It does not appear in the showcase, the site or the film, nor do 支付宝 statements, 医保 or 个税: services whose terms forbid automation or whose data should not be in a demo.
+The agent can read 微信 on the phone's screen when you ask it to, and some people will. The real app does not appear in the showcase, the site or the film (the hosted demo's phone is a simulator, and its 微信 and 铁路12306 are re-creations with seeded data), nor do 支付宝 statements, 医保 or 个税: services whose terms forbid automation or whose data should not be in a demo.
 
 ## Reading the trail
 

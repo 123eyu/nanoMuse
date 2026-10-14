@@ -162,6 +162,7 @@ export function ToolChip({ event }: { event: ToolEvent }) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
+        aria-expanded={event.output ? open : undefined}
         className="max-w-full text-left rounded-2xl bg-surface-2/80 border border-border/60 px-3 py-1.5 text-[13px] text-muted hover:text-fg transition"
       >
         <span className="flex items-center gap-2">
@@ -269,7 +270,7 @@ export function ApprovalCard({
       <div
         className={cx(
           "w-full max-w-[600px] overflow-hidden rounded-[22px] bg-surface shadow-[0_2px_12px_rgba(0,0,0,0.12)] dark:border dark:border-border dark:shadow-none",
-          pending && sensitive && "border border-rose-400/60",
+          pending && sensitive && "border border-rose-400/60 dark:border-rose-400/60",
         )}
       >
         <div className="flex items-start gap-3 px-4 pt-4 pb-2">
@@ -772,8 +773,9 @@ export function describeHandsStep(last: NonNullable<HandsEvent["last"]>, t: (s: 
     case "double_click":
       return label ? t("Double-clicked {label}", { label }) : t("Double-clicked");
     case "right_click":
-    case "middle_click":
       return label ? t("Right-clicked {label}", { label }) : t("Right-clicked");
+    case "middle_click":
+      return label ? t("Middle-clicked {label}", { label }) : t("Middle-clicked");
     case "move":
       return label ? t("Pointed at {label}", { label }) : t("Moved the mouse");
     case "type":

@@ -127,6 +127,8 @@
     <string name="nm_routine_run_now">รันตอนนี้</string>
     <string name="nm_routine_delete">ลบ</string>
     <string name="nm_routine_paused">ปิด</string>
+    <!-- The chat row a routine sent: its label and the clock time it fired -->
+    <string name="nm_routine_wake_caption">กิจวัตร · %1$s · %2$s</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">ไอเดีย</string>
@@ -348,6 +350,23 @@
     <string name="nm_avatar_use_this">ใช้แบบนี้</string>
     <string name="nm_avatar_use_this_hint">อารมณ์ต่าง ๆ (ทำงาน รอ เสร็จ ผิดพลาด) จะวาดจากรูปนี้ต่อในเบื้องหลัง</string>
     <string name="nm_avatar_footer">รูปภาพเก็บไว้บนโทรศัพท์เครื่องนี้ที่ minis-global/nanomuse/avatar ใบหน้าแต่ละแบบใช้ห้ารูปจากผู้ให้บริการของคุณ: รูปที่คุณเลือกหนึ่งรูปและอารมณ์อีกสี่รูป</string>
+    <string name="nm_own_clip_title">คลิปของคุณเอง</string>
+    <string name="nm_own_clip_body">วิดีโอสั้นของคุณจะเล่นเป็นใบหน้าตอนพัก และอารมณ์อื่นก็ใช้คลิปเดียวกัน MP4 หรือ MOV ที่เป็นวิดีโอ H.264 ยาวไม่เกิน 15 วินาทีและไม่เกิน 30 MB เล่นวนซ้ำแบบปิดเสียง</string>
+    <string name="nm_own_clip_on">คลิปของคุณเปิดอยู่และเล่นในทุกอารมณ์ ตรงที่แสดงภาพนิ่งยังใช้ภาพที่วาดไว้ “ใบหน้าเริ่มต้น” จะลบคลิปออก</string>
+    <string name="nm_own_clip_local">คลิปอยู่ในโทรศัพท์เครื่องนี้เท่านั้น ไม่ได้อัปโหลดไป nanoMuse Cloud และไม่ซิงค์ไปยังอุปกรณ์อื่นของคุณ</string>
+    <string name="nm_own_clip_choose">เลือกคลิป</string>
+    <string name="nm_own_clip_replace">เปลี่ยนคลิป</string>
+    <string name="nm_own_clip_default">ใบหน้าเริ่มต้น</string>
+    <string name="nm_own_clip_menu">คลิปของคุณเอง…</string>
+    <string name="nm_own_clip_preview_title">ดูตัวอย่าง</string>
+    <string name="nm_own_clip_preview_body">เมื่อเป็นใบหน้าจะเล่นแบบนี้: ปิดเสียง วนซ้ำ ตัดเป็นวงกลม</string>
+    <string name="nm_own_clip_details">%1$d วิ · %2$s</string>
+    <string name="nm_own_clip_use">ใช้</string>
+    <string name="nm_own_clip_refused_format">ใช้ไฟล์นี้ที่นี่ไม่ได้ เลือก MP4 หรือ MOV ที่เป็นวิดีโอ H.264 ยาวไม่เกิน 15 วินาทีและไม่เกิน 30 MB</string>
+    <string name="nm_own_clip_refused_long">คลิปนี้ยาว %1$d วินาที ขีดจำกัดคือ 15 วินาที และ 30 MB</string>
+    <string name="nm_own_clip_refused_large">คลิปนี้มีขนาด %1$s ขีดจำกัดคือ 30 MB และ 15 วินาที</string>
+    <string name="nm_own_clip_unreadable">อ่านคลิปไม่ได้ ลองคลิปอื่น</string>
+    <string name="nm_a11y_own_clip_preview">ตัวอย่างคลิปของคุณ</string>
 
     <!-- First run (Muse-style welcome; the steps are OpenMinis' provider and model screens) -->
     <string name="nm_setup_title">ยินดีต้อนรับสู่ nanoMuse</string>
@@ -591,6 +610,8 @@
     <string name="nm_risk_title_device">อนุญาตให้ “%1$s” ควบคุมโทรศัพท์เครื่องนี้ไหม</string>
     <string name="nm_risk_desc_device">“%1$s” อุปกรณ์อีกเครื่องในบัญชีของคุณ ต้องการ%2$sบนโทรศัพท์เครื่องนี้ รายละเอียดแสดงอยู่ด้านล่าง “เสมอ” จะให้อุปกรณ์นั้นทำสิ่งแบบนี้ที่นี่ได้โดยไม่ถาม เพิกถอนได้ใต้ สิทธิ์</string>
     <string name="nm_risk_preview_device">สิ่งที่อุปกรณ์ขอ</string>
+    <string name="nm_risk_preview_show_all">แสดงทั้งหมด (%1$d บรรทัด)</string>
+    <string name="nm_risk_preview_show_less">แสดงน้อยลง</string>
     <string name="nm_risk_class_remote">ควบคุมระยะไกล</string>
     <string name="nm_hub_remote_reason">%1$s ควบคุมโทรศัพท์เครื่องนี้ได้</string>
 
@@ -624,7 +645,6 @@
     <string name="nm_welcome_skip">ข้ามไปก่อน</string>
     <string name="nm_welcome_hands_fine_print">อย่างอื่นทั้งหมดทำงานได้โดยไม่ต้องใช้สิทธิ์เหล่านี้ อยู่ใต้ การตั้งค่า → มือ เมื่อคุณต้องการ</string>
     <string name="nm_welcome_meet_fine_print">ก่อนทำสิ่งที่ย้อนกลับไม่ได้ (ลบ ส่ง ชำระเงิน) มันจะหยุดและถามคุณก่อน</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">เริ่มต้นกับ nanoMuse Cloud</string>
     <string name="nm_cloud_signin_subtitle">รหัสส่งไปที่โทรศัพท์หรืออีเมลของคุณ หรือใช้รหัสผ่าน เมื่อคุณตั้งไว้แล้ว</string>
     <string name="nm_cloud_mode_code">ด้วยรหัส</string>
@@ -632,7 +652,7 @@
     <string name="nm_cloud_password">รหัสผ่าน</string>
     <string name="nm_cloud_forgot_password">ลืมรหัสผ่าน ลงชื่อเข้าใช้ด้วยรหัสแทน</string>
     <string name="nm_cloud_identifier">หมายเลขโทรศัพท์จีนแผ่นดินใหญ่หรืออีเมล</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · you@example.com</string>
+    <string name="nm_cloud_identifier_hint">you@example.com</string>
     <string name="nm_cloud_code">รหัส</string>
     <string name="nm_cloud_send_code">ส่งรหัส</string>
     <string name="nm_cloud_resend">ส่งอีกครั้ง</string>
@@ -642,7 +662,6 @@
     <!-- Your own relay (0.1.38): the sign-in screen's server form and the account page's row -->
     <string name="nm_cloud_other_server">ใช้เซิร์ฟเวอร์อื่น</string>
     <string name="nm_cloud_server_url">ที่อยู่ของรีเลย์</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
     <string name="nm_cloud_server_check">ตรวจสอบ</string>
     <string name="nm_cloud_server_use">ใช้เซิร์ฟเวอร์นี้</string>
     <string name="nm_cloud_server_now">เซิร์ฟเวอร์: %1$s</string>
@@ -704,6 +723,8 @@
     <string name="nm_cloud_err_password_short">รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร</string>
     <string name="nm_cloud_err_password_weak">รหัสผ่านนั้นเดาง่ายเกินไป</string>
     <string name="nm_cloud_err_signup_closed">รีเลย์นี้หยุดรับสมัครชั่วคราว บัญชีที่มีอยู่แล้วยังลงชื่อเข้าใช้ได้</string>
+    <string name="nm_cloud_err_domain_limited">ที่อยู่ของโดเมนนี้ถึงขีดจำกัดการสมัครของวันนี้บนรีเลย์นี้แล้ว ลองใหม่พรุ่งนี้หรือใช้ที่อยู่อื่น</string>
+    <string name="nm_cloud_err_channel_unsupported">รีเลย์นี้ไม่ส่งรหัสไปยังที่อยู่ประเภทนี้ ใช้อีกประเภทหนึ่ง (อีเมลหรือหมายเลขโทรศัพท์) หรือลงชื่อเข้าใช้ด้วยรหัสผ่าน</string>
     <string name="nm_cloud_err_too_large">ข้อความนี้ใหญ่เกินไปสำหรับโมเดล ย่อให้สั้นลง ตัดไฟล์แนบบางส่วนออก หรือเริ่มแชตใหม่</string>
     <string name="nm_cloud_err_content_rejected">การตรวจสอบเนื้อหาของผู้ให้บริการโมเดลปฏิเสธคำขอนี้ ลองใช้คำอื่น หรือถ้าเกิดซ้ำ ให้เริ่มแชทใหม่ เพราะคำที่ถูกปฏิเสธอาจอยู่ในช่วงต้นของบทสนทนา</string>
     <string name="nm_cloud_err_provider_busy">ผู้ให้บริการโมเดลกำลังยุ่งอยู่ ลองอีกครั้งในอีกสักครู่</string>
@@ -750,7 +771,7 @@
     <string name="nm_face_cost_not_now">ไว้ก่อน</string>
     <string name="nm_face_cost_declined">ได้ ใบหน้าคงไว้เหมือนเดิม</string>
     <string name="nm_cloud_invite_title">ชวนเพื่อน</string>
-    <string name="nm_cloud_invite_why">ทุกคนที่สมัครใหม่ด้วยรหัสของคุณจะเพิ่ม ¥%1$s ให้โควตาของคุณ และ ¥%1$s ให้ของเขา ไม่มีวันหมดอายุ</string>
+    <string name="nm_cloud_invite_why">เมื่อเพื่อนสมัครด้วยรหัสของคุณและส่งคำขอครั้งแรก คุณทั้งคู่จะได้รับ ¥%1$s ไม่มีวันหมดอายุ</string>
     <string name="nm_cloud_invite_code">รหัสของคุณ</string>
     <string name="nm_cloud_invite_share">แชร์ลิงก์</string>
     <string name="nm_cloud_invite_copy">คัดลอก</string>
@@ -788,7 +809,7 @@
     <string name="nm_cap_clips_unavailable">คลิปต้องใช้ผู้ให้บริการที่มีโมเดลวิดีโอ Alibaba Cloud Bailian</string>
     <string name="nm_cap_hands_unavailable">มือต้องใช้โมเดลที่มองเห็นหน้าจอ Bailian, OpenRouter, OpenAI, Anthropic, Gemini หรือผู้ให้บริการใดก็ได้ที่มีโมเดลวิชัน</string>
     <string name="nm_cap_chat_unavailable">แชทต้องใช้ผู้ให้บริการที่มีโมเดลแชท เพิ่มคีย์ หรือลงชื่อเข้าใช้</string>
-    <string name="nm_ways_invite_title">ชวนเพื่อน: คุณได้ +¥%1$s และเขาได้ +¥%2$s สำหรับทุกคนที่สมัครใหม่ด้วยลิงก์ของคุณ</string>
+    <string name="nm_ways_invite_title">ชวนเพื่อน: คุณได้ +¥%1$s และเขาได้ +¥%2$s เมื่อคนที่สมัครใหม่ด้วยลิงก์ของคุณส่งคำขอครั้งแรก</string>
     <string name="nm_ways_invite_share">แชร์ลิงก์</string>
     <string name="nm_ways_invite_copy">คัดลอกลิงก์</string>
     <string name="nm_cloud_ev_contribute_on">การควบคุมข้อมูล: เปิดช่วยปรับปรุง</string>
@@ -1118,4 +1139,16 @@
     <string name="nm_a11y_liked">ถูกใจแล้ว</string>
     <string name="nm_a11y_not_liked">ยังไม่ถูกใจ</string>
     <string name="nm_a11y_post_details">รายละเอียดโพสต์</string>
+    <string name="nm_claude_sign_in_unavailable">บิลด์นี้ใช้การลงชื่อเข้าใช้ด้วย Claude ไม่ได้ ให้เพิ่ม Anthropic ด้วยคีย์ API แทน</string>
+    <string name="nm_oauth_rescue_hint">ถ้าเบราว์เซอร์แสดงหน้าข้อผิดพลาดที่ localhost แสดงว่าพร็อกซีหรือ VPN ในเครื่องดักการเรียกกลับไว้ ให้เพิ่ม localhost ในรายการยกเว้นของมัน หรือคัดลอกที่อยู่ของหน้านั้นมาวางที่นี่</string>
+    <string name="nm_oauth_rescue_placeholder">วางที่อยู่ที่นี่</string>
+    <string name="nm_oauth_rescue_continue">ดำเนินการต่อ</string>
+    <string name="nm_oauth_rescue_no_code">ที่อยู่นี้ไม่มีรหัสลงชื่อเข้าใช้</string>
+    <string name="nm_oauth_rescue_failed">การลงชื่อเข้าใช้ไม่ได้รอที่อยู่นี้แล้ว แตะ ลงชื่อเข้าใช้ แล้วลองอีกครั้ง</string>
+    <!-- Font scale labels -->
+    <string name="nm_font_scale_extra_small">เล็กมาก</string>
+    <string name="nm_font_scale_small">เล็ก</string>
+    <string name="nm_font_scale_medium">ปานกลาง</string>
+    <string name="nm_font_scale_large">ใหญ่</string>
+    <string name="nm_font_scale_extra_large">ใหญ่มาก</string>
 </resources>

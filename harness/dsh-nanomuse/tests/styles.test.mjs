@@ -6,7 +6,9 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-const css = readFileSync(fileURLToPath(new URL('../src/client/styles.ts', import.meta.url)), 'utf8')
+// A Windows checkout may carry CRLF line endings (core.autocrlf); the tests look for
+// `\n<selector> {\n`, so the file is read with LF endings whatever the checkout did.
+const css = readFileSync(fileURLToPath(new URL('../src/client/styles.ts', import.meta.url)), 'utf8').replace(/\r\n/g, '\n')
 
 /** The declarations of the first rule whose selector list is exactly `selector`. */
 function rule(selector) {
@@ -120,4 +122,70 @@ test('under prefers-reduced-motion every breathing light is steady', () => {
   assert.ok(steady, 'the trajectory light is covered')
   for (const sel of ['.nm-chat-dot.nm-live', '.nm-status-dot.nm-live', '.nm-remote-working::before', '.nm-mic.nm-live', 'html[data-nm-muse] [data-chat-running]::after']) assert.ok(steady.includes(sel), sel)
   assert.match(steady, /animation: none; opacity: 1;/)
+})
+
+test('in the Muse look the chat is monochrome: ink pills, grey agent pills, the send disc the same ink', () => {
+  // the token blocks span several lines
+  const block = (selector) => {
+    const at = css.indexOf(`\n${selector} {\n`)
+    assert.ok(at >= 0, `no block for ${selector}`)
+    return css.slice(at, css.indexOf('\n}', at))
+  }
+  const light = block('html[data-nanomuse] body')
+  const dark = block('html[data-nanomuse] body[data-ds-dark-theme]')
+  const tokens = (block) => Object.fromEntries([...block.matchAll(/--(nm-[a-z-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]))
+  const l = tokens(light)
+  const d = tokens(dark)
+  assert.equal(l['nm-user-bubble'], '#000000')
+  assert.equal(l['nm-user-bubble-fg'], '#ffffff')
+  assert.equal(l['nm-agent-bubble'], '#f2f2f7')
+  assert.equal(l['nm-canvas'], '#ffffff')
+  assert.equal(l['nm-ink'], '#000000')
+  assert.equal(l['nm-ink-fg'], '#ffffff')
+  assert.equal(d['nm-user-bubble'], '#ffffff')
+  assert.equal(d['nm-user-bubble-fg'], '#000000')
+  assert.equal(d['nm-ink'], '#ffffff')
+  assert.equal(d['nm-ink-fg'], '#000000')
+  // the agent's dark pill keeps the same step off the near-black as the phone's off pure black
+  assert.equal(d['nm-agent-bubble'], '#242424')
+  assert.equal(d['nm-canvas'], d['nm-base'])
+  for (const t of [l, d]) assert.equal(t['nm-send'], 'var(--nm-ink)')
+  // the user's pill carries its own text colour, and so do the remote and coding copies of it
+  for (const sel of [
+    'html[data-nm-muse] [data-chat-flow-kind="user"] [class*="_bubble"]',
+    'html[data-nm-muse] .nm-remote-user .nm-remote-bubble',
+    '.nm-cd-from-you .nm-cd-bubble',
+  ]) {
+    const r = rule(sel)
+    assert.match(r, /background:\s*var\(--nm-user-bubble\)/, sel)
+    assert.match(r, /color:\s*var\(--nm-user-bubble-fg\)/, sel)
+  }
+  // the send disc and the scroll-to-latest disc: the ink, the glyph in the opposite colour
+  assert.match(rule('html[data-nm-muse] [data-composer-card] [class*="_primary"]'), /color:\s*var\(--nm-ink-fg\)/)
+  const toBottom = rule('html[data-nm-muse] [data-conversation-scroll] [class*="_toBottomSlot"] > button[class*="_toBottom"]')
+  assert.match(toBottom, /background:\s*var\(--nm-send\)/)
+  assert.match(toBottom, /color:\s*var\(--nm-ink-fg\)/)
+})
+
+test('in the Muse look the header is a scrim over the thread, not a bar with a line under it', () => {
+  const header = 'html[data-nm-muse] header[data-window-drag]:has(.nm-header)'
+  const scrim = rule(header)
+  assert.match(scrim, /position:\s*absolute/)
+  assert.match(scrim, /border-bottom:\s*0/)
+  assert.match(scrim, /pointer-events:\s*none/)
+  assert.match(scrim, /linear-gradient\(to bottom, color-mix\(in srgb, var\(--nm-canvas\) 80%, transparent\) 0%, color-mix\(in srgb, var\(--nm-canvas\) 35%, transparent\) 55%, transparent 100%\)/)
+  // the controls in it still take clicks, and the drag strip still drags
+  const controls = css.split('\n').find((l) => l.startsWith(`${header} :is(`) && l.includes('pointer-events: auto'))
+  assert.ok(controls, 'the header controls take their clicks back')
+  for (const sel of ['button', 'a', '.nm-header', '.nm-header-drag', '[role="tab"]']) assert.ok(controls.includes(sel), sel)
+  // the thread keeps the header's height clear, one variable per platform
+  const thread = 'html[data-nm-muse] [data-slot="conversation.header"]:has(.nm-header) ~ [data-conversation-content]'
+  assert.match(rule(`${thread} > [data-conversation-scroll]`), /padding-top:\s*var\(--nm-header-h\)/)
+  assert.match(rule('header[data-window-drag]:has(.nm-header)'), /min-height:\s*var\(--nm-header-h\)/)
+  assert.match(rule("html[data-nm-platform='darwin']:not([data-nm-fullscreen])"), /--nm-header-h:\s*136px/)
+  assert.match(rule("html[data-nm-platform='win32']:not([data-nm-fullscreen])"), /--nm-header-h:\s*122px/)
+  // the chat's canvas: white in the light, and the harness's own base token follows it there
+  const content = rule(thread)
+  assert.match(content, /background:\s*var\(--nm-canvas\)/)
+  assert.match(content, /--dsw-alias-bg-base:\s*var\(--nm-canvas\)/)
 })

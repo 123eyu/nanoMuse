@@ -55,7 +55,17 @@ def tile(d: str, background: str, stroke_start: str, stroke_end: str | None = No
     )
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    args = sys.argv[1:] if argv is None else argv
+    if args in (["-h"], ["--help"]):
+        print(__doc__.strip())
+        return 0
+    if args:
+        print(
+            f"usage: {sys.argv[0]}  (takes no arguments; unknown: {' '.join(args)})",
+            file=sys.stderr,
+        )
+        return 2
     if not ICONSET.is_dir():
         sys.exit(f"{ICONSET} not found (restore the iOS tree first)")
     try:
