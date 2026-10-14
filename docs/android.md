@@ -332,6 +332,8 @@ keytool -genkeypair -keystore ~/.nanomuse-release/nanomuse.jks -alias nanomuse \
 and put its four values in `android/keystore.properties` (git-ignored: `storeFile`,
 `storePassword`, `keyAlias`, `keyPassword`).
 
+The chat-only emulator build (`-Pnm.abi=x86_64`) excludes cached arm64 proot and Alpine root filesystem assets. Switching back to the default arm64 build includes those assets again; no cache deletion is needed.
+
 ## Releases
 
 `.github/workflows/android.yml` builds the debug APK on every change under `android/`

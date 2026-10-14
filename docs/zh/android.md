@@ -261,6 +261,8 @@ keytool -genkeypair -keystore ~/.nanomuse-release/nanomuse.jks -alias nanomuse \
 然后把它的四个值填进 `android/keystore.properties`（已 git-ignore：`storeFile`、
 `storePassword`、`keyAlias`、`keyPassword`）。
 
+仅用于聊天测试的模拟器构建（`-Pnm.abi=x86_64`）会排除缓存中的 arm64 proot 和 Alpine 根文件系统资源。切回默认的 arm64 构建后会重新包含这些资源，无需删除缓存。
+
 ## 发布 {#releases}
 
 `.github/workflows/android.yml` 在 `android/` 下每有改动就构建 debug APK（「debug APK · arm64-v8a」
