@@ -258,6 +258,10 @@ milliseconds. Unit tests: `ProviderReachTest`, `OwnProviderProxyTest`.
 
 ## Voice input
 
+On Android 13 and later, continuous system dictation keeps feeding audio when the recognizer
+starts its next segment. A write that fails on the previous segment's closed pipe cannot
+disable the new segment's audio stream.
+
 System voice input can prefer on-device recognition. If the phone has no usable on-device
 service, it falls back to the default recognition service. A language error from that
 default service is shown in the voice panel. A running on-device recognizer whose language
