@@ -15,7 +15,7 @@ The agent's face is the bundled dragon until you ask for another. On the phone s
    (about ¥1.5 for the eight pictures at qwen-image-3.0's price); with a key of your own, the
    count, at your provider's prices. *Draw* or *Not now*.
 3. **Four to choose from.** The same subject four times (classic colouring, lighter, darker
-   with a small accessory, a playful take), Muse's vinyl-toy style, full body on white. Tap
+   with a small accessory, a playful take), in the studio's 3D toy style, full body on white. Tap
    one, or say which (「第二个」, "the first one", "top right"); *Redraw* for four more.
 4. **The poses.** The pick is the idle still; four edits of it are the other moods (working
    with headphones at a laptop, waiting with a crystal ball, happy hugging a star, sorry with a

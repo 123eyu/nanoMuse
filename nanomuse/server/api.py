@@ -67,11 +67,12 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import mimetypes
+import os
 import secrets
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -92,6 +93,9 @@ from nanomuse.server.channels_api import install_channels
 from nanomuse.server.events import MAIN_THREAD
 from nanomuse.server.service import MuseService, goal_to_dict
 from nanomuse.server.update import UpdateCheck
+
+if TYPE_CHECKING:
+    from starlette.types import Scope
 
 STATIC_DIR = Path(__file__).parent / "static"
 # Said to a client that still puts the token in the URL (taken until 0.1.32).
@@ -214,6 +218,29 @@ class MediaBody(BaseModel):
     base_url: str | None = None
     api_key: str | None = None
     endpoint: str | None = None
+
+
+class GuiBody(BaseModel):
+    """The phone operator: its switch and its model. ``provider`` is a protocol or a
+    catalogue id, as for the chat model; ``api_key`` goes into the vault, "" removes it,
+    None keeps it; ``endpoint`` names one of the endpoint list instead (#294)."""
+
+    enabled: bool | None = None
+    provider: str | None = Field(default=None, max_length=200)
+    model: str | None = Field(default=None, max_length=200)
+    base_url: str | None = Field(default=None, max_length=2000)
+    api_key: str | None = Field(default=None, max_length=4000)
+    endpoint: str | None = Field(default=None, max_length=200)
+
+
+class HandsBody(BaseModel):
+    """This computer's own screen and hands: the switch, which backend drives them and
+    whether the operator sees the whole screen or one window. An unknown ``backend`` or
+    ``mode`` is 400 with the choices (checked in :meth:`Connections.set_hands`)."""
+
+    enabled: bool | None = None
+    backend: str | None = Field(default=None, max_length=40)
+    mode: str | None = Field(default=None, max_length=40)
 
 
 class LLMModelsBody(BaseModel):
@@ -956,21 +983,27 @@ def create_app(settings: Settings, service: MuseService | None = None) -> FastAP
     @app.post("/api/connections/endpoints", dependencies=dep)
     async def add_endpoint(body: EndpointBody) -> dict[str, Any]:
         """A custom OpenAI-compatible endpoint added to the list: its models are asked for
-        (``GET /models``) unless typed; 400 when there is neither."""
+        (``GET /models``) unless typed; 400 when there is neither, 409 for an address
+        another endpoint already has."""
         try:
             return await conn.endpoints.add(body.model_dump(exclude_none=True))
         except ValueError as exc:
-            raise HTTPException(400, str(exc)) from exc
+            raise HTTPException(_endpoint_status(exc), str(exc)) from exc
+
+    def _endpoint_status(exc: ValueError) -> int:
+        text = str(exc)
+        if text.startswith("no endpoint"):
+            return 404
+        return 409 if text.startswith("that address is already") else 400
 
     @app.put("/api/connections/endpoints/{endpoint_id}", dependencies=dep)
     async def update_endpoint(endpoint_id: str, body: EndpointBody) -> dict[str, Any]:
         """Rename, change the key or the address, retype the models; the slots that use the
-        endpoint follow a new address or key."""
+        endpoint follow a new address or key. 409 for an address another endpoint has."""
         try:
             return await conn.endpoints.update(endpoint_id, body.model_dump(exclude_none=True))
         except ValueError as exc:
-            status = 404 if str(exc).startswith("no endpoint") else 400
-            raise HTTPException(status, str(exc)) from exc
+            raise HTTPException(_endpoint_status(exc), str(exc)) from exc
 
     @app.delete("/api/connections/endpoints/{endpoint_id}", dependencies=dep)
     async def remove_endpoint(endpoint_id: str) -> dict[str, Any]:
@@ -1072,9 +1105,9 @@ def create_app(settings: Settings, service: MuseService | None = None) -> FastAP
         return await conn.test_email()
 
     @app.put("/api/connections/gui", dependencies=dep)
-    async def set_gui(body: dict[str, Any]) -> dict[str, Any]:
+    async def set_gui(body: GuiBody) -> dict[str, Any]:
         try:
-            return svc.connections.set_gui(body)
+            return svc.connections.set_gui(body.model_dump())
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
 
@@ -1109,9 +1142,9 @@ def create_app(settings: Settings, service: MuseService | None = None) -> FastAP
         return svc.hands_view()
 
     @app.put("/api/connections/hands", dependencies=dep)
-    async def set_hands(body: dict[str, Any]) -> dict[str, Any]:
+    async def set_hands(body: HandsBody) -> dict[str, Any]:
         try:
-            return svc.connections.set_hands(body)
+            return svc.connections.set_hands(body.model_dump())
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
 
@@ -1290,7 +1323,7 @@ def create_app(settings: Settings, service: MuseService | None = None) -> FastAP
         return {"signed_out": n, **svc.hub.account_view()}
 
     @app.get("/api/cloud/events", dependencies=dep)
-    async def cloud_events(limit: int = 50) -> dict[str, Any]:
+    async def cloud_events(limit: int = Query(50, ge=1, le=200)) -> dict[str, Any]:
         try:
             return {"events": await svc.hub.events(limit)}
         except CloudError as exc:
@@ -1976,9 +2009,27 @@ def create_app(settings: Settings, service: MuseService | None = None) -> FastAP
         # nanoMuse: the avatars are WebP; older Python mimetypes tables do not know it
         mimetypes.add_type("image/webp", ".webp")
 
+        class HashedAssets(StaticFiles):
+            """The build's files under /assets carry a content hash in their names.
+
+            A new build gets new names, so a browser may keep a copy for a year without
+            ever asking again; index.html (``no-cache``) is what names the current set.
+            """
+
+            def file_response(
+                self,
+                full_path: str | os.PathLike[str],
+                stat_result: os.stat_result,
+                scope: Scope,
+                status_code: int = 200,
+            ) -> Response:
+                response = super().file_response(full_path, stat_result, scope, status_code)
+                response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+                return response
+
         assets = STATIC_DIR / "assets"
         if assets.is_dir():
-            app.mount("/assets", StaticFiles(directory=assets), name="assets")
+            app.mount("/assets", HashedAssets(directory=assets), name="assets")
 
         @app.get("/{full_path:path}", include_in_schema=False)
         async def spa(full_path: str) -> Response:

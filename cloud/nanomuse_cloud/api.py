@@ -2,7 +2,7 @@
 
     GET  /healthz                                               → {ok, version, models, paused}
     GET  /v1/config                                             → the public figures the apps print (allowance, bonus, links, code_ttl_s, password_min_len); a minute's cache
-    POST /v1/auth/code        {identifier}                      → 204 (400 phone_region: a number the SMS sender cannot reach; 403 account_disabled before any code is sent; 429 domain_limited: a new address of a domain at its day's sign-up limit)
+    POST /v1/auth/code        {identifier}                      → 204 (400 phone_region: a number the SMS sender cannot reach; a disabled account gets the same 204 and no code is sent; 429 domain_limited: a new address of a domain at its day's sign-up limit)
     POST /v1/auth/verify      {identifier, code, device, invite?} → {api_key, base_url, account, tokens, models}
     POST /v1/auth/login       {identifier, password, device}    → the same, for accounts that set a password
     POST /v1/auth/password    {password, current?}              → 204 (set / change; "" + current removes)
@@ -321,6 +321,8 @@ def create_app(
         finally:
             rules_task.cancel()
             video_task.cancel()
+            # waited for, so neither cancellation lands after the database is closed
+            await asyncio.gather(rules_task, video_task, return_exceptions=True)
             await collector.stop()
             await http.aclose()
 
@@ -978,7 +980,10 @@ def create_app(
         prompt = str(body.get("prompt", "")).strip()
         if not prompt:
             raise CloudError(400, "bad_request", "prompt is required")
-        n = int(body.get("n") or 1)
+        try:
+            n = int(body.get("n") or 1)
+        except (TypeError, ValueError) as e:
+            raise CloudError(400, "bad_request", "n is a whole number") from e
         if n != 1:
             raise CloudError(400, "bad_request", "nanoMuse Cloud draws one picture per request")
         params = {"size": size, "watermark": False}
@@ -1427,19 +1432,26 @@ def create_app(
         out["demo"] = await demo_admin({"account": account_id})
         return with_places(out)
 
+    def _kinds(kind: str) -> tuple[str, ...] | None:
+        """`?kind=a,b` as the tuple the database filters on; empty means every kind."""
+        return tuple(k.strip() for k in kind.split(",") if k.strip())[:20] or None
+
     @app.get("/v1/admin/accounts/{account_id}/ledger", dependencies=[Depends(admin_dep)])
-    async def admin_account_ledger(account_id: str, limit: int = 200, before: int = 0) -> dict:
+    async def admin_account_ledger(account_id: str, limit: int = 200, before: int = 0, kind: str = "", q: str = "") -> dict:
         """One page of the account's statement, newest first; `before` is the id of the
-        last row shown. Every line is reachable this way."""
+        last row shown. Every line is reachable this way. `kind` (0.26, a comma list) and
+        `q` (a text the model name or the note contains) narrow the page and its `total`."""
         if cloud.db.account(account_id) is None:
             raise CloudError(404, "no_account", "No such account")
-        return with_places(cloud.ledger_page(account_id, max(1, min(limit, 1000)), max(0, before)))
+        return with_places(cloud.ledger_page(account_id, max(1, min(limit, 1000)), max(0, before), _kinds(kind), q.strip()[:80]))
 
     @app.get("/v1/admin/accounts/{account_id}/events", dependencies=[Depends(admin_dep)])
-    async def admin_account_events(account_id: str, limit: int = 200, before: int = 0) -> dict:
+    async def admin_account_events(account_id: str, limit: int = 200, before: int = 0, kind: str = "", q: str = "") -> dict:
+        """The account's timeline, newest first, paged with `before`; `kind` and `q` (0.26)
+        narrow it the same way as the statement, `q` matching the kind name or the detail."""
         if cloud.db.account(account_id) is None:
             raise CloudError(404, "no_account", "No such account")
-        return with_places(cloud.events_page(account_id, max(1, min(limit, 1000)), max(0, before)))
+        return with_places(cloud.events_page(account_id, max(1, min(limit, 1000)), max(0, before), _kinds(kind), q.strip()[:80]))
 
     @app.get("/v1/admin/address", dependencies=[Depends(admin_dep)])
     async def admin_address(ip: str = "") -> dict:
@@ -1479,9 +1491,10 @@ def create_app(
         return out
 
     @app.get("/v1/admin/events", dependencies=[Depends(admin_dep)])
-    async def admin_events(limit: int = 200, kind: str = "") -> dict:
-        kinds = tuple(k.strip() for k in kind.split(",") if k.strip()) or None
-        return with_places({"events": cloud.admin_events(limit, kinds)})
+    async def admin_events(limit: int = 200, kind: str = "", before: int = 0) -> dict:
+        """Everyone's timeline, newest first; `kind` is a comma list; `before` (0.26) is
+        the id of the last row shown, so the page reads on past the first 200."""
+        return with_places({"events": cloud.admin_events(limit, _kinds(kind), max(0, before))})
 
     @app.get("/v1/admin/samples", dependencies=[Depends(admin_dep)])
     async def admin_samples(account_id: str = "", limit: int = 100, since: int = 0, before: int = 0, before_id: str = "") -> dict:
@@ -1523,7 +1536,11 @@ def create_app(
     async def admin_grant(request: Request) -> dict:
         body = await _json(request)
         account_id = cloud.admin_resolve(str(body.get("account_id", "")), str(body.get("identifier", "")))
-        return cloud.admin_grant(account_id, int(body.get("tokens", 0)), actor=_actor(request))
+        try:
+            tokens = int(body.get("tokens", 0))
+        except (TypeError, ValueError) as e:
+            raise CloudError(400, "bad_request", "tokens is a whole number") from e
+        return cloud.admin_grant(account_id, tokens, actor=_actor(request))
 
     @app.post("/v1/admin/credit", dependencies=[Depends(admin_dep)])
     async def admin_credit(request: Request) -> dict:

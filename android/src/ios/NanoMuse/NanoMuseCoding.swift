@@ -306,7 +306,7 @@ struct NanoMuseCodingView: View {
                 agents = try await NanoMuseCodingBridge.agents(device: dev.id)
                 sessions = try await NanoMuseCodingBridge.sessions(device: dev.id, agent: nil)
             } catch {
-                self.error = error.localizedDescription
+                self.error = NanoMuseHubErrors.describe(error)
             }
             loading = false
         }
@@ -485,7 +485,7 @@ struct NanoMuseCodingSessionView: View {
                 transcript = try await NanoMuseCodingBridge.transcript(device: computer.id, agent: session.agent, sessionId: sessionId)
                 error = nil
             } catch {
-                self.error = error.localizedDescription
+                self.error = NanoMuseHubErrors.describe(error)
             }
             loading = false
         }
@@ -506,7 +506,7 @@ struct NanoMuseCodingSessionView: View {
                 if !final.sessionId.isEmpty, final.sessionId != sessionId { sessionId = final.sessionId } else { reload() }
             } catch {
                 live?.status = "failed"
-                live?.error = error.localizedDescription
+                live?.error = NanoMuseHubErrors.describe(error)
             }
         }
     }

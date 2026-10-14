@@ -115,7 +115,11 @@ The showcase's Caddy is built with [caddy-dns/cloudflare](https://github.com/cad
 
 ### Figtree (SIL Open Font License 1.1)
 
-The web app's typeface, [Figtree](https://github.com/erikdkennedy/figtree) by Erik Kennedy, ships in `web/public/fonts/` under the OFL (`web/public/fonts/OFL.txt`).
+The web app's typeface, [Figtree](https://github.com/erikdkennedy/figtree) by Erik Kennedy, ships in `web/public/fonts/` under the OFL (`web/public/fonts/OFL.txt`). The desktop app and the docs site are set in the system's fonts (`harness/dsh-nanomuse/src/client/styles.ts`, `website/.vitepress/theme/custom.css`; VitePress's default theme still ships its own Inter files, OFL, in the built site); the Android app's monospace face, JetBrains Mono under `res/font/`, is upstream's and covered by the OpenMinis inventory above.
+
+### simple-icons (CC0 1.0)
+
+The brand marks beside the services in the desktop app's connector catalogue are SVG paths from [simple-icons](https://simpleicons.org/) 16.33.0, written into `harness/dsh-nanomuse/src/client/brand-marks.ts` by `harness/dsh-nanomuse/scripts/brand-marks.mjs`. The set is CC0 1.0; the marks and names themselves belong to the services they stand for and only say which service a row is.
 
 ### nanobot (MIT)
 
@@ -138,7 +142,7 @@ Installed from PyPI and npm, not vendored; each carries its own license: openai,
 
 ### Tools called, not bundled
 
-[bubblewrap](https://github.com/containers/bubblewrap) (LGPL-2.0-or-later) sandboxes commands on Linux when installed; [Playwright](https://github.com/microsoft/playwright) (Apache-2.0) drives the browser tool when the `browser` extra is installed. Neither is part of the package.
+[bubblewrap](https://github.com/containers/bubblewrap) (LGPL-2.0-or-later) sandboxes commands on Linux when installed; [Playwright](https://github.com/microsoft/playwright) (Apache-2.0) drives the browser tool when the `browser` extra is installed. Neither is part of the package. The relay downloads [ip2region](https://github.com/lionsoul2014/ip2region)'s `xdb` database (Apache-2.0) once into its data directory to name the country, province and city of an address on the operator's page (`cloud/nanomuse_cloud/geo.py`); the file is not in this repository.
 
 ## Learned from, no code taken
 

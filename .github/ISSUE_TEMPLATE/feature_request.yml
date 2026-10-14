@@ -1,16 +1,17 @@
 name: Feature request / 功能建议
-description: Something Muse does that nanoMuse does not yet, or something nanoMuse should do. / Muse 有而 nanoMuse 还没有的东西，或者 nanoMuse 应该做的事。
+description: Something nanoMuse should do, or should do differently. / nanoMuse 应该做的事，或者应该换个做法的事。
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        nanoMuse follows Meta's Muse closely. If your request is "Muse does X", say so and link to
-        where it is described; those are the requests most likely to land. Ideas outside Muse are
-        welcome too; just say what problem they solve. You can write in English or 中文.
+        Say what problem the change solves and what you would expect to see; a request that
+        names a real task you tried to do is the kind most likely to land. If another product
+        does it the way you want, a link to where that is described helps. You can write in
+        English or 中文.
 
-        nanoMuse 紧跟 Meta 的 Muse。如果你的建议是「Muse 能做 X」，请说明并附上描述它的链接；这类建议最容易落地。
-        Muse 之外的想法也欢迎，说清它解决什么问题就行。英文或中文都可以。
+        说清这个改动解决什么问题、你期望看到什么；写明你实际想做的那件事的建议最容易落地。
+        如果别的产品已经有你想要的做法，附上描述它的链接会有帮助。英文或中文都可以。
   - type: textarea
     id: problem
     attributes:

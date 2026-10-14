@@ -73,10 +73,10 @@ video_base_url = ""                # the asynchronous video API when it is not o
 | DeepSeek | `deepseek-flash` | `https://api.deepseek.com` | 默认 |
 | Kimi（月之暗面） | `kimi-k2.6` | `https://api.moonshot.cn/v1` | |
 | 阿里云百炼 | `deepseek-v4.1-flash` | `https://dashscope.aliyuncs.com/compatible-mode/v1` | 中国大陆；手的模型 `qwen3.8-27b` 在同一个端点上 |
-| GLM（智谱） | `glm-5.2` | `https://open.bigmodel.cn/api/paas/v4` | |
+| GLM（智谱） | `glm-5.3` | `https://open.bigmodel.cn/api/paas/v4` | |
 | 豆包（火山方舟） | 你的接入点 id | `https://ark.cn-beijing.volces.com/api/v3` | 模型是带版本的部署；App 会列出你的 |
 | MiniMax | `MiniMax-M3` | `https://api.minimaxi.com/v1` | |
-| OpenAI | `gpt-5.6-sol` | `https://api.openai.com/v1` | `provider = "openai_responses"` 也可以 |
+| OpenAI | `gpt-5.4-mini` | `https://api.openai.com/v1` | `provider = "openai_responses"` 也可以 |
 | OpenRouter | `deepseek/deepseek-v4.1-flash` | `https://openrouter.ai/api/v1` | 中国大陆以外；手的模型 `qwen/qwen3.8-27b` 在同一个端点上 |
 | Ollama | `qwen3:8b` | `http://localhost:11434/v1` | `api_key = "ollama"`；见[本地模型](#local-models) |
 | vLLM / LM Studio | 你起的服务名 | `http://localhost:8000/v1` | 服务器不理会 `tools` 的话，设 `tool_mode = "prompt"` |
@@ -450,7 +450,7 @@ update_check     = true          # Settings → About says when a newer release 
 start_grace      = 4             # seconds the services may take before the app answers anyway
 ```
 
-`update_check` 每天一次（点「现在检查」时提前）先问下载镜像的索引（`nanomuse.cn/dl/index.json`），
+`update_check` 每天一次（点「现在检查」时提前；查询失败时，比如运行时比网络先起来，一小时后再试）先问下载镜像的索引（`nanomuse.cn/dl/index.json`），
 它不答再问 `api.github.com` 最新版本，并在「设置 → 关于」下显示版本号和指向发布页的链接；什么都不下载，
 除了请求 `User-Agent` 里的运行时版本号，也不发送任何关于这次安装的信息。
 `NANOMUSE_NO_UPDATE_CHECK=1` 同样能关掉它；托管的网页会话（用 `NANOMUSE_CLOUD_KEY`

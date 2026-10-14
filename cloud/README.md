@@ -79,7 +79,7 @@ Errors carry a stable `code` the app can turn into a sentence:
 | 401 | `bad_key` | unknown or revoked key — the phone keeps the account's data aside for the next sign-in |
 | 401 | `account_deleted` | the key's account was deleted (0.1.40; remembered for 90 days) — the phone may delete the account's data |
 | 402 | `out_of_tokens` | grant used up — top up with the admin endpoint |
-| 403 | `account_disabled` | the operator switched the account off: its keys answer `401 bad_key`, and `POST /v1/auth/code` answers this before any code is sent |
+| 403 | `account_disabled` | the operator switched the account off: its keys answer `401 bad_key`, `POST /v1/auth/verify` answers this, and `/v1/auth/login` answers it only to the right password (a wrong one is `401 bad_credentials` as for any account). `POST /v1/auth/code` answers the same `204` as for anyone, counts towards the same limits and sends nothing, so a request there learns neither that the number has an account nor that it is off |
 | 403 | `session_from_session` | `POST /v1/auth/session-key` was called with a session key; only a device's standing key may mint one, so a leaked short-lived key cannot renew itself |
 | 404 | `model_not_offered` | not on the menu |
 | 400 | `no_secrets_in_profile` | a profile `connectors` entry carried a key named like a credential; nothing was stored |
@@ -170,9 +170,11 @@ for the full list. The ones that matter:
 | `ALLOWED_IDENTIFIERS` | empty | comma-separated numbers / addresses of the **members**: no spend limit |
 | `REVIEW_ADDRESSES`, `REVIEW_CODE` | empty (off) | an app store reviewer's sign-in: for these e-mail addresses no code is sent and the six-digit `REVIEW_CODE` signs in — see *For App Store review* below |
 | `ALLOWANCE_CNY` | 10 | yuan per non-member account **for its lifetime**, at the list prices below; 0 = no limit. *Runtime setting* |
-| `INVITE_BONUS_CNY` | 5 | added to **both** pools, the inviter's and the newcomer's, per new person who signs up with the code, paid at the newcomer's first charged request (the figure in force at that moment). *Runtime setting* |
-| `SIGNUP_PER_DOMAIN_DAY` | 20 | new accounts one e-mail domain may open per rolling 24 hours when the domain is not a well-known mail provider (gmail.com, outlook.com, qq.com, 163.com and the like are never limited; phones never are); past it `POST /v1/auth/code` answers `429 domain_limited` and the timeline across accounts gets `signup.domain_limited` with the domain; 0 = off |
+| `INVITE_BONUS_CNY` | 5 | added to **both** pools, the inviter's and the newcomer's, per new person who signs up with the code, paid once the newcomer uses the relay (at least `INVITE_SETTLE_MIN_SPENT_UY` micro-yuan or a registered Hub device, and not from the inviter's own network address). *Runtime setting* |
+| `INVITE_SETTLE_MIN_SPENT_UY` | 200 | minimum provider spend (in micro-yuan) by an invited account before its invite bonus is settled when it has not registered a Hub device; 0 settles on the first charged request |
+| `SIGNUP_PER_DOMAIN_DAY` | 5 | new accounts one e-mail domain may open per rolling 24 hours when the domain is not a well-known mail provider (gmail.com, outlook.com, qq.com, 163.com and the like are never limited; phones never are); past it `POST /v1/auth/code` answers `429 domain_limited` and the timeline across accounts gets `signup.domain_limited` with the domain; 0 = off |
 | `SIGNUP_DOMAIN_ALLOW` | empty | comma-separated domains that join the built-in list of unlimited ones, your company's or school's for instance |
+| `SIGNUP_DOMAIN_BLOCK` | empty | comma-separated disposable mail domains blocked from opening new accounts in addition to the built-in blocklist (`DEFAULT_SIGNUP_DOMAIN_BLOCK`); `SIGNUP_DOMAIN_ALLOW` overrides an entry |
 | `REPO_URL` | `https://github.com/nano-muse/nanoMuse` | the repository the apps ask people to star, in `/v1/config` |
 | `IMPROVE_DEFAULT` | `0` | what *Help improve nanoMuse's AI models* (Data controls) starts as for accounts created from now on: `1` = on until the person turns it off, `0` = off until they turn it on; existing accounts keep their setting. State it in your privacy policy |
 | `PRIVACY_URL` | `https://nanomuse.cn/privacy/` | the policy the apps link from Data controls and the sign-in pages — the one that says what this relay keeps and its default |
@@ -665,6 +667,27 @@ downloads, what each day added, downloads by platform and by asset, and
 leaves the previous row and shows on the page, the relay runs on without
 GitHub.
 
+From 0.26 the console searches and filters further. On *People* the search
+has a row of its own above the filters and reaches the number or e-mail, the
+account id (anywhere in it), both addresses, device names, the client and its
+version, the region, the inviter and the account's invite code; several
+words, space-separated, must all match. Three filters joined the row below:
+*Joined* (24 h, 7 d, 30 d, longer ago), *Came* (through an invite, on their
+own, brought someone) and *Version* (the client versions seen, with counts).
+`/` on any page puts the cursor in that page's search box, on a page without
+one it opens *People*; the CSV gained `version`, `invited_by` and `invites`.
+The account drawer's statement and timeline each have kind chips (chat,
+pictures, video, calls, credits; sign-ins, refusals, errors, content checks,
+calls, passwords, invites, credits) and a text box (model or note; detail or
+kind name) sent to the relay as `?kind=&q=`, so the count is of what matches
+and the filter holds across pages; an account that never made a request gets
+one line instead of three empty tables. Opening another page closes the
+drawer, which used to stay over it. *Activity* reads on past its first page
+(`?before=`, 200 rows a time, the kind filter kept); the visitors table on
+*Demo* and the by-account table of *Data controls* have a search box; the
+*Stats* page opens with every metric's name as a jump to its panel; a KPI's
+second figure wraps under the first instead of being cut off.
+
 **Every operator route**, each under `X-Admin-Token` (401 `admin` without it;
 `X-Admin-Actor` names who did it for the audit log, else `console`). An account
 is named by `account_id` or by `identifier` (the number or address itself):
@@ -674,13 +697,13 @@ GET    /v1/admin/health                          → {ok, version, in_flight, hu
 GET    /v1/admin/overview        ?days=30        → the dashboard: accounts, today / week / period by kind and model, signals, events, geo, places
 GET    /v1/admin/accounts                        → {accounts: [{id, identifier, hint, channel, member, disabled, …, devices[]}], settings}
 GET    /v1/admin/accounts/{id}   ?days=30        → one account in full: usage by kind / model / day, sign-ins, devices, addresses, inviter, invitees, timeline
-GET    /v1/admin/accounts/{id}/ledger ?limit=&before=   → the statement, page by page (before = the last id shown)
-GET    /v1/admin/accounts/{id}/events ?limit=&before=   → the timeline, page by page
+GET    /v1/admin/accounts/{id}/ledger ?limit=&before=&kind=a,b&q=   → the statement, page by page (before = the last id shown); kind and q (model or note) narrow it and its total (0.26)
+GET    /v1/admin/accounts/{id}/events ?limit=&before=&kind=a,b&q=   → the timeline, page by page; kind and q (detail or kind name) the same way
 GET    /v1/admin/address         ?ip=            → the accounts seen from one address
 GET    /v1/admin/invites         ?limit=200&per=20      → the funnel and the inviters ranked by the accounts their code brought
 POST   /v1/admin/invites/abuse   {account_id | identifier, disable?, delete_unused?}  → {reclaimed_cny, disabled, deleted, kept}
 GET    /v1/admin/usage           ?days=14        → charged tokens and yuan per day and kind
-GET    /v1/admin/events          ?limit=200&kind=a,b    → the timeline across accounts (never message content)
+GET    /v1/admin/events          ?limit=200&kind=a,b&before=   → the timeline across accounts (never message content); before = the last id shown (0.26)
 GET    /v1/admin/series          ?days=30        → by day: sign-ins, new and active accounts, invites, data switches; devices by kind and system
 GET    /v1/admin/places          ?days=30        → accounts, new accounts, sign-ins, requests and demo visitors by country and province
 GET    /v1/admin/traffic         ?days=30        → the site's pages, visitors, downloads, referrers (TRAFFIC_DB)

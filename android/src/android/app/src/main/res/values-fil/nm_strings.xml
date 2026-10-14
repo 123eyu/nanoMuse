@@ -615,6 +615,8 @@
     <string name="nm_risk_title_device">Payagan ang “%1$s” na patakbuhin ang teleponong ito?</string>
     <string name="nm_risk_desc_device">Gusto ng “%1$s”, isa pang device sa account mo, na %2$s sa teleponong ito. Nasa ibaba kung ano nga ba ito. Hinahayaan ng “Lagi” ang device na iyon na gawin ang mga ganitong bagay dito nang hindi nagtatanong; bawiin ito sa ilalim ng Mga pahintulot.</string>
     <string name="nm_risk_preview_device">Ang hiniling ng device</string>
+    <string name="nm_risk_preview_show_all">Ipakita lahat (%1$d linya)</string>
+    <string name="nm_risk_preview_show_less">Ipakita nang mas kaunti</string>
     <string name="nm_risk_class_remote">Remote na kontrol</string>
     <string name="nm_hub_remote_reason">Maaaring patakbuhin ng %1$s ang teleponong ito</string>
 
@@ -648,7 +650,6 @@
     <string name="nm_welcome_skip">Laktawan muna</string>
     <string name="nm_welcome_hands_fine_print">Gumagana ang lahat ng iba pa kahit wala ang mga ito. Nasa Mga setting → Mga kamay ang mga ito kapag gusto mo.</string>
     <string name="nm_welcome_meet_fine_print">Bago ang anumang hindi na nito mababawi (pagbura, pagpapadala, pagbabayad) humihinto ito at nagtatanong muna sa iyo.</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">Magsimula sa nanoMuse Cloud</string>
     <string name="nm_cloud_signin_subtitle">Isang code sa telepono o inbox mo, o ang password mo, kapag nakapagtakda ka na.</string>
     <string name="nm_cloud_mode_code">Gamit ang code</string>
@@ -656,7 +657,7 @@
     <string name="nm_cloud_password">Password</string>
     <string name="nm_cloud_forgot_password">Nakalimutan ang password? Mag-sign in gamit ang code</string>
     <string name="nm_cloud_identifier">Numero ng telepono sa mainland China o e-mail</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · you@example.com</string>
+    <string name="nm_cloud_identifier_hint">you@example.com</string>
     <string name="nm_cloud_code">Code</string>
     <string name="nm_cloud_send_code">Ipadala ang code</string>
     <string name="nm_cloud_resend">Ipadala ulit</string>
@@ -666,7 +667,6 @@
     <!-- Your own relay (0.1.38): the sign-in screen's server form and the account page's row -->
     <string name="nm_cloud_other_server">Gumamit ng ibang server</string>
     <string name="nm_cloud_server_url">Address ng relay</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
     <string name="nm_cloud_server_check">Suriin</string>
     <string name="nm_cloud_server_use">Gamitin ang server na ito</string>
     <string name="nm_cloud_server_now">Server: %1$s</string>
@@ -728,6 +728,8 @@
     <string name="nm_cloud_err_password_short">Kailangan ng password ng hindi bababa sa 8 character.</string>
     <string name="nm_cloud_err_password_weak">Masyadong madaling hulaan ang password na iyan.</string>
     <string name="nm_cloud_err_signup_closed">Naka-pause muna ang pag-sign up sa relay na ito. Puwede pa ring mag-sign in ang account na mayroon na.</string>
+    <string name="nm_cloud_err_domain_limited">Naabot na ng mga address sa domain na iyon ang limitasyon sa pag-sign-up ngayong araw sa relay na ito. Subukan ulit bukas o gumamit ng ibang address.</string>
+    <string name="nm_cloud_err_channel_unsupported">Hindi nagpapadala ng code ang relay na ito sa ganoong uri ng address. Gamitin ang isa pang uri (e-mail o numero ng telepono), o mag-sign in gamit ang password.</string>
     <string name="nm_cloud_err_too_large">Masyadong malaki ang mensaheng iyan para sa model. Paikliin ito, alisin ang ilang attachment, o magsimula ng bagong chat.</string>
     <string name="nm_cloud_err_content_rejected">Tinanggihan ng content check ng model provider ang kahilingang ito. Subukan ang ibang mga salita, o magsimula ng bagong chat kung paulit-ulit itong nangyayari: ang mga salitang tinutulan nito ay maaaring nasa mas maagang bahagi ng usapan.</string>
     <string name="nm_cloud_err_provider_busy">Abala ngayon ang provider ng model. Subukan muli maya-maya.</string>
@@ -1144,6 +1146,11 @@
     <string name="nm_a11y_not_liked">Hindi nagustuhan</string>
     <string name="nm_a11y_post_details">Mga detalye ng post</string>
     <string name="nm_claude_sign_in_unavailable">Hindi magagamit ng build na ito ang pag-sign in sa Claude. Idagdag na lang ang Anthropic gamit ang API key.</string>
+    <string name="nm_oauth_rescue_hint">Kung nagpapakita ang browser ng error page sa localhost, kinukuha ng proxy o VPN mo ang callback. Idagdag ang localhost sa bypass list nito, o kopyahin ang address ng page at i-paste dito.</string>
+    <string name="nm_oauth_rescue_placeholder">I-paste ang address dito</string>
+    <string name="nm_oauth_rescue_continue">Magpatuloy</string>
+    <string name="nm_oauth_rescue_no_code">Walang sign-in code ang address na iyan.</string>
+    <string name="nm_oauth_rescue_failed">Hindi na hinihintay ng sign-in ang address na iyan. I-tap ang Mag-sign in at subukan ulit.</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">Napakaliit</string>
     <string name="nm_font_scale_small">Maliit</string>

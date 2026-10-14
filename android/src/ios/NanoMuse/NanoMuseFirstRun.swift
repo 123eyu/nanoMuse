@@ -337,6 +337,8 @@ struct NanoMuseSetupPage<Hero: View, Content: View>: View {
     var learnMore: URL? = nil
     var busy: Bool = false
     @ViewBuilder var content: () -> Content
+    /// The title follows Dynamic Type, capped as the header's lines are (NanoMuseHeaderMetrics); the page scrolls, so it may wrap.
+    @ScaledMetric(relativeTo: .title) private var titleSize: CGFloat = 26
 
     /// The fine print as one paragraph, *Learn more* a link at its end.
     private var finePrintText: Text {
@@ -353,7 +355,7 @@ struct NanoMuseSetupPage<Hero: View, Content: View>: View {
                     hero()
                         .padding(.top, 12)
                     Text(title)
-                        .font(.system(size: 26, weight: .semibold, design: .rounded))
+                        .font(.system(size: NanoMuseHeaderMetrics.capped(titleSize, base: 26), weight: .semibold, design: .rounded))
                         .multilineTextAlignment(.center)
                     Text(subtitle)
                         .font(.subheadline)

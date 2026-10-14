@@ -725,6 +725,8 @@ object NanoMuseCloud {
             "code_too_often" -> context.getString(R.string.nm_cloud_err_code_too_often)
             "not_invited" -> context.getString(R.string.nm_cloud_err_not_invited)
             "signup_closed" -> context.getString(R.string.nm_cloud_err_signup_closed)
+            "domain_limited" -> context.getString(R.string.nm_cloud_err_domain_limited)
+            "channel_unsupported" -> context.getString(R.string.nm_cloud_err_channel_unsupported)
             "send_failed" -> context.getString(R.string.nm_cloud_err_send_failed)
             "phone_region" -> context.getString(R.string.nm_cloud_sms_region) // the same sentence the sign-in screen shows before asking
             "account_disabled" -> context.getString(R.string.nm_cloud_err_disabled)

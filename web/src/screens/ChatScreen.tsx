@@ -749,8 +749,15 @@ function Composer({
   const fileRef = useRef<HTMLInputElement>(null);
   const t = useT();
 
-  // previews are object URLs; let them go when the chip goes
-  useEffect(() => () => pending.forEach((p) => p.preview?.startsWith("blob:") && URL.revokeObjectURL(p.preview)), [pending]);
+  // previews are object URLs; let them go when the chip goes (remove, a sent message) and
+  // whatever is still waiting when the composer goes away
+  const revoke = (items: Pending[]) =>
+    items.forEach((p) => p.preview?.startsWith("blob:") && URL.revokeObjectURL(p.preview));
+  const pendingRef = useRef<Pending[]>([]);
+  useEffect(() => {
+    pendingRef.current = pending;
+  }, [pending]);
+  useEffect(() => () => revoke(pendingRef.current), []);
 
   // the desktop's quick-chat shortcut: the window is up, the cursor goes here
   useEffect(() => {
@@ -780,7 +787,10 @@ function Composer({
         });
     }
   };
-  const remove = (key: string) => setPending((cur) => cur.filter((p) => p.key !== key));
+  const remove = (key: string) => {
+    revoke(pending.filter((p) => p.key === key));
+    setPending((cur) => cur.filter((p) => p.key !== key));
+  };
   const uploading = pending.some((p) => !p.info && !p.error);
   const attached = pending.flatMap((p) => (p.info ? [p.info.path] : []));
 
@@ -839,6 +849,7 @@ function Composer({
     setPending([]);
     ref.current?.focus();
     onSend(trimmed, attached)
+      .then(() => revoke(files))
       .catch(() => {
         setText((cur) => cur || trimmed);
         setPending((cur) => (cur.length ? cur : files));
@@ -1144,6 +1155,7 @@ export function ThreadList({
             if (e.key === "Enter" && !creating) void create();
           }}
           placeholder={compact ? t("New side chat") : t("New side chat, e.g. “Trip to Kyoto”")}
+          aria-label={t("New side chat")}
           className={cx("min-w-0 flex-1 bg-surface-2 outline-none focus:ring-2 focus:ring-accent/40", compact ? "rounded-xl px-3 py-2 text-[13px]" : "rounded-2xl px-3.5 py-2.5 text-[14px]")}
         />
         <button

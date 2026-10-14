@@ -105,7 +105,6 @@ font:15px/1.5 system-ui,sans-serif;color:#1b1730;background:#f4f3fa;text-align:c
   try {
     const r = await fetch("/__wake", { method: "POST", headers: { Authorization: "Bearer " + token } });
     if (r.ok) return location.reload();
-    const body = await r.json().catch(() => ({}));
     if (r.status === 401) return again(T.not_yours);
     m.textContent = T.could_not_wake;
     s.textContent = T.try_again;

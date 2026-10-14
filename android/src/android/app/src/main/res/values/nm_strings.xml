@@ -602,6 +602,8 @@
     <string name="nm_risk_title_device">Allow “%1$s” to operate this phone?</string>
     <string name="nm_risk_desc_device">“%1$s”, another device on your account, wants to %2$s on this phone. What exactly is shown below. “Always” lets that device do such things here without asking; take it back under Permissions.</string>
     <string name="nm_risk_preview_device">What the device asked</string>
+    <string name="nm_risk_preview_show_all">Show all (%1$d lines)</string>
+    <string name="nm_risk_preview_show_less">Show less</string>
     <string name="nm_risk_class_remote">Remote control</string>
     <string name="nm_hub_remote_reason">%1$s may operate this phone</string>
 
@@ -634,7 +636,7 @@
     <string name="nm_welcome_skip">Skip for now</string>
     <string name="nm_welcome_hands_fine_print">Everything else works without these. They live under Settings → Hands whenever you want them.</string>
     <string name="nm_welcome_meet_fine_print">Before anything it cannot take back (deleting, sending, paying) it stops and asks you first.</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
+    <string name="nm_cloud_title" translatable="false">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">Start with nanoMuse Cloud</string>
     <string name="nm_cloud_signin_subtitle">A code to your phone or inbox, or your password, once you have set one.</string>
     <string name="nm_cloud_mode_code">With a code</string>
@@ -642,7 +644,7 @@
     <string name="nm_cloud_password">Password</string>
     <string name="nm_cloud_forgot_password">Forgot the password? Sign in with a code</string>
     <string name="nm_cloud_identifier">Mainland China phone number or e-mail</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · you@example.com</string>
+    <string name="nm_cloud_identifier_hint">you@example.com</string>
     <string name="nm_cloud_code">Code</string>
     <string name="nm_cloud_send_code">Send code</string>
     <string name="nm_cloud_resend">Send again</string>
@@ -651,7 +653,7 @@
     <!-- Your own relay (0.1.38): the sign-in screen's server form and the account page's row -->
     <string name="nm_cloud_other_server">Use a different server</string>
     <string name="nm_cloud_server_url">Relay address</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
+    <string name="nm_cloud_server_hint" translatable="false">https://relay.example.org</string>
     <string name="nm_cloud_server_check">Check</string>
     <string name="nm_cloud_server_use">Use this server</string>
     <string name="nm_cloud_server_now">Server: %1$s</string>
@@ -712,6 +714,8 @@
     <string name="nm_cloud_err_password_short">The password needs at least 8 characters.</string>
     <string name="nm_cloud_err_password_weak">That password is too easy to guess.</string>
     <string name="nm_cloud_err_signup_closed">Sign-ups are paused on this relay for now. An account that already exists can still sign in.</string>
+    <string name="nm_cloud_err_domain_limited">Today\'s sign-up limit for addresses at that domain is reached on this relay. Try again tomorrow, or use another address.</string>
+    <string name="nm_cloud_err_channel_unsupported">This relay does not send codes to that kind of address. Use the other kind (e-mail or phone number), or sign in with a password.</string>
     <string name="nm_cloud_err_too_large">That message is too large for the model. Shorten it, leave out some attachments, or start a new chat.</string>
     <string name="nm_cloud_err_content_rejected">The model provider\'s content check declined this request. Try different words, or start a new chat if it keeps happening: the words it objects to can be earlier in the conversation.</string>
     <string name="nm_cloud_err_provider_busy">The model provider is busy right now. Try again in a moment.</string>
@@ -1121,6 +1125,11 @@
     <string name="nm_a11y_not_liked">Not liked</string>
     <string name="nm_a11y_post_details">Post details</string>
     <string name="nm_claude_sign_in_unavailable">This build cannot use a Claude sign-in. Add Anthropic with an API key instead.</string>
+    <string name="nm_oauth_rescue_hint">If the browser shows an error page at localhost, your proxy or VPN is swallowing the callback. Add localhost to its bypass list, or copy the page\'s address and paste it here.</string>
+    <string name="nm_oauth_rescue_placeholder">Paste the address here</string>
+    <string name="nm_oauth_rescue_continue">Continue</string>
+    <string name="nm_oauth_rescue_no_code">That address has no sign-in code.</string>
+    <string name="nm_oauth_rescue_failed">The sign-in is no longer waiting for that address. Tap Sign in and try again.</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">XS</string>
     <string name="nm_font_scale_small">Small</string>

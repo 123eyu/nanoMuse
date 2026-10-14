@@ -92,6 +92,7 @@ class DockerRunner:
             out, err = await asyncio.wait_for(proc.communicate(), timeout)
         except TimeoutError as exc:
             proc.kill()
+            await proc.wait()  # reaped, so the killed CLI leaves no zombie behind
             raise RunnerError(f"docker {args[0]} timed out") from exc
         if proc.returncode != 0:
             raise RunnerError(f"docker {args[0]} failed: {err.decode(errors='replace').strip()}")

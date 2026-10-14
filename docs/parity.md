@@ -60,7 +60,7 @@ Legend: **✓** done · **◐** partial (what is missing is in the note) · **�
 | Approval cards, three tiers, remembered grants; a Permissions page listing the remembered grants by risk tier, with Revoke | ✓ | upstream's; since 1.0.4 the card for a step another device's Muse asks about (*Allow once / Allow for this chat / Always allow this on 〈device〉 / Deny*), the standing answers under *Approvals* on the agent's page with Revoke | ✓ Settings → Permissions → *Standing grants*: the remote-control switch, the trusted devices and the hands' per-app grants under the phone's three tiers | ✓ |
 | Approvals answered outside the app while the hands work | ✓ 0.1.33 capsule *Allow / Deny* | n/a *(10)* | ✓ 0.1.34 stage *Allow once / Always in app / Deny*, capsule when the window is behind *(17)* | n/a |
 | Hand-over: a login / code / payment / CAPTCHA goes back to the person, the agent waits and resumes (holds) | ✓ 0.1.33 `hand_over` | — *(16)* | ✓ 0.1.34 *Your turn* with *Done*, *I'll take it* *(16)* | ✓ 0.1.34 drivable browser viewer, hold cards *(16)* |
-| Face tap opens the agent page (Change avatar · Edit name · studio; Activity · Approvals · Daily · Soul & memory; share card) | ✓ | ✓ 0.1.34 | ✓ 0.1.34 | ✓ Muse page |
+| Face tap opens the agent page (Change avatar · Edit name · studio; Activity · Approvals · Daily · Soul & memory; share card) | ✓ | ✓ 0.1.34 | ✓ 0.1.34 | ✓ the agent sheet |
 | Change the look from the chat (the same words, four candidates, pick by words, regenerate) | ✓ | ✓ 0.1.34 | ✓ 0.1.34 | ✓ studio intercept, reference picture 0.1.34 |
 
 ## Connectors, agents, devices
@@ -73,7 +73,7 @@ Legend: **✓** done · **◐** partial (what is missing is in the note) · **�
 | Connections shared across the account's devices (the profile's `connectors`; never a credential) | ✓ 0.1.34 | ✓ 0.1.34 | ✓ 0.1.34 | ✓ 0.1.34 *(18)* |
 | Chat apps: Feishu · DingTalk · WeCom · Telegram answer as the agent (pairing codes, allowlists, deliver here) | — *(22)* | — *(22)* | ✓ 0.1.34 the web screen | ✓ 0.1.34 *Settings → Chat apps* |
 | Skills | ✓ upstream | ✓ upstream | — *(8)* | ✓ |
-| Coding agents (Cursor, Codex, Claude Code on the computers; DeepSeek Harness too since 1.0.4, read by the desktop app) | ✓ | ✓ 0.1.34 over the hub *(9)* | ✓ *Settings → Coding agents*, this computer first; announces and serves `coding.*` *(8)* | ✓ |
+| Coding agents (Cursor, Codex, Claude Code on the computers; DeepSeek Harness too, read by the desktop app since 1.0.4 and by the runtime since 1.0.5) | ✓ | ✓ 0.1.34 over the hub *(9)* | ✓ *Settings → Coding agents*, this computer first; announces and serves `coding.*` *(8)* | ✓ |
 | Devices of the account, remote control, rename, forget | ✓ | ◐ list, Reach sheet 0.1.33 | ✓ | ✓ |
 | Hub, outbound: the model reaches the account's other devices (`devices`, `device_*`, `delegate`, `@<device>`) | ✓ *Computers*, the reach offload | ◐ the Reach sheet by hand and `@device` to the hub; since round 9 also a tap on an online device in the account's Devices list, as on Android; no tool in the model's hands *(29)* | ✓ `reach.ts` | ✓ the runtime's `tools/devices.py` |
 | Hub, inbound: the device answers the others (shell · files · open · screen · notify · task) | ✓ `HubActions` | ◐ info · open · notify · task; shell, files and screen answer *not supported* *(10)* | ✓ `actions.ts` | ✓ the runtime; a browser tab is not a device |
@@ -90,7 +90,7 @@ Legend: **✓** done · **◐** partial (what is missing is in the note) · **�
 |---|---|---|---|---|
 | Avatar studio: generate, pick, pose; the face shared across devices | ✓ | ✓ 0.1.33 *(11)* | ✓ | ✓ |
 | Motion clips for a drawn face (idle · working · waiting · happy; `wan2.2-i2v-flash`; *Animate the avatar after a change*) | ✓ | ✓ 0.1.35 | ✓ 0.1.35 header, sidebar, capsule | — *(27)* |
-| Emoji faces | ◐ falls back to the dragon *(12)* | ◐ falls back to the dragon *(12)* | ✓ | ✓ |
+| Emoji faces | ◐ falls back to the dragon *(12)* | ✓ 1.0.5 *(12)* | ✓ | ✓ |
 | Theme colour swatches | — | — | — removed 0.1.33 *(13)* | — |
 | Accent follows the avatar | ✓ | ✓ | ✓ | ✓ |
 | Rooms: Feed · Ideas · Goals · Library | ✓ | ✓ 0.1.34 with a scheduler *(11)* | ✓ 0.1.34 on the phone's fence protocol | ✓ |
@@ -99,7 +99,7 @@ Legend: **✓** done · **◐** partial (what is missing is in the note) · **�
 | Feed opens on the intro card (*Write it now*), the first day is written after the first conversation, a daily routine at 08:00 | ✓ | ✓ 0.1.35 | ✓ 0.1.35 | ✓ 0.1.35 |
 | Ideas prefilled with the curated list (`ideas.{en,zh}.json`, byte for byte, with a test) | ✓ | ✓ | ✓ 0.1.34; empty-when-bundled bug fixed 0.1.35 | ✓ 0.1.35 |
 | Splash: wordmark and the person's own face, never the dragon | ✓ | ✓ system launch screen | ✓ 0.1.35 | n/a |
-| Settings as Muse cards in one order (Models since 0.1.41 · Avatar · Computers · Appearance · … · Version; *Image & video models* kept as a shortcut) | ✓ | ✓ 0.1.35, Models first 0.1.41 | ✓ sections, Models right after General 0.1.41 | ✓ sections |
+| Settings as cards in one order (Models since 0.1.41 · Avatar · Computers · Appearance · … · Version; *Image & video models* kept as a shortcut) | ✓ | ✓ 0.1.35, Models first 0.1.41 | ✓ sections, Models right after General 0.1.41 | ✓ sections |
 | Memory as a room | — settings page *(14)* | — | ✓ | ✓ |
 | Stage / browser viewer while the hands work | ✓ stage | n/a *(10)* | ✓ the glow and the capsule while the hands work, the run's trajectory in the chat 0.1.40 (a live stage from 0.1.33 to 0.1.39); Allow/Deny, holds 0.1.34 | ✓ browser viewer you can drive 0.1.34 |
 | Every working light breathes (2.4 s in, 2.4 s out), none runs; steady under reduce-motion | ✓ round 9: the stage's comet and scan line gone, the capsule's ring and bars breathe | n/a *(10)* | ✓ 0.1.40 | ✓ 0.1.40 |
@@ -160,8 +160,8 @@ notes above; a settled item keeps its number and says how it went.
     computer of the account runs them) is still the sure one. The iPad's layout is the iPhone's,
     larger.
     Settled in 0.1.35: no split layout of its own.
-12. **Android and iOS · Emoji faces.** A face set to an emoji on the web or the desktop shows the
-    dragon on the phones. Small.
+12. **Android · Emoji faces.** A face set to an emoji on the web or the desktop shows the dragon
+    on Android. Small. iOS shows it since 1.0.5.
 13. **Theme colour swatches.** Settled in 0.1.33: removed from the desktop; one rule everywhere,
     the accent follows the avatar.
 14. **Android · Memory as a room.** It is a settings page on the phone, a room elsewhere. Design

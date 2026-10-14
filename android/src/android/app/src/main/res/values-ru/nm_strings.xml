@@ -621,6 +621,8 @@
     <string name="nm_risk_title_device">Разрешить «%1$s» управлять этим телефоном?</string>
     <string name="nm_risk_desc_device">«%1$s», другое устройство на вашем аккаунте, хочет %2$s на этом телефоне. Что именно, показано ниже. «Всегда» позволяет этому устройству делать такое здесь без вопросов; отозвать можно в Разрешениях.</string>
     <string name="nm_risk_preview_device">О чём попросило устройство</string>
+    <string name="nm_risk_preview_show_all">Показать всё (%1$d строк)</string>
+    <string name="nm_risk_preview_show_less">Свернуть</string>
     <string name="nm_risk_class_remote">Удалённое управление</string>
     <string name="nm_hub_remote_reason">%1$s может управлять этим телефоном</string>
 
@@ -654,7 +656,6 @@
     <string name="nm_welcome_skip">Пока пропустить</string>
     <string name="nm_welcome_hands_fine_print">Всё остальное работает и без них. Они находятся в Настройки → Руки, когда понадобятся.</string>
     <string name="nm_welcome_meet_fine_print">Перед всем, что нельзя отменить (удалить, отправить, заплатить,) он останавливается и сначала спрашивает вас.</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">Начните с nanoMuse Cloud</string>
     <string name="nm_cloud_signin_subtitle">Код на телефон или почту, или ваш пароль, когда вы его зададите.</string>
     <string name="nm_cloud_mode_code">По коду</string>
@@ -662,7 +663,7 @@
     <string name="nm_cloud_password">Пароль</string>
     <string name="nm_cloud_forgot_password">Забыли пароль? Войдите по коду</string>
     <string name="nm_cloud_identifier">Номер телефона материкового Китая или e-mail</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · you@example.com</string>
+    <string name="nm_cloud_identifier_hint">you@example.com</string>
     <string name="nm_cloud_code">Код</string>
     <string name="nm_cloud_send_code">Отправить код</string>
     <string name="nm_cloud_resend">Отправить снова</string>
@@ -672,7 +673,6 @@
     <!-- Your own relay (0.1.38): the sign-in screen's server form and the account page's row -->
     <string name="nm_cloud_other_server">Использовать другой сервер</string>
     <string name="nm_cloud_server_url">Адрес релея</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
     <string name="nm_cloud_server_check">Проверить</string>
     <string name="nm_cloud_server_use">Использовать этот сервер</string>
     <string name="nm_cloud_server_now">Сервер: %1$s</string>
@@ -734,6 +734,8 @@
     <string name="nm_cloud_err_password_short">Пароль должен быть не короче 8 символов.</string>
     <string name="nm_cloud_err_password_weak">Этот пароль слишком легко угадать.</string>
     <string name="nm_cloud_err_signup_closed">Регистрация на этом релее пока приостановлена. Уже существующий аккаунт может войти как прежде.</string>
+    <string name="nm_cloud_err_domain_limited">Адреса этого домена исчерпали дневной лимит регистраций на этом релее. Попробуйте завтра или используйте другой адрес.</string>
+    <string name="nm_cloud_err_channel_unsupported">Этот релей не отправляет коды на такой тип адреса. Используйте другой тип (e-mail или номер телефона) или войдите по паролю.</string>
     <string name="nm_cloud_err_too_large">Это сообщение слишком велико для модели. Сократите его, уберите часть вложений или начните новый чат.</string>
     <string name="nm_cloud_err_content_rejected">Проверка содержимого у поставщика модели отклонила этот запрос. Попробуйте другие слова, а если это повторяется, начните новый чат: слова, к которым есть претензии, могут быть раньше в разговоре.</string>
     <string name="nm_cloud_err_provider_busy">Провайдер модели сейчас перегружен. Повторите через минуту.</string>
@@ -1152,6 +1154,11 @@
     <string name="nm_a11y_not_liked">Не отмечено</string>
     <string name="nm_a11y_post_details">Сведения о записи</string>
     <string name="nm_claude_sign_in_unavailable">Эта сборка не может использовать вход через Claude. Добавьте Anthropic с API-ключом.</string>
+    <string name="nm_oauth_rescue_hint">Если браузер показывает страницу ошибки на localhost, ваш прокси или VPN перехватывает ответ. Добавьте localhost в его список исключений или скопируйте адрес страницы и вставьте его сюда.</string>
+    <string name="nm_oauth_rescue_placeholder">Вставьте адрес сюда</string>
+    <string name="nm_oauth_rescue_continue">Продолжить</string>
+    <string name="nm_oauth_rescue_no_code">В этом адресе нет кода входа.</string>
+    <string name="nm_oauth_rescue_failed">Вход больше не ждёт этот адрес. Нажмите «Войти» и попробуйте ещё раз.</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">Очень мелкий</string>
     <string name="nm_font_scale_small">Мелкий</string>

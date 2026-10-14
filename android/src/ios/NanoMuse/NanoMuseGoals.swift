@@ -223,7 +223,7 @@ enum NanoMuseGoalFlow {
         """
         ## Creating a goal (nanoMuse)
         The user just chose to create a goal in the "\(category.rawValue)" category from the Goals tab.
-        Shape it together, like Muse does: ask at most three short questions, ONE message at a time,
+        Shape it together: ask at most three short questions, ONE message at a time,
         in the user's language: (1) what exactly they want to achieve, (2) why it matters and by
         when, (3) how often you should check in (every N hours, or daily at a time). Two or three
         sentences per message; if the user already answered something, skip that question.
@@ -414,10 +414,6 @@ struct NanoMuseGoalsRoom: View {
         .sheet(item: $editingRoutine) { routine in
             NanoMuseRoutineEditor(routine: routine)
         }
-        .onReceive(NotificationCenter.default.publisher(for: .nanoMuseEditRoutine)) { note in
-            // An idea just became a routine: set the time and details.
-            if let id = note.object as? String, let routine = scheduler.routine(id: id) { editingRoutine = routine }
-        }
         .confirmationDialog(AppLocalized("Delete this goal? Its conversation stays in your chats."), isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }), titleVisibility: .visible) {
             Button(AppLocalized("Delete goal"), role: .destructive) {
                 if let g = deleting { NanoMuseGoalFlow.delete(g) }
@@ -505,6 +501,7 @@ struct NanoMuseGoalsRoom: View {
                     .frame(width: 28, height: 28)
                     .contentShape(Rectangle())
             }
+            .accessibilityLabel(Text(AppLocalized("More")))
         }
         .padding(.vertical, 10)
         .contentShape(Rectangle())
@@ -591,6 +588,7 @@ struct NanoMuseGoalsRoom: View {
                     .frame(width: 28, height: 28)
                     .contentShape(Rectangle())
             }
+            .accessibilityLabel(Text(AppLocalized("More")))
         }
         .padding(.vertical, 10)
     }

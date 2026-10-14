@@ -7,7 +7,7 @@ Mac runner 上构建后交给 TestFlight。这一页说的是：源码树里有�
 **现状。** 源码树、品牌、nanoMuse Cloud 登录、hub 客户端和流水线都是在一台 Linux 机器上
 写的。这个 App **能构建、能签名、已经上了 TestFlight**：第一个构建 0.1.31 (2) 于 2026-10-03 走完
 *iOS · TestFlight* 工作流；1.0.0 是构建 16，已通过 Apple 的 beta 审核，公开链接
-（`https://testflight.apple.com/join/ZHexbDqc`）最先装的就是它；1.0.1 是构建 18，1.0.2 是构建 19，两个都在 2026-10-12 通过了审核，所以链接今天装的是构建 19；1.0.3 是构建 22，2026-10-12 起在审核中；1.0.4 是构建 26，2026-10-13 提交审核（见下文*现状*）；构建 20 和 21（1.0.2）以及 23、24、25（tag 之后合入修复的 1.0.3）只到了内部测试员手里。测试员的反馈推动了发布说明里的那些修复（输入框、引导、退出登录）；「设备」区
+（`https://testflight.apple.com/join/ZHexbDqc`）最先装的就是它；1.0.1 是构建 18，1.0.2 是构建 19，两个都在 2026-10-12 通过了审核；1.0.3 是构建 22，1.0.4 是构建 26，两个都在 2026-10-13 通过了审核，所以链接今天装的是构建 26；1.0.5 是构建 28，2026-10-14 提交审核（见下文*现状*）；构建 20 和 21（1.0.2）、23、24、25（tag 之后合入修复的 1.0.3）以及 27（同样情况的 1.0.4）只到了内部测试员手里。测试员的反馈推动了发布说明里的那些修复（输入框、引导、退出登录）；「设备」区
 和来自其他设备的通知仍是真机上跑得最少的部分。第一次归档教会了流水线一件事：
 自动签名需要一台已注册的设备，这就是它现在改为手动签名的原因。
 
@@ -82,7 +82,9 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   （`NanoMuseHeader.swift`）：有问题或审批等着你时状态是 *等你回复*，然后是正在运行的工具的
   `tool_title`（模型自己对这一步的描述，比如 *打开携程网站*），然后是 *正在写回复*，然后是
   *正在处理：〈简述〉*，空闲时是模型的名字；正在画新形象时，显示的是形象流程那边的那行字。
-  形象（`NanoMuseFaces.swift`：Application Support 里画出来的脸，或者 bundle 里的小龙，五种
+  形象（`NanoMuseFaces.swift`：Application Support 里画出来的脸；没有的话，桌面或网页控制台设的
+  emoji 配底色（存在 `avatar/emoji.json`，渲染成一张静态图；手机上还没有选它的界面）；再没有就是
+  bundle 里的小龙，五种
   状态，带着其他客户端那样的呼吸、浮动、歪头、弹出和抖动；开了「减弱动态效果」静态图就不动了，
   只剩状态切换时的淡入淡出）点一下进入**智能体的页面**。
   也可以换成一段你自己的短视频来当形象（`NanoMuseOwnClip.swift`：智能体页面钢笔菜单和形象
@@ -300,8 +302,9 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   **从 1.0.4 起这一列重新盖在列表的底边上**：`NanoMuseComposerHost` 是一个 `ZStack`，列表保持
   聊天的整个高度，拿到的底部 inset 是这一列量出的高度加底栏，于是消息从输入区和底栏下面滚过，
   静止时最后一条停在输入区上方；`/` 和 `@` 的弹出菜单和这一列同在一个 `VStack` 里，所以从布局上
-  就站在它的上边缘。这一列背后是 Android 的滚动渐隐（`nmBottomFade`）：列表一离开最新一条，
-  就出现一段 90 pt 的画布色渐变和这一列背后的实底，止于底栏上方，好让玻璃留住它后面的消息。
+  就站在它的上边缘。输入框胶囊背后是与 Android 对齐的圆角渐隐光晕（`NanoMuseComposerVignette`）：
+  列表一离开最新一条，就沿着输入框胶囊 26 pt 的圆角轮廓升起一段 90 pt 的画布色圆角渐变，并在底栏
+  上方的间隙淡出为透明，不留整宽的不透明白色长方形条，好让底栏玻璃留住它后面的消息。
   没有第二个宿主可切换。看门狗作为最后一道网留着（聊天在屏幕上时，这一列脱离或者量出 0，就通过
   `.id(rebuildTick)` 重建，每次出现最多两次，这样一个量错了的健康输入区不会反复把键盘收走），
   并且把看到的都记下来：**设置 → 外观 → 输入框检查** 在这一列四周画一个红框（探针视图在
@@ -461,7 +464,8 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   @Ichiro786 的 #329）：五个标签放在一个 `Capsule` 里，离底部安全区 12 pt，和上方的输入框
   一样宽（同样的 16 pt 边距；compact 宽度下最宽 420 pt，没有哪部手机碰得到；regular 宽度，也就是
   iPad 上，它和输入框一样是聊天列减去边距的 728 pt，见下面关于列的那条），只有图标，
-  SF 符号、无障碍标签和选中特征都和以前一样。胶囊是 `.ultraThinMaterial`，上面盖一层 55%
+  五个标签图形与 Android 的 `MuseBottomBar` 对齐（`bubble.left`、`doc.text`、`lightbulb`、
+  `checkmark.square`，以及资料库的三几何图形 `Category`），无障碍标签和选中特征都和以前一样。胶囊是 `.ultraThinMaterial`，上面盖一层 55%
   不透明度的外壳 surface 色（对比度靠这层色，模糊靠材质，和 Android 在背景模糊上盖 55% surface
   一样），边上一道 1 pt 的 `NanoMuseTones.hairline`；原来那条通栏的条和它顶上的细线没有了。
   五个标签平分胶囊的宽度，每一格整格可点；当前这个用 `tabIndicatorGlyph` 色显示实心符号，底下一个
@@ -527,6 +531,20 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   （`NanoMuseRoutineWakeRow`，按行的 id 记住，重新加载后还在），模型则收到一条只管这一轮的附言
   （`NanoMuseSessionAddenda`），说明这不是本人打的字，于是它直接从结果说起，而不是感谢对方的
   提问。提示词本身没有变，这一轮照原样跑。
+- **第四轮审计（1.0.x）**（`*.lproj/AppShortcuts.strings`、`NanoMuseChrome.swift`、
+  `NanoMuseShell.swift`、`NanoMuseAgentPage.swift`、`NanoMuseHub.swift`、
+  `NanoMuseBackgroundSettings.swift`、`Localizable.xcstrings`）：Siri 唤起短语补齐了九种语言
+  （此前只有英文和两种中文，日语、韩语、德语、西班牙语、法语、俄语的手机拿到的是英文短语）。
+  Muse 页面的标题、抽屉里和智能体页面上的名字跟随「动态字体」放大，和头部两行一样最多到基准的
+  1.35 倍（`NanoMuseHeaderMetrics`）；此前固定在 17 pt 和 24 pt。点子上的 *创建例程* 现在真的会
+  打开例程编辑器：这张表单改由外壳自己持有；此前是让目标页去打开，而看点子页时目标页并不在
+  屏幕上，于是例程按点子的时间建好了，却什么也没弹出来。*后台与通知* 页说的就是手机实际做的事：
+  通知要么是例程到点的提醒，要么是另一台设备发来的消息；「后台 App 刷新」只让 iOS 发出提醒，
+  从不运行例程（此前写的是 App 会得到时间片把例程做完）。来自 Hub 或电脑的失败（*编程助手*、
+  Reach 面板、`@设备` 消息）按 Hub 的错误码变成一句本机语言的话，和 Android 的
+  `HubErrors.describe` 一样（`NanoMuseHubErrors`）：*那台电脑不在线。*、*电脑没有及时回应。*、
+  *电脑上的 nanoMuse 版本较旧，不认识这个操作。*；此前直接显示中继或运行时发来的英文原句。
+  资源库和账号页的分段选择器、目标、例程、动态帖子的 ••• 菜单都带上了 VoiceOver 标签。
 
 ## 用操作按钮说一句 {#voice-prompts-from-the-action-button}
 
@@ -545,8 +563,9 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
 麦克风，走 `VoiceInputViewModel.handleMainButtonTap` 和它的权限流程。只有一条录音路径、一套识别
 栈；转写文字照常进入 `inputText`。超过 30 秒没人接的请求会被丢弃。iOS 不让 App Intent 接收自由
 语音，所以这是一个语音入口，而不是一口气说完的「问 nanoMuse 某件事」；App 之所以要打开，是因为
-屏幕上什么都没有而麦克风在转，看起来就像出了故障。Siri 的唤起短语在三张 `AppShortcuts.strings`
-表里（英文、简体中文、繁体中文），意图自己的字符串在 `Localizable.xcstrings`（#296、#298）。
+屏幕上什么都没有而麦克风在转，看起来就像出了故障。Siri 的唤起短语在九张 `AppShortcuts.strings`
+表里（每个 `<lang>.lproj` 一张，因为部署目标是 iOS 16 所以用旧式 `.strings`），意图自己的字符串在
+`Localizable.xcstrings`（#296、#298）。
 
 ## 在 Mac 上构建 {#building-on-a-mac}
 
@@ -608,7 +627,7 @@ open src/ios/Minis.xcodeproj
   审核联系人和中继上的一个审核账号；
 - **构建 16（1.0.0）** 于 2026-10-09 加进 *nanoMuse Beta* 并提交 Apple 的 beta 审核，已经通过，公开链接装的就是它
   （在那之前链接给的是构建 14，0.1.41）；构建 17 是打标签之后合并的修复加上 1.0.0，只到了内部测试员手里。
-  **构建 18（1.0.1）** 于 2026-10-10、**构建 19（1.0.2）** 于 2026-10-11 加进 *nanoMuse Beta* 并提交审核，两个都在 2026-10-12 通过，所以链接装的是构建 19；**构建 22（1.0.3）** 于 2026-10-12、**构建 26（1.0.4）** 于 2026-10-13 提交审核；构建 23、24、25（tag 之后合入修复的 1.0.3）只到了内部测试员手里。公开链接只在审核
+  **构建 18（1.0.1）** 于 2026-10-10、**构建 19（1.0.2）** 于 2026-10-11 加进 *nanoMuse Beta* 并提交审核，两个都在 2026-10-12 通过，所以链接装的是构建 19；**构建 22（1.0.3）** 于 2026-10-12、**构建 26（1.0.4）** 于 2026-10-13 提交审核，两个都在 2026-10-13 通过，所以链接装的是构建 26；**构建 28（1.0.5）** 于 2026-10-14 提交审核；构建 23、24、25（tag 之后合入修复的 1.0.3）以及 27（同样情况的 1.0.4）只到了内部测试员手里。公开链接只在审核
   通过后才会给出构建，以后每个新版本都要重复这一步（审核按版本进行；已通过版本的后续构建不用再审）。任何通往 App Store 的事
   都没有：这个 App 不上架。
 

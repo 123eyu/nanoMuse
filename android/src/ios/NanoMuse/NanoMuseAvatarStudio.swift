@@ -490,12 +490,22 @@ struct NanoMuseAvatarStudioView: View {
         }
     }
 
+    /// The line beside the current face: the drawn face's description, else what an emoji
+    /// look is (#435), else the dragon.
+    private var currentTitle: String {
+        switch faces.source {
+        case .drawn: return faces.meta.description
+        case .emoji: return AppLocalized("An emoji set on another device")
+        case .dragon: return AppLocalized("The built-in dragon")
+        }
+    }
+
     private var currentSection: some View {
         Section {
             HStack(spacing: 16) {
                 NanoMuseFaceView(mood: .idle, size: 72)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(faces.hasCustomFace ? faces.meta.description : AppLocalized("The built-in dragon"))
+                    Text(currentTitle)
                         .font(.body.weight(.semibold))
                         .lineLimit(2)
                     if faces.hasCustomFace {

@@ -130,6 +130,8 @@ export class HubClient {
   private generation = 0
   private reconnectTimer: ReturnType<typeof setTimeout> | undefined
   private pingTimer: ReturnType<typeof setInterval> | undefined
+  /** Whether any frame arrived since the last ping went out (the pong, or anything else). */
+  private heard = true
   private readonly pending = new Map<string, Pending>()
   private readonly handlers = new Map<string, ActionHandler>()
   private readonly listeners = {
@@ -368,6 +370,7 @@ export class HubClient {
     } catch {
       return
     }
+    this.heard = true
     switch (frame.type) {
       case 'welcome': {
         this.deviceId = String(frame.device_id ?? this.options.device().id)
@@ -499,10 +502,35 @@ export class HubClient {
     this.reconnectTimer = undefined
   }
 
+  /**
+   * A ping every `pingMs`, and the relay's silence as the sign of a dead link: a socket that
+   * stays open after the network went away (a laptop that slept, a Wi-Fi that changed) sends
+   * every frame into nothing and hears no `pong`. When nothing at all arrived between two
+   * pings, the socket is dropped and the usual reconnect follows; the runtime's client does
+   * the same with the protocol's own ping and a 20 s timeout.
+   */
   private startPing(): void {
     this.clearPing()
+    this.heard = true
     const every = this.options.pingMs ?? 25_000
-    this.pingTimer = setInterval(() => this.send({ type: 'ping' }), every)
+    this.pingTimer = setInterval(() => {
+      if (!this.heard) {
+        this.dropSilent()
+        return
+      }
+      this.heard = false
+      this.send({ type: 'ping' })
+    }, every)
+  }
+
+  /** The relay answered nothing for two ping intervals: the link is dead whatever the socket says. */
+  private dropSilent(): void {
+    this.log('warn', 'hub: the relay answered nothing for two pings; reconnecting')
+    this.closeSocket(1000, 'no pong')
+    this.lastError = 'the relay stopped answering'
+    this.failPending(new HubError('disconnected', 'The hub connection stopped answering'))
+    this.setConnected(false)
+    this.scheduleReconnect()
   }
 
   private clearPing(): void {

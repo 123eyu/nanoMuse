@@ -73,10 +73,10 @@ Provider recipes:
 | DeepSeek | `deepseek-flash` | `https://api.deepseek.com` | default |
 | Kimi (Moonshot) | `kimi-k2.6` | `https://api.moonshot.cn/v1` | |
 | 阿里云百炼 (Alibaba Cloud Bailian) | `deepseek-v4.1-flash` | `https://dashscope.aliyuncs.com/compatible-mode/v1` | mainland China; the hands model `qwen3.8-27b` is on the same endpoint |
-| GLM (智谱) | `glm-5.2` | `https://open.bigmodel.cn/api/paas/v4` | |
+| GLM (智谱) | `glm-5.3` | `https://open.bigmodel.cn/api/paas/v4` | |
 | 豆包 (火山方舟) | your endpoint id | `https://ark.cn-beijing.volces.com/api/v3` | models are versioned deployments; the app lists yours |
 | MiniMax | `MiniMax-M3` | `https://api.minimaxi.com/v1` | |
-| OpenAI | `gpt-5.6-sol` | `https://api.openai.com/v1` | `provider = "openai_responses"` also works |
+| OpenAI | `gpt-5.4-mini` | `https://api.openai.com/v1` | `provider = "openai_responses"` also works |
 | OpenRouter | `deepseek/deepseek-v4.1-flash` | `https://openrouter.ai/api/v1` | outside mainland China; the hands model `qwen/qwen3.8-27b` is on the same endpoint |
 | Ollama | `qwen3:8b` | `http://localhost:11434/v1` | `api_key = "ollama"`; see [Local models](#local-models) |
 | vLLM / LM Studio | your served name | `http://localhost:8000/v1` | set `tool_mode = "prompt"` if the server ignores `tools` |
@@ -451,7 +451,8 @@ start_grace      = 4             # seconds the services may take before the app 
 ```
 
 `update_check` asks the download mirror's index (`nanomuse.cn/dl/index.json`) and, when that does
-not answer, `api.github.com`, for the latest release once a day (sooner on *Check now*) and shows
+not answer, `api.github.com`, for the latest release once a day (sooner on *Check now*; a check
+that failed, as when the runtime came up before its network, is tried again after an hour) and shows
 the version under *Settings → About* with a link to the release page; nothing is downloaded and
 nothing about the install is sent beyond the runtime's version in the request's `User-Agent`. `NANOMUSE_NO_UPDATE_CHECK=1` turns it off too, and a hosted
 web session (a runtime started with `NANOMUSE_CLOUD_KEY`) never checks; its operator updates it.

@@ -598,6 +598,8 @@
     <string name="nm_risk_title_device">允许「%1$s」操作这台手机吗？</string>
     <string name="nm_risk_desc_device">「%1$s」是你账号下的另一台设备，想在这台手机上 %2$s。具体内容见下方。选「始终」后，那台设备以后在这里做这类事不再询问；可在「权限」里收回。</string>
     <string name="nm_risk_preview_device">那台设备的请求</string>
+    <string name="nm_risk_preview_show_all">全部显示（%1$d 行）</string>
+    <string name="nm_risk_preview_show_less">收起</string>
     <string name="nm_risk_class_remote">远程控制</string>
     <string name="nm_hub_remote_reason">%1$s 可以操作这台手机</string>
 
@@ -630,7 +632,6 @@
     <string name="nm_welcome_skip">暂时跳过</string>
     <string name="nm_welcome_hands_fine_print">不开也不影响其他功能。之后随时可以在「设置 → Hands」里开启。</string>
     <string name="nm_welcome_meet_fine_print">凡是无法撤回的事（删除、发送、付款）它都会先停下来问你。</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">用 nanoMuse Cloud 开始</string>
     <string name="nm_cloud_signin_subtitle">手机号或邮箱收一个验证码；设过密码的话也可以直接用密码。</string>
     <string name="nm_cloud_mode_code">验证码登录</string>
@@ -638,7 +639,7 @@
     <string name="nm_cloud_password">密码</string>
     <string name="nm_cloud_forgot_password">忘了密码？用验证码登录</string>
     <string name="nm_cloud_identifier">中国大陆手机号或邮箱</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · you@example.com</string>
+    <string name="nm_cloud_identifier_hint">you@example.com</string>
     <string name="nm_cloud_code">验证码</string>
     <string name="nm_cloud_send_code">发送验证码</string>
     <string name="nm_cloud_resend">重新发送</string>
@@ -647,7 +648,6 @@
     <!-- 自建中继服务器（0.1.38）：登录页的服务器表单与账号页的那一行 -->
     <string name="nm_cloud_other_server">使用其他服务器</string>
     <string name="nm_cloud_server_url">服务器地址</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
     <string name="nm_cloud_server_check">检查</string>
     <string name="nm_cloud_server_use">使用这个服务器</string>
     <string name="nm_cloud_server_now">服务器：%1$s</string>
@@ -708,6 +708,8 @@
     <string name="nm_cloud_err_password_short">密码至少 8 位。</string>
     <string name="nm_cloud_err_password_weak">这个密码太好猜了。</string>
     <string name="nm_cloud_err_signup_closed">这台中继暂时关闭了注册。已有的账号仍可登录。</string>
+    <string name="nm_cloud_err_domain_limited">这个域名的邮箱今天在这台中继上的注册名额已经用完。明天再试，或者换一个地址。</string>
+    <string name="nm_cloud_err_channel_unsupported">这台中继不会给这类地址发送验证码。换另一类地址（邮箱或手机号），或者用密码登录。</string>
     <string name="nm_cloud_err_too_large">这条消息对模型来说太长了。缩短一些、去掉几个附件，或者新开一个对话。</string>
     <string name="nm_cloud_err_content_rejected">模型服务商的内容审核没有放行这次请求。换个说法试试；如果反复出现，就新开一个对话，被拦下的可能是对话里更早的内容。</string>
     <string name="nm_cloud_err_provider_busy">模型服务商现在很忙，稍后再试。</string>
@@ -913,7 +915,7 @@
     <string name="nm_hub_err_device_offline">那台电脑不在线。</string>
     <string name="nm_hub_err_busy">电脑正忙着另一个任务，稍后再试。</string>
     <string name="nm_hub_err_not_controllable">那个设备不能接受操作。</string>
-    <string name="nm_hub_err_unknown_agent">电脑上没有这个 编程助手。</string>
+    <string name="nm_hub_err_unknown_agent">电脑上没有这个编程助手。</string>
     <string name="nm_hub_err_no_session">这个会话已经不在电脑上了。</string>
     <string name="nm_hub_err_unknown_action">电脑上的 nanoMuse 版本较旧，不认识这个操作。</string>
     <string name="nm_hub_err_bad_key">中继上已退出登录，请重新登录。</string>
@@ -1117,6 +1119,11 @@
     <string name="nm_a11y_not_liked">未喜欢</string>
     <string name="nm_a11y_post_details">帖子详情</string>
     <string name="nm_claude_sign_in_unavailable">这个版本不能用 Claude 账号登录。请改用 API key 添加 Anthropic。</string>
+    <string name="nm_oauth_rescue_hint">如果浏览器在 localhost 停在一个错误页，是手机上的代理或 VPN 吞掉了回调。把 localhost 加进它的直连（绕过）列表，或者把那个页面的地址复制下来贴到这里。</string>
+    <string name="nm_oauth_rescue_placeholder">把地址贴到这里</string>
+    <string name="nm_oauth_rescue_continue">继续</string>
+    <string name="nm_oauth_rescue_no_code">这个地址里没有登录码。</string>
+    <string name="nm_oauth_rescue_failed">这次登录已经不再等待这个地址了。点「登录」再试一次。</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">特小</string>
     <string name="nm_font_scale_small">小</string>

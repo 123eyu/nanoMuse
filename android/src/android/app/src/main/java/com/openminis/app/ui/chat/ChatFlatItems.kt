@@ -679,85 +679,18 @@ internal fun buildFlatChatItems(
                 "text" -> {
                     if (block.content.isNotEmpty()) {
                         val isLastText = index == lastTextIdx
-                        // Pattern A: split this text block's content into
-                        // independent markdown fragments so each becomes its
-                        // own LazyColumn item. Frozen prefix fragments are
-                        // anchored separately by LazyList; only the trailing
-                        // live fragment can change height during streaming.
-                        //
-                        // [T-android-defensive-fragment-merge] For a FROZEN
-                        // (non-streaming) message, coalesce adjacent
-                        // plain-text fragments so a long reply produces a
-                        // handful of rows instead of dozens — cuts cold-open
-                        // full-build row count ~8x and eases GC pressure on
-                        // low-memory devices. The live streaming tail message
-                        // keeps fine-grained fragments so only the trailing
-                        // paragraph re-parses per token (Pattern A jank
-                        // optimization preserved). Code fences stay standalone
-                        // either way.
-                        val rawFragments = splitMarkdownIntoBlockTexts(block.content)
-                        // [T-android-stream-end-reflow-flicker-v18] Preserve
-                        // per-fragment FlatChatItem keys across the
-                        // streaming→idle boundary. Previously the trailing
-                        // text block kept rawFragments only while
-                        // `message.isStreaming==true`; the moment it flipped
-                        // false the fragments coalesced into fewer rows, all
-                        // mdblock:msgId:parentBlockId:N keys for N >= K
-                        // suddenly vanished from the flatItems list. That
-                        // wipe-and-rebuild was the "整个页面像被重刷" the
-                        // user reported — LazyColumn lost every key it was
-                        // using to anchor the viewport, fell back to numeric
-                        // firstVisibleItemIndex, and parked the viewport on
-                        // whatever row happened to take that numeric slot
-                        // (often the previous assistant message).
-                        //
-                        // Fix: keep the live (== last in the list) text block
-                        // on rawFragments regardless of isStreaming. The
-                        // boundary that actually warrants coalesce is "a
-                        // NEWER message exists below this one" — i.e. a
-                        // subsequent user turn pushed this assistant turn
-                        // into history. Until then, the same key set the
-                        // user was scrolled into stays valid.
-                        // [T-android-flatitems-sublist-cme] Index-based scan
-                        // instead of messages.subList(idx+1, size).all{} — a
-                        // subList is a live view sharing the parent's modCount,
-                        // which threw ConcurrentModificationException when the
-                        // backing list changed under it. A plain index loop
-                        // touches no view.
-                        val isLastAssistantTurn = idx == messages.lastIndex ||
-                            (idx + 1 until messages.size).all { messages[it].role != "assistant" }
-                        val fragments = if (isLastText && isLastAssistantTurn) {
-                            rawFragments
-                        } else {
-                            coalesceMarkdownFragments(rawFragments)
-                        }
-                        if (fragments.isEmpty()) {
-                            // Defensive: if the splitter returns nothing for
-                            // a non-empty input (shouldn't happen), fall back
-                            // to a single fragment so content isn't dropped.
-                            out.add(dedupe(FlatChatItem.AssistantMarkdownBlock(
-                                messageId = message.id,
-                                parentBlockId = block.id,
-                                rawText = block.content,
-                                blockIndex = 0,
-                                isLastBlockOfMessage = isLastText && message.isStreaming,
-                                messageIsStreaming = message.isStreaming && isLastText,
-                                messageMarkdown = joinedMarkdown,
-                            )))
-                        } else {
-                            fragments.forEachIndexed { fragIdx, raw ->
-                                val isLastFragOfText = fragIdx == fragments.lastIndex
-                                out.add(dedupe(FlatChatItem.AssistantMarkdownBlock(
-                                    messageId = message.id,
-                                    parentBlockId = block.id,
-                                    rawText = raw,
-                                    blockIndex = fragIdx,
-                                    isLastBlockOfMessage = isLastText && isLastFragOfText,
-                                    messageIsStreaming = message.isStreaming && isLastText,
-                                    messageMarkdown = joinedMarkdown,
-                                )))
-                            }
-                        }
+                        // nanoMuse: keep each assistant text block in a single markdown
+                        // bubble (matching iOS) so lists, headings, paragraphs, and code
+                        // blocks from one turn stay together inside one bubble.
+                        out.add(dedupe(FlatChatItem.AssistantMarkdownBlock(
+                            messageId = message.id,
+                            parentBlockId = block.id,
+                            rawText = block.content,
+                            blockIndex = 0,
+                            isLastBlockOfMessage = isLastText,
+                            messageIsStreaming = message.isStreaming && isLastText,
+                            messageMarkdown = joinedMarkdown,
+                        )))
                     }
                 }
                 "thinking" -> if (showSteps) out.add(dedupe(FlatChatItem.AssistantThinking( // nanoMuse: a step

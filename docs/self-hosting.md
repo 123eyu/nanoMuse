@@ -20,7 +20,7 @@ nanoMuse Cloud is the relay behind nanomuse.cn: sign-in by e-mail or phone, the 
 
 - **A machine.** A VPS with 1 vCPU and 1 GB of memory is enough for a family; the relay idles at a few tens of megabytes and the model work happens at the provider. Such a server costs on the order of ¥30–60 a month inside mainland China or US$4–6 outside it, from any provider; the relay does not care which. A home server or a spare laptop works for a LAN-only relay.
 - **A domain** pointing at the machine (an A record), with ports 80 and 443 reachable. Caddy, which runs next to the relay, fetches and renews the Let's Encrypt certificate on its own. Skip this for a LAN-only relay.
-- **A model provider key.** The relay spends *your* money on *your* provider: everyone who signs in on your relay is billed to that key, at the provider's prices, within the allowance you set (`ALLOWANCE_CNY`, `SIGNUP_OPEN`, members in `ALLOWED_IDENTIFIERS`; [cloud/README.md](../cloud/README.md#settings)). Without a key, sign-in and the hub work and chat does not.
+- **A model provider key.** The relay spends *your* money on *your* provider: everyone who signs in on your relay is billed to that key, at the provider's prices, within the allowance you set (`ALLOWANCE_CNY`, `SIGNUP_OPEN`, `SIGNUP_PER_DOMAIN_DAY`, `SIGNUP_DOMAIN_BLOCK`, members in `ALLOWED_IDENTIFIERS`; [cloud/README.md](../cloud/README.md#settings)). Without a key, sign-in and the hub work and chat does not.
 - **Docker** with the compose plugin, and `curl`.
 
 ### In one command

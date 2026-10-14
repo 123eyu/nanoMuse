@@ -612,6 +612,8 @@
     <string name="nm_risk_title_device">“%1$s”이(가) 이 휴대전화를 조작하도록 허용할까요?</string>
     <string name="nm_risk_desc_device">내 계정의 다른 기기 “%1$s”이(가) 이 휴대전화에서 %2$s하려고 합니다. 정확한 내용은 아래에 있습니다. “항상”을 고르면 그 기기는 묻지 않고 여기서 이런 일을 할 수 있습니다. 권한에서 되돌릴 수 있습니다.</string>
     <string name="nm_risk_preview_device">기기가 요청한 내용</string>
+    <string name="nm_risk_preview_show_all">모두 표시(%1$d줄)</string>
+    <string name="nm_risk_preview_show_less">접기</string>
     <string name="nm_risk_class_remote">원격 제어</string>
     <string name="nm_hub_remote_reason">%1$s이(가) 이 휴대전화를 조작할 수 있음</string>
 
@@ -645,7 +647,6 @@
     <string name="nm_welcome_skip">지금은 건너뛰기</string>
     <string name="nm_welcome_hands_fine_print">나머지는 이것 없이도 모두 작동합니다. 원할 때 설정 → 손에서 켤 수 있습니다.</string>
     <string name="nm_welcome_meet_fine_print">되돌릴 수 없는 일(삭제, 전송, 결제) 앞에서는 멈추고 먼저 묻습니다.</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">nanoMuse Cloud로 시작</string>
     <string name="nm_cloud_signin_subtitle">휴대전화나 받은 편지함으로 코드를 받거나, 설정해 둔 비밀번호로.</string>
     <string name="nm_cloud_mode_code">코드로</string>
@@ -653,7 +654,7 @@
     <string name="nm_cloud_password">비밀번호</string>
     <string name="nm_cloud_forgot_password">비밀번호를 잊으셨나요? 코드로 로그인</string>
     <string name="nm_cloud_identifier">중국 본토 휴대전화 번호 또는 이메일</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · you@example.com</string>
+    <string name="nm_cloud_identifier_hint">you@example.com</string>
     <string name="nm_cloud_code">코드</string>
     <string name="nm_cloud_send_code">코드 보내기</string>
     <string name="nm_cloud_resend">다시 보내기</string>
@@ -663,7 +664,6 @@
     <!-- Your own relay (0.1.38): the sign-in screen's server form and the account page's row -->
     <string name="nm_cloud_other_server">다른 서버 사용</string>
     <string name="nm_cloud_server_url">릴레이 주소</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
     <string name="nm_cloud_server_check">확인</string>
     <string name="nm_cloud_server_use">이 서버 사용</string>
     <string name="nm_cloud_server_now">서버: %1$s</string>
@@ -725,6 +725,8 @@
     <string name="nm_cloud_err_password_short">비밀번호는 8자 이상이어야 합니다.</string>
     <string name="nm_cloud_err_password_weak">그 비밀번호는 추측하기 너무 쉽습니다.</string>
     <string name="nm_cloud_err_signup_closed">이 릴레이는 당분간 가입을 받지 않습니다. 이미 있는 계정은 그대로 로그인할 수 있습니다.</string>
+    <string name="nm_cloud_err_domain_limited">해당 도메인의 주소는 이 릴레이에서 오늘의 가입 한도에 도달했습니다. 내일 다시 시도하거나 다른 주소를 사용하세요.</string>
+    <string name="nm_cloud_err_channel_unsupported">이 릴레이는 그런 종류의 주소로는 인증 코드를 보내지 않습니다. 다른 종류(이메일 또는 전화번호)를 사용하거나 비밀번호로 로그인하세요.</string>
     <string name="nm_cloud_err_too_large">이 메시지는 모델이 받기엔 너무 큽니다. 줄이거나, 첨부 일부를 빼거나, 새 채팅을 시작하세요.</string>
     <string name="nm_cloud_err_content_rejected">모델 제공자의 콘텐츠 검사가 이 요청을 거부했습니다. 다른 표현으로 시도해 보세요. 계속 반복되면 새 대화를 시작하세요. 문제가 된 표현이 대화의 앞부분에 있을 수 있습니다.</string>
     <string name="nm_cloud_err_provider_busy">모델 제공자가 지금 바쁩니다. 잠시 후 다시 시도하세요.</string>
@@ -1140,6 +1142,11 @@
     <string name="nm_a11y_not_liked">좋아요 없음</string>
     <string name="nm_a11y_post_details">게시물 세부정보</string>
     <string name="nm_claude_sign_in_unavailable">이 빌드에서는 Claude 로그인을 사용할 수 없습니다. 대신 API 키로 Anthropic을 추가하세요.</string>
+    <string name="nm_oauth_rescue_hint">브라우저가 localhost에서 오류 페이지를 보여 주면 휴대폰의 프록시나 VPN이 콜백을 가로채고 있는 것입니다. localhost를 그 우회 목록에 추가하거나, 그 페이지의 주소를 복사해 여기에 붙여 넣으세요.</string>
+    <string name="nm_oauth_rescue_placeholder">여기에 주소를 붙여 넣으세요</string>
+    <string name="nm_oauth_rescue_continue">계속</string>
+    <string name="nm_oauth_rescue_no_code">그 주소에는 로그인 코드가 없습니다.</string>
+    <string name="nm_oauth_rescue_failed">로그인이 더 이상 그 주소를 기다리지 않습니다. 로그인을 탭해 다시 시도하세요.</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">매우 작게</string>
     <string name="nm_font_scale_small">작게</string>

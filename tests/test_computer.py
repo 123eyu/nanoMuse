@@ -441,6 +441,10 @@ def test_hands_switch_adds_the_tools_and_the_card_follows_a_task(server) -> None
     }
     assert "can drive this computer" in service.app.agent.computer_section()
     assert client.put("/api/connections/hands", json={"backend": "nope"}).status_code == 400
+    # the body is typed: a switch that is not a boolean, or no object at all, is 422
+    assert client.put("/api/connections/hands", json={"enabled": "maybe"}).status_code == 422
+    assert client.put("/api/connections/hands", json=["enabled"]).status_code == 422
+    assert service.settings.hands.enabled is True
     # the picture mode is kept with the other hands settings and read back at start
     assert client.put("/api/connections/hands", json={"mode": "nope"}).status_code == 400
     assert client.put("/api/connections/hands", json={"mode": "window"}).status_code == 200

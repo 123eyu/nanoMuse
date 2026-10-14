@@ -149,7 +149,7 @@ export function BrowserViewer({ thread, eventId, onClose }: { thread: string; ev
           <Globe size={17} className="text-accent shrink-0" />
           <span className="truncate">{event.title || host}</span>
           {live && (
-            <span className="ml-1 flex items-center gap-1 rounded-full bg-rose-500/12 px-2 py-0.5 text-[10.5px] font-semibold text-rose-500">
+            <span className="ml-1 flex items-center gap-1 rounded-full bg-rose-500/12 px-2 py-0.5 text-[10.5px] font-semibold text-rose-600 dark:text-rose-300">
               <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" /> {t("LIVE")}
             </span>
           )}

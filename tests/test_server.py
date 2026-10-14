@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import threading
 import time
 from collections.abc import Iterator
@@ -1905,6 +1906,10 @@ def test_push_keys_subscriptions_and_gone_endpoints(settings: Settings, monkeypa
     assert svc.subscribe({**FAKE_SUB, "endpoint": "https://push.example/sub/2"}) == 2
     assert svc.subscribe(FAKE_SUB) == 2  # re-subscribing the same endpoint replaces it
     assert PushService(settings.data_dir).view()["subscriptions"] == 2
+    # the key pair and the subscriptions (a browser's p256dh and auth) are the owner's only
+    if os.name == "posix":
+        for name in ("push-vapid.json", "push-subscriptions.json"):
+            assert (settings.data_dir / name).stat().st_mode & 0o777 == 0o600, name
 
     sent: list[tuple[str, dict[str, Any]]] = []
 
@@ -2511,3 +2516,20 @@ def test_update_endpoint(server, monkeypatch):
     view = client.get("/api/update").json()
     assert view["enabled"] is False and view["newer"] is False and view["current"]
     assert TestClient(client.app).get("/api/update").status_code == 401
+
+
+def test_static_app_caching_headers(server):
+    """The build's hashed assets may be kept for a year; index.html and sw.js never are."""
+    client, _, _ = server
+    plain = TestClient(client.app)  # the app itself needs no token
+    from nanomuse.server.api import STATIC_DIR
+
+    asset = next((STATIC_DIR / "assets").glob("*.js"))
+    r = plain.get(f"/assets/{asset.name}")
+    assert r.status_code == 200
+    assert r.headers["cache-control"] == "public, max-age=31536000, immutable"
+    assert plain.get("/").headers["cache-control"] == "no-cache"
+    assert plain.get("/sw.js").headers["cache-control"] == "no-cache"
+    # the app's own routes, not the HTML, answer a wrong API path
+    r = plain.get("/api/no-such-thing")
+    assert r.status_code == 404 and "no such endpoint" in r.json()["detail"]

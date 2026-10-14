@@ -62,7 +62,11 @@ answers through it (pick another chat model first); hands, pictures or clips
 set on it go back to *Automatic*, and its key leaves the vault. A chat model
 set on *Other OpenAI-compatible endpoint* before the list existed becomes
 endpoint number one on the runtime's next start, its key copied to the
-endpoint's own vault entry; nothing is asked. The list is `GET
+endpoint's own vault entry; nothing is asked. The entry it was copied from
+(`LLM_API_KEY` as a rule) stays in the vault, since a `config.toml` may still
+name it; it can be removed by hand (`DELETE /api/vault/{name}`) once nothing
+does. One address is one endpoint: adding or moving an endpoint to an address
+another one already has is refused, naming that endpoint. The list is `GET
 /api/connections` → `endpoints`, each `{id, label, base_url, key_source,
 models, slots}`, never a key; the routes are in [app.md](app.md#api). A
 runtime without the list offers the single *Other OpenAI-compatible endpoint*
@@ -249,7 +253,7 @@ destination. The same words appear under a denied step in today's record. A
 shape it does not know is shown as it came.
 
 **Permissions you granted** (avatar → Permissions) are listed by the risk class
-of the tool they cover, the gravest first: sensitive, moderate, low, safe (the
+of the tool they cover, the gravest first: sensitive, moderate, safe (the
 class comes from `GET /api/state` → `settings.tools`); each row says the tool,
 how long the grant lasts and when it was given, and can be revoked on its own.
 

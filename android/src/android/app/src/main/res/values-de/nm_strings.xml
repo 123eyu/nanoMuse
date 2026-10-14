@@ -615,6 +615,8 @@
     <string name="nm_risk_title_device">Darf „%1$s“ dieses Telefon bedienen?</string>
     <string name="nm_risk_desc_device">„%1$s“, ein anderes Gerät auf deinem Konto, möchte auf diesem Telefon %2$s. Was genau, steht unten. „Immer“ lässt dieses Gerät so etwas hier ohne Nachfrage tun; nimm es unter Berechtigungen zurück.</string>
     <string name="nm_risk_preview_device">Was das Gerät angefragt hat</string>
+    <string name="nm_risk_preview_show_all">Alle anzeigen (%1$d Zeilen)</string>
+    <string name="nm_risk_preview_show_less">Weniger anzeigen</string>
     <string name="nm_risk_class_remote">Fernsteuerung</string>
     <string name="nm_hub_remote_reason">%1$s darf dieses Telefon bedienen</string>
 
@@ -648,7 +650,6 @@
     <string name="nm_welcome_skip">Vorerst überspringen</string>
     <string name="nm_welcome_hands_fine_print">Alles andere funktioniert auch ohne. Sie stehen unter Einstellungen → Hände, wann immer du sie willst.</string>
     <string name="nm_welcome_meet_fine_print">Vor allem, was er nicht rückgängig machen kann (Löschen, Senden, Bezahlen) hält er an und fragt dich zuerst.</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">Mit nanoMuse Cloud beginnen</string>
     <string name="nm_cloud_signin_subtitle">Ein Code an dein Telefon oder Postfach, oder dein Passwort, sobald du eins festgelegt hast.</string>
     <string name="nm_cloud_mode_code">Mit einem Code</string>
@@ -656,7 +657,7 @@
     <string name="nm_cloud_password">Passwort</string>
     <string name="nm_cloud_forgot_password">Passwort vergessen? Mit einem Code anmelden</string>
     <string name="nm_cloud_identifier">Telefonnummer aus Festlandchina oder E-Mail</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · du@example.com</string>
+    <string name="nm_cloud_identifier_hint">du@example.com</string>
     <string name="nm_cloud_code">Code</string>
     <string name="nm_cloud_send_code">Code senden</string>
     <string name="nm_cloud_resend">Erneut senden</string>
@@ -666,7 +667,6 @@
     <!-- Your own relay (0.1.38): the sign-in screen's server form and the account page's row -->
     <string name="nm_cloud_other_server">Anderen Server verwenden</string>
     <string name="nm_cloud_server_url">Relay-Adresse</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
     <string name="nm_cloud_server_check">Prüfen</string>
     <string name="nm_cloud_server_use">Diesen Server verwenden</string>
     <string name="nm_cloud_server_now">Server: %1$s</string>
@@ -728,6 +728,8 @@
     <string name="nm_cloud_err_password_short">Das Passwort braucht mindestens 8 Zeichen.</string>
     <string name="nm_cloud_err_password_weak">Dieses Passwort ist zu leicht zu erraten.</string>
     <string name="nm_cloud_err_signup_closed">Neue Konten sind auf diesem Relay vorerst ausgesetzt. Ein bestehendes Konto kann sich weiter anmelden.</string>
+    <string name="nm_cloud_err_domain_limited">Für Adressen dieser Domain ist das heutige Anmeldelimit auf diesem Relay erreicht. Versuche es morgen noch einmal oder nimm eine andere Adresse.</string>
+    <string name="nm_cloud_err_channel_unsupported">Dieses Relay sendet an diese Art von Adresse keine Codes. Nimm die andere Art (E-Mail oder Telefonnummer) oder melde dich mit dem Passwort an.</string>
     <string name="nm_cloud_err_too_large">Diese Nachricht ist zu groß für das Modell. Kürze sie, lass einige Anhänge weg oder beginne einen neuen Chat.</string>
     <string name="nm_cloud_err_content_rejected">Die Inhaltsprüfung des Modellanbieters hat diese Anfrage abgelehnt. Formuliere es anders oder beginne einen neuen Chat, wenn es sich wiederholt: Die beanstandeten Wörter können weiter vorn im Gespräch stehen.</string>
     <string name="nm_cloud_err_provider_busy">Der Modellanbieter ist gerade ausgelastet. Versuche es gleich noch einmal.</string>
@@ -1144,6 +1146,11 @@
     <string name="nm_a11y_not_liked">Gefällt mir nicht</string>
     <string name="nm_a11y_post_details">Beitragsdetails</string>
     <string name="nm_claude_sign_in_unavailable">Diese Version kann keine Claude-Anmeldung verwenden. Füge Anthropic stattdessen mit einem API-Schlüssel hinzu.</string>
+    <string name="nm_oauth_rescue_hint">Zeigt der Browser eine Fehlerseite unter localhost, schluckt dein Proxy oder VPN die Rückmeldung. Nimm localhost in seine Ausnahmeliste auf oder kopiere die Adresse der Seite und füge sie hier ein.</string>
+    <string name="nm_oauth_rescue_placeholder">Adresse hier einfügen</string>
+    <string name="nm_oauth_rescue_continue">Weiter</string>
+    <string name="nm_oauth_rescue_no_code">Diese Adresse enthält keinen Anmeldecode.</string>
+    <string name="nm_oauth_rescue_failed">Die Anmeldung wartet nicht mehr auf diese Adresse. Tippe auf Anmelden und versuche es noch einmal.</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">Sehr klein</string>
     <string name="nm_font_scale_small">Klein</string>

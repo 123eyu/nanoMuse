@@ -20,6 +20,7 @@ Nothing here is shown to the model, and no key ever leaves the vault: the list c
 
 from __future__ import annotations
 
+import asyncio
 import re
 import secrets
 import time
@@ -81,6 +82,11 @@ class Endpoints:
 
     def __init__(self, conn: Connections):
         self.conn = conn
+        # add, update and refresh_models each read the list, ask the endpoint for its
+        # models (a network call of several seconds) and write the list back; two of them
+        # at once (the web console sends PUT on blur) would otherwise let the second write
+        # undo the first. One at a time, on the one loop the service runs on.
+        self._lock = asyncio.Lock()
 
     # ------------------------------------------------------------------ the list
     def rows(self) -> list[dict[str, Any]]:
@@ -224,6 +230,16 @@ class Endpoints:
             raise ValueError("that is nanoMuse Cloud; it is the account, not an endpoint")
         return url
 
+    def _check_unique(self, url: str, except_id: str = "") -> None:
+        """Two rows with one address would both claim the slots that point at it
+        (:meth:`id_for` and :meth:`slots_of` match by address), so the second is refused."""
+        for row in self.rows():
+            if row.get("id") != except_id and self._same(row.get("base_url"), url):
+                label = row.get("label") or host_label(str(row.get("base_url") or ""))
+                raise ValueError(
+                    f"that address is already the endpoint '{label}'; change that one instead"
+                )
+
     async def _models_for(self, base_url: str, key: str, typed: list[str]) -> list[str]:
         """The ids the person typed first, then what the endpoint lists; a ValueError when
         there is neither (a slot cannot pick from an empty list)."""
@@ -241,8 +257,14 @@ class Endpoints:
     async def add(self, body: dict[str, Any]) -> dict[str, Any]:
         """A new endpoint: ``base_url`` (required), ``label`` (the host when empty),
         ``api_key`` (into the vault; empty for a server that wants none), ``models`` (typed
-        ids; the endpoint's own list is added after them)."""
+        ids; the endpoint's own list is added after them). An address another endpoint
+        already has is refused."""
+        async with self._lock:
+            return await self._add(body)
+
+    async def _add(self, body: dict[str, Any]) -> dict[str, Any]:
         base_url = self._check_url(str(body.get("base_url") or ""))
+        self._check_unique(base_url)
         key = str(body.get("api_key") or "").strip()
         if key and re.search(r"\s", key):
             raise ValueError("a key has no spaces in it")
@@ -269,6 +291,10 @@ class Endpoints:
         """Rename, change the key or the address, or retype the models. A key or address
         that changed asks the endpoint for its models again (typed ids stay first); the
         slots that use the endpoint follow it."""
+        async with self._lock:
+            return await self._update(endpoint_id, body)
+
+    async def _update(self, endpoint_id: str, body: dict[str, Any]) -> dict[str, Any]:
         row = self.get(endpoint_id)
         if row is None:
             raise ValueError(f"no endpoint {endpoint_id!r}")
@@ -279,6 +305,8 @@ class Endpoints:
         if body.get("base_url") is not None:
             url = self._check_url(str(body["base_url"]))
             moved = not self._same(url, changed["base_url"])
+            if moved:
+                self._check_unique(url, except_id=endpoint_id)
             changed["base_url"] = url
         api_key = body.get("api_key")
         rekeyed = False
@@ -349,19 +377,24 @@ class Endpoints:
 
     async def refresh_models(self, endpoint_id: str) -> dict[str, Any]:
         """Ask the endpoint for its models again; the list stays when it does not answer."""
-        row = self.get(endpoint_id)
-        if row is None:
-            raise ValueError(f"no endpoint {endpoint_id!r}")
-        from nanomuse.server.connections import fetch_models
+        async with self._lock:
+            row = self.get(endpoint_id)
+            if row is None:
+                raise ValueError(f"no endpoint {endpoint_id!r}")
+            from nanomuse.server.connections import fetch_models
 
-        key = self.conn.vault.resolve(str(row.get("api_key") or ""), strict=False)
-        if self.conn.vault.has_placeholders(key):
-            key = ""
-        listed, error = await fetch_models(str(row["base_url"]), key)
-        if listed:
-            changed = {**row, "models": listed}
-            self._write([changed if r.get("id") == endpoint_id else r for r in self.rows()])
-            self.conn._publish()
+            key = self.conn.vault.resolve(str(row.get("api_key") or ""), strict=False)
+            if self.conn.vault.has_placeholders(key):
+                key = ""
+            listed, error = await fetch_models(str(row["base_url"]), key)
+            if listed:
+                # the row as it is now: a rename that landed meanwhile is kept
+                current = self.get(endpoint_id)
+                if current is None:
+                    raise ValueError(f"no endpoint {endpoint_id!r}")
+                changed = {**current, "models": listed}
+                self._write([changed if r.get("id") == endpoint_id else r for r in self.rows()])
+                self.conn._publish()
         return {**self._one(endpoint_id), "source": "live" if listed else "kept", "error": error}
 
     def _one(self, endpoint_id: str) -> dict[str, Any]:

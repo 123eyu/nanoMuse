@@ -618,6 +618,8 @@
     <string name="nm_risk_title_device">Permiți ca „%1$s” să opereze acest telefon?</string>
     <string name="nm_risk_desc_device">„%1$s”, alt dispozitiv din contul tău, vrea să %2$s pe acest telefon. Ce anume e afișat mai jos. „Întotdeauna” lasă acel dispozitiv să facă astfel de lucruri aici fără să întrebe; retrage asta sub Permisiuni.</string>
     <string name="nm_risk_preview_device">Ce a cerut dispozitivul</string>
+    <string name="nm_risk_preview_show_all">Afișează tot (%1$d linii)</string>
+    <string name="nm_risk_preview_show_less">Afișează mai puțin</string>
     <string name="nm_risk_class_remote">Control la distanță</string>
     <string name="nm_hub_remote_reason">%1$s poate opera acest telefon</string>
 
@@ -651,7 +653,6 @@
     <string name="nm_welcome_skip">Sari peste deocamdată</string>
     <string name="nm_welcome_hands_fine_print">Tot restul merge și fără ele. Le găsești sub Setări → Mâini oricând le vrei.</string>
     <string name="nm_welcome_meet_fine_print">Înainte de orice nu poate fi anulat (ștergere, trimitere, plată) se oprește și te întreabă mai întâi.</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">Începe cu nanoMuse Cloud</string>
     <string name="nm_cloud_signin_subtitle">Un cod pe telefon sau în inbox, sau parola ta, odată ce ai setat una.</string>
     <string name="nm_cloud_mode_code">Cu un cod</string>
@@ -659,7 +660,7 @@
     <string name="nm_cloud_password">Parolă</string>
     <string name="nm_cloud_forgot_password">Ai uitat parola? Conectează-te cu un cod</string>
     <string name="nm_cloud_identifier">Număr de telefon din China continentală sau e-mail</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · tu@example.com</string>
+    <string name="nm_cloud_identifier_hint">tu@example.com</string>
     <string name="nm_cloud_code">Cod</string>
     <string name="nm_cloud_send_code">Trimite codul</string>
     <string name="nm_cloud_resend">Trimite din nou</string>
@@ -669,7 +670,6 @@
     <!-- Your own relay (0.1.38): the sign-in screen's server form and the account page's row -->
     <string name="nm_cloud_other_server">Folosește alt server</string>
     <string name="nm_cloud_server_url">Adresa relay-ului</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
     <string name="nm_cloud_server_check">Verifică</string>
     <string name="nm_cloud_server_use">Folosește acest server</string>
     <string name="nm_cloud_server_now">Server: %1$s</string>
@@ -731,6 +731,8 @@
     <string name="nm_cloud_err_password_short">Parola are nevoie de cel puțin 8 caractere.</string>
     <string name="nm_cloud_err_password_weak">Parola e prea ușor de ghicit.</string>
     <string name="nm_cloud_err_signup_closed">Înscrierile sunt oprite pe acest relay deocamdată. Un cont care există deja se poate conecta în continuare.</string>
+    <string name="nm_cloud_err_domain_limited">Adresele din acel domeniu au atins azi limita de înscrieri pe acest relay. Încearcă mâine sau folosește altă adresă.</string>
+    <string name="nm_cloud_err_channel_unsupported">Acest relay nu trimite coduri la acest tip de adresă. Folosește celălalt tip (e-mail sau număr de telefon) sau conectează-te cu parola.</string>
     <string name="nm_cloud_err_too_large">Mesajul acesta e prea mare pentru model. Scurtează-l, renunță la câteva atașamente sau începe o conversație nouă.</string>
     <string name="nm_cloud_err_content_rejected">Verificarea de conținut a furnizorului modelului a respins această cerere. Încearcă alte cuvinte sau, dacă se repetă, începe o conversație nouă: cuvintele respinse pot fi mai devreme în conversație.</string>
     <string name="nm_cloud_err_provider_busy">Furnizorul modelului e ocupat acum. Reîncearcă peste puțin timp.</string>
@@ -1148,6 +1150,11 @@
     <string name="nm_a11y_not_liked">Neapreciat</string>
     <string name="nm_a11y_post_details">Detaliile postării</string>
     <string name="nm_claude_sign_in_unavailable">Această versiune nu poate folosi autentificarea cu Claude. Adaugă Anthropic cu o cheie API.</string>
+    <string name="nm_oauth_rescue_hint">Dacă browserul arată o pagină de eroare la localhost, proxy-ul sau VPN-ul tău înghite răspunsul. Adaugă localhost în lista lui de excepții, sau copiază adresa paginii și lipește-o aici.</string>
+    <string name="nm_oauth_rescue_placeholder">Lipește adresa aici</string>
+    <string name="nm_oauth_rescue_continue">Continuă</string>
+    <string name="nm_oauth_rescue_no_code">Adresa aceea nu conține niciun cod de autentificare.</string>
+    <string name="nm_oauth_rescue_failed">Autentificarea nu mai așteaptă adresa aceea. Atinge Conectare și încearcă din nou.</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">Foarte mic</string>
     <string name="nm_font_scale_small">Mic</string>

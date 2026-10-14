@@ -616,6 +616,8 @@
     <string name="nm_risk_title_device">Autoriser « %1$s » à piloter ce téléphone ?</string>
     <string name="nm_risk_desc_device">« %1$s », un autre appareil de votre compte, veut %2$s sur ce téléphone. Le détail est ci-dessous. « Toujours » laisse cet appareil faire ce genre de choses ici sans demander ; revenez dessus sous Permissions.</string>
     <string name="nm_risk_preview_device">Ce que l’appareil a demandé</string>
+    <string name="nm_risk_preview_show_all">Tout afficher (%1$d lignes)</string>
+    <string name="nm_risk_preview_show_less">Réduire</string>
     <string name="nm_risk_class_remote">Contrôle à distance</string>
     <string name="nm_hub_remote_reason">%1$s peut piloter ce téléphone</string>
 
@@ -649,7 +651,6 @@
     <string name="nm_welcome_skip">Passer pour l’instant</string>
     <string name="nm_welcome_hands_fine_print">Tout le reste fonctionne sans. Elles se trouvent sous Réglages → Mains quand vous les voulez.</string>
     <string name="nm_welcome_meet_fine_print">Avant tout ce qu’il ne peut pas défaire (supprimer, envoyer, payer) il s’arrête et vous demande d’abord.</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">Commencer avec nanoMuse Cloud</string>
     <string name="nm_cloud_signin_subtitle">Un code sur votre téléphone ou dans votre boîte mail, ou votre mot de passe, une fois défini.</string>
     <string name="nm_cloud_mode_code">Avec un code</string>
@@ -657,7 +658,7 @@
     <string name="nm_cloud_password">Mot de passe</string>
     <string name="nm_cloud_forgot_password">Mot de passe oublié ? Connectez-vous avec un code</string>
     <string name="nm_cloud_identifier">Numéro de Chine continentale ou e-mail</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · vous@example.com</string>
+    <string name="nm_cloud_identifier_hint">vous@example.com</string>
     <string name="nm_cloud_code">Code</string>
     <string name="nm_cloud_send_code">Envoyer le code</string>
     <string name="nm_cloud_resend">Renvoyer</string>
@@ -667,7 +668,6 @@
     <!-- Your own relay (0.1.38): the sign-in screen's server form and the account page's row -->
     <string name="nm_cloud_other_server">Utiliser un autre serveur</string>
     <string name="nm_cloud_server_url">Adresse du relais</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
     <string name="nm_cloud_server_check">Vérifier</string>
     <string name="nm_cloud_server_use">Utiliser ce serveur</string>
     <string name="nm_cloud_server_now">Serveur : %1$s</string>
@@ -729,6 +729,8 @@
     <string name="nm_cloud_err_password_short">Le mot de passe doit faire au moins 8 caractères.</string>
     <string name="nm_cloud_err_password_weak">Ce mot de passe est trop facile à deviner.</string>
     <string name="nm_cloud_err_signup_closed">Les inscriptions sont suspendues sur ce relais pour le moment. Un compte déjà créé peut toujours se connecter.</string>
+    <string name="nm_cloud_err_domain_limited">Les adresses de ce domaine ont atteint la limite d’inscriptions du jour sur ce relais. Réessayez demain ou utilisez une autre adresse.</string>
+    <string name="nm_cloud_err_channel_unsupported">Ce relais n’envoie pas de code à ce type d’adresse. Utilisez l’autre type (e-mail ou numéro de téléphone) ou connectez-vous avec votre mot de passe.</string>
     <string name="nm_cloud_err_too_large">Ce message est trop volumineux pour le modèle. Raccourcissez-le, retirez quelques pièces jointes ou commencez une nouvelle discussion.</string>
     <string name="nm_cloud_err_content_rejected">Le contrôle de contenu du fournisseur du modèle a refusé cette demande. Essayez d\'autres mots ou, si cela se répète, ouvrez une nouvelle discussion : les mots en cause peuvent se trouver plus haut dans la conversation.</string>
     <string name="nm_cloud_err_provider_busy">Le fournisseur du modèle est occupé en ce moment. Réessayez dans un instant.</string>
@@ -1145,6 +1147,11 @@
     <string name="nm_a11y_not_liked">Non aimé</string>
     <string name="nm_a11y_post_details">Détails de la publication</string>
     <string name="nm_claude_sign_in_unavailable">Cette version ne peut pas utiliser la connexion Claude. Ajoutez plutôt Anthropic avec une clé d’API.</string>
+    <string name="nm_oauth_rescue_hint">Si le navigateur affiche une page d\'erreur sur localhost, votre proxy ou VPN avale le retour. Ajoutez localhost à sa liste d\'exclusions, ou copiez l\'adresse de la page et collez-la ici.</string>
+    <string name="nm_oauth_rescue_placeholder">Collez l\'adresse ici</string>
+    <string name="nm_oauth_rescue_continue">Continuer</string>
+    <string name="nm_oauth_rescue_no_code">Cette adresse ne contient pas de code de connexion.</string>
+    <string name="nm_oauth_rescue_failed">La connexion n\'attend plus cette adresse. Touchez Se connecter et réessayez.</string>
     <!-- Font scale labels -->
     <string name="nm_font_scale_extra_small">Très petit</string>
     <string name="nm_font_scale_small">Petit</string>

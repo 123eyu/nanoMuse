@@ -292,6 +292,12 @@ def now() -> int:
     return int(time.time())
 
 
+def _like(text: str) -> str:
+    """`text` as a LIKE pattern that matches it anywhere, its own wildcards escaped (ESCAPE '\\')."""
+    t = text.strip()[:80].replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{t}%"
+
+
 class Database:
     def __init__(self, path: str):
         self.path = path
@@ -299,8 +305,10 @@ class Database:
             Path(path).parent.mkdir(parents=True, exist_ok=True)
         # One connection behind one lock serialises the relay's own writes; the busy timeout
         # is for the other writers that open the same file (a backup taken with the backup
-        # API, the admin CLI, a checkpoint by another process). The default is 0: the first
-        # locked write would raise "database is locked" instead of waiting a moment.
+        # API, the admin CLI, a checkpoint by another process). Python's `timeout` already
+        # defaults to five seconds; the SQLite library's own default is 0, so the PRAGMA
+        # below says the same figure in one place for both, and a change here is the whole
+        # change.
         self._conn = sqlite3.connect(path, check_same_thread=False, isolation_level=None, timeout=BUSY_TIMEOUT_S)
         self._conn.row_factory = sqlite3.Row
         self._lock = threading.RLock()
@@ -744,6 +752,27 @@ class Database:
         with self._lock:
             return self._conn.execute("SELECT * FROM accounts WHERE id_hash=?", (id_hash,)).fetchone()
 
+    def account_by_hashes(self, id_hashes: tuple[str, ...]) -> sqlite3.Row | None:
+        """Look up an account by its canonical hash first, then by any legacy
+        hash (such as a dotted Gmail address created before canonicalisation).
+        When matched on a legacy hash and the canonical hash is not taken,
+        ``id_hash`` is updated in place so subsequent lookups match directly."""
+        if not id_hashes:
+            return None
+        primary = id_hashes[0]
+        row = self.account_by_hash(primary)
+        if row is not None or len(id_hashes) == 1:
+            return row
+        for legacy in id_hashes[1:]:
+            row = self.account_by_hash(legacy)
+            if row is not None:
+                with self.tx() as c:
+                    taken = c.execute("SELECT 1 FROM accounts WHERE id_hash=?", (primary,)).fetchone()
+                    if taken is None:
+                        c.execute("UPDATE accounts SET id_hash=? WHERE id=?", (primary, row["id"]))
+                return self.account(str(row["id"]))
+        return None
+
     def account(self, account_id: str) -> sqlite3.Row | None:
         with self._lock:
             return self._conn.execute("SELECT * FROM accounts WHERE id=?", (account_id,)).fetchone()
@@ -993,21 +1022,52 @@ class Database:
             ).fetchone()
         return r is not None
 
-    def settle_invite(self, invitee_id: str, bonus_uy: int) -> tuple[bool, str, bool]:
+    def settle_invite(
+        self,
+        invitee_id: str,
+        bonus_uy: int,
+        min_spent_uy: int = 0,
+        refuse_same_ip: bool = False,
+    ) -> tuple[bool, str, bool]:
         """The invitee made its first charged request: both pools grow by the bonus, the
         inviter's (``from: invite``, with the friend's id) and the invitee's (``from:
         invited``), and the account is marked settled. A no-op when the account was not
         invited or was settled already. When the inviter's account is gone, or disabled,
         the invitee alone is credited and the account is still marked settled, so the
-        question is never asked again. Returns ``(settled, inviter_id, inviter_paid)``."""
+        question is never asked again. When ``refuse_same_ip`` is true and both accounts
+        share the same non-local ``first_ip``, or when ``min_spent_uy`` is positive and the
+        invitee has neither spent at least ``min_spent_uy`` nor registered a Hub device,
+        settlement is deferred and ``(False, inviter_id, False)`` is returned. Returns
+        ``(settled, inviter_id, inviter_paid)``."""
         t = now()
         bonus_uy = max(0, int(bonus_uy))
+        min_spent_uy = max(0, int(min_spent_uy))
         with self.tx() as c:
-            row = c.execute("SELECT invited_by, invite_settled_at FROM accounts WHERE id=?", (invitee_id,)).fetchone()
+            row = c.execute(
+                "SELECT invited_by, invite_settled_at, first_ip FROM accounts WHERE id=?",
+                (invitee_id,),
+            ).fetchone()
             if row is None or not row["invited_by"] or row["invite_settled_at"] is not None:
                 return False, str(row["invited_by"]) if row is not None else "", False
             inviter_id = str(row["invited_by"])
-            inviter = c.execute("SELECT id, disabled FROM accounts WHERE id=?", (inviter_id,)).fetchone()
+            inviter = c.execute("SELECT id, disabled, first_ip FROM accounts WHERE id=?", (inviter_id,)).fetchone()
+            if refuse_same_ip and inviter is not None:
+                invitee_ip = (row["first_ip"] or "").strip()
+                inviter_ip = (inviter["first_ip"] or "").strip()
+                if invitee_ip and invitee_ip == inviter_ip and invitee_ip not in ("127.0.0.1", "::1", "testclient"):
+                    return False, inviter_id, False
+            if min_spent_uy > 0:
+                spent = int(
+                    c.execute(
+                        "SELECT COALESCE(SUM(cost_uy), 0) FROM ledger WHERE account_id=? AND cost_uy>0",
+                        (invitee_id,),
+                    ).fetchone()[0]
+                    or 0
+                )
+                if spent < min_spent_uy:
+                    has_device = c.execute("SELECT 1 FROM devices WHERE account_id=? LIMIT 1", (invitee_id,)).fetchone()
+                    if has_device is None:
+                        return False, inviter_id, False
             inviter_paid = inviter is not None and not inviter["disabled"]
             if inviter_paid:
                 c.execute("UPDATE accounts SET grant_uy=grant_uy+? WHERE id=?", (bonus_uy, inviter_id))
@@ -1387,32 +1447,55 @@ class Database:
                 (account_id or "", now(), kind, (detail or "")[:200], who.ip, who.ua),
             )
 
-    def events_for(self, account_id: str, limit: int = 50, before_id: int = 0) -> list[sqlite3.Row]:
-        """Newest first; ``before_id`` (an event id) pages further back."""
+    @staticmethod
+    def _event_where(kinds: tuple[str, ...] | None, q: str) -> tuple[str, list]:
+        """The operator's filter on a timeline: these kinds (any of them) and a text that the
+        kind name or the detail contains. Empty means everything."""
+        where, args = "", []
+        if kinds:
+            where += f" AND kind IN ({','.join('?' * len(kinds))})"
+            args.extend(kinds)
+        if q:
+            where += " AND (kind LIKE ? ESCAPE '\\' OR detail LIKE ? ESCAPE '\\')"
+            args.extend([_like(q), _like(q)])
+        return where, args
+
+    def events_for(
+        self,
+        account_id: str,
+        limit: int = 50,
+        before_id: int = 0,
+        kinds: tuple[str, ...] | None = None,
+        q: str = "",
+    ) -> list[sqlite3.Row]:
+        """Newest first; ``before_id`` (an event id) pages further back; ``kinds`` and ``q``
+        (0.26) narrow it the way the operator's page does, so a filter holds across pages."""
         with self._lock:
-            q = "SELECT id, ts, kind, detail, ip, ua FROM events WHERE account_id=?"
-            args: list = [account_id]
+            where, fargs = self._event_where(kinds, q)
+            sql = "SELECT id, ts, kind, detail, ip, ua FROM events WHERE account_id=?" + where
+            args: list = [account_id, *fargs]
             if before_id:
-                q += " AND id<?"
+                sql += " AND id<?"
                 args.append(before_id)
             args.append(max(1, min(limit, 1000)))
-            return self._conn.execute(q + " ORDER BY id DESC LIMIT ?", args).fetchall()
+            return self._conn.execute(sql + " ORDER BY id DESC LIMIT ?", args).fetchall()
 
-    def event_count(self, account_id: str) -> int:
+    def event_count(self, account_id: str, kinds: tuple[str, ...] | None = None, q: str = "") -> int:
         with self._lock:
-            row = self._conn.execute("SELECT COUNT(*) AS n FROM events WHERE account_id=?", (account_id,)).fetchone()
+            where, fargs = self._event_where(kinds, q)
+            row = self._conn.execute("SELECT COUNT(*) AS n FROM events WHERE account_id=?" + where, (account_id, *fargs)).fetchone()
         return int(row["n"]) if row else 0
 
-    def events_recent(self, limit: int = 100, kinds: tuple[str, ...] | None = None) -> list[sqlite3.Row]:
+    def events_recent(self, limit: int = 100, kinds: tuple[str, ...] | None = None, before_id: int = 0) -> list[sqlite3.Row]:
+        """Everyone's timeline, newest first; ``before_id`` (0.26) reads on past the last row shown."""
         with self._lock:
-            if kinds:
-                marks = ",".join("?" * len(kinds))
-                return self._conn.execute(
-                    f"SELECT account_id, ts, kind, detail, ip, ua FROM events WHERE kind IN ({marks}) ORDER BY id DESC LIMIT ?",
-                    (*kinds, limit),
-                ).fetchall()
+            where, args = self._event_where(kinds, "")
+            if before_id:
+                where += " AND id<?"
+                args.append(before_id)
             return self._conn.execute(
-                "SELECT account_id, ts, kind, detail, ip, ua FROM events ORDER BY id DESC LIMIT ?", (limit,)
+                f"SELECT id, account_id, ts, kind, detail, ip, ua FROM events WHERE 1=1{where} ORDER BY id DESC LIMIT ?",
+                (*args, limit),
             ).fetchall()
 
     def event_counts(self, since: int) -> dict[str, int]:
@@ -1676,20 +1759,46 @@ class Database:
             ).fetchone()
         return int(r[0])
 
-    def recent_ledger(self, account_id: str, limit: int = 30, before_id: int = 0) -> list[sqlite3.Row]:
-        """Newest first; ``before_id`` (a ledger id) pages further back, to the first line."""
+    @staticmethod
+    def _ledger_where(kinds: tuple[str, ...] | None, q: str) -> tuple[str, list]:
+        """The operator's filter on a statement: these kinds (any of them) and a text the model
+        name or the line's note contains. Empty means every line."""
+        where, args = "", []
+        if kinds:
+            where += f" AND kind IN ({','.join('?' * len(kinds))})"
+            args.extend(kinds)
+        if q:
+            where += " AND (model LIKE ? ESCAPE '\\' OR extra LIKE ? ESCAPE '\\')"
+            args.extend([_like(q), _like(q)])
+        return where, args
+
+    def recent_ledger(
+        self,
+        account_id: str,
+        limit: int = 30,
+        before_id: int = 0,
+        kinds: tuple[str, ...] | None = None,
+        q: str = "",
+    ) -> list[sqlite3.Row]:
+        """Newest first; ``before_id`` (a ledger id) pages further back, to the first line;
+        ``kinds`` and ``q`` (0.26) narrow it so a filter holds across pages."""
         with self._lock:
-            q = "SELECT id, ts, kind, model, prompt_tokens, completion_tokens, charged, cost_uy, extra, ip, ua FROM ledger WHERE account_id=?"
-            args: list = [account_id]
+            where, fargs = self._ledger_where(kinds, q)
+            sql = (
+                "SELECT id, ts, kind, model, prompt_tokens, completion_tokens, charged, cost_uy, extra, ip, ua "
+                "FROM ledger WHERE account_id=?" + where
+            )
+            args: list = [account_id, *fargs]
             if before_id:
-                q += " AND id<?"
+                sql += " AND id<?"
                 args.append(before_id)
             args.append(max(1, min(limit, 1000)))
-            return self._conn.execute(q + " ORDER BY id DESC LIMIT ?", args).fetchall()
+            return self._conn.execute(sql + " ORDER BY id DESC LIMIT ?", args).fetchall()
 
-    def ledger_count(self, account_id: str) -> int:
+    def ledger_count(self, account_id: str, kinds: tuple[str, ...] | None = None, q: str = "") -> int:
         with self._lock:
-            row = self._conn.execute("SELECT COUNT(*) AS n FROM ledger WHERE account_id=?", (account_id,)).fetchone()
+            where, fargs = self._ledger_where(kinds, q)
+            row = self._conn.execute("SELECT COUNT(*) AS n FROM ledger WHERE account_id=?" + where, (account_id, *fargs)).fetchone()
         return int(row["n"]) if row else 0
 
     def addresses_for(self, account_id: str) -> list[sqlite3.Row]:

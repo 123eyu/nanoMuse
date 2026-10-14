@@ -238,7 +238,7 @@ function GoalRow({ goal, onOpen, onToggle }: { goal: Goal; onOpen: () => void; o
       <button type="button" onClick={onOpen} className="ml-2.5 min-w-0 flex-1 pt-[3px] text-left">
         <span className={cx("line-clamp-2 block text-[15px] font-semibold leading-snug", done && "text-muted")}>{goal.title}</span>
         {subtitle && <span className="mt-0.5 line-clamp-2 block text-[13px] leading-[18px] text-muted">{subtitle}</span>}
-        <span className="mt-0.5 flex items-center gap-2 text-[12px] text-muted/80">
+        <span className="mt-0.5 flex items-center gap-2 text-[12px] text-muted">
           <span className="truncate">
             {cadence}
             {due && goal.status === "active" ? ` · ${due}` : ""}
@@ -349,7 +349,7 @@ function CadencePicker({ value, onChange }: { value: string; onChange: (spec: st
       {cadence && (
         <div className="flex items-center gap-2 text-[13.5px]">
           {cadence === "weekly" && (
-            <select value={anchor || "mon"} onChange={(e) => set(cadence, e.target.value, time)} className="rounded-xl bg-surface-2 px-2.5 py-1.5 outline-none">
+            <select value={anchor || "mon"} onChange={(e) => set(cadence, e.target.value, time)} aria-label={t("Weekday")} className="rounded-xl bg-surface-2 px-2.5 py-1.5 outline-none">
               {WEEKDAYS.map((d) => (
                 <option key={d} value={d}>
                   {weekdayName(d)}
@@ -358,7 +358,7 @@ function CadencePicker({ value, onChange }: { value: string; onChange: (spec: st
             </select>
           )}
           {cadence === "monthly" && (
-            <select value={anchor || "1"} onChange={(e) => set(cadence, e.target.value, time)} className="rounded-xl bg-surface-2 px-2.5 py-1.5 outline-none">
+            <select value={anchor || "1"} onChange={(e) => set(cadence, e.target.value, time)} aria-label={t("Day of the month")} className="rounded-xl bg-surface-2 px-2.5 py-1.5 outline-none">
               {Array.from({ length: 28 }, (_, i) => String(i + 1)).map((d) => (
                 <option key={d} value={d}>
                   {ordinal(Number(d))}
@@ -367,7 +367,7 @@ function CadencePicker({ value, onChange }: { value: string; onChange: (spec: st
             </select>
           )}
           <span className="text-muted">{t("at")}</span>
-          <input type="time" value={time} onChange={(e) => set(cadence, anchor, e.target.value || "09:00")} className="rounded-xl bg-surface-2 px-2.5 py-1.5 outline-none" />
+          <input type="time" value={time} onChange={(e) => set(cadence, anchor, e.target.value || "09:00")} aria-label={t("Time")} className="rounded-xl bg-surface-2 px-2.5 py-1.5 outline-none" />
         </div>
       )}
     </div>
@@ -498,7 +498,7 @@ function GoalDetail({
                 <div>
                   <div className="text-[12px] font-semibold uppercase tracking-wide text-muted mb-1.5">{t("Target date")}</div>
                   <div className="flex items-center gap-2">
-                    <input type="date" value={goal.due} onChange={(e) => void patch({ due: e.target.value })} className="rounded-xl bg-surface px-2.5 py-1.5 text-[13.5px] outline-none" />
+                    <input type="date" value={goal.due} onChange={(e) => void patch({ due: e.target.value })} aria-label={t("Target date")} className="rounded-xl bg-surface px-2.5 py-1.5 text-[13.5px] outline-none" />
                     {goal.due && (
                       <button type="button" onClick={() => void patch({ due: "" })} className="text-[12.5px] text-muted">
                         {t("Clear")}
@@ -550,6 +550,7 @@ function GoalDetail({
                 onChange={(e) => setNewStep(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && void addStep()}
                 placeholder={t("Add a step")}
+                aria-label={t("Add a step")}
                 className="flex-1 rounded-2xl bg-surface-2 px-3.5 py-2 text-[14px] outline-none focus:ring-2 focus:ring-accent/40"
               />
               <button type="button" onClick={() => void addStep()} className="rounded-2xl bg-surface-2 px-3 text-accent" aria-label={t("Add step")}>
@@ -666,21 +667,21 @@ function NewGoalSheet({ open, onClose, onCreated }: { open: boolean; onClose: ()
       }
     >
       <div className="space-y-3.5">
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("What do you want to achieve?")} className="w-full rounded-2xl bg-surface-2 px-3.5 py-2.5 text-[15px] outline-none focus:ring-2 focus:ring-accent/40" />
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("What do you want to achieve?")} aria-label={t("What do you want to achieve?")} className="w-full rounded-2xl bg-surface-2 px-3.5 py-2.5 text-[15px] outline-none focus:ring-2 focus:ring-accent/40" />
         <div>
           <div className="text-[12px] font-semibold uppercase tracking-wide text-muted mb-1.5">{t("Area of life")}</div>
           <CategoryPicker value={category} onChange={setCategory} />
         </div>
         <div className="flex items-center gap-3">
           <div className="text-[12px] font-semibold uppercase tracking-wide text-muted flex-1">{t("Target date")}</div>
-          <input type="date" value={due} onChange={(e) => setDue(e.target.value)} className="rounded-xl bg-surface-2 px-2.5 py-1.5 text-[13.5px] outline-none" />
+          <input type="date" value={due} onChange={(e) => setDue(e.target.value)} aria-label={t("Target date")} className="rounded-xl bg-surface-2 px-2.5 py-1.5 text-[13.5px] outline-none" />
         </div>
         <div>
           <div className="text-[12px] font-semibold uppercase tracking-wide text-muted mb-1.5">{t("Reminders from {name}", { name })}</div>
           <CadencePicker value={checkIn} onChange={setCheckIn} />
         </div>
-        <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("Why it matters, constraints (optional)")} rows={2} className="w-full rounded-2xl bg-surface-2 px-3.5 py-2.5 text-[14px] outline-none focus:ring-2 focus:ring-accent/40 resize-none" />
-        <textarea value={steps} onChange={(e) => setSteps(e.target.value)} placeholder={t("Steps, one per line (optional, or let {name} plan them)", { name })} rows={3} className="w-full rounded-2xl bg-surface-2 px-3.5 py-2.5 text-[14px] outline-none focus:ring-2 focus:ring-accent/40 resize-none" />
+        <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("Why it matters, constraints (optional)")} aria-label={t("Why it matters, constraints (optional)")} rows={2} className="w-full rounded-2xl bg-surface-2 px-3.5 py-2.5 text-[14px] outline-none focus:ring-2 focus:ring-accent/40 resize-none" />
+        <textarea value={steps} onChange={(e) => setSteps(e.target.value)} placeholder={t("Steps, one per line (optional, or let {name} plan them)", { name })} aria-label={t("Steps, one per line (optional, or let {name} plan them)", { name })} rows={3} className="w-full rounded-2xl bg-surface-2 px-3.5 py-2.5 text-[14px] outline-none focus:ring-2 focus:ring-accent/40 resize-none" />
       </div>
     </Sheet>
   );

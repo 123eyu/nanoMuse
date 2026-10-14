@@ -1074,6 +1074,63 @@ async def test_the_operator_sees_addresses_clients_and_every_line(stack):
     assert [(x["hint"], x["samples"]) for x in view["by_account"]] == [("138****8000", 1)]
 
 
+async def test_the_statement_and_the_timeline_filter_across_pages(stack):
+    """0.26: the account page's statement and timeline take `kind` (a comma list) and `q`
+    (a text in the model name or the note, the kind name or the detail); the `total` counts
+    what matches, so the pager and the filter agree. Everyone's timeline pages with `before`."""
+    app, client, sender, up, cloud = stack
+    data = await sign_up(client, sender, device="pixel")
+    headers = {"Authorization": f"Bearer {data['api_key']}"}
+    admin = {"X-Admin-Token": "admin"}
+    aid = data["account"]["id"]
+    for model in ("qwen3.8-27b", "qwen3.8-27b", "qwen3.8-flash"):
+        r = await client.post(
+            "/v1/chat/completions", headers=headers, json={"model": model, "messages": [{"role": "user", "content": "hi"}]}
+        )
+        assert r.status_code == 200
+    r = await client.post("/v1/admin/credit", headers=admin, json={"identifier": "13800138000", "cny": 2, "note": "PR #12 thanks"})
+    assert r.status_code == 200
+
+    ledger = f"/v1/admin/accounts/{aid}/ledger"
+    everything = (await client.get(ledger, headers=admin)).json()
+    chats = (await client.get(ledger, params={"kind": "chat"}, headers=admin)).json()
+    assert chats["total"] == 3 and [x["kind"] for x in chats["rows"]] == ["chat"] * 3
+    opening = (await client.get(ledger, params={"kind": "credit,grant"}, headers=admin)).json()
+    assert opening["total"] == everything["total"] - 3 and {x["kind"] for x in opening["rows"]} <= {"credit", "grant"}
+    flash = (await client.get(ledger, params={"q": "flash"}, headers=admin)).json()
+    assert flash["total"] == 1 and flash["rows"][0]["model"] == "qwen3.8-flash"
+    noted = (await client.get(ledger, params={"q": "PR #12"}, headers=admin)).json()
+    assert noted["total"] == 1 and noted["rows"][0]["kind"] == "credit"
+    # a LIKE wildcard in the text is a character, not a pattern
+    assert (await client.get(ledger, params={"q": "%"}, headers=admin)).json()["total"] == 0
+    # the filter holds across pages: the second page of chats is still only chats
+    first = (await client.get(ledger, params={"kind": "chat", "limit": 2}, headers=admin)).json()
+    rest = (await client.get(ledger, params={"kind": "chat", "limit": 2, "before": first["rows"][-1]["id"]}, headers=admin)).json()
+    assert len(first["rows"]) == 2 and len(rest["rows"]) == 1 and rest["total"] == 3
+    assert {x["kind"] for x in first["rows"] + rest["rows"]} == {"chat"}
+
+    events = f"/v1/admin/accounts/{aid}/events"
+    signins = (await client.get(events, params={"kind": "sign_in.code,sign_in.password"}, headers=admin)).json()
+    assert signins["total"] == 1 and signins["rows"][0]["kind"] == "sign_in.code"
+    by_device = (await client.get(events, params={"q": "pixel"}, headers=admin)).json()
+    assert by_device["total"] >= 1 and all("pixel" in e["detail"] for e in by_device["rows"])
+    by_name = (await client.get(events, params={"q": "account.cre"}, headers=admin)).json()
+    assert [e["kind"] for e in by_name["rows"]] == ["account.created"]
+
+    # everyone's timeline, two rows at a time, no row twice and none skipped
+    seen, before = [], 0
+    while True:
+        page = (await client.get("/v1/admin/events", params={"limit": 2, **({"before": before} if before else {})}, headers=admin)).json()[
+            "events"
+        ]
+        if not page:
+            break
+        seen += page
+        before = page[-1]["id"]
+    whole = (await client.get("/v1/admin/events", params={"limit": 1000}, headers=admin)).json()["events"]
+    assert [e["id"] for e in seen] == [e["id"] for e in whole] and len(seen) == len({e["id"] for e in seen}) >= 3
+
+
 async def test_the_showcase_visitors_reach_the_admin_page(monkeypatch):
     """0.10: with WEB_ADMIN_URL + WEB_ADMIN_TOKEN the relay passes the gateway's visitors view
     through (/v1/admin/demo) and puts one account's demos in its drawer; without them the
