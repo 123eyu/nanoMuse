@@ -1129,7 +1129,7 @@ struct NanoMuseDrawer: View {
                         .ignoresSafeArea()
                         .onTapGesture { close() }
                         .transition(.opacity)
-                    panel
+                    panel(width: width(in: geo.size.width))
                         .frame(width: width(in: geo.size.width))
                         .offset(x: min(0, dragOffset))
                         .transition(reduceMotion ? .opacity : .move(edge: .leading))
@@ -1178,7 +1178,7 @@ struct NanoMuseDrawer: View {
         hub.others.filter { $0.online && $0.isComputer && ($0.actions.isEmpty || $0.actions.contains("coding.sessions")) }.count
     }
 
-    private var panel: some View {
+    private func panel(width: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(agentName)
                 .font(.system(size: NanoMuseHeaderMetrics.capped(nameSize, base: 24), weight: .bold))
@@ -1267,6 +1267,15 @@ struct NanoMuseDrawer: View {
                             } label: {
                                 Label(AppLocalized("Delete chat"), systemImage: "trash")
                             }
+                        } preview: {
+                            // The default preview lifts the List cell, which the system lays out
+                            // wider than the drawer; the drawer then clips it at its edge and the
+                            // chat shows through. An explicit preview at the panel's width does not.
+                            row(session)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 12)
+                                .frame(width: width, alignment: .leading)
+                                .background(NanoMuseTones.surface)
                         }
                     }
                 }
