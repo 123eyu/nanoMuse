@@ -9,20 +9,30 @@ import sys
 import threading
 import time
 from collections.abc import Callable
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler
 from pathlib import Path
+from socketserver import TCPServer
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
+
+
+class LoopbackServer(TCPServer):
+    allow_reuse_address = True
+
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts/desktop-app/build-runtime.py"
 CHILD = r"""
 import os
 import sys
 import time
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler
 from pathlib import Path
+from socketserver import TCPServer
+
+class LoopbackServer(TCPServer):
+    allow_reuse_address = True
 
 Path(os.environ["NANOMUSE_DATA_DIR"], "workspace").mkdir(parents=True)
 if sys.argv[1] == "waiting":
@@ -40,7 +50,8 @@ else:
         def log_message(self, *args):
             pass
     port = int(sys.argv[sys.argv.index("--port") + 1])
-    HTTPServer(("127.0.0.1", port), Handler).serve_forever()
+    # HTTPServer reverse-resolves its address; this loopback fixture needs no DNS.
+    LoopbackServer(("127.0.0.1", port), Handler).serve_forever()
 """
 Probe = Callable[[str], BaseException | None]
 
@@ -74,14 +85,16 @@ def probe(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Probe:
                 TimeoutExpired=subprocess.TimeoutExpired,
             ),
         )
-        # A 60-second startup deadline elapses in two seconds; real I/O is unchanged.
+        # Accelerate deliberate timeout cases, not successful process startup.
+        # Slow CI hosts still get the real startup deadline and a separate watchdog.
+        clock_rate = 30 if mode == "waiting" else 1
         monkeypatch.setattr(
             module,
             "time",
             SimpleNamespace(
-                time=lambda: time.monotonic() * 30,
-                monotonic=lambda: time.monotonic() * 30,
-                sleep=lambda seconds: time.sleep(seconds / 30),
+                time=lambda: time.monotonic() * clock_rate,
+                monotonic=lambda: time.monotonic() * clock_rate,
+                sleep=lambda seconds: time.sleep(seconds / clock_rate),
             ),
         )
         result: list[BaseException] = []
@@ -94,7 +107,7 @@ def probe(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Probe:
 
         worker = threading.Thread(target=invoke, daemon=True)
         worker.start()
-        worker.join(5)
+        worker.join(5 if mode == "waiting" else 15)
         hung = worker.is_alive()
         if hung:
             for process in processes:
@@ -102,7 +115,7 @@ def probe(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Probe:
                     process.kill()
                     process.wait(5)
             worker.join(2)
-        assert not hung, "runtime probe blocked beyond its startup deadline"
+        assert not hung, "runtime probe exceeded its test watchdog"
         assert all(p.poll() is not None for p in processes), "probe left a child running"
         assert not (tmp_path / "build/runtime-check-home").exists()
         assert not (tmp_path / "build/runtime-check-cwd").exists()
@@ -137,7 +150,7 @@ def test_probe_does_not_accept_an_existing_service_on_8765(probe: Probe) -> None
             pass
 
     try:
-        server = HTTPServer(("127.0.0.1", 8765), ExistingService)
+        server = LoopbackServer(("127.0.0.1", 8765), ExistingService)
     except OSError:
         pytest.skip("port 8765 is already in use")
     worker = threading.Thread(target=server.serve_forever, daemon=True)
