@@ -118,6 +118,7 @@ let child: ChildProcess | null = null;
 let mainWindow: BrowserWindow | null = null;
 let hostUrl: string | null = null;
 let quitting = false;
+let sessionEnding = false;
 let restarts = 0;
 /** The proxy the running Host was started with ("" for none): the Network row offers a restart while it differs from the setting. */
 let hostProxy = "";
@@ -527,12 +528,11 @@ async function restartHost(): Promise<void> {
 // closes so nothing new starts under the hand-over, and work that is on is named first, with
 // keeping it running as the default; an explicit confirmation ends it, and the stop is waited
 // for before the Host goes. Closing the window to stay in the tray, idling, a crash and the
-// system switching off never come through here, and `approval` stays `none` for them: the
-// later install-on-exit change reads that flag and nothing else.
+// system switching off never request installation through this path.
 
 /** The Host's work routes, once the Host is up; until then nothing answers and the exit reads as idle. */
 let hostWork: HostWork | null = null;
-/** The one protected exit (a quit today; the restart-update request of the update tickets reuses it). */
+/** The one protected exit, reused by both update installation intents. */
 let exitGuard: ProtectedExit | null = null;
 let windowsUpdates: WindowsUpdates | null = null;
 
@@ -584,14 +584,17 @@ const exitDialog: ExitDialog = {
 
 /** A real exit, the person's own: the protected exit asks about the work first. */
 function protectedQuit(intent: ExitIntent = "quit"): void {
-  if (quitting || !exitGuard) {
+  if (quitting || sessionEnding || !exitGuard) {
     app.quit();
     return;
   }
-  void exitGuard.requestExit(intent).then((went) => {
+  const exit = windowsUpdates && intent === "quit" ? windowsUpdates.quit() : exitGuard.requestExit(intent);
+  void exit.then(() => {
     // Keep running after the last window closed with no tray to come back through: the
     // window comes back, or the app would stay alive with nothing on screen to reach it by.
-    if (!went && !mainWindow && !tray) void showWindow();
+    // An update being installed is on its way out (the library quits after the installer
+    // has started), so it is not read as kept running.
+    if (!quitting && windowsUpdates?.snapshot().phase !== "installing" && !mainWindow && !tray) void showWindow();
   });
 }
 
@@ -1845,6 +1848,8 @@ function createWindow(): BrowserWindow {
     callback(permission === "media" && sameOrigin(details.requestingUrl, hostUrl));
   });
   win.on("closed", mainWindowClosed);
+  // Windows logoff/shutdown may close the last window without before-quit.
+  win.on("session-end", () => { sessionEnding = true; });
   // the splash: the logo in a loading ring and the wordmark (resources/loading.html) — no face
   void win.loadFile(join(ownResources(), "loading.html"), { query: { lang: zh ? "zh" : "en" } });
   return win;
@@ -2035,7 +2040,10 @@ if (!app.requestSingleInstanceLock({ version: app.getVersion() })) {
             updater.logger = { info: (line) => log(`update: ${line}`), warn: (line) => log(`update: ${line}`), error: (line) => log(`update: ${line}`) };
             return updater;
           },
-          restart: async (install) => !quitting && !!exitGuard && exitGuard.requestExit("restart-update", install),
+          handoff: async (intent, install) => !quitting && !sessionEnding && !!exitGuard && exitGuard.requestExit(intent, install ? () => {
+            if (quitting || sessionEnding) throw new Error("The system is ending the session");
+            install();
+          } : undefined),
           cancelHandoff: async () => { await exitGuard?.cancelHandoff(); },
         });
         windowsUpdates.subscribe((state) => { mainWindow?.webContents.send("nanomuse:updates:state", state); });
@@ -2062,9 +2070,8 @@ if (!app.requestSingleInstanceLock({ version: app.getVersion() })) {
     if (quitting) return;
     quitting = true;
     windowsUpdates?.dispose();
-    // The record the install-on-exit change will read: a quit that did not go through the
-    // protected exit (a crash, the system switching off, a Host that never came up) is not
-    // the person approving an installation.
+    // This cleanup never requests installation. Only the explicit protected
+    // quit or restart above can hand a verified package to the installer.
     log(`quit: the exit ${exitGuard?.approval === "user" ? "went through the protected exit with the person's say-so" : "did not go through the protected exit (the system, a crash, or a Host that was not up)"}`);
     if (startWatch) {
       // a Host still starting goes with the app; the log says it was alive

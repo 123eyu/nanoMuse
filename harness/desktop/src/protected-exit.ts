@@ -1,6 +1,6 @@
 /**
- * The protected exit: what runs between a person asking to quit (later, to
- * restart for an update) and the quit itself. One flow, one busy judgment, for
+ * The protected exit: what runs between a person asking to quit or restart
+ * for an update and the quit itself. One flow, one busy judgment, for
  * both: close the gate so no new work starts under the hand-over, ask before
  * ending what is running, with keeping it running as the default, and only
  * on an explicit confirmation end the work, wait for it to end, and complete
@@ -8,13 +8,11 @@
  *
  * Closing the window to stay in the tray, sitting idle, a crash and the system
  * switching off never come through here: they are not an exit request, and
- * `approval` stays `none` for them: the property a later install-on-exit
- * change must not talk itself out of. `approval` says only that the person
+ * `approval` stays `none` for them. `approval` says only that the person
  * confirmed this exit; it does not say the stop finished every piece of work.
  * For ordinary quit, when the stop's deadline or the rounds ran out with work still on, the log
- * carries "work still on after the stop": the install-on-exit change reads
- * that situation as the person having confirmed ending it, not as quiet.
- * An update restart instead requires acknowledged work state and a completed stop,
+ * carries "work still on after the stop" and the Host ends what remains.
+ * Either update installation requires acknowledged work state and a completed stop,
  * and keeps the gate closed until installation takes over.
  */
 
@@ -91,7 +89,7 @@ export class ProtectedExit {
       return false;
     }
     this.phase = "handoff";
-    if (intent === "restart-update") return this.restartHandoff(install);
+    if (install || intent === "restart-update") return this.installHandoff(intent, install);
     try {
       await this.attempt(this.options.work.setGate(false), "closing the gate");
       let items = await this.busyNow();
@@ -126,11 +124,11 @@ export class ProtectedExit {
   }
 
   /** Installation requires known work state and a completed stop; the gate stays closed. */
-  private async restartHandoff(install?: () => void): Promise<boolean> {
+  private async installHandoff(intent: ExitIntent, install?: () => void): Promise<boolean> {
     try {
       await this.options.work.setGate(false, true);
       let items = await this.options.work.busy(true);
-      if (items.length && !(await this.options.dialog.confirm(items, "restart-update"))) {
+      if (items.length && !(await this.options.dialog.confirm(items, intent))) {
         await this.cancelHandoff();
         return false;
       }
@@ -143,7 +141,7 @@ export class ProtectedExit {
       this.approved = "user";
       return true;
     } catch (exc) {
-      this.options.log(`restart-update: ${String(exc)}; installation cancelled`);
+      this.options.log(`${intent}: ${String(exc)}; installation cancelled`);
       await this.cancelHandoff();
       return false;
     }
