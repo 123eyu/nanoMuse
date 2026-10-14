@@ -50,21 +50,21 @@ enum NanoMuseTab: String, CaseIterable, Identifiable {
 
     var symbol: String {
         switch self {
-        case .chat: return "bubble.left.and.bubble.right"
-        case .feed: return "newspaper"
+        case .chat: return "bubble.left"
+        case .feed: return "doc.text"
         case .ideas: return "lightbulb"
-        case .goals: return "target"
-        case .library: return "books.vertical"
+        case .goals: return "checkmark.square"
+        case .library: return "square.grid.2x2"
         }
     }
 
     var selectedSymbol: String {
         switch self {
-        case .chat: return "bubble.left.and.bubble.right.fill"
-        case .feed: return "newspaper.fill"
+        case .chat: return "bubble.left.fill"
+        case .feed: return "doc.text.fill"
         case .ideas: return "lightbulb.fill"
-        case .goals: return "target"
-        case .library: return "books.vertical.fill"
+        case .goals: return "checkmark.square.fill"
+        case .library: return "square.grid.2x2.fill"
         }
     }
 }
@@ -920,22 +920,30 @@ struct NanoMuseBottomBar: View {
                 Button {
                     onPick(tab)
                 } label: {
-                    Image(systemName: isSelected ? tab.selectedSymbol : tab.symbol)
-                        .font(.system(size: 22, weight: isSelected ? .semibold : .regular))
-                        .foregroundStyle(isSelected ? NanoMuseTones.tabIndicatorGlyph : Color.secondary)
-                        // The capsule keeps its 60 by 46 (narrower only when the slot is).
-                        .frame(maxWidth: Self.tabSize.width)
-                        .frame(height: Self.tabSize.height)
-                        .background {
-                            if isSelected {
-                                Capsule()
-                                    .fill(NanoMuseTones.tabIndicator)
-                                    .matchedGeometryEffect(id: "indicator", in: indicator)
-                            }
+                    Group {
+                        if tab == .library {
+                            NanoMuseCategoryShape(filled: isSelected)
+                                .fill(style: FillStyle(eoFill: true))
+                                .frame(width: 24, height: 24)
+                        } else {
+                            Image(systemName: isSelected ? tab.selectedSymbol : tab.symbol)
+                                .font(.system(size: 22, weight: isSelected ? .semibold : .regular))
                         }
-                        // The slot: an equal share of the pill, all of it tappable.
-                        .frame(maxWidth: .infinity)
-                        .contentShape(Rectangle())
+                    }
+                    .foregroundStyle(isSelected ? NanoMuseTones.tabIndicatorGlyph : Color.secondary)
+                    // The capsule keeps its 60 by 46 (narrower only when the slot is).
+                    .frame(maxWidth: Self.tabSize.width)
+                    .frame(height: Self.tabSize.height)
+                    .background {
+                        if isSelected {
+                            Capsule()
+                                .fill(NanoMuseTones.tabIndicator)
+                                .matchedGeometryEffect(id: "indicator", in: indicator)
+                        }
+                    }
+                    // The slot: an equal share of the pill, all of it tappable.
+                    .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(Text(tab.title))
@@ -954,6 +962,47 @@ struct NanoMuseBottomBar: View {
         .frame(maxWidth: .infinity)
         .padding(.horizontal, Self.inset)
         .padding(.bottom, Self.bottomGap)
+    }
+}
+
+/// Material's `Category` icon (top triangle, bottom-left square, bottom-right circle on a 24x24
+/// grid), matching Android's Library tab icon (`Icons.Outlined.Category` / `Icons.Filled.Category`).
+private struct NanoMuseCategoryShape: Shape {
+    let filled: Bool
+
+    func path(in rect: CGRect) -> Path {
+        let s = min(rect.width, rect.height) / 24.0
+        let ox = rect.minX + (rect.width - 24.0 * s) / 2.0
+        let oy = rect.minY + (rect.height - 24.0 * s) / 2.0
+        func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+            CGPoint(x: ox + x * s, y: oy + y * s)
+        }
+        func box(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat) -> CGRect {
+            CGRect(x: ox + x * s, y: oy + y * s, width: w * s, height: h * s)
+        }
+
+        var p = Path()
+        p.move(to: pt(12, 2))
+        p.addLine(to: pt(6.5, 11))
+        p.addLine(to: pt(17.5, 11))
+        p.closeSubpath()
+        if !filled {
+            p.move(to: pt(12, 5.84))
+            p.addLine(to: pt(13.93, 9))
+            p.addLine(to: pt(10.07, 9))
+            p.closeSubpath()
+        }
+
+        p.addEllipse(in: box(13, 13, 9, 9))
+        if !filled {
+            p.addEllipse(in: box(15, 15, 5, 5))
+        }
+
+        p.addRect(box(3, 13.5, 8, 8))
+        if !filled {
+            p.addRect(box(5, 15.5, 4, 4))
+        }
+        return p
     }
 }
 

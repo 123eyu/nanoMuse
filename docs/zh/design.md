@@ -67,7 +67,7 @@ Android App 的聊天调色板在 `ChatColors.kt`，由 `scripts/rebrand.py` 写
 | 底色（`background`） | `#FFFFFF` | `#000000` |
 | 你的胶囊（`userBubble`）和文字 | `#000000`，文字 `#FFFFFF` | `#FFFFFF`，文字 `#000000` |
 | 智能体的胶囊（`assistantBubble`） | `#F2F2F7` | `#1C1C1E` |
-| 发送按钮（`sendButton`），箭头用底色 | `#000000` | `#FFFFFF` |
+| 发送与停止按钮（`sendButton`），图形用底色 | `#000000` | `#FFFFFF` |
 | 链接、状态行（`link`、`thinking`） | `#015CFB` | `#58A6FF` |
 
 iOS App 的聊天用同样的值：你的胶囊、发送圆盘和「回到最新」圆盘用 `NanoMuseTones.ink` 和 `onInk`，

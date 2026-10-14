@@ -69,7 +69,7 @@ The Android app's chat palette is `ChatColors.kt`, written by `scripts/rebrand.p
 | canvas (`background`) | `#FFFFFF` | `#000000` |
 | your pill (`userBubble`) and its text | `#000000`, text `#FFFFFF` | `#FFFFFF`, text `#000000` |
 | the agent's pill (`assistantBubble`) | `#F2F2F7` | `#1C1C1E` |
-| send button (`sendButton`), arrow in the canvas colour | `#000000` | `#FFFFFF` |
+| send and stop buttons (`sendButton`), glyph in the canvas colour | `#000000` | `#FFFFFF` |
 | links, status line (`link`, `thinking`) | `#015CFB` | `#58A6FF` |
 
 The iOS app's chat uses the same values: `NanoMuseTones.ink` and `onInk` for your pill, the

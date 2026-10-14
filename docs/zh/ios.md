@@ -302,8 +302,9 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   **从 1.0.4 起这一列重新盖在列表的底边上**：`NanoMuseComposerHost` 是一个 `ZStack`，列表保持
   聊天的整个高度，拿到的底部 inset 是这一列量出的高度加底栏，于是消息从输入区和底栏下面滚过，
   静止时最后一条停在输入区上方；`/` 和 `@` 的弹出菜单和这一列同在一个 `VStack` 里，所以从布局上
-  就站在它的上边缘。这一列背后是 Android 的滚动渐隐（`nmBottomFade`）：列表一离开最新一条，
-  就出现一段 90 pt 的画布色渐变和这一列背后的实底，止于底栏上方，好让玻璃留住它后面的消息。
+  就站在它的上边缘。输入框胶囊背后是与 Android 对齐的圆角渐隐光晕（`NanoMuseComposerVignette`）：
+  列表一离开最新一条，就沿着输入框胶囊 26 pt 的圆角轮廓升起一段 90 pt 的画布色圆角渐变，并在底栏
+  上方的间隙淡出为透明，不留整宽的不透明白色长方形条，好让底栏玻璃留住它后面的消息。
   没有第二个宿主可切换。看门狗作为最后一道网留着（聊天在屏幕上时，这一列脱离或者量出 0，就通过
   `.id(rebuildTick)` 重建，每次出现最多两次，这样一个量错了的健康输入区不会反复把键盘收走），
   并且把看到的都记下来：**设置 → 外观 → 输入框检查** 在这一列四周画一个红框（探针视图在
@@ -463,7 +464,8 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   @Ichiro786 的 #329）：五个标签放在一个 `Capsule` 里，离底部安全区 12 pt，和上方的输入框
   一样宽（同样的 16 pt 边距；compact 宽度下最宽 420 pt，没有哪部手机碰得到；regular 宽度，也就是
   iPad 上，它和输入框一样是聊天列减去边距的 728 pt，见下面关于列的那条），只有图标，
-  SF 符号、无障碍标签和选中特征都和以前一样。胶囊是 `.ultraThinMaterial`，上面盖一层 55%
+  五个标签图形与 Android 的 `MuseBottomBar` 对齐（`bubble.left`、`doc.text`、`lightbulb`、
+  `checkmark.square`，以及资料库的三几何图形 `Category`），无障碍标签和选中特征都和以前一样。胶囊是 `.ultraThinMaterial`，上面盖一层 55%
   不透明度的外壳 surface 色（对比度靠这层色，模糊靠材质，和 Android 在背景模糊上盖 55% surface
   一样），边上一道 1 pt 的 `NanoMuseTones.hairline`；原来那条通栏的条和它顶上的细线没有了。
   五个标签平分胶囊的宽度，每一格整格可点；当前这个用 `tabIndicatorGlyph` 色显示实心符号，底下一个
