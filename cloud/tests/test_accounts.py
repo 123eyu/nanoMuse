@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import httpx
+import pytest
 from test_cloud import fake_upstream, sign_up
 
 from nanomuse_cloud.api import create_app
 from nanomuse_cloud.config import Settings
 from nanomuse_cloud.db import Database
+from nanomuse_cloud.identifiers import BadIdentifier, parse
 from nanomuse_cloud.senders import LogSender
 from nanomuse_cloud.service import Cloud, check_password, hash_password
 
@@ -810,7 +812,7 @@ async def test_the_abuse_action_reclaims_the_credit_and_cleans_up():
     accounts that never used anything when asked and keeps the ones that did; a second call
     reclaims nothing; an unknown account is 404. The inviter's timeline and the audit log say
     what was done."""
-    app, client, sender, up, cloud, settings = make(allowance_cny=1, invite_bonus_cny=2, code_per_ip_hour=1000)
+    app, client, sender, up, cloud, settings = make(allowance_cny=1, invite_bonus_cny=2, code_per_ip_hour=1000, signup_per_domain_day=20)
     admin = {"X-Admin-Token": "admin", "X-Admin-Actor": "ops"}
     a = await sign_up(client, sender, "dev-a@example.com", "pixel")
     ka = a["api_key"]
@@ -875,3 +877,100 @@ async def test_the_abuse_action_reclaims_the_credit_and_cleans_up():
     audit = (await client.get("/v1/admin/controls/audit", headers=admin)).json()["audit"]
     mine = [x for x in audit if x["action"] == "invite.abuse"]
     assert len(mine) == 4 and mine[0]["actor"] == "ops" and mine[0]["target"] == a["account"]["id"][:8]
+
+
+async def test_gmail_dot_plus_and_googlemail_canonicalisation_and_legacy_lookup():
+    """Gmail and Googlemail addresses have dots and `+tag` stripped and `googlemail.com`
+    folded to `gmail.com`, so dot/plus aliases cannot open extra accounts; any other domain
+    also strips `+tag` subaddresses; an existing account whose `id_hash` was recorded from
+    a dotted Gmail address before canonicalisation still matches on sign-in and upgrades
+    its `id_hash` in place."""
+    assert parse("First.Last+tag@GoogleMail.COM").value == "firstlast@gmail.com"
+    assert parse("First.Last+tag@GoogleMail.COM").raw_value == "first.last+tag@googlemail.com"
+    assert parse("a.b.c@gmail.com").value == "abc@gmail.com"
+    assert parse("dev.a+1@example.com").value == "dev.a@example.com"
+    for bad in ("...@gmail.com", "+tag@gmail.com", "+tag@example.com"):
+        with pytest.raises(BadIdentifier):
+            parse(bad)
+
+    app, client, sender, up, cloud, settings = make(allowance_cny=10, code_per_identifier_10m=10, code_per_ip_hour=1000)
+    first = await sign_up(client, sender, "a.b.c@gmail.com", "pixel")
+    assert first["created"] is True
+    for alias in ("ab.c@gmail.com", "abc@gmail.com", "a.b.c+2@gmail.com", "abc@googlemail.com"):
+        again = await sign_up(client, sender, alias, "mac")
+        assert again["created"] is False and again["account"]["id"] == first["account"]["id"]
+
+    # An account created before canonicalisation (stored with the legacy dotted hash)
+    # still matches when the holder signs in with dots or with password, and upgrades its
+    # id_hash to the canonical hash.
+    legacy_raw = "old.user@gmail.com"
+    legacy_ident = parse(legacy_raw)
+    legacy_hash = legacy_ident.legacy_hash(cloud.s.hmac_key)
+    assert legacy_hash is not None and legacy_hash != legacy_ident.hash(cloud.s.hmac_key)
+    legacy_id = cloud.db.new_account_id()
+    enc = cloud.crypto.encrypt(legacy_id, legacy_raw)
+    cloud.db.create_account(legacy_hash, "email", "ol***@gmail.com", 0, enc, account_id=legacy_id, grant_uy=10_000_000)
+    cloud.db.set_password(legacy_id, hash_password("correct horse 1"))
+
+    r = await client.post("/v1/auth/login", json={"identifier": "old.user@gmail.com", "password": "correct horse 1", "device": "mac"})
+    assert r.status_code == 200 and r.json()["account"]["id"] == legacy_id
+    # The row's id_hash is now upgraded to the canonical hash, so undotted sign-in matches too.
+    again_login = await sign_up(client, sender, "olduser@gmail.com", "pixel")
+    assert again_login["created"] is False and again_login["account"]["id"] == legacy_id
+
+
+async def test_blocked_disposable_domains_are_refused():
+    """Domains in DEFAULT_SIGNUP_DOMAIN_BLOCK and SIGNUP_DOMAIN_BLOCK are refused for new
+    sign-ups with `429 domain_limited` even when `signup_per_domain_day` is not yet reached
+    or is 0; an entry in `SIGNUP_DOMAIN_ALLOW` overrides the blocklist."""
+    app, client, sender, up, cloud, settings = make(
+        signup_per_domain_day=0,
+        signup_domain_block="throwaway.example.org",
+        signup_domain_allow="allowed.maxxspace.com",
+        code_per_ip_hour=1000,
+    )
+    for blocked in ("bot1@maxxspace.com", "bot2@duckmail.sbs", "sub@mail.duckmail.sbs", "x@throwaway.example.org"):
+        r = await client.post("/v1/auth/code", json={"identifier": blocked})
+        assert r.status_code == 429 and r.json()["error"]["code"] == "domain_limited", blocked
+    ok = await sign_up(client, sender, "friend@allowed.maxxspace.com", "mac")
+    assert ok["created"] is True
+
+
+async def test_invite_settlement_refuses_same_ip_and_tiny_probes():
+    """An invite bonus does not settle when the inviter and invitee share the same
+    non-local `first_ip`, and does not settle on a tiny probe below
+    `invite_settle_min_spent_uy` unless the invitee has registered a Hub device or crosses
+    the spend threshold."""
+    app, client, sender, up, cloud, settings = make(
+        allowance_cny=5, invite_bonus_cny=2, invite_settle_min_spent_uy=200, code_per_ip_hour=1000
+    )
+    inviter = await sign_up(client, sender, "inviter@gmail.com", "pixel", headers={"X-Forwarded-For": "198.51.100.10"})
+    code = (await client.get("/v1/me/invite", headers=auth(inviter["api_key"]))).json()["code"]
+
+    # Same IP as the inviter: even after a normal chat, the invite bonus stays pending.
+    same_ip = await sign_up(client, sender, "selfinvite@gmail.com", "mac", invite=code, headers={"X-Forwarded-For": "198.51.100.10"})
+    await chat(client, same_ip["api_key"])
+    me_inviter = (await client.get("/v1/me", headers=auth(inviter["api_key"]))).json()
+    assert me_inviter["invite"]["settled"] == 0 and me_inviter["invite"]["pending"] == 1
+
+    # Different IP, but a tiny streamed turn (40 prompt + 6 completion tokens on
+    # qwen3.8-flash = 48 micro-yuan < 200 micro-yuan): stays pending until real usage
+    # crosses the threshold.
+    friend = await sign_up(client, sender, "friend@gmail.com", "mac", invite=code, headers={"X-Forwarded-For": "203.0.113.25"})
+    r = await client.post(
+        "/v1/chat/completions",
+        headers=auth(friend["api_key"]),
+        json={"model": "qwen3.8-flash", "stream": True, "messages": [{"role": "user", "content": "hi"}]},
+    )
+    assert r.status_code == 200
+    me_friend = (await client.get("/v1/me", headers=auth(friend["api_key"]))).json()
+    assert me_friend["spend"]["grant"] == 5
+    me_inviter = (await client.get("/v1/me", headers=auth(inviter["api_key"]))).json()
+    assert me_inviter["invite"]["settled"] == 0
+
+    # A full chat turn (215 micro-yuan, bringing total spend > 200 micro-yuan) settles both.
+    await chat(client, friend["api_key"])
+    me_friend = (await client.get("/v1/me", headers=auth(friend["api_key"]))).json()
+    assert me_friend["spend"]["grant"] == 7
+    me_inviter = (await client.get("/v1/me", headers=auth(inviter["api_key"]))).json()
+    assert me_inviter["invite"]["settled"] == 1 and me_inviter["spend"]["grant"] == 7

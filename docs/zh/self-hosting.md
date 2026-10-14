@@ -20,7 +20,7 @@ nanoMuse Cloud 就是 nanomuse.cn 背后的那个中继：邮箱或手机号登�
 
 - **一台机器。** 1 vCPU、1 GB 内存的 VPS 够一家人用；中继空闲时只占几十兆内存，模型的活在服务商那边干。这样一台服务器在中国大陆大约每月 ¥30–60，境外大约 US$4–6，哪家都行，中继不挑。只在局域网内用的中继，一台家用服务器或一台闲置笔记本就行。
 - **一个域名**，指向这台机器（一条 A 记录），80 和 443 端口可达。和中继一起跑的 Caddy 会自己申请和续期 Let's Encrypt 证书。只在局域网内用的中继可以跳过这条。
-- **一把模型服务商的 key。** 中继花的是*你的*钱、用的是*你的*服务商：在你的中继上登录的每个人都记在这把 key 上，按服务商的价格计费，在你设定的额度之内（`ALLOWANCE_CNY`、`SIGNUP_OPEN`，成员写在 `ALLOWED_IDENTIFIERS`；[cloud/README.md](../../cloud/README.md#settings)）。没有 key，登录和 hub 能用，聊天不能。
+- **一把模型服务商的 key。** 中继花的是*你的*钱、用的是*你的*服务商：在你的中继上登录的每个人都记在这把 key 上，按服务商的价格计费，在你设定的额度之内（`ALLOWANCE_CNY`、`SIGNUP_OPEN`、`SIGNUP_PER_DOMAIN_DAY`、`SIGNUP_DOMAIN_BLOCK`，成员写在 `ALLOWED_IDENTIFIERS`；[cloud/README.md](../../cloud/README.md#settings)）。没有 key，登录和 hub 能用，聊天不能。
 - **Docker**，带 compose 插件，还有 `curl`。
 
 ### 一条命令 {#in-one-command}

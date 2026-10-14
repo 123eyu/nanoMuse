@@ -412,6 +412,42 @@ WELL_KNOWN_MAIL_DOMAINS: frozenset[str] = frozenset(
     }
 )
 
+# Disposable and throwaway mail domains blocked from opening new accounts by default;
+# SIGNUP_DOMAIN_BLOCK adds more, and SIGNUP_DOMAIN_ALLOW can override an entry here.
+DEFAULT_SIGNUP_DOMAIN_BLOCK: tuple[str, ...] = (
+    "duckmail.sbs",
+    "fexbox.org",
+    "fexpost.com",
+    "gmeenramy.com",
+    "guerrillamail.biz",
+    "guerrillamail.com",
+    "guerrillamail.de",
+    "guerrillamail.net",
+    "guerrillamail.org",
+    "guerrillamailblock.com",
+    "lnovic.com",
+    "mailinator.com",
+    "mailto.plus",
+    "markaihub.shop",
+    "maxxspace.com",
+    "mydefipet.live",
+    "olipii.com",
+    "ooynib.com",
+    "pokemail.net",
+    "psnator.com",
+    "ruutukf.com",
+    "sharklasers.com",
+    "smartnator.com",
+    "spam4.me",
+    "tanpony.com",
+    "temp-mail.lol",
+    "tempmail.com",
+    "tmpmailtor.com",
+    "trashmail.com",
+    "yopmail.com",
+    "yzcalo.com",
+)
+
 
 def _env(name: str, default: str = "") -> str:
     v = os.environ.get(name)
@@ -522,6 +558,10 @@ class Settings:
     # until it is cleared — what is here is the starting point.
     allowance_cny: float = field(default_factory=lambda: float(_env("ALLOWANCE_CNY", "10")))
     invite_bonus_cny: float = field(default_factory=lambda: float(_env("INVITE_BONUS_CNY", "5")))
+    # Minimum provider spend (in micro-yuan) by an invited account before its invite bonus
+    # is settled when the account has not registered a Hub device; default 200 micro-yuan
+    # refuses single-line scripted probes while settling normal chat turns.
+    invite_settle_min_spent_uy: int = field(default_factory=lambda: _int("INVITE_SETTLE_MIN_SPENT_UY", 200))
     day_offset_h: int = field(default_factory=lambda: _int("DAY_OFFSET_H", 8))
     # Data controls (0.9): "Help improve nanoMuse's AI models" keeps the text of an
     # account's chat turns — what the person wrote and what the model answered, the
@@ -584,8 +624,11 @@ class Settings:
     # separated): past the limit a code request for a new address of that domain is answered
     # `429 domain_limited`; an existing account always gets its code. 0 = off. A catch-all
     # domain of one's own, or a bought list of mailboxes, is how a pool is farmed.
-    signup_per_domain_day: int = field(default_factory=lambda: _int("SIGNUP_PER_DOMAIN_DAY", 20))
+    # Domains in DEFAULT_SIGNUP_DOMAIN_BLOCK or SIGNUP_DOMAIN_BLOCK are refused for new
+    # sign-ups right away with the same `429 domain_limited`.
+    signup_per_domain_day: int = field(default_factory=lambda: _int("SIGNUP_PER_DOMAIN_DAY", 5))
     signup_domain_allow: str = field(default_factory=lambda: _env("SIGNUP_DOMAIN_ALLOW"))
+    signup_domain_block: str = field(default_factory=lambda: _env("SIGNUP_DOMAIN_BLOCK"))
     # One phone/e-mail = one grant; a second device signing in with the same
     # identifier shares the account and gets a second key, not a second grant.
 
@@ -668,6 +711,14 @@ class Settings:
         plus SIGNUP_DOMAIN_ALLOW, lower-cased, without a leading ``@``."""
         given = {x.strip().lower().lstrip("@") for x in self.signup_domain_allow.split(",") if x.strip()}
         return WELL_KNOWN_MAIL_DOMAINS | frozenset(given)
+
+    @property
+    def signup_domain_block_set(self) -> frozenset[str]:
+        """Disposable mail domains blocked from opening new accounts: the default list plus
+        SIGNUP_DOMAIN_BLOCK, minus anything explicitly listed in SIGNUP_DOMAIN_ALLOW."""
+        explicit_allow = {x.strip().lower().lstrip("@") for x in self.signup_domain_allow.split(",") if x.strip()}
+        given = {x.strip().lower().lstrip("@") for x in self.signup_domain_block.split(",") if x.strip()}
+        return (frozenset(DEFAULT_SIGNUP_DOMAIN_BLOCK) | frozenset(given)) - explicit_allow
 
     @property
     def github_repo_path(self) -> str:

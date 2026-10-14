@@ -752,6 +752,27 @@ class Database:
         with self._lock:
             return self._conn.execute("SELECT * FROM accounts WHERE id_hash=?", (id_hash,)).fetchone()
 
+    def account_by_hashes(self, id_hashes: tuple[str, ...]) -> sqlite3.Row | None:
+        """Look up an account by its canonical hash first, then by any legacy
+        hash (such as a dotted Gmail address created before canonicalisation).
+        When matched on a legacy hash and the canonical hash is not taken,
+        ``id_hash`` is updated in place so subsequent lookups match directly."""
+        if not id_hashes:
+            return None
+        primary = id_hashes[0]
+        row = self.account_by_hash(primary)
+        if row is not None or len(id_hashes) == 1:
+            return row
+        for legacy in id_hashes[1:]:
+            row = self.account_by_hash(legacy)
+            if row is not None:
+                with self.tx() as c:
+                    taken = c.execute("SELECT 1 FROM accounts WHERE id_hash=?", (primary,)).fetchone()
+                    if taken is None:
+                        c.execute("UPDATE accounts SET id_hash=? WHERE id=?", (primary, row["id"]))
+                return self.account(str(row["id"]))
+        return None
+
     def account(self, account_id: str) -> sqlite3.Row | None:
         with self._lock:
             return self._conn.execute("SELECT * FROM accounts WHERE id=?", (account_id,)).fetchone()
@@ -1001,21 +1022,52 @@ class Database:
             ).fetchone()
         return r is not None
 
-    def settle_invite(self, invitee_id: str, bonus_uy: int) -> tuple[bool, str, bool]:
+    def settle_invite(
+        self,
+        invitee_id: str,
+        bonus_uy: int,
+        min_spent_uy: int = 0,
+        refuse_same_ip: bool = False,
+    ) -> tuple[bool, str, bool]:
         """The invitee made its first charged request: both pools grow by the bonus, the
         inviter's (``from: invite``, with the friend's id) and the invitee's (``from:
         invited``), and the account is marked settled. A no-op when the account was not
         invited or was settled already. When the inviter's account is gone, or disabled,
         the invitee alone is credited and the account is still marked settled, so the
-        question is never asked again. Returns ``(settled, inviter_id, inviter_paid)``."""
+        question is never asked again. When ``refuse_same_ip`` is true and both accounts
+        share the same non-local ``first_ip``, or when ``min_spent_uy`` is positive and the
+        invitee has neither spent at least ``min_spent_uy`` nor registered a Hub device,
+        settlement is deferred and ``(False, inviter_id, False)`` is returned. Returns
+        ``(settled, inviter_id, inviter_paid)``."""
         t = now()
         bonus_uy = max(0, int(bonus_uy))
+        min_spent_uy = max(0, int(min_spent_uy))
         with self.tx() as c:
-            row = c.execute("SELECT invited_by, invite_settled_at FROM accounts WHERE id=?", (invitee_id,)).fetchone()
+            row = c.execute(
+                "SELECT invited_by, invite_settled_at, first_ip FROM accounts WHERE id=?",
+                (invitee_id,),
+            ).fetchone()
             if row is None or not row["invited_by"] or row["invite_settled_at"] is not None:
                 return False, str(row["invited_by"]) if row is not None else "", False
             inviter_id = str(row["invited_by"])
-            inviter = c.execute("SELECT id, disabled FROM accounts WHERE id=?", (inviter_id,)).fetchone()
+            inviter = c.execute("SELECT id, disabled, first_ip FROM accounts WHERE id=?", (inviter_id,)).fetchone()
+            if refuse_same_ip and inviter is not None:
+                invitee_ip = (row["first_ip"] or "").strip()
+                inviter_ip = (inviter["first_ip"] or "").strip()
+                if invitee_ip and invitee_ip == inviter_ip and invitee_ip not in ("127.0.0.1", "::1", "testclient"):
+                    return False, inviter_id, False
+            if min_spent_uy > 0:
+                spent = int(
+                    c.execute(
+                        "SELECT COALESCE(SUM(cost_uy), 0) FROM ledger WHERE account_id=? AND cost_uy>0",
+                        (invitee_id,),
+                    ).fetchone()[0]
+                    or 0
+                )
+                if spent < min_spent_uy:
+                    has_device = c.execute("SELECT 1 FROM devices WHERE account_id=? LIMIT 1", (invitee_id,)).fetchone()
+                    if has_device is None:
+                        return False, inviter_id, False
             inviter_paid = inviter is not None and not inviter["disabled"]
             if inviter_paid:
                 c.execute("UPDATE accounts SET grant_uy=grant_uy+? WHERE id=?", (bonus_uy, inviter_id))
