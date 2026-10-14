@@ -351,6 +351,10 @@ bundle 在、却没启动起来（日志的 `helper:` 行会说原因）不属�
 
 ## macOS 签名 {#macos-signing}
 
+`scripts/desktop-app/package-mac.sh x64` 打包 `dist/mac`，`arm64` 打包 `dist/mac-arm64`，
+即使两种构建同时存在也只选择对应目录。应用包缺失或无法唯一确定、内部 Mach-O 签名失败，
+或者应用、助手程序、磁盘镜像校验失败时，打包会报错退出。
+
 没有 Apple 开发者证书时，bundle 是 ad-hoc 签名，macOS 会问一次。配好仓库密钥
 `MAC_CERT_P12_BASE64`、`MAC_CERT_PASSWORD`、`APP_STORE_CONNECT_KEY_ID`、
 `APP_STORE_CONNECT_ISSUER_ID`、`APP_STORE_CONNECT_KEY_P8` 以及（可选的）`APPLE_TEAM_ID` 之后，

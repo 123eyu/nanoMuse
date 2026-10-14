@@ -453,6 +453,11 @@ TypeScript can change freely).
 
 ## macOS signing
 
+`scripts/desktop-app/package-mac.sh x64` packages `dist/mac`, and `arm64` packages
+`dist/mac-arm64`, even when both builds are present. A missing or ambiguous bundle,
+a failed inner Mach-O signature, or a failed app, helper or disk-image verification
+stops packaging with an error.
+
 Without an Apple developer certificate the bundle is ad-hoc signed and macOS asks once.
 With the repository secrets `MAC_CERT_P12_BASE64`, `MAC_CERT_PASSWORD`,
 `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`, `APP_STORE_CONNECT_KEY_P8` and
