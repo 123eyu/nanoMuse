@@ -76,9 +76,9 @@ fun rememberShowSteps(): State<Boolean> {
 }
 
 /**
- * Muse's grey bubble around one block of the agent's reply. Each top-level block of a message
- * (a paragraph, a list) is its own bubble, which is also how Muse breaks a long reply up. Code
- * blocks, tables and the app's own `nanomuse-*` cards carry their own frame and are left bare.
+ * Muse's grey bubble around one assistant text block. Headings, lists, code blocks, and tables
+ * render inside this single bubble (matching iOS); only standalone `nanomuse-*` protocol fences
+ * carry their own card frame and are left bare.
  */
 @Composable
 fun NmAssistantBubble(
@@ -105,7 +105,9 @@ fun NmAssistantBubble(
     }
 }
 
-private fun isBareBlock(raw: String): Boolean {
-    val t = raw.trimStart()
-    return t.startsWith("```") || t.startsWith("~~~") || t.startsWith("|") || t.startsWith("<")
+internal fun isBareBlock(raw: String): Boolean {
+    val t = raw.trim()
+    if (!t.startsWith("```nanomuse-")) return false
+    val closeIdx = t.indexOf("\n```")
+    return closeIdx < 0 || closeIdx + 4 == t.length
 }

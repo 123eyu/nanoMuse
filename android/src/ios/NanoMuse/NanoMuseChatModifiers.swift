@@ -135,21 +135,179 @@ struct NanoMuseComposerHost: ViewModifier {
 
     private var fadeLayer: AnyView {
         AnyView(
-            VStack(spacing: 0) {
-                LinearGradient(
-                    colors: [ChatColors.background.opacity(0), ChatColors.background],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: Self.fadeHeight)
-                ChatColors.background
-                    .frame(height: columnHeight)
-            }
+            NanoMuseComposerVignette(
+                composerHeight: min(columnHeight, 62),
+                bottomGap: overlay > 0 ? 8 : 0
+            )
+            .frame(height: Self.fadeHeight + min(columnHeight, 62))
             .padding(.bottom, overlay)
             .opacity(fade ? 1 : 0)
             .animation(.easeInOut(duration: 0.25), value: fade)
             .allowsHitTesting(false)
         )
+    }
+}
+
+/// Rounded halo behind the floating composer pill, matching Android's `NmComposerVignette`.
+/// Follows the capsule contour (`cornerRadius = 26`, `maxWidth = 760`, `horizontalPadding = 16`)
+/// instead of painting a full-width opaque rectangular strip across the chat.
+private struct NanoMuseComposerVignette: View {
+    let composerHeight: CGFloat
+    let bottomGap: CGFloat
+
+    private static let spread: CGFloat = NanoMuseComposerHost.fadeHeight
+    private static let cornerRadius: CGFloat = 26
+    private static let horizontalInset: CGFloat = 16
+    private static let maxContentWidth: CGFloat = 760
+
+    var body: some View {
+        Canvas { context, size in
+            guard size.width > 0, size.height > 0, composerHeight > 0 else { return }
+            let bg = ChatColors.background
+            let clear = bg.opacity(0)
+            let spread = min(Self.spread, size.height)
+            let barH = max(0, size.height - spread)
+            let gap = min(bottomGap, barH)
+
+            let pillWidth = max(0, min(size.width, Self.maxContentWidth) - Self.horizontalInset * 2)
+            let padH = (size.width - pillWidth) / 2
+            let innerLeft = padH
+            let innerRight = size.width - padH
+            let innerTop = spread
+            let innerBottom = max(innerTop, size.height - gap)
+            let innerW = max(0, innerRight - innerLeft)
+            let innerH = max(0, innerBottom - innerTop)
+            let r = min(Self.cornerRadius, min(innerW, innerH) / 2)
+            let outerR = r + spread
+
+            let cxL = innerLeft + r
+            let cxR = innerRight - r
+            let cyT = innerTop + r
+            let cyB = innerBottom - r
+
+            context.drawLayer { layer in
+                if cxR > cxL && innerBottom > innerTop {
+                    layer.fill(
+                        Path(CGRect(x: cxL, y: innerTop, width: cxR - cxL, height: innerBottom - innerTop)),
+                        with: .color(bg)
+                    )
+                }
+                if cyB > cyT && innerRight > innerLeft {
+                    layer.fill(
+                        Path(CGRect(x: innerLeft, y: cyT, width: innerRight - innerLeft, height: cyB - cyT)),
+                        with: .color(bg)
+                    )
+                }
+
+                let topH = cyT - (cyT - outerR) - r
+                if topH > 0 && cxR > cxL {
+                    let rect = CGRect(x: cxL, y: cyT - outerR, width: cxR - cxL, height: topH)
+                    layer.fill(
+                        Path(rect),
+                        with: .linearGradient(
+                            Gradient(colors: [bg, clear]),
+                            startPoint: CGPoint(x: cxL, y: cyT - r),
+                            endPoint: CGPoint(x: cxL, y: cyT - outerR)
+                        )
+                    )
+                }
+
+                let botStart = cyB + r
+                let botH = size.height - botStart
+                if botH > 0 && cxR > cxL {
+                    let rect = CGRect(x: cxL, y: botStart, width: cxR - cxL, height: botH)
+                    layer.fill(
+                        Path(rect),
+                        with: .linearGradient(
+                            Gradient(colors: [bg, clear]),
+                            startPoint: CGPoint(x: cxL, y: botStart),
+                            endPoint: CGPoint(x: cxL, y: cyB + outerR)
+                        )
+                    )
+                }
+
+                let leftEnd = cxL - r
+                let leftStart = max(0, cxL - outerR)
+                if leftEnd > leftStart && cyB > cyT {
+                    let rect = CGRect(x: leftStart, y: cyT, width: leftEnd - leftStart, height: cyB - cyT)
+                    layer.fill(
+                        Path(rect),
+                        with: .linearGradient(
+                            Gradient(colors: [bg, clear]),
+                            startPoint: CGPoint(x: leftEnd, y: cyT),
+                            endPoint: CGPoint(x: cxL - outerR, y: cyT)
+                        )
+                    )
+                }
+
+                let rightStart = cxR + r
+                let rightEnd = min(size.width, cxR + outerR)
+                if rightEnd > rightStart && cyB > cyT {
+                    let rect = CGRect(x: rightStart, y: cyT, width: rightEnd - rightStart, height: cyB - cyT)
+                    layer.fill(
+                        Path(rect),
+                        with: .linearGradient(
+                            Gradient(colors: [bg, clear]),
+                            startPoint: CGPoint(x: rightStart, y: cyT),
+                            endPoint: CGPoint(x: cxR + outerR, y: cyT)
+                        )
+                    )
+                }
+
+                if outerR > 0 {
+                    let innerStop = min(1, max(0, r / outerR))
+                    let radial = Gradient(stops: [
+                        .init(color: bg, location: 0),
+                        .init(color: bg, location: innerStop),
+                        .init(color: clear, location: 1),
+                    ])
+                    let corners: [(CGPoint, CGRect)] = [
+                        (
+                            CGPoint(x: cxL, y: cyT),
+                            CGRect(x: max(0, cxL - outerR), y: max(0, cyT - outerR), width: cxL - max(0, cxL - outerR), height: cyT - max(0, cyT - outerR))
+                        ),
+                        (
+                            CGPoint(x: cxR, y: cyT),
+                            CGRect(x: cxR, y: max(0, cyT - outerR), width: min(size.width, cxR + outerR) - cxR, height: cyT - max(0, cyT - outerR))
+                        ),
+                        (
+                            CGPoint(x: cxL, y: cyB),
+                            CGRect(x: max(0, cxL - outerR), y: cyB, width: cxL - max(0, cxL - outerR), height: size.height - cyB)
+                        ),
+                        (
+                            CGPoint(x: cxR, y: cyB),
+                            CGRect(x: cxR, y: cyB, width: min(size.width, cxR + outerR) - cxR, height: size.height - cyB)
+                        ),
+                    ]
+                    for (center, clipRect) in corners where clipRect.width > 0 && clipRect.height > 0 {
+                        var sub = layer
+                        sub.clip(to: Path(clipRect))
+                        sub.fill(
+                            Path(clipRect),
+                            with: .radialGradient(radial, center: center, startRadius: 0, endRadius: outerR)
+                        )
+                    }
+                }
+
+                if gap > 0 {
+                    let fadeStart = min(0.95, max(0, (innerBottom - spread * 0.35) / size.height))
+                    var mask = layer
+                    mask.blendMode = .destinationIn
+                    mask.fill(
+                        Path(CGRect(origin: .zero, size: size)),
+                        with: .linearGradient(
+                            Gradient(stops: [
+                                .init(color: .white, location: 0),
+                                .init(color: .white, location: fadeStart),
+                                .init(color: .white.opacity(0), location: 1),
+                            ]),
+                            startPoint: CGPoint(x: 0, y: 0),
+                            endPoint: CGPoint(x: 0, y: size.height)
+                        )
+                    )
+                }
+            }
+        }
     }
 }
 

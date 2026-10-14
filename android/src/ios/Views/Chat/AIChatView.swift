@@ -4825,6 +4825,7 @@ private struct ComposerSurface: ViewModifier {
             content // nanoMuse:
                 .background(shape.fill(NanoMuseTones.bubble)) // nanoMuse:
                 .clipShape(shape) // nanoMuse:
+                .shadow(color: Color.black.opacity(0.08), radius: 4, x: 0, y: 2) // nanoMuse: soft shadow matching Android
         } else if #available(iOS 26.0, *) {
             content
                 .glassEffect(.regular, in: shape)
