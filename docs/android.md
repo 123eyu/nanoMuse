@@ -263,6 +263,9 @@ service, it falls back to the default recognition service. A language error from
 default service is shown in the voice panel. A running on-device recognizer whose language
 pack is unavailable still falls back once to the default service.
 
+The voice detector releases its allocated recorder if recording cannot start or is cancelled
+before capture begins. You can retry voice input without leaving that recorder allocated.
+
 ## Privacy and permissions
 
 The relay keeps an account id, a masked identifier, usage counts and the agent's name and
