@@ -355,9 +355,10 @@ Ours, in `NanoMuse/`:
   list keeps the chat's full height and is passed a bottom inset of the column's measured height
   plus the bar, so the rows scroll under the column and the bar and the last row stops above the
   column at rest; the `/` and `@` popup shares a `VStack` with the column and so stands on its top
-  edge by layout. Behind the column, Android's scrolling fade (`nmBottomFade`): once the list is
-  scrolled away from the latest row, a 90 pt gradient of the canvas colour and the solid canvas
-  behind the column, stopping above the bar so the glass keeps its rows. There is no second host to
+  edge by layout. Behind the composer pill, Android's rounded vignette (`NanoMuseComposerVignette`):
+  once the list is scrolled away from the latest row, a 90 pt rounded halo of the canvas colour
+  follows the composer pill's 26 pt contour and fades to clear in the gap above the bar so the
+  glass keeps its rows without a solid rectangular strip. There is no second host to
   switch to. The watch stays as the last net (a column that detaches or measures 0
   while the chat is on screen is rebuilt through `.id(rebuildTick)`, at most twice per appearance so
   a mis-measured healthy composer cannot take the keyboard away repeatedly), and it keeps what it
@@ -559,8 +560,10 @@ Ours, in `NanoMuse/`:
   `MuseBottomBar`, #329 by @Ichiro786): the five tabs sit in a `Capsule` 12 pt above the bottom
   safe area, as wide as the composer above it (the same 16 pt margins; 420 pt at most on a compact
   width, which no phone reaches; on a regular width, the iPad, it is the chat column's width less
-  the margins, 728 pt, as the composer is, see the column note below), icons only, with the same
-  SF symbols, accessibility labels and selected trait as before. The pill is `.ultraThinMaterial` under the shell's surface tone at 55 percent opacity (the
+  the margins, 728 pt, as the composer is, see the column note below), icons only, with the five
+  tab shapes aligned to Android's `MuseBottomBar` (`bubble.left`, `doc.text`, `lightbulb`,
+  `checkmark.square`, and the three-shape `Category` glyph for Library) and the same accessibility
+  labels and selected trait as before. The pill is `.ultraThinMaterial` under the shell's surface tone at 55 percent opacity (the
   tint carries the contrast, the material carries the blur, as Android's 55 percent surface over its
   backdrop blur) with a 1 pt `NanoMuseTones.hairline` edge; the old full-width strip and its hairline
   on top are gone. The five tabs share the pill's width equally, each slot tappable across; the

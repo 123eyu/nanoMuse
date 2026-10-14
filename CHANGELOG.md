@@ -14,7 +14,11 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Android
 
+- **A single assistant markdown turn stays in one bubble, and the stop button matches the send disc.** A reply turn containing lists, headings, paragraphs and code blocks now stays inside one assistant bubble on Android as it does on iOS instead of splitting into separate sibling bubbles per markdown block, while text before and after a tool call and separate messages remain distinct bubbles. While a reply is streaming, the stop button in the composer uses the monochrome ink disc (`ChatColors.sendButton` with the inner square in `ChatColors.background`, black with a white square in light and inverted in dark) instead of a red circle.
+
 ### iOS
+
+- **The composer halo and the bottom pill-bar icons match Android.** `NanoMuseComposerHost` now draws a rounded vignette (`NanoMuseComposerVignette`) following the composer pill's 26 pt contour and soft shadow instead of a full-width opaque rectangular strip behind the composer column. The five bottom pill-bar tabs use the same icon shapes as Android's `MuseBottomBar`: single chat bubble (`bubble.left`), document with lines (`doc.text`), lightbulb (`lightbulb`), checked square (`checkmark.square`) and the three-shape category glyph for Library.
 
 ### Project
 
