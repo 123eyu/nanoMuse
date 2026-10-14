@@ -34,11 +34,12 @@ object MainChat {
      * Picks the main chat: the persisted one if it still exists, else the first-conversation
      * session, else the most recently updated session (so a 0.1.2 user's current chat becomes
      * home), else a fresh draft that becomes real on first send. A chat synced under another
-     * account (contract C10, [io.github.nanomuse.sync.ConversationSync.hidden]) is never it.
+     * account (contract C10, [io.github.nanomuse.sync.ConversationSync.hidden]) is never it, and
+     * neither is the feed's working conversation ([io.github.nanomuse.feed.FeedFlow.hidden]).
      */
     suspend fun resolve(context: Context, chatRepository: ChatRepository): String {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val hidden = io.github.nanomuse.sync.ConversationSync.hidden.value
+        val hidden = io.github.nanomuse.sync.ConversationSync.hidden.value + io.github.nanomuse.feed.FeedFlow.hidden.value
         prefs.getString(KEY_SESSION, null)?.let { id ->
             if (id !in hidden && chatRepository.getSession(id) != null) return publish(id)
         }

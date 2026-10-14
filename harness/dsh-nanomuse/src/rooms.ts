@@ -243,6 +243,8 @@ interface Store {
 /** What the browser mirrors. */
 export interface RoomsView extends Omit<Store, 'activity'> {
   busy: { feed: boolean; ideas: boolean }
+  /** The chats of the batches running right now (the feed's): the chats column leaves them out. */
+  batches: string[]
   automations: Record<string, GoalAutomation[]>
   /** Whether a model is reachable, so the empty rooms can say why they are empty. */
   ready: boolean
@@ -416,6 +418,7 @@ export default class NanomuseRooms extends Service {
       ideas: { ...this.store.ideas, items: this.ideaItems() },
       activity,
       busy: { ...this.busy },
+      batches: [...this.runs.keys()],
       automations: this.automations,
       ready: this.ready,
       studio: this.studio,
@@ -1042,7 +1045,8 @@ export default class NanomuseRooms extends Service {
     this.broadcast()
     try {
       const before = this.store.feed.posts.length
-      const text = await this.run(this.lang.startsWith('zh') ? '动态 · ' + today(this.lang) : 'Feed · ' + today(this.lang), this.feedPrompt())
+      const zh = this.lang.startsWith('zh')
+      const text = await this.run(zh ? '动态 · ' + today(this.lang) : 'Feed · ' + today(this.lang), this.feedPrompt(), zh ? '写今天的动态' : "Writing today's feed")
       const rows = parseArray(text)
       const now = Date.now()
       const posts: FeedPost[] = []
@@ -1520,8 +1524,13 @@ export default class NanomuseRooms extends Service {
     return Boolean(resolved && 'agent' in resolved)
   }
 
-  /** A background batch: a chat of its own, the final answer returned, the chat archived. */
-  private async run(title: string, prompt: string): Promise<string> {
+  /**
+   * A background batch: a chat of its own, the final answer returned, the chat archived. The
+   * prompt is the rooms' own, not the person's words, so it goes out as a notice (`summary`, one
+   * short line in the window should the chat ever be opened) and the chat stays out of the chats
+   * column while it runs (`RoomsView.batches`).
+   */
+  private async run(title: string, prompt: string, summary: string): Promise<string> {
     const sc = this.ctx.get('sessionController')
     if (!sc) throw new Error('chats are not available yet')
     if (!(await this.ctx.nanomuseCloud.status()).ready) throw new Error('no model is set up')
@@ -1548,11 +1557,13 @@ export default class NanomuseRooms extends Service {
           reject(error)
         }
         this.runs.set(created.sessionId, { final: '', resolve: done, reject: fail })
-        agent.followup(createUserMessage({ content: [{ type: 'text', text: prompt }], source: { kind: 'user' } }))
+        this.broadcast()
+        agent.followup(createUserMessage({ content: [{ type: 'text', text: prompt }], source: { kind: 'nanomuse', form: 'notice', summary: summary.slice(0, 120) } }))
       })
     } finally {
       // The batch is a means, not a chat: out of the list, kept in the archive.
       await (this.ctx.get('workspaceRegistry') as RegistryLike | undefined)?.archiveSession(created.sessionId, { stopActivity: true }).catch(() => undefined)
+      this.broadcast()
     }
     return text
   }

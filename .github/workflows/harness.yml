@@ -5,20 +5,24 @@
 #                                   (docs/harness.md, harness/README.md); nanoMuse Desktop
 #                                   itself carries the same bundle (desktop-app.yml)
 #
-# A push or pull request that touches harness/ builds, typechecks and tests the bundle; a
-# release tag `v*` also packs it and attaches the tarball and its checksum to the release of
+# A push or pull request that touches harness/ builds, typechecks and tests the bundle and the
+# Electron shell (harness/desktop: typecheck and its node tests, no installer), on Linux and on
+# Windows, where the tests see a checkout made with core.autocrlf and Windows paths; a
+# release tag `v*` also packs the bundle and attaches the tarball and its checksum to the release of
 # the same name (the one scripts/release-apk.sh creates with the APK), retrying until it
 # exists. "Run workflow" with a release tag does the same for a release that already exists.
 # The bundle's version must be the tag's: the release recipe bumps harness/dsh-nanomuse/package.json.
+# The paths include the phones' copies of the catalogues and of the Ideas list: the tests
+# check that they match the desktop's (tests/fences.test.mjs, connectors-json.mjs --check).
 name: harness bundle
 
 on:
   push:
     branches: ["**"]
-    paths: ["harness/**", "scripts/connectors-json.mjs", "scripts/providers-json.mjs", "nanomuse/llm/providers.json", "android/src/android/app/src/main/assets/nanomuse/connectors.json", "android/src/android/app/src/main/assets/nanomuse/providers.json", "android/src/ios/NanoMuse/Resources/connectors.json", "android/src/ios/NanoMuse/Resources/providers.json", ".github/workflows/harness.yml"]
+    paths: ["harness/**", "scripts/connectors-json.mjs", "scripts/providers-json.mjs", "nanomuse/llm/providers.json", "android/src/android/app/src/main/assets/nanomuse/connectors.json", "android/src/android/app/src/main/assets/nanomuse/providers.json", "android/src/android/app/src/main/assets/nanomuse/ideas.*.json", "android/src/ios/NanoMuse/Resources/connectors.json", "android/src/ios/NanoMuse/Resources/providers.json", "android/src/ios/NanoMuse/Resources/ideas.*.json", ".github/workflows/harness.yml"]
     tags: ["v*"]
   pull_request:
-    paths: ["harness/**", "scripts/connectors-json.mjs", "scripts/providers-json.mjs", "nanomuse/llm/providers.json", "android/src/android/app/src/main/assets/nanomuse/connectors.json", "android/src/android/app/src/main/assets/nanomuse/providers.json", "android/src/ios/NanoMuse/Resources/connectors.json", "android/src/ios/NanoMuse/Resources/providers.json", ".github/workflows/harness.yml"]
+    paths: ["harness/**", "scripts/connectors-json.mjs", "scripts/providers-json.mjs", "nanomuse/llm/providers.json", "android/src/android/app/src/main/assets/nanomuse/connectors.json", "android/src/android/app/src/main/assets/nanomuse/providers.json", "android/src/android/app/src/main/assets/nanomuse/ideas.*.json", "android/src/ios/NanoMuse/Resources/connectors.json", "android/src/ios/NanoMuse/Resources/providers.json", "android/src/ios/NanoMuse/Resources/ideas.*.json", ".github/workflows/harness.yml"]
   workflow_dispatch:
     inputs:
       release_tag:
@@ -40,16 +44,29 @@ jobs:
   bundle:
     name: build · test · pack
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 11
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
-          cache: pnpm
-          cache-dependency-path: harness/dsh-nanomuse/pnpm-lock.yaml
+          cache: npm
+          cache-dependency-path: harness/desktop/package-lock.json
+      # pnpm comes from npm, as in desktop-app.yml: pnpm/action-setup lets its pnpm self-update
+      # to the newest 11, which wants the platform's native binary (the 1.0.4 Intel Mac build
+      # died on that); the package on npm is JavaScript and runs on the Node above.
+      - name: pnpm
+        run: npm install --global pnpm@11
+      # setup-node caches one package manager (npm, for the shell's `npm ci` below); the
+      # bundle's pnpm store is kept by hand
+      - name: pnpm store path
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('harness/dsh-nanomuse/pnpm-lock.yaml') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
       - name: Install
         working-directory: harness/dsh-nanomuse
         run: pnpm install --frozen-lockfile
@@ -59,6 +76,16 @@ jobs:
           pnpm build
           pnpm typecheck
           pnpm test
+      # The Electron shell's own checks (AGENTS.md). Its tests stand in a fake `electron`
+      # module, so the Electron binary is not downloaded; desktop-app.yml builds the real thing.
+      - name: The desktop shell typechecks and its tests pass
+        working-directory: harness/desktop
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
       - name: The phones' copies of the connectors catalogue are current
         run: node scripts/connectors-json.mjs --check
       - name: The clients' copies of the provider catalogue are current
@@ -86,27 +113,83 @@ jobs:
           pnpm pack --pack-destination ../../packages
           (cd ../../packages && sha256sum * > SHA256SUMS-harness.txt && cat SHA256SUMS-harness.txt)
       - name: Install into a fresh dsh profile
-        # the tarball, not the source tree: what a person downloads must load as a plugin
+        # the tarball, not the source tree: what a person downloads must load as a plugin;
+        # the dsh it goes into is the one the bundle's peer dependencies name, the same
+        # version harness/desktop/scripts/prepare-dsh.mjs stages
         run: |
-          mkdir -p /tmp/dsh && cd /tmp/dsh && npm init -y >/dev/null && npm install --no-audit --no-fund @deepseek-ai/dsh@0.2.0-rc.2 >/dev/null
+          DSH_VERSION=$(node -p "require('$GITHUB_WORKSPACE/harness/dsh-nanomuse/package.json').peerDependencies['@deepseek-ai/dsh-agent']")
+          mkdir -p /tmp/dsh && cd /tmp/dsh && npm init -y >/dev/null && npm install --no-audit --no-fund "@deepseek-ai/dsh@$DSH_VERSION" >/dev/null
           export DSH_HOME=/tmp/dsh-home
           ./node_modules/.bin/dsh --profile check --from-default-profile web --dump-config >/dev/null
           ./node_modules/.bin/dsh plugin --profile check add "$GITHUB_WORKSPACE"/packages/dsh-nanomuse-*.tgz
           ./node_modules/.bin/dsh --profile check --dump-config | grep -c "patched by dsh-nanomuse"
-      - uses: actions/upload-artifact@v7
+      # the data-* hooks and class-name stems styles.ts dresses the harness's DOM through are
+      # in this dsh (desktop-app.yml runs the same against the staged copy; here it runs on
+      # every pull request)
+      - name: The hooks styles.ts leans on are in that dsh
+        working-directory: harness/desktop
+        run: node scripts/check-hooks.mjs --dsh /tmp/dsh/node_modules
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: harness-bundle
           path: packages/*
           if-no-files-found: error
 
+  # The same build, typecheck and tests on Windows, on every pull request: the v1.0.3 tag's
+  # Windows installer build failed on a test that first met a CRLF checkout there, which
+  # desktop-app.yml only runs on a tag or by hand. No pack, no dsh install, no installer.
+  windows:
+    name: build · test (Windows)
+    runs-on: windows-latest
+    # a test that leaves a handle open hangs the process; the limit turns that into a failure
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: harness/desktop/package-lock.json
+      - name: pnpm
+        shell: bash
+        run: npm install --global pnpm@11
+      - name: pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('harness/dsh-nanomuse/pnpm-lock.yaml') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
+      - name: The bundle
+        working-directory: harness/dsh-nanomuse
+        shell: bash
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+          pnpm typecheck
+          pnpm test
+      - name: The desktop shell
+        working-directory: harness/desktop
+        shell: bash
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+
   release:
     if: startsWith(github.ref, 'refs/tags/v') || inputs.release_tag != ''
     needs: bundle
     runs-on: ubuntu-latest
+    # waits up to fifteen minutes for the release below, then uploads
+    timeout-minutes: 30
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: harness-bundle
           path: packages

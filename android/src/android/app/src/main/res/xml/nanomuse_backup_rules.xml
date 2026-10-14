@@ -12,6 +12,9 @@
     <exclude domain="sharedpref" path="backup_rclone_secrets.xml" />
     <exclude domain="sharedpref" path="minis_device_identity.xml" />
     <exclude domain="sharedpref" path="__androidx_security_crypto_encrypted_prefs__.xml" />
+    <!-- the proxy for own providers (Settings → Network); its password in the encrypted file beside it -->
+    <exclude domain="sharedpref" path="nanomuse_proxy.xml" />
+    <exclude domain="sharedpref" path="nanomuse_proxy_secrets.xml" />
     <!-- what the user allowed the agent to do once and for all belongs to this phone's screens -->
     <exclude domain="file" path="minis-global/nanomuse/grants.json" />
 </full-backup-content>

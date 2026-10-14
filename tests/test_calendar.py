@@ -215,7 +215,8 @@ async def test_feeds_fetch_over_http_and_report_a_broken_one(
     status = await feeds.refresh()
     good, bad = status["feeds"]
     assert good["events"] == 6 and not good["error"]
-    assert bad["events"] == 0 and "404" in bad["error"]
+    assert bad["events"] == 0 and bad["error"] == "HTTP 404"
+    assert "missing.ics" not in bad["error"], "a private link never shows in the status"
     assert len(feeds.agenda(date(2026, 9, 21))) == 1, "the good feed still answers"
     assert seen[0] == "https://cal.example/good.ics", "a webcal:// link is fetched over https"
 

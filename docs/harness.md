@@ -80,7 +80,7 @@ The second slice adds what the Android app has around the chat, modelled on what
 - **The first run.** dsh's own first-run dialog asks for a DeepSeek key. The bundle
   registers its step in that seat (the shipped id `deepseek-official` in the
   `settings.onboarding` slot), so a fresh install meets the agent instead: the face, the
-  one-line slogan, what Hands, Reach and the Muse style are, then *sign in with a phone
+  one-line slogan, what Hands and Reach are, then *sign in with a phone
   number or e-mail (free)*, *use my own API key* (opens Models) or *later*. The step
   completes itself when a model can already answer (the account, a DeepSeek key, a
   provider the person added) unless it is reopened on purpose.
@@ -179,11 +179,11 @@ outside > ~/…" and, approved there, let the desktop write the file and answer;
 child left; after a restart of dsh the next task from Laptop B resumed the same session
 and the Muse answered what it had been asked before.
 
-The fifth slice is the window itself, the Muse shape over dsh's web app, screen by
+The fifth slice is the window itself, the phone app's shape over dsh's web app, screen by
 screen in [desktop-muse.md](desktop-muse.md):
 
 - **The sidebar.** The bundle takes the `sidebar` seat (the stock `ui-sidebar` row is
-  switched off in the bundle layer) and lays it out as Muse does: a rail with Chats (a dot
+  switched off in the bundle layer) and lays it out as the phone does: a rail with Chats (a dot
   while the agent works), Search, Devices, the Schedules panel when installed, the
   hamburger at the foot; and a chats column built from the harness's `useSessions`,
   `useSessionStatus` and `useWorkspaces`: *Search* with a *···* (archived chats), *Main
@@ -198,7 +198,7 @@ screen in [desktop-muse.md](desktop-muse.md):
   of the second slice becomes this chip; its toasts stay. *Invite* takes
   `conversation.session.header.utilities` (the relay's `/v1/me/invite`: code, link,
   how many came and what it earned); the harness's title row, tabs and session actions
-  are hidden under the Muse styles.
+  are hidden under the bundle's styles.
 - **The profile panel.** The face opens a `shell.overlay` of ours, 310 px at the right,
   beside the chat: the avatar with a pen (*Change look* → `PUT /v1/me/profile` through
   the host, worn everywhere; *Edit name*), the connection, four tabs: activity from the
@@ -206,9 +206,11 @@ screen in [desktop-muse.md](desktop-muse.md):
   observer records each decision), schedule, memory.
 - **The conversation.** A stylesheet under `html[data-nm-muse]` over the harness's
   stable hooks: `[data-composer-card]` becomes one pill (*+*, *Message*, the send
-  disc), `[data-chat-flow-kind="user"]` the accent bubble, the assistant step the grey
-  bubble, `[data-approval-key]` Muse's permission card (shield, headline, *Allow once*
-  in blue, *Reject*), the hero greeting hidden with the composer docked at the bottom;
+  disc), `[data-chat-flow-kind="user"]` the ink pill (black with white text in the light
+  theme, white with black in the dark), the assistant step the grey pill, the header a
+  scrim the conversation scrolls under, `[data-approval-key]` the permission card
+  (shield, headline, *Allow once* in blue, *Reject*), the hero greeting hidden with the
+  composer docked at the bottom;
   the harness's model, mode and plan controls are hidden from the composer and come
   back with the Developer switch. The harness's own DOM is not touched, only styled.
 - **Settings.** The `sidebar.settings` seat too (the stock `ui-settings-general` row
@@ -220,7 +222,7 @@ screen in [desktop-muse.md](desktop-muse.md):
   switch. The onboarding coordinator and the `settings.open` chord are carried over;
   the harness's preview notice, which stores its acknowledgement in the switched-off
   plugin's settings, is passed through.
-- **The first run.** Full-window, Muse's sheets: welcome with the face and one *Sign in*
+- **The first run.** Full-window sheets: welcome with the face and one *Sign in*
   pill → *Sign in or create an account* (phone or e-mail) → six code boxes (or a
   password: `/v1/auth/login`) → spinner → the permissions carousel (‹ ›): *Allow nanoMuse
   to use your computer?* on macOS (Accessibility, Screen recording, each with *Allow*
@@ -235,7 +237,7 @@ screen in [desktop-muse.md](desktop-muse.md):
   has no title bar there (`hiddenInset`, the traffic lights over the rail). The bundle
   works without the bridge (dsh in a browser); only the computer card and the keep-awake
   switch need it.
-- **The theme.** Muse's light and dark tones over the harness's tokens
+- **The theme.** The app's light and dark tones over the harness's tokens
   (`--dsw-alias-bg-base`, the sidebar fill, the bubbles, the layers), the accent from
   the face's colour on the account.
 
@@ -258,7 +260,7 @@ The Electron shell boots the same bundle with its bridge on Linux (screenshot ch
 | The face moving ([avatar.md](avatar.md))                | `Avatar.tsx`: the dragon's state clips from `assets/`, looped silently at 44 px and up with the still as poster; CSS breath / sway / hop for drawn faces and emoji, nothing under reduced motion | done       |
 | Avatar studio (drawing a new face here)                 | A settings page over the relay's image model; today a face is drawn on the phone and worn here                                                | phase 4    |
 | First run                                               | Our step in dsh's `settings.onboarding` seat, full-window: welcome, sign in, code boxes, the permissions carousel (computer on macOS, files, devices), ready | done       |
-| The window ([desktop-muse.md](desktop-muse.md))         | The `sidebar`, `sidebar.settings` and `shell.overlay` seats and the Muse stylesheet: rail + main / side chats, the pinned face and status chip with Stop, Invite, the profile panel, pill composer, bubbles, permission card, grouped Settings with Advanced, Muse's tones | done       |
+| The window ([desktop-muse.md](desktop-muse.md))         | The `sidebar`, `sidebar.settings` and `shell.overlay` seats and the bundle's stylesheet: rail + main / side chats, the pinned face and status chip with Stop, Invite, the profile panel, pill composer, bubbles, permission card, grouped Settings with Advanced, the app's tones | done       |
 | Sentinel ([sentinel.md](sentinel.md))                   | dsh approval policies and the `tools/pre-execute` waterfall; our categories become an approval preset; the visible gate stays                | phase 4    |
 | Hands: GUI control of this computer ([gui.md](gui.md)) | The Python hands over MCP (`nanomuse mcp`, mounted in the preset): done; a native TypeScript driver behind dsh's computer-use seam (`ctx.computerUse.register`) later, so no Python is needed | done (bridge) |
 | Reach: the phone and other devices ([hub.md](hub.md), [every-device.md](every-device.md)) | `hub.ts` + `dsh-nanomuse/reach`: `devices`, `device_screen/shell/files/open/notify`, `delegate` with relayed approvals and `stop` on *Stop*; the phone side unchanged | done       |
@@ -329,14 +331,14 @@ a community project with no affiliation) apply unchanged.
 
 1. **This slice.** Account, face, voice, and Hands over MCP; verified on a scratch
    install. *Done, internal.*
-2. **The Muse style and Reach.** The first run, the account's name, face and moods,
+2. **The look and Reach.** The first run, the account's name, face and moods,
    the capsule with Stop, the hub client, the `device_*` tools and `delegate` with
    relayed approvals, the device list in Settings. *Done, internal.*
 3. **Reach both ways.** The desktop answers `shell`, `files`, `file.get`, `file.put`,
    `open` and `screen` behind its remote-control switch, every call a toast, *Stop*
    stopping the delegated job on the other device; the phone's `delegate` runs in a dsh
    session here with its approvals relayed back. *Done, internal.*
-4. **The window.** The Muse shape: the rail and the chats column, the pinned face with
+4. **The window.** The phone app's shape: the rail and the chats column, the pinned face with
    the status line and Stop, grouped Settings with the harness's extras under Advanced,
    the first run with its cards, the theme. *Done, internal.*
 5. **Daily-driver.** The Sentinel as an approval preset, the avatar studio here, Hands
@@ -356,7 +358,7 @@ a community project with no affiliation) apply unchanged.
    project of its own), but a small Electron app that does what that one does at its
    core: starts the harness's Host as a child process with its own binary in Node mode
    (`ELECTRON_RUN_AS_NODE`, `--expose-internals`; the harness's `require-builtin` addon
-   fingerprints the Electron it was built for, so the shell pins `44.0.0`), from a `dsh`
+   fingerprints the Electron it was built for, so the shell pins one exact Electron version), from a `dsh`
    that npm installed under `resources/dsh` together with the bundle at build time,
    against a profile of its own under `~/.nanomuse/desktop` that names the bundle and
    links it from the copy inside the app. The runtime for the hands rides along as a
@@ -373,7 +375,7 @@ a community project with no affiliation) apply unchanged.
    desktop app in 0.1.28 and 0.1.29; **from 0.1.30 it is nanoMuse Desktop**, the one
    desktop app (`nanoMuse-Desktop-<v>-…`, the application id of the retired
    `desktop/app` so it installs over it), and the site's downloads point here.
-7. **Daily-driver on the new shell.** The rooms Muse has beside the chat (Feed, Ideas,
+7. **Daily-driver on the new shell.** The rooms beside the chat (Feed, Ideas,
    Goals, Library), the live stage while the hands work on this screen, signing on both
    platforms, an update feed of our own, the macOS close-to-Dock and Windows tray
    behaviour the harness's desktop has, a chosen workspace for tasks from other devices.

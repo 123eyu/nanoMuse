@@ -147,8 +147,8 @@ private struct UserBubbleSurface: ViewModifier {
                         .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
                         .foregroundStyle(ChatColors.secondaryText.opacity(0.5))
                 )
-        } else if NanoMuseShellPrefs.shell { // nanoMuse: Muse's user bubble — flat grey, 18 pt, no glass (Android: MuseTones.bubble)
-            content.background(shape.fill(NanoMuseTones.bubble)) // nanoMuse:
+        } else if NanoMuseShellPrefs.shell { // nanoMuse: Muse's user pill: the ink colour, black in light and white in dark, 18 pt, no glass (Android: ChatColors.userBubble)
+            content.background(shape.fill(NanoMuseTones.ink)) // nanoMuse:
         } else if #available(iOS 26.0, *) {
             content.glassEffect(.regular, in: shape)
         } else {
@@ -379,11 +379,14 @@ struct ChatMessageRow: View {
                     QueuedAttachmentPreview(attachments: message.inputAttachments)
                 }
 
-                if !userDisplayText.isEmpty {
+                if let wake = message.nmRoutine { // nanoMuse: a routine's prompt is one quiet line, not a bubble in the person's voice
+                    NanoMuseRoutineWakeRow(label: wake.label, at: wake.at)
+                } else if !userDisplayText.isEmpty {
                     HStack(spacing: 6) {
                         Text(userDisplayText)
                             .font(.system(size: FontSettings.shared.scaledMessage(16.5)))
-                            .foregroundStyle(message.isQueued ? ChatColors.secondaryText : ChatColors.primaryText)
+                            // nanoMuse: on the ink pill the text takes the canvas colour (white on black in light, black on white in dark); a queued line keeps upstream's grey (Android: ChatColors.onUserBubble)
+                            .foregroundStyle(message.isQueued ? ChatColors.secondaryText : (NanoMuseShellPrefs.shell ? NanoMuseTones.onInk : ChatColors.primaryText)) // nanoMuse:
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
                             .modifier(UserBubbleSurface(isQueued: message.isQueued))

@@ -203,6 +203,11 @@ test('POST /providers/save: the key goes to the credential store under its name;
     assert.equal(bad.status, 400)
     assert.equal(bad.body.error.code, 'no_key')
     assert.equal((await out.api('POST', '/providers/save', { id: 'nobody', apiKey: 'sk-x' })).status, 404)
+    // an address with user:pass@ would be kept and shown as typed: refused with the reason, nothing written
+    const userinfo = await out.api('POST', '/providers/save', { id: 'bailian', apiKey: 'sk-x', baseURL: server.url.replace('://', '://user:pass@') })
+    assert.equal(userinfo.status, 400)
+    assert.equal(userinfo.body.error.code, 'url_userinfo')
+    assert.match(userinfo.body.error.message, /user name or password/)
     const saved = await out.api('POST', '/providers/save', { id: 'bailian', apiKey: 'sk-secret-1234', baseURL: server.url, lang: 'zh' })
     assert.equal(saved.status, 200)
     assert.equal(saved.body.provider, 'bailian')
@@ -405,10 +410,11 @@ test('an endpoint that lists no models: `no_models` with the key not stored, or 
     assert.deepEqual(saved.body.models.map((m) => [m.id, m.kind, m.vision]), [['glm-4.7', 'chat', true], ['kimi-k2.5', 'chat', true]])
     assert.deepEqual(out.settings[LLM_ROW].providers.custom.models.map((m) => m.id), ['glm-4.7', 'kimi-k2.5'])
     assert.equal(out.credentials.get('NANOMUSE_KEY_CUSTOM'), 'sk-secret')
-    // typed ids come first, the endpoint's after them
+    // typed ids come first, the endpoint's after them (`row`: the same endpoint moved, not a second one)
     const listing = await modelsServer(['listed-a', 'glm-4.7'])
     try {
-      const both = await out.api('POST', '/providers/save', { id: 'custom', apiKey: 'sk-secret', baseURL: listing.url, label: 'Gateway', capabilities: ['chat'], models: ['glm-4.7'] })
+      const both = await out.api('POST', '/providers/save', { id: 'custom', row: 'custom', apiKey: 'sk-secret', baseURL: listing.url, label: 'Gateway', capabilities: ['chat'], models: ['glm-4.7'] })
+      assert.equal(both.body.id, 'custom')
       assert.deepEqual(both.body.models.map((m) => m.id), ['glm-4.7', 'listed-a'])
     } finally {
       await listing.close()
@@ -419,6 +425,110 @@ test('an endpoint that lists no models: `no_models` with the key not stored, or 
   } finally {
     await silent.close()
     await out.done()
+  }
+})
+
+test('several hand-made endpoints at once (#294): each save without `row` adds a row with its own key; `row` changes one and keeps its key; rename and remove touch that row only', async () => {
+  const out = await cloud()
+  const first = await modelsServer(['gw-chat', 'gw-vl'])
+  const second = await modelsServer(['local-chat'])
+  try {
+    // two endpoints: `custom`, then `custom-2`, each with its own credential; unnamed, each reads as its host
+    const one = await out.api('POST', '/providers/save', { id: 'custom', apiKey: 'sk-one', baseURL: first.url, capabilities: ['chat', 'vision'] })
+    assert.equal(one.status, 200)
+    assert.equal(one.body.id, 'custom')
+    assert.equal(one.body.keyRef, 'NANOMUSE_KEY_CUSTOM')
+    assert.equal(one.body.label, new URL(first.url).host)
+    const two = await out.api('POST', '/providers/save', { id: 'custom', apiKey: 'sk-two', baseURL: second.url, label: 'Local server', capabilities: ['chat'] })
+    assert.equal(two.status, 200)
+    assert.equal(two.body.id, 'custom-2')
+    assert.equal(two.body.provider, 'custom')
+    assert.equal(two.body.keyRef, 'NANOMUSE_KEY_CUSTOM_2')
+    assert.equal(two.body.label, 'Local server')
+    assert.deepEqual(two.body.offer, { chat: 'local-chat' }, 'the "Use it for" card offers the new row, not the first')
+    assert.equal(out.credentials.get('NANOMUSE_KEY_CUSTOM'), 'sk-one')
+    assert.equal(out.credentials.get('NANOMUSE_KEY_CUSTOM_2'), 'sk-two')
+    const state = await out.state()
+    assert.deepEqual(Object.keys(state.providers).sort(), ['custom', 'custom-2'])
+    assert.equal(state.providers['custom-2'].id, 'custom-2')
+    assert.equal(out.settings[LLM_ROW].providers['custom-2'].apiKeyEnv, 'NANOMUSE_KEY_CUSTOM_2')
+    assert.equal(out.settings[LLM_ROW].providers['custom-2'].displayName, 'Local server')
+    // both stand in GET /providers and in the pickers, told apart by name
+    const view = (await out.api('GET', '/providers?lang=en')).body
+    assert.deepEqual(view.configured.map((p) => [p.id, p.provider, p.label]).sort(), [['custom', 'custom', new URL(first.url).host], ['custom-2', 'custom', 'Local server']])
+    assert.deepEqual(out.svc.chatOptions().map((o) => [o.provider, o.providerLabel, o.id]), [['custom', new URL(first.url).host, 'gw-chat'], ['custom', new URL(first.url).host, 'gw-vl'], ['custom-2', 'Local server', 'local-chat']])
+    assert.deepEqual(out.svc.handsOptions().map((o) => [o.provider, o.id]), [['custom', 'gw-chat'], ['custom', 'gw-vl']])
+    // new chats answer through the first endpoint; the second changed nothing there
+    assert.deepEqual(out.selection.current, { provider: 'custom', model: 'gw-chat' })
+    // a change of key on the first row: the second's key stays; an empty key keeps the first's own
+    const rekeyed = await out.api('POST', '/providers/save', { id: 'custom', row: 'custom', apiKey: 'sk-one-b' })
+    assert.equal(rekeyed.status, 200)
+    assert.equal(rekeyed.body.id, 'custom')
+    assert.equal(rekeyed.body.baseURL, first.url, 'the address stands when none is typed')
+    assert.deepEqual(rekeyed.body.capabilities, ['chat', 'vision'], 'the capabilities stand when none are ticked again')
+    assert.equal(out.credentials.get('NANOMUSE_KEY_CUSTOM'), 'sk-one-b')
+    assert.equal(out.credentials.get('NANOMUSE_KEY_CUSTOM_2'), 'sk-two')
+    const kept = await out.api('POST', '/providers/save', { id: 'custom', row: 'custom', apiKey: '', label: 'Gateway' })
+    assert.equal(kept.status, 200)
+    assert.equal(kept.body.label, 'Gateway')
+    assert.equal(kept.body.keyRef, 'NANOMUSE_KEY_CUSTOM')
+    assert.equal(out.credentials.get('NANOMUSE_KEY_CUSTOM'), 'sk-one-b')
+    assert.equal(Object.keys((await out.state()).providers).length, 2, 'a change never doubles the row')
+    // `row` must name a row of that entry
+    assert.equal((await out.api('POST', '/providers/save', { id: 'custom', row: 'custom-9', apiKey: 'sk-x', baseURL: first.url })).status, 404)
+    // rename: the pickers and the model adapter read the new name; empty goes back to the host
+    const renamed = await out.api('POST', '/providers/rename', { id: 'custom-2', label: 'vLLM box' })
+    assert.equal(renamed.status, 200)
+    assert.equal(renamed.body.label, 'vLLM box')
+    assert.equal(out.settings[LLM_ROW].providers['custom-2'].displayName, 'vLLM box')
+    assert.equal((await out.state()).providers['custom-2'].label, 'vLLM box')
+    assert.equal((await out.api('POST', '/providers/rename', { id: 'custom-2', label: '  ' })).body.label, new URL(second.url).host)
+    assert.equal((await out.api('POST', '/providers/rename', { id: 'nobody', label: 'x' })).status, 404)
+    // remove the first: the second and its key stay; the next endpoint takes the lowest free id again
+    assert.equal((await out.api('POST', '/providers/remove', { id: 'custom' })).status, 200)
+    assert.deepEqual(Object.keys((await out.state()).providers), ['custom-2'])
+    assert.equal(out.credentials.has('NANOMUSE_KEY_CUSTOM'), false)
+    assert.equal(out.credentials.get('NANOMUSE_KEY_CUSTOM_2'), 'sk-two')
+    assert.equal(out.settings[LLM_ROW].providers.custom, undefined)
+    assert.equal(out.settings[LLM_ROW].providers['custom-2'].apiKeyEnv, 'NANOMUSE_KEY_CUSTOM_2')
+    const third = await out.api('POST', '/providers/save', { id: 'custom', apiKey: 'sk-three', baseURL: first.url, capabilities: ['chat'] })
+    assert.equal(third.body.id, 'custom')
+    assert.deepEqual(Object.keys((await out.state()).providers).sort(), ['custom', 'custom-2'])
+    // a vendor's row is still one per vendor: saving its key again replaces it
+    const vendor = await modelsServer(['deepseek-v4.1-flash'])
+    try {
+      await out.api('POST', '/providers/save', { id: 'deepseek', apiKey: 'sk-d1', baseURL: vendor.url })
+      await out.api('POST', '/providers/save', { id: 'deepseek', apiKey: 'sk-d2', baseURL: vendor.url })
+      assert.deepEqual(Object.keys((await out.state()).providers).sort(), ['custom', 'custom-2', 'deepseek'])
+      assert.equal(out.credentials.get('NANOMUSE_KEY_DEEPSEEK'), 'sk-d2')
+    } finally {
+      await vendor.close()
+    }
+  } finally {
+    await first.close()
+    await second.close()
+    await out.done()
+  }
+})
+
+test('a row written before the endpoint list (#294) carries no id of its own: it is read back under its key, and the slot choices still find it', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'nm-cloud-'))
+  const statePath = join(home, 'cloud.json')
+  const fake = fakeContext()
+  const row = { provider: 'custom', label: 'Gateway', protocol: 'openai', baseURL: 'http://127.0.0.1:9/v1', keyRef: 'NANOMUSE_KEY_CUSTOM', capabilities: ['chat', 'vision'], models: [{ id: 'gw-vl', name: 'gw-vl', vision: true, kind: 'chat' }], at: 1 }
+  await writeFile(statePath, JSON.stringify({ providers: { custom: row }, handsProvider: 'custom', handsModel: 'gw-vl', update: { checkedAt: Date.now() } }))
+  await fake.ctx.credentials.set('NANOMUSE_KEY_CUSTOM', 'sk-old')
+  const svc = new NanomuseCloud(fake.ctx, { baseURL: 'https://relay.invalid', deviceName: 'test-desktop', statePath })
+  svc.hub.start = () => undefined
+  svc.refresh = async () => svc.status()
+  try {
+    await svc[Service.init]()
+    const view = await svc.providersView('en')
+    assert.deepEqual(view.configured.map((p) => [p.id, p.provider, p.label]), [['custom', 'custom', 'Gateway']])
+    assert.deepEqual(svc.handsChoice(), { provider: 'custom', model: 'gw-vl' })
+    assert.deepEqual(svc.handsOptions().map((o) => [o.provider, o.id]), [['custom', 'gw-vl']])
+  } finally {
+    await rm(home, { recursive: true, force: true })
   }
 })
 

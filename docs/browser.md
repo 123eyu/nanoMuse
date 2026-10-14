@@ -1,5 +1,12 @@
 # The browser
 
+> **Partly a design record of the Python line.** The Playwright backend, the actions, the
+> logged-in `fetch` and the testing below are the Python runtime's and still hold on a
+> computer. The phone half (the `device` backend, the virtual display, the protocol under
+> *How the phone's browser works*) belonged to the Python-line Android app; in the current
+> Android app the browser is OpenMinis's `browser_use` tool, and a page that needs you is
+> handed over through its `hand_over` action ([android.md](android.md#what-the-phone-does)).
+
 The agent has one browser tool and two browsers to run it in: Chromium through Playwright on the computer the server runs on, and the phone's own WebView inside the nanoMuse app. The tool is the same either way (the same actions, the same numbered elements on the page, the same pictures in the chat, the same take-over), so a skill written against one works on the other, and a task can move from the desk to the phone without changing a line.
 
 Where the browser sits in the order of things: the agent reaches a service through its API, MCP server or command-line tool first; then through a **logged-in `fetch`** (a request that carries the browser's cookies, no page rendered); then through the browser page itself; and only last through the screen of an app on the phone ([gui.md](gui.md)). The browser is rung two and three of that ladder.
@@ -54,7 +61,7 @@ From a script inside the sandbox on the phone the same tool is `nanomuse-browser
 
 A page that wants a login is the user's job, not the model's. The agent stops at the form and hands the page over (`browser` → `hand_over`, with the reason: *sign in to 12306*, *type the code from the SMS*, *solve the CAPTCHA*, *confirm the payment*); the user does it and presses **Done**; the agent continues with the page as it is. The browser card in the chat is where that happens, and the same card appears when the user takes over first:
 
-- **On the server's Chromium**: *Take over* on the card (or the agent's hand-over), then tap the picture to click, scroll, go back, type into the focused field, press Enter, or open a URL; **Done** returns the page. The frame is the page; the taps are mapped onto it; the picture refreshes every second while you have it.
+- **On the server's Chromium**: *Take over* on the card (or the agent's hand-over), then tap the picture to click, scroll, go back, type into the focused field, press Enter, or open a URL; **Done** returns the page. The frame is the page; the taps are mapped onto it; the picture refreshes every second while you have it. In the web console the frame also takes the keyboard while you have the page: Tab to it, the arrow and Page keys scroll it and Enter presses Enter on the page; the buttons under it do the rest without a pointer.
 - **On the phone**: *Take over* slides the real WebView up as a sheet in the app, not a picture of it. Sign in with the phone's keyboard, its autofill and its password manager, and tap **Done**. The view goes back offscreen and the agent is told the page was handed back; its next look shows what you left.
 
 While the page is yours (a *hold*), every browser action of that conversation waits; the agent waits up to ten minutes for Done, then carries on with what it sees and says you did not come back. The chat, the live stage, the capsule and the browser viewer all show the same *Your turn · <reason> · Done* card. Over the API: `POST /api/browser/{thread}/control` with `take_over` / `handed_back`, or `POST /api/holds` and `POST /api/holds/{id}/done`; `GET /api/state` lists the open holds.

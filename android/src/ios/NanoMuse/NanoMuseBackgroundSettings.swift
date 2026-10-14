@@ -24,9 +24,11 @@ struct NanoMuseBackgroundView: View {
     var body: some View {
         NanoMusePage(title: AppLocalized("Background & notifications")) {
             notificationsCard
-            NanoMuseCaption(text: AppLocalized("A notification is how the agent reaches you when the app is closed: a routine finished, a computer answered, a reply came in on another device."))
+            // What the phone really posts (NanoMuseScheduler, NanoMuseHub.notify): a routine's
+            // reminder, and a note another device sent; a routine never runs in the background.
+            NanoMuseCaption(text: AppLocalized("A notification is how the agent gets your attention: a routine came due and waits for you to open the app, or another of your devices sent a note through the hub."))
             backgroundCard
-            NanoMuseCaption(text: AppLocalized("iOS pauses apps that are not on screen. With Background App Refresh on, the app gets short slots to check the hub and finish a routine; without it, work resumes when you open the app."))
+            NanoMuseCaption(text: AppLocalized("iOS pauses apps that are not on screen. With Background App Refresh on, iOS can wake the app for a moment around a routine's due time to post the reminder; the routine itself still waits for you to open the app."))
             devicesCard
             NanoMuseCaption(text: AppLocalized("Long tasks are better placed on a computer that stays on. Your computers run them in full and send the result here."))
         }

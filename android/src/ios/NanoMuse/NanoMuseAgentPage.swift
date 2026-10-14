@@ -3,7 +3,7 @@
 //  nanoMuse
 //
 //  What opens when the face is tapped: the agent's own page. The face,
-//  large, with a pen badge (Change avatar / Edit name / Avatar studio…),
+//  large, with a pen badge (Change avatar / Edit name / Your own clip… / Avatar studio…),
 //  the name, "online", and four panes — Activity (the last two days as a
 //  log), Approvals (what is always allowed), Daily (the routines), Soul &
 //  memory (the files). Plus the share cards for a new look.
@@ -35,10 +35,14 @@ struct NanoMuseAgentPage: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var faces = NanoMuseFaceStore.shared
     @ObservedObject private var flow = NanoMuseAvatarFlow.shared
+    @ObservedObject private var own = NanoMuseOwnClip.shared
+    @StateObject private var clipPicker = NanoMuseOwnClipPicker()
     @State private var pane = 0
     @State private var showShare = false
     @State private var showEditName = false
     @State private var soulName = SoulStore.cachedMetadata.name
+    /// The name under the face follows Dynamic Type, capped as the header's lines are (NanoMuseHeaderMetrics).
+    @ScaledMetric(relativeTo: .title2) private var nameSize: CGFloat = 24
 
     private var name: String {
         let n = soulName.trimmingCharacters(in: .whitespaces)
@@ -82,6 +86,7 @@ struct NanoMuseAgentPage: View {
             .sheet(isPresented: $showEditName) {
                 NavigationStack { SoulSettingsView() }
             }
+            .nanoMuseOwnClipHost(clipPicker)
             .onReceive(NotificationCenter.default.publisher(for: .soulMdChanged)) { _ in
                 soulName = SoulStore.cachedMetadata.name
             }
@@ -100,6 +105,11 @@ struct NanoMuseAgentPage: View {
                         onPrefillChat(AppLocalized("Change your avatar to "))
                     } label: { Label(AppLocalized("Change avatar"), systemImage: "paintbrush") }
                     Button { showEditName = true } label: { Label(AppLocalized("Edit name"), systemImage: "pencil") }
+                    // A clip of the person's own as the face (#324), and the way back.
+                    Button { clipPicker.choose() } label: { Label(AppLocalized("Your own clip…"), systemImage: "film") }
+                    if own.clip != nil {
+                        Button { own.clear() } label: { Label(AppLocalized("Default face"), systemImage: "arrow.uturn.backward") }
+                    }
                     NavigationLink { NanoMuseAvatarStudioView(embedded: true) } label: { Label(AppLocalized("Avatar studio…"), systemImage: "wand.and.stars") }
                 } label: {
                     Image(systemName: "pencil")
@@ -113,7 +123,7 @@ struct NanoMuseAgentPage: View {
                 .accessibilityLabel(Text(AppLocalized("Edit")))
             }
             .padding(.top, 8)
-            Text(name).font(.system(size: 24, weight: .bold))
+            Text(name).font(.system(size: NanoMuseHeaderMetrics.capped(nameSize, base: 24), weight: .bold))
             HStack(spacing: 6) {
                 Circle().fill(Color.green).frame(width: 8, height: 8)
                 Text(flow.statusLine ?? NanoMuseAvatarStudioModel.shared.headerStatus ?? NanoMuseAvatarMotion.shared.statusLine ?? AppLocalized("online"))
@@ -363,6 +373,8 @@ struct NanoMuseActivityPane: View {
 
 struct NanoMuseApprovalsPane: View {
     @ObservedObject private var manager = OffloadPermissionManager.shared
+    /// The "always" answers given to other devices' tasks (NanoMuseRemoteApproval.swift).
+    @ObservedObject private var remote = NanoMuseRemoteApprovals.shared
 
     private var always: [OffloadCommandInfo] {
         OffloadPermissionManager.allCommands.filter { $0.showInSettings && manager.permissionLevel(for: $0.name) == .bypass }
@@ -370,9 +382,32 @@ struct NanoMuseApprovalsPane: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if always.isEmpty {
+            if always.isEmpty && remote.grants.isEmpty {
                 NanoMuseEmptyNote(text: AppLocalized("No standing approvals. When you answer \"always allow\" to a risky step, it is listed here and can be revoked."))
-            } else {
+            }
+            if !remote.grants.isEmpty {
+                NanoMuseSectionLabel(text: AppLocalized("Always allowed on other devices"))
+                ForEach(remote.grants) { grant in
+                    HStack(spacing: 14) {
+                        Image(systemName: "checkmark.shield")
+                            .font(.system(size: 15))
+                            .foregroundStyle(NanoMuseTones.action)
+                            .frame(width: 36, height: 36)
+                            .background(NanoMuseTones.fill, in: Circle())
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(grant.deviceName).font(.body.weight(.medium))
+                            Text(grant.preview).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                        }
+                        Spacer()
+                        Button(AppLocalized("Revoke")) { remote.revoke(grant.id) }
+                            .font(.footnote.weight(.medium))
+                            .tint(NanoMuseTones.action)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                }
+            }
+            if !always.isEmpty {
                 NanoMuseSectionLabel(text: AppLocalized("Always allowed"))
                 ForEach(always, id: \.name) { cmd in
                     HStack(spacing: 14) {

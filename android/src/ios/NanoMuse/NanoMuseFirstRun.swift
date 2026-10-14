@@ -87,6 +87,7 @@ struct NanoMuseFirstRunView: View {
     @State private var showOwnKey = false
     @State private var showGroups = false
     @State private var agentName = SoulStore.cachedMetadata.name
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var signedIn: Bool {
         _ = store.instances
@@ -135,7 +136,8 @@ struct NanoMuseFirstRunView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .id(stage)
-            .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .move(edge: .leading).combined(with: .opacity)))
+            // Reduce Motion on: the pages crossfade instead of sliding.
+            .transition(reduceMotion ? .opacity : .asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .move(edge: .leading).combined(with: .opacity)))
             .animation(.easeInOut(duration: 0.26), value: stage)
         }
         .background(NanoMuseTones.surface.ignoresSafeArea())
@@ -335,6 +337,8 @@ struct NanoMuseSetupPage<Hero: View, Content: View>: View {
     var learnMore: URL? = nil
     var busy: Bool = false
     @ViewBuilder var content: () -> Content
+    /// The title follows Dynamic Type, capped as the header's lines are (NanoMuseHeaderMetrics); the page scrolls, so it may wrap.
+    @ScaledMetric(relativeTo: .title) private var titleSize: CGFloat = 26
 
     /// The fine print as one paragraph, *Learn more* a link at its end.
     private var finePrintText: Text {
@@ -351,7 +355,7 @@ struct NanoMuseSetupPage<Hero: View, Content: View>: View {
                     hero()
                         .padding(.top, 12)
                     Text(title)
-                        .font(.system(size: 26, weight: .semibold, design: .rounded))
+                        .font(.system(size: NanoMuseHeaderMetrics.capped(titleSize, base: 26), weight: .semibold, design: .rounded))
                         .multilineTextAlignment(.center)
                     Text(subtitle)
                         .font(.subheadline)

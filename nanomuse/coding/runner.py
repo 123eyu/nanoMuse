@@ -4,6 +4,7 @@ the stream of what it does.
     cursor-agent -p --output-format stream-json --stream-partial-output [--resume <id>] --workspace <dir> <text>
     codex exec [resume <id>] --json --skip-git-repo-check -C <dir> <text>
     claude -p --output-format stream-json --verbose [--resume <id>] <text>
+    dsh --profile headless --json [--session-id <id>] <text>
 
 Each prints one JSON object a line; the shapes differ, so ``_normalise`` turns them into
 the few kinds the apps show: ``text`` (the agent's words, cumulative), ``tool`` (something
@@ -23,6 +24,7 @@ import time
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from nanomuse.coding.agents import AGENTS, Session, read_session, which
@@ -38,6 +40,7 @@ _AGENT_ENV_PREFIXES: dict[str, tuple[str, ...]] = {
     "cursor": ("CURSOR_",),
     "codex": ("OPENAI_", "CODEX_"),
     "claude": ("ANTHROPIC_", "CLAUDE_"),
+    "dsh": ("DSH_", "DEEPSEEK_"),
 }
 _CLAUDE_CLOUD = {
     "CLAUDE_CODE_USE_BEDROCK": ("AWS_",),
@@ -58,6 +61,11 @@ def agent_env(agent: str, source: dict[str, str] | None = None) -> dict[str, str
     for name, value in parent.items():
         if name.upper().startswith(tuple(allowed)):
             env[name] = value
+    if agent == "dsh":
+        # the store the readers list: a DSH_HOME inherited from elsewhere (the desktop app
+        # points it at its own home) would run the chat where the list does not look
+        home = parent.get("NANOMUSE_CODING_HOME") or str(Path.home())
+        env["DSH_HOME"] = str(Path(home) / ".dsh")
     env["NO_COLOR"] = "1"
     env["CI"] = "1"
     return env
@@ -172,6 +180,16 @@ def command_for(agent: str, session_id: str, workspace: str, text: str, resume: 
         ]
         if resume and session_id:
             cmd += ["--resume", session_id]
+        cmd.append(text)
+        return cmd
+    if agent == "dsh":
+        # the harness's own one-shot runner: `dsh headless "<task>" --json` prints one
+        # projected JSON object a line; `--session-id` adopts an existing session (it takes
+        # its working directory from the process, so the run's cwd is what makes a resumed
+        # session match its recorded one, and there is no `-C`)
+        cmd = [cli, "--profile", "headless", "--json"]
+        if resume and session_id:
+            cmd += ["--session-id", session_id]
         cmd.append(text)
         return cmd
     raise ValueError(f"unknown agent {agent!r}")
@@ -308,6 +326,53 @@ def _normalise(agent: str, obj: dict[str, Any], run: Run) -> list[RunEvent]:
                     extra={"session_id": sid, "duration_ms": obj.get("duration_ms")},
                 )
             )
+    elif agent == "dsh":
+        # `dsh headless --json`: `session` opens, `status` marks the turns and steps, `text`
+        # and `thinking` come from committed messages, `tool_call`/`tool_result` are the
+        # tools, and the terminal `final` carries the answer (the last line, never bounded)
+        if t == "session":
+            sid = str(obj.get("sessionId") or "")
+            if sid:
+                run.result_session_id = sid
+            out.append(RunEvent("started", extra={"session_id": sid, "cwd": obj.get("cwd", "")}))
+        elif t == "text":
+            text = str(obj.get("text") or "")
+            if text:
+                run.output = _append(run.output, ("\n" if run.output else "") + text)
+                out.append(RunEvent("text", text))
+        elif t == "tool_call":
+            run.tools += 1
+            out.append(
+                RunEvent(
+                    "tool",
+                    _brief_tool(str(obj.get("tool") or ""), obj.get("input") or {}),
+                    extra={"phase": "started"},
+                )
+            )
+        elif t == "tool_result":
+            out.append(
+                RunEvent(
+                    "tool", str(obj.get("status") or "completed"), extra={"phase": "completed"}
+                )
+            )
+        elif t == "final":
+            run.commit()
+            final = str(obj.get("text") or "")
+            if final and final not in run.output:
+                run.output = _append(run.output, ("\n" if run.output else "") + final)
+            out.append(
+                RunEvent(
+                    "done",
+                    final or run.output,
+                    extra={"session_id": run.result_session_id},
+                )
+            )
+        elif t == "status":
+            reason = obj.get("reason")
+            if isinstance(reason, dict) and reason.get("kind") == "error":
+                err = reason.get("error")
+                msg = err.get("message", "") if isinstance(err, dict) else ""
+                out.append(RunEvent("error", str(msg)))
     return out
 
 

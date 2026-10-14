@@ -13,6 +13,7 @@ import type {
   CodingRun,
   CodingSession,
   ConnectionsData,
+  CustomEndpoint,
   Contact,
   FeedItem,
   FeedPostsData,
@@ -345,8 +346,9 @@ export const api = {
   setLLM: (body: Record<string, unknown>) =>
     request<ConnectionsData["llm"]>("/api/connections/llm", { method: "PUT", body: JSON.stringify(body) }),
   testLLM: () => request<TestResult>("/api/connections/llm/test", { method: "POST" }),
-  /** the models an endpoint offers: its own /models when it answers, else the preset's catalogue */
-  llmModels: (body: { preset?: string; base_url?: string; api_key?: string }) =>
+  /** the models an endpoint offers: its own /models when it answers, else the preset's catalogue
+   *  (or, for a custom endpoint of the list named by `endpoint`, the models saved with it) */
+  llmModels: (body: { preset?: string; base_url?: string; api_key?: string; endpoint?: string }) =>
     request<{
       models: string[];
       image_models?: string[];
@@ -367,6 +369,21 @@ export const api = {
     }>(
       "/api/llm/models",
       json(body),
+    ),
+  /** a custom OpenAI-compatible endpoint joins the runtime's list (#294); `models` typed when it does not list them */
+  addEndpoint: (body: { label?: string; base_url: string; api_key?: string; models?: string }) =>
+    request<CustomEndpoint>("/api/connections/endpoints", json(body)),
+  /** a new name, address, key or typed models; the slots that use the endpoint follow */
+  updateEndpoint: (id: string, body: { label?: string; base_url?: string; api_key?: string; models?: string }) =>
+    request<CustomEndpoint>(`/api/connections/endpoints/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(body) }),
+  /** 409 while the chat model answers through it */
+  removeEndpoint: (id: string) =>
+    request<{ ok: boolean }>(`/api/connections/endpoints/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  /** asks the endpoint for its models again; `kept` when it did not answer and the saved list stands */
+  refreshEndpointModels: (id: string) =>
+    request<CustomEndpoint & { source: "live" | "kept"; error?: string }>(
+      `/api/connections/endpoints/${encodeURIComponent(id)}/models`,
+      json({}),
     ),
   setEmbeddings: (body: Record<string, unknown>) =>
     request<ConnectionsData["embeddings"]>("/api/connections/embeddings", { method: "PUT", body: JSON.stringify(body) }),

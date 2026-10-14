@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import threading
 import time
 from collections.abc import Iterator
@@ -1086,6 +1087,9 @@ def test_llm_models_live_then_catalogue(server, monkeypatch):
     client, _, _ = server
 
     class FakeResponse:
+        is_redirect = False
+        has_redirect_location = False
+
         def __init__(self, status: int, data=None):
             self.status_code = status
             self._data = data
@@ -1151,6 +1155,78 @@ def test_llm_models_live_then_catalogue(server, monkeypatch):
         "source": "catalogue",
     }
     assert len(calls) == before
+
+
+def test_an_address_with_a_password_in_it_is_refused(server):
+    """``user:pass@host`` in an endpoint address would be stored in app-settings.json,
+    logged at every model switch and shown in the console as typed: every place that
+    takes an address from the app says no, with the reason, and a key goes in its field."""
+    from nanomuse.server.connections import check_base_url, has_userinfo
+
+    assert has_userinfo("https://me:secret@gateway.example/v1")
+    assert has_userinfo("me:secret@gateway.example")  # no scheme typed yet
+    assert has_userinfo("https://me@gateway.example/v1")
+    assert not has_userinfo("https://gateway.example/v1?token=a@b")
+    assert check_base_url("gateway.example") == "https://gateway.example/v1"
+    with pytest.raises(ValueError, match="user name or password"):
+        check_base_url("https://me:secret@gateway.example/v1")
+
+    client, _, _ = server
+    bad = "https://me:secret@gateway.example/v1"
+    for path in ("/api/connections/llm", "/api/connections/gui", "/api/connections/image"):
+        r = client.put(path, json={"base_url": bad, "model": "m"})
+        assert r.status_code == 400 and "user name or password" in r.json()["detail"], path
+    r = client.post("/api/llm/models", json={"base_url": bad, "api_key": "sk-1"})
+    assert r.status_code == 400 and "user name or password" in r.json()["detail"]
+    r = client.post("/api/connections/endpoints", json={"base_url": bad, "api_key": "sk-1"})
+    assert r.status_code == 400 and "user name or password" in r.json()["detail"]
+    # nothing of it was kept
+    assert "secret" not in json.dumps(client.get("/api/connections").json())
+
+
+async def test_fetch_models_keeps_the_key_on_its_host():
+    """A gateway that answers ``/models`` with a redirect: one to its own origin is
+    followed, one to another host is not when the request carries the key, and the key
+    never reaches the other host. An address with ``user:pass@`` is not asked at all."""
+    import httpx
+
+    from nanomuse.server.connections import fetch_models
+
+    seen: list[tuple[str, str]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append((str(request.url), request.headers.get("Authorization", "")))
+        host, path = request.url.host, request.url.path
+        if host == "same.example" and path == "/v1/models":
+            return httpx.Response(307, headers={"Location": "/v1/models/"})
+        if host == "same.example" and path == "/v1/models/":
+            return httpx.Response(200, json={"data": [{"id": "b"}, {"id": "a"}]})
+        if host == "away.example":
+            return httpx.Response(302, headers={"Location": "https://other.example/v1/models"})
+        if host == "loop.example":
+            return httpx.Response(302, headers={"Location": "/v1/models"})
+        if host == "other.example":
+            return httpx.Response(200, json={"data": [{"id": "stolen"}]})
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(handler)
+    ids, err = await fetch_models("https://same.example/v1", "sk-1", transport=transport)
+    assert (ids, err) == (["a", "b"], "")
+    assert [h for _, h in seen] == ["Bearer sk-1", "Bearer sk-1"]
+
+    seen.clear()
+    ids, err = await fetch_models("https://away.example/v1", "sk-1", transport=transport)
+    assert (ids, err) == ([], "redirect to another host")
+    assert all("other.example" not in url for url, _ in seen)
+    # without a key there is nothing to protect: the redirect is followed
+    ids, err = await fetch_models("https://away.example/v1", "", transport=transport)
+    assert (ids, err) == (["stolen"], "")
+    assert ("https://other.example/v1/models", "") in seen
+
+    ids, err = await fetch_models("https://loop.example/v1", "sk-1", transport=transport)
+    assert (ids, err) == ([], "TooManyRedirects")
+    ids, err = await fetch_models("https://me:pw@same.example/v1", "sk-1", transport=transport)
+    assert (ids, err) == ([], "userinfo in URL")
 
 
 def test_providers_carry_where_keys_come_from(server):
@@ -1307,6 +1383,67 @@ def test_connections_mcp_and_vault(server):
     assert client.get("/api/settings").json()["onboarded"] is True
 
 
+async def test_mcp_env_values_go_to_the_vault(settings: Settings):
+    """An MCP server added with an ``env`` block: the values are kept in the vault under
+    ``MCP_<SERVER>_<KEY>`` and app-settings.json holds references, as it does for every
+    other secret; the server still gets the real value at spawn. A value typed as a
+    reference stays as typed; the console sees the names and which ones are references;
+    removing the server removes the entries it made and no other.
+
+    Driven on the service directly: a stdio session opened inside a TestClient request
+    cannot be closed in another, so the echo server is connected and closed in one task."""
+    import sys
+
+    from nanomuse.config import MCPServerSettings
+    from nanomuse.server.connections import mcp_env_vault_name
+
+    assert mcp_env_vault_name("amap", "AMAP_MAPS_API_KEY") == "MCP_AMAP_AMAP_MAPS_API_KEY"
+    assert mcp_env_vault_name("my.server-2", "key") == "MCP_MY_SERVER_2_KEY"
+    service = MuseService(settings, llm=MockLLM([]))
+    conn = service.connections
+    echo = str(Path(__file__).with_name("mcp_echo_server.py"))
+    conn.vault.set("OWN_TOKEN", "mine")
+    view = await conn.add_mcp(
+        {
+            "name": "echo",
+            "command": sys.executable,
+            "args": [echo],
+            "env": {"ECHO_KEY": "k-123", "ECHO_REF": "{{vault:OWN_TOKEN}}", "ECHO_PLAIN": ""},
+        }
+    )
+    try:
+        stored = json.loads((settings.data_dir / "app-settings.json").read_text("utf-8"))
+        assert stored["mcp"]["servers"][0]["env"] == {
+            "ECHO_KEY": "{{vault:MCP_ECHO_ECHO_KEY}}",
+            "ECHO_REF": "{{vault:OWN_TOKEN}}",
+            "ECHO_PLAIN": "",
+        }
+        assert "k-123" not in json.dumps(stored)
+        assert conn.vault.get("MCP_ECHO_ECHO_KEY") == "k-123"
+        # the running server was spawned with the real value, and the config keeps the reference
+        manager = conn._mcp["echo"]
+        assert manager._resolved(manager.servers[0]).env["ECHO_KEY"] == "k-123"
+        assert settings.mcp.servers[-1].env["ECHO_KEY"] == "{{vault:MCP_ECHO_ECHO_KEY}}"
+        mine = [m for m in view["mcp"] if m["name"] == "echo"][0]
+        assert mine["env"] == [
+            {"name": "ECHO_KEY", "vault": True},
+            {"name": "ECHO_REF", "vault": True},
+            {"name": "ECHO_PLAIN", "vault": False},
+        ]
+        assert "k-123" not in json.dumps(view)
+        # a server from config.toml with a plain value: the console is told it is plain
+        settings.mcp.servers.append(
+            MCPServerSettings(name="toml", command="x", env={"TOKEN": "plain-text"})
+        )
+        toml = [m for m in conn.view()["mcp"] if m["name"] == "toml"]
+        assert toml[0]["env"] == [{"name": "TOKEN", "vault": False}]
+        assert "plain-text" not in json.dumps(toml)
+    finally:
+        assert await conn.remove_mcp("echo") is True
+    assert "MCP_ECHO_ECHO_KEY" not in conn.vault.names()
+    assert conn.vault.get("OWN_TOKEN") == "mine"
+
+
 def test_app_settings_are_layered_on_config(server, settings: Settings):
     from nanomuse.config import Settings as S
     from nanomuse.config import apply_app_settings, load_app_settings
@@ -1319,6 +1456,24 @@ def test_app_settings_are_layered_on_config(server, settings: Settings):
     apply_app_settings(fresh, load_app_settings(settings.data_dir))
     assert fresh.llm.model == "m2" and fresh.llm.api_key == "{{vault:LLM_API_KEY}}"
     assert fresh.connectors.email.imap_host == "imap.x" and fresh.browser.enabled is True
+
+
+def test_a_broken_app_settings_file_is_reported_not_silently_a_first_start(tmp_path: Path):
+    from loguru import logger
+
+    from nanomuse.config import load_app_settings
+
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "app-settings.json").write_text('{"version": 1, "llm": {"model": "m2"', "utf-8")
+    lines: list[str] = []
+    sink = logger.add(lambda m: lines.append(str(m)), level="WARNING")
+    try:
+        assert load_app_settings(data_dir) == {}
+        assert load_app_settings(tmp_path / "nowhere") == {}, "no file is a quiet first start"
+    finally:
+        logger.remove(sink)
+    assert len(lines) == 1 and "app-settings.json" in lines[0], lines
 
 
 def test_files_are_scoped_to_workspace(server, settings: Settings):
@@ -1751,6 +1906,10 @@ def test_push_keys_subscriptions_and_gone_endpoints(settings: Settings, monkeypa
     assert svc.subscribe({**FAKE_SUB, "endpoint": "https://push.example/sub/2"}) == 2
     assert svc.subscribe(FAKE_SUB) == 2  # re-subscribing the same endpoint replaces it
     assert PushService(settings.data_dir).view()["subscriptions"] == 2
+    # the key pair and the subscriptions (a browser's p256dh and auth) are the owner's only
+    if os.name == "posix":
+        for name in ("push-vapid.json", "push-subscriptions.json"):
+            assert (settings.data_dir / name).stat().st_mode & 0o777 == 0o600, name
 
     sent: list[tuple[str, dict[str, Any]]] = []
 
@@ -2357,3 +2516,20 @@ def test_update_endpoint(server, monkeypatch):
     view = client.get("/api/update").json()
     assert view["enabled"] is False and view["newer"] is False and view["current"]
     assert TestClient(client.app).get("/api/update").status_code == 401
+
+
+def test_static_app_caching_headers(server):
+    """The build's hashed assets may be kept for a year; index.html and sw.js never are."""
+    client, _, _ = server
+    plain = TestClient(client.app)  # the app itself needs no token
+    from nanomuse.server.api import STATIC_DIR
+
+    asset = next((STATIC_DIR / "assets").glob("*.js"))
+    r = plain.get(f"/assets/{asset.name}")
+    assert r.status_code == 200
+    assert r.headers["cache-control"] == "public, max-age=31536000, immutable"
+    assert plain.get("/").headers["cache-control"] == "no-cache"
+    assert plain.get("/sw.js").headers["cache-control"] == "no-cache"
+    # the app's own routes, not the HTML, answer a wrong API path
+    r = plain.get("/api/no-such-thing")
+    assert r.status_code == 404 and "no such endpoint" in r.json()["detail"]

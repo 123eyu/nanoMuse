@@ -1,41 +1,45 @@
-name: Feature request
-description: Something Muse does that nanoMuse does not yet, or something nanoMuse should do.
+name: Feature request / 功能建议
+description: Something nanoMuse should do, or should do differently. / nanoMuse 应该做的事，或者应该换个做法的事。
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        nanoMuse follows Meta's Muse closely. If your request is "Muse does X", say so and link to
-        where it is described; those are the requests most likely to land. Ideas outside Muse are
-        welcome too; just say what problem they solve.
+        Say what problem the change solves and what you would expect to see; a request that
+        names a real task you tried to do is the kind most likely to land. If another product
+        does it the way you want, a link to where that is described helps. You can write in
+        English or 中文.
+
+        说清这个改动解决什么问题、你期望看到什么；写明你实际想做的那件事的建议最容易落地。
+        如果别的产品已经有你想要的做法，附上描述它的链接会有帮助。英文或中文都可以。
   - type: textarea
     id: problem
     attributes:
-      label: What you are trying to do
-      description: The task or situation, in a sentence or two. Not the solution yet.
+      label: What you are trying to do / 你想做什么
+      description: "The task or situation, in a sentence or two. Not the solution yet. / 用一两句话说任务或场景，先不说解决方案。"
     validations:
       required: true
   - type: textarea
     id: proposal
     attributes:
-      label: What you would like to happen
-      description: How it should look in the app, the CLI or the API. Mock-ups and examples help.
+      label: What you would like to happen / 你希望它怎么做
+      description: "How it should look in the app, the CLI or the API. Mock-ups and examples help. / 在应用、命令行或 API 里应该是什么样子。示意图和例子会有帮助。"
     validations:
       required: true
   - type: textarea
     id: alternatives
     attributes:
-      label: What you do today instead
+      label: What you do today instead / 你现在是怎么做的
   - type: dropdown
     id: area
     attributes:
-      label: Area
+      label: Area / 范围
       options:
-        - Phone / web app
-        - Agent behaviour and prompts
-        - Sentinel, approvals, vault
-        - Tools and connections (email, browser, MCP, …)
-        - Goals, memory, proactivity
-        - Models and providers
-        - Docs
-        - Other
+        - Phone / web app / 手机或网页应用
+        - Agent behaviour and prompts / 智能体的行为和提示词
+        - Sentinel, approvals, vault / 哨兵、审批、保险库
+        - Tools and connections (email, browser, MCP, …) / 工具和连接（邮件、浏览器、MCP……）
+        - Goals, memory, proactivity / 目标、记忆、主动性
+        - Models and providers / 模型和服务商
+        - Docs / 文档
+        - Other / 其他

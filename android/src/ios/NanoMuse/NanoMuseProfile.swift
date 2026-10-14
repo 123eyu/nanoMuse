@@ -164,6 +164,9 @@ enum NanoMuseRelayMedia {
         var rev: Int
         var name: String
         var avatar: String
+        /// The emoji look's glyph and `#rrggbb` (#435); empty unless `avatar` is `emoji`.
+        var emoji: String
+        var color: String
         var style: String
         var description: String
         var faceId: String
@@ -181,6 +184,8 @@ enum NanoMuseRelayMedia {
             rev: (reply["rev"] as? Int) ?? Int((reply["rev"] as? Double) ?? 0),
             name: reply["name"] as? String ?? "",
             avatar: reply["avatar"] as? String ?? "",
+            emoji: reply["emoji"] as? String ?? "",
+            color: reply["color"] as? String ?? "",
             style: reply["style"] as? String ?? "",
             description: reply["description"] as? String ?? "",
             faceId: reply["face_id"] as? String ?? "",
@@ -281,6 +286,7 @@ final class NanoMuseProfileSync: ObservableObject {
     private var applying = false
     private var namePush: Task<Void, Never>?
     private var soulObserver: NSObjectProtocol?
+    private var foregroundObserver: NSObjectProtocol?
 
     private init() {}
 
@@ -290,6 +296,14 @@ final class NanoMuseProfileSync: ObservableObject {
         if soulObserver == nil {
             soulObserver = NotificationCenter.default.addObserver(forName: .soulMdChanged, object: nil, queue: .main) { [weak self] _ in
                 Task { @MainActor in self?.nameChanged() }
+            }
+        }
+        if foregroundObserver == nil {
+            // The hub's `profile` frame is missed while the app is in the background; a pull on
+            // the way back to the front picks up a name or a face the other device wrote
+            // meanwhile, instead of waiting for the next cold start (Android does the same).
+            foregroundObserver = NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.pull() }
             }
         }
         pull()
@@ -356,9 +370,11 @@ final class NanoMuseProfileSync: ObservableObject {
                     return
                 }
                 if head.rev == 0, known == 0 {
-                    // the relay has nothing for this account yet: this phone's connections and its
-                    // name (when it has one) seed it, as Android does
-                    if !NanoMuseSharedConnectors.shared.mine().isEmpty {
+                    // the relay has nothing for this account yet: the face this phone wears, its
+                    // connections and its name (when it has one) seed it, as Android does
+                    if NanoMuseFaceStore.shared.hasCustomFace {
+                        faceChanged()
+                    } else if !NanoMuseSharedConnectors.shared.mine().isEmpty {
                         connectorsChanged()
                     } else if !Self.localName.isEmpty {
                         nameChanged(now: true)
@@ -367,7 +383,11 @@ final class NanoMuseProfileSync: ObservableObject {
                 // C8: the account's name, before the pictures — a rename elsewhere is often all that moved
                 if head.rev > 0 { apply(remoteName: head.name) }
                 let store = NanoMuseFaceStore.shared
-                if head.hasFace {
+                if head.avatar == "emoji" {
+                    // An emoji on a colour, set on the desktop or in the web console (#435):
+                    // worn in place of a drawn face, as a remote dragon takes one off.
+                    store.wear(emoji: NanoMuseEmojiLook(emoji: head.emoji, color: head.color))
+                } else if head.hasFace {
                     if head.faceId == store.meta.faceId && store.hasCustomFace {
                         UserDefaults.standard.set(head.rev, forKey: Keys.rev)
                         return
@@ -384,8 +404,8 @@ final class NanoMuseProfileSync: ObservableObject {
                         // nanoMuse: clips are per device — the old ones went with `wear`; new ones when enabled (contract C3)
                         NanoMuseAvatarMotion.shared.animateIfEnabled()
                     }
-                } else if head.rev > 0, store.hasCustomFace {
-                    // Another device went back to the dragon.
+                } else if head.rev > 0, store.source != .dragon {
+                    // Another device went back to the dragon: the drawn face or the emoji look goes.
                     store.reset(sync: false)
                 }
                 UserDefaults.standard.set(head.rev, forKey: Keys.rev)
@@ -416,6 +436,13 @@ final class NanoMuseProfileSync: ObservableObject {
                     body["face"] = face
                     body["description"] = store.meta.description
                     body["style"] = store.meta.style
+                } else if let look = store.emojiLook {
+                    // An emoji look is another device's choice (#435): this phone says it
+                    // back as it is, never the dragon over it.
+                    body["avatar"] = "emoji"
+                    body["emoji"] = look.emoji
+                    body["color"] = look.color
+                    body["face"] = NSNull()
                 } else {
                     body["avatar"] = "dragon"
                     body["face"] = NSNull()
@@ -477,10 +504,11 @@ final class NanoMuseProfileSync: ObservableObject {
                 body["avatar"] = "face"
                 body["description"] = store.meta.description
                 body["style"] = store.meta.style
-            } else {
-                body["avatar"] = "dragon"
-                body["face"] = NSNull()
             }
+            // Without a face of its own this phone says nothing about the look: the relay keeps
+            // what it has (relay 0.25), an emoji look another device set included (#435). Sending
+            // the dragon here took the account's face off every other device whenever a phone
+            // renamed the muse before its first pull had landed.
             if !name.isEmpty { body["name"] = String(name.prefix(60)) }
             let rev = try await NanoMuseRelayMedia.putProfile(body)
             UserDefaults.standard.set(rev, forKey: Keys.rev)

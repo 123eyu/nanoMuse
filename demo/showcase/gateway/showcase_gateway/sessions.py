@@ -131,7 +131,7 @@ def _day_key(now: float) -> str:
 
 
 def _resolve(host: str, port: int) -> list[str]:
-    return [info[4][0] for info in socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)]
+    return [str(info[4][0]) for info in socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)]
 
 
 def check_provider(base_url: str, allowed_hosts: tuple[str, ...], resolve=_resolve) -> str:
@@ -259,7 +259,9 @@ class SessionManager:
         while starts and now - starts[0] > 86400:
             starts.popleft()
         if len(starts) >= self.s.per_ip_daily:
-            raise Refused(429, "daily_limit", "That is all the demo sessions for today from here.")
+            raise Refused(
+                429, "daily_limit", "That is all the demo sessions for 24 hours from here."
+            )
         if account:
             # the same account from two browsers is still one person: one Muse at a time,
             # and a day's worth of starts
@@ -275,7 +277,9 @@ class SessionManager:
                 account_starts.popleft()
             if len(account_starts) >= self.s.per_account_daily:
                 raise Refused(
-                    429, "daily_limit", "That is all the demo sessions for today on this account."
+                    429,
+                    "daily_limit",
+                    "That is all the demo sessions for 24 hours on this account.",
                 )
 
     def _env_for(self, sess: Session) -> dict[str, str]:
@@ -366,20 +370,32 @@ class SessionManager:
         try:
             sess.address = await self.runner.start(sess.container, self._env_for(sess))
             await self._wait_ready(sess)
-        except (RunnerError, Refused):
-            await self.end(sid, reason="failed to start")
+        except Refused:
+            await self._failed_start(sess, now)
             raise
-        except Exception as exc:  # noqa: BLE001
-            await self.end(sid, reason="failed to start")
+        except RunnerError as exc:
+            # docker said no (a full disk, a missing image): the reason goes to the log, the
+            # visitor gets a refusal with a code the phone can show, not a bare 500
+            log.warning("session %s could not start: %s", sid, exc)
+            await self._failed_start(sess, now)
             raise Refused(503, "start_failed", "Could not start a demo Muse. Try again.") from exc
-        log.info(
-            "session %s started for %s (visitor=%s byok=%s)",
-            sid,
-            ip,
-            hint or "-",
-            byok is not None,
-        )
+        except Exception as exc:  # noqa: BLE001
+            log.exception("session %s could not start", sid)
+            await self._failed_start(sess, now)
+            raise Refused(503, "start_failed", "Could not start a demo Muse. Try again.") from exc
+        # the visitor's address is in the visit row (visitors.py) for the operator; the log
+        # carries the hint (a masked identifier) and no address
+        log.info("session %s started (visitor=%s byok=%s)", sid, hint or "-", byok is not None)
         return sess
+
+    async def _failed_start(self, sess: Session, started: float) -> None:
+        """A Muse that did not come up is the box's failure, not the visitor's turn: the
+        start is taken back out of the address's and the account's allowance."""
+        await self.end(sess.id, reason="failed to start")
+        async with self._lock:
+            for starts in (self._starts.get(sess.ip), self._account_starts.get(sess.account)):
+                if starts and started in starts:
+                    starts.remove(started)
 
     async def _wait_ready(self, sess: Session) -> None:
         deadline = self.clock() + self.s.start_timeout_s

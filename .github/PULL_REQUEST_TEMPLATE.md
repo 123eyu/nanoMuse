@@ -2,17 +2,17 @@
 
 ## What
 
-<!-- One or two sentences. Link the issue if there is one: Fixes #123 -->
+<!-- One or two sentences. Link the issue if there is one: For #123 (not Fixes or Closes; an issue stays open until the fix has shipped) -->
 
 ## Why
 
-<!-- The problem this solves, or the Muse behaviour it brings in. -->
+<!-- The problem this solves, or what a person can do afterwards that they could not before. -->
 
 ## Checks
 
 <!-- Tick what applies; the commands are in AGENTS.md, one block per part of the tree. -->
 
-- [ ] The checks for the part I changed pass (runtime: `ruff check nanomuse tests scripts && ruff format --check nanomuse tests scripts && mypy && python -m pytest -q -m "not live"`; relay: `cd cloud && ruff check . && pytest`; web: `cd web && npm run check && npm run build`; desktop: `cd harness/dsh-nanomuse && pnpm build && pnpm typecheck && pnpm test`)
+- [ ] The checks for the part I changed pass (runtime: `ruff check nanomuse tests scripts && ruff format --check nanomuse tests scripts && mypy && python -m pytest -q -m "not live"`; relay: `cd cloud && ruff check . && ruff format --check . && pytest`; web: `cd web && npm run check && npm run build`; desktop: `cd harness/dsh-nanomuse && pnpm build && pnpm typecheck && pnpm test`)
 - [ ] New behaviour has a test; tests use `MockLLM`, no network
 - [ ] If a person sees or does something differently: a line under `## [Unreleased]` in `CHANGELOG.md` (past tense, concrete, in the right section) and the page under `docs/` with its `docs/zh/` twin
 - [ ] If a user-visible string was added or changed: every locale of that file (English first, then 简体中文, then the rest; same placeholders)

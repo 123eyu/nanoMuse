@@ -1,7 +1,8 @@
 # The showcase's front door. Two names:
 #
 #   SITE_HOST         the page around the phone (/, with MobileGym + the nanoMuse app at
-#                     /phone.html), plus /api/demo/* and, when on, nanoMuse Web at /web/
+#                     /phone.html), plus /api/demo/*, /api/trial* and /llm/trial/*; nanoMuse
+#                     Web's /web/ and /api/web/* are the project site's (mirror/nanomuse.cn.caddy)
 #   *.SESSION_DOMAIN  one hostname per visitor session, everything relayed to the gateway
 #
 # Certificates come from Let's Encrypt through Cloudflare's DNS API for both names: the wildcard
@@ -39,6 +40,11 @@
 		Referrer-Policy strict-origin-when-cross-origin
 		# a year of HTTPS-only for this host (its subdomains are not promised)
 		Strict-Transport-Security "max-age=31536000"
+		# who may put this site in a frame: itself (the phone at /phone.html sits in the page)
+		# and the project's pages that embed the showcase, the same list as EMBEDDERS in
+		# site/page/page.js; any other site gets a blank frame, and a click-jacked sign-in
+		# with it. Scripts and styles are not restricted here: the page's own script is inline.
+		Content-Security-Policy "frame-ancestors 'self' https://nanomuse.cn https://www.nanomuse.cn https://nano-muse.github.io"
 		-Server
 	}
 
@@ -78,7 +84,16 @@
 
 *.{$SESSION_DOMAIN} {
 	import cloudflare_dns
-	header -Server
+	header {
+		# the web app in the phone's frame answers on this host, under the site, under the
+		# pages that embed the site: every ancestor must be in the list. Added (+) rather than
+		# set, so a policy the runtime puts on a file of its own (a sandbox on a page the agent
+		# wrote) stays beside it; a browser enforces both. ? leaves a header the runtime set.
+		+Content-Security-Policy "frame-ancestors 'self' https://{$SITE_HOST} https://nanomuse.cn https://www.nanomuse.cn https://nano-muse.github.io"
+		?X-Content-Type-Options nosniff
+		?Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
 	request_body {
 		max_size 64MB
 	}

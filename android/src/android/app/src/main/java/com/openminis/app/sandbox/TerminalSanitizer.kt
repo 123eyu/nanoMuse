@@ -16,20 +16,20 @@ object TerminalSanitizer {
 
     /**
      * Sanitize terminal output in two passes:
-     * 1. CR folding — simulate carriage return overwriting
-     * 2. Strip remaining ANSI/VT escape sequences
+     * 1. Strip ANSI/VT escape sequences
+     * 2. CR folding, simulate carriage return overwriting
      */
     fun sanitize(raw: String): String {
         if (raw.isEmpty()) return raw
 
-        // Pass 1: CR folding
-        val crFolded = foldCarriageReturns(raw)
+        // nanoMuse: strip ANSI first so escape bytes cannot occupy overwrite columns.
+        val stripped = ANSI_REGEX.replace(raw, "")
 
-        // Pass 2: Strip ANSI sequences
-        val stripped = ANSI_REGEX.replace(crFolded, "")
+        // Pass 2: CR folding
+        val crFolded = foldCarriageReturns(stripped)
 
         // Pass 3: Remove null bytes and non-printable control chars (except \n \t)
-        val cleaned = stripped.filter { it == '\n' || it == '\t' || it.code >= 0x20 }
+        val cleaned = crFolded.filter { it == '\n' || it == '\t' || it.code >= 0x20 }
 
         // Pass 4: Remove "null" artifacts from PRoot/pipe issues
         // - Lines that are entirely "null"

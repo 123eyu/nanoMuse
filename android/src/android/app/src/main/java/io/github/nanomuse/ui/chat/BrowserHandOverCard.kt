@@ -91,6 +91,9 @@ fun BrowserHandOverHost(viewModel: ChatViewModel) {
                     fontSize = 14.sp,
                     lineHeight = 20.sp,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                    // The reason is the model's text; a paragraph must not push Open and Done off the screen.
+                    maxLines = 6,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(Modifier.height(14.dp))
                 Button(
@@ -130,6 +133,8 @@ fun BrowserHandOverBanner(accent: Color) {
             lineHeight = 18.sp,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
         )
         Spacer(Modifier.width(10.dp))
         Button(

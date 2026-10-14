@@ -227,3 +227,30 @@ async def test_messages_in_and_markdown_out(sdk: types.ModuleType, tmp_path):  #
     finally:
         await ch.stop()
     assert ch._thread is None and ch._stream_loop is None
+
+
+async def test_a_stream_that_gives_up_is_reported_not_left_hanging(
+    sdk: types.ModuleType, monkeypatch: pytest.MonkeyPatch
+):
+    """The SDK's ``start()`` coming back on its own (bad credentials, the SDK giving up)
+    used to leave its thread running forever and the status at "connected"."""
+
+    class Failing(FakeStreamClient):
+        async def start(self) -> None:
+            self.started.set()
+            await asyncio.sleep(0)
+            raise RuntimeError("stream refused: 401\nmore")
+
+    monkeypatch.setattr(sdk, "DingTalkStreamClient", Failing)
+    api = FakeRobotApi()
+    bus = Bus()
+    ch = channel(api)
+    await ch.start(bus)
+    try:
+        await until(lambda: ("dingtalk", "error", "stream refused: 401") in bus.statuses)
+        thread = ch._thread
+        assert thread is not None
+        await asyncio.to_thread(thread.join, 3)
+        assert not thread.is_alive()  # the loop stopped with the stream
+    finally:
+        await ch.stop()

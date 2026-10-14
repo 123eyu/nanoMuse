@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -33,6 +34,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.openminis.app.R
 import com.openminis.app.ui.theme.ChatColors
 import io.github.nanomuse.ui.avatar.AgentAvatarDisc
 import io.github.nanomuse.ui.avatar.AgentMood
@@ -76,6 +78,8 @@ fun MuseHeader(
                 AgentAvatarDisc(
                     mood = mood,
                     discSize = disc,
+                    // named for TalkBack: the face is the way to the agent's page
+                    contentDescription = if (onAvatarClick != null) stringResource(R.string.nm_avatar_content_description) else null,
                     onClick = onAvatarClick,
                 )
             } else {

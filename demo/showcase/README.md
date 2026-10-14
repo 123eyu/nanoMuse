@@ -178,7 +178,8 @@ httpx's) carries the value: it is rewritten to `token=[redacted]` before it is w
 ## What the gateway enforces
 
 - **One container per visitor**, `--read-only`, no capabilities, `no-new-privileges`, 512 MB,
-  one CPU, 256 processes, tmpfs for `/data` and `/workspace`. Gone after `SESSION_TTL_S`
+  one CPU, 256 processes, tmpfs for `/data`, `/workspace`, `/home/muse` and `/tmp` (the only
+  places it can write). Gone after `SESSION_TTL_S`
   (30 min) or `IDLE_TTL_S` (10 min) without traffic, and everything in it with it.
 - **No network** from the containers except to the gateway (`docker network --internal`). The
   web fetch and shell tools cannot reach the internet from a demo session; the phone can.
@@ -191,8 +192,12 @@ httpx's) carries the value: it is rewritten to `token=[redacted]` before it is w
   429 (`session_budget` / `daily_budget`) and the agent tells the visitor in those words
   (`nanomuse/server/failures.py`): the demo's share is used up, start over or install the
   app, not "the provider is rate-limiting this key".
-- **Per visitor (IP):** `PER_IP_ACTIVE` sessions at once, `PER_IP_DAILY` a day. `MAX_SESSIONS`
-  overall.
+- **Per visitor (IP):** `PER_IP_ACTIVE` sessions at once, `PER_IP_DAILY` in any 24 hours: a
+  rolling window from each start, so the allowance comes back to each visitor a day after they
+  used it, in their own time wherever they are, not at midnight in one time zone (the operator's
+  daily budgets above are the ones on the Asia/Shanghai day). A start the box failed to bring
+  up (no container, a health check that never answered) is not counted. `MAX_SESSIONS`
+  overall. The counts live in the gateway's memory; a restart starts them over.
 - **Who is trying it** (`DEMO_SIGNIN_REQUIRED=1`, the default): before the phone starts a Muse,
   the visitor signs in to nanoMuse Cloud (the Android app's door: a code to a phone or an
   inbox, or the account's password) on the phone's own pages (`demo/mobilegym`,
@@ -207,8 +212,9 @@ httpx's) carries the value: it is rewritten to `token=[redacted]` before it is w
   `401 signin_required`, and the phone shows the sign-in. A first sign-in creates the Cloud
   account, with its free allowance, so the day the person installs the app it is already
   theirs. One account is one person wherever it signs in from: `PER_ACCOUNT_ACTIVE` Muses at
-  once, `PER_ACCOUNT_DAILY` a day, on top of the address limits. The session log names the
-  visitor by the masked identifier; `GET /api/demo/info` → `signin` counts them. The book
+  once, `PER_ACCOUNT_DAILY` in any 24 hours, on top of the address limits. The session log
+  names the visitor by the masked identifier and never by address; `GET /api/demo/info` →
+  `signin` counts them. The book
   also keeps, per visitor, the address and browser string of the first and the latest
   sign-in or demo and how many sign-ins, and one *visit* row per demo started: when, from
   which address, with which browser, whether it brought its own key, and when it ended with
@@ -223,7 +229,8 @@ httpx's) carries the value: it is rewritten to `token=[redacted]` before it is w
   providers), never to an address inside the server's network. The model they name is the chat
   model; the hands get their own on the same key (`qwen/qwen3.8-27b` on OpenRouter,
   `qwen3.8-27b` on 阿里云百炼), and on any other provider the one model does both lanes (a
-  text-only model there, DeepSeek's own API say, leaves the hands with nothing to look with).
+  text-only model there, `deepseek-v4-pro` on DeepSeek's own API say, leaves the hands with
+  nothing to look with; `deepseek-flash`, the key page's default, sees).
 
 Two lanes, two models, both set by the operator in the gateway's `.env` (`.env.example` lists
 the names; `docker-compose.yml` pins none): `main` (the model that talks to the visitor) is
@@ -233,9 +240,10 @@ on 阿里云百炼 at the time of writing); `gui` (the one that reads screens an
 calls with a screenshot each) is `GUI_MODEL`, and empty means `qwen3.8-27b` on the main lane's
 host and key, a fixed default not derived from the chat model; set `GUI_*` to change it or to
 split the lanes across keys or providers. A chat model that takes no images (DeepSeek before
-V4.1: `deepseek-v4-pro`, `deepseek-v4-flash`) is kept away from screenshots
-(`NANOMUSE_LLM_VISION=off`); the operator lane still looks. What a running showcase actually
-uses is what `GET /api/demo/info` says (`demo_model`, `gui_model`), not this page.
+V4.1: `deepseek-v4-pro`, `deepseek-chat`; not `deepseek-flash` or `deepseek-v4-flash`, which
+V4.1 Flash serves, the same rule as the runtime's `nanomuse/llm/vision.py`) is kept away from
+screenshots (`NANOMUSE_LLM_VISION=off`); the operator lane still looks. What a running showcase
+actually uses is what `GET /api/demo/info` says (`demo_model`, `gui_model`), not this page.
 
 **The capsule decides.** While the hands work on the simulated phone, an approval the run
 raises (a tap on *Pay*, *Send*, *Delete*…) is shown on the capsule over the operated app with
@@ -352,8 +360,9 @@ docker compose up -d --build
 docker compose logs -f gateway
 ```
 
-Open `https://demo.nanomuse.dev`, find nanoMuse in the launcher (search works), and it starts.
-`curl https://demo.nanomuse.dev/api/demo/info` shows sessions in use and today's spend.
+Open `https://demo.nanomuse.dev`: the phone turns itself on with nanoMuse in front, and a
+Muse starts after the sign-in (or by itself once the page has been in view for a while, see
+above). `curl https://demo.nanomuse.dev/api/demo/info` shows sessions in use and today's spend.
 
 Updating: `git pull && docker pull ghcr.io/nano-muse/nanomuse:latest && docker compose pull && docker compose up -d`.
 Sessions in flight end when the gateway restarts; visitors get *Your Muse on the showcase server
@@ -368,6 +377,25 @@ than edges (set the zone's SSL/TLS mode to *Full (strict)*: the origin has a rea
 It is off by default on purpose: from mainland China the free plan routes through overseas
 edges, and the phone's 1.6 MB bundle that a Hong Kong server delivers in 2–3 s took 15–40 s
 through the proxy in our measurements. The audience this is for reaches the origin faster.
+
+The gateway, in turn, believes `X-Forwarded-For` from Caddy alone: `TRUSTED_PROXIES` (the
+compose file sets `caddy`, the service name, which the gateway resolves through Docker's DNS
+and looks up again when a peer it does not know connects, since a recreated Caddy has a new
+address; addresses and networks work too). The session containers reach the same port over
+the sessions network, and the agent inside one does whatever the visitor driving it says, so
+a header from them is not the visitor's word: such a request is counted under the container's
+own address, not under the one it names, and the relay's per-address limits on sign-in codes
+cannot be walked around from inside a demo. uvicorn is not asked to rewrite the client from
+the header (`proxy_headers=False`), so its access log carries Caddy's address and no
+visitor's. A front other than this compose file's Caddy goes into `TRUSTED_PROXIES`; `*`
+believes any peer, which is the old behaviour and not advisable.
+
+The three long-lived containers carry a health check (`docker compose ps` shows `healthy` or
+`unhealthy`): Caddy answers its admin endpoint on localhost while its config is loaded, the
+gateway answers `GET /api/demo/info`, and the Docker socket proxy answers `GET /_ping` only
+while the daemon behind it does. Docker does not restart an unhealthy container by
+itself; `restart: unless-stopped` covers a process that exits, and the state is there for the
+operator (or a watcher such as autoheal) to act on.
 
 ### Other sites on the same Caddy
 
@@ -388,7 +416,12 @@ The same box mirrors the releases: `mirror/release-sync.py`, run by a second tim
 minutes, asks the GitHub API for the newest two releases (drafts and pre-releases skipped) and
 fetches every asset into `www/dl/<tag>/`, checking each against the SHA-256 GitHub records for it;
 `www/dl/latest` points at the newest tag, `www/dl/index.json` lists what is there, older tags are
-removed. The site block serves the directory at [nanomuse.cn/dl/](https://nanomuse.cn/dl/) with a
+removed. `www/dl/win` is the Windows desktop's update feed (the URL in
+`harness/desktop/electron-builder.yml`): it points at the newest kept tag whose folder holds the
+whole set electron-updater reads, `latest.yml`, the installer it names and that installer's
+`.blockmap`, with the installer's SHA-512 the one `latest.yml` promises; while a release's Windows
+build is still running, or its installer did not arrive whole, the feed stays on the previous
+release (`index.json` says which under `win`). The site block serves the directory at [nanomuse.cn/dl/](https://nanomuse.cn/dl/) with a
 listing, and the site's download switch ("GitHub / 国内镜像") rewrites its links to
 `https://nanomuse.cn/dl/<tag>/<file>`. About 1.3 GB per release; `MIRROR_RELEASES_KEEP` in
 `/etc/default/nanomuse-site-mirror` changes how many are kept. `install.sh` installs this too and
@@ -428,6 +461,28 @@ with `MOBILEGYM_CDN_BASE=https://cdn.mobilegym.dev` (a build arg of the same nam
 file) and the phone takes it from MobileGym's CDN, as their own site does.
 
 `cd gateway && pytest` runs the gateway's tests (no Docker needed; the containers are faked).
+
+### Bumping MobileGym
+
+The phone is built from one MobileGym commit, the id in `mobilegym.ref`; `caddy/Dockerfile`
+and `site/build.sh` both read it, so the image the workflow publishes and a local build are
+the same phone, and a change on MobileGym's `main` reaches the visitors only when someone
+moves the pin. To move it:
+
+1. `git ls-remote https://github.com/Purewhiter/mobilegym.git main` for the new id (or pick a
+   tag).
+2. Put it on the last line of `mobilegym.ref`.
+3. `site/build.sh` with a fresh checkout (`rm -rf site/mobilegym` first): it fetches that
+   commit, runs `demo/mobilegym/patch-seed.sh` (which fails if upstream moved the 微信 line
+   the showcase changes) and composes the page (`site/compose.mjs`, which fails if the markup
+   it borrows from MobileGym's `web/index.html` is gone). Open the result and walk the lines
+   in both languages.
+4. Commit the new id with whatever the two scripts or the module needed; the workflow builds
+   the Caddy image from it, and `docker compose pull && docker compose up -d` on the box
+   serves it.
+
+`MOBILEGYM_REF` in `.env` (a branch, tag or commit id) overrides the pin for a build on that
+box, for trying an upstream change before pinning it.
 
 ## Costs, roughly
 

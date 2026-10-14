@@ -34,6 +34,10 @@ data class ChatPalette(
     val tertiaryText: Color,
     val disabledText: Color,
     val userBubble: Color,
+    // nanoMuse: the text ink on the user bubble, and the assistant's own pill
+    // (a touch off the background, both themes).
+    val onUserBubble: Color,
+    val assistantBubble: Color,
     val toolBg: Color,
     val toolBorder: Color,
     val toolCapsuleBg: Color,
@@ -70,12 +74,16 @@ val LightChatPalette = ChatPalette(
     secondaryText = Color(0x993C3C43),
     tertiaryText = Color(0x4D3C3C43),
     disabledText = Color(0x2E3C3C43),
-    userBubble = Color(0xFFE5F0FF),
+    // nanoMuse: the user's own message is a black pill with white ink (white
+    // pill, black ink in the dark theme below). scripts/rebrand.py writes these.
+    userBubble = Color(0xFF000000),
+    onUserBubble = Color(0xFFFFFFFF),
+    assistantBubble = Color(0xFFF2F2F7),
     toolBg = Color(0xFFF2F2F7),
     toolBorder = Color(0x14000000),
     toolCapsuleBg = Color(0xFFF2F2F7),
     separator = Color(0x4D3C3C43),
-    sendButton = Color(0xFF015CFB),
+    sendButton = Color(0xFF000000),
     sendButtonDisabled = Color(0x2E3C3C43),
     codeBlockBg = Color(0xFF000000),
     codeBlockText = Color(0xFFE5E5EA),
@@ -116,18 +124,17 @@ val DarkChatPalette = ChatPalette(
     secondaryText = Color(0x99EBEBF5),
     tertiaryText = Color(0x4DEBEBF5),
     disabledText = Color(0x2EEBEBF5),
-    // [T-android-user-bubble-dark-contrast] The old 0x247676D7 was a 14%-alpha
-    // translucent blue-grey that washed out to near-invisible on the #000 chat
-    // background on real (≈500-nit) displays — exactly the "crush to a near-black
-    // wash" failure the palette header warns about. Use an OPAQUE cool slate-blue
-    // so the user's own messages read as a distinct accent; white primaryText
-    // stays legible on it.
-    userBubble = Color(0xFF1A2B4A),
+    // nanoMuse: the user's own message is a white pill with black ink; the
+    // assistant's pill is a touch off the pure-black wash. (Replaces the earlier
+    // opaque slate-blue user bubble.) scripts/rebrand.py writes these.
+    userBubble = Color(0xFFFFFFFF),
+    onUserBubble = Color(0xFF000000),
+    assistantBubble = Color(0xFF1C1C1E),
     toolBg = Color(0xFF3A3A3F),
     toolBorder = Color(0x40545458),
     toolCapsuleBg = Color(0xFF28282C),
     separator = Color(0x99545458),
-    sendButton = Color(0xFF58A6FF),
+    sendButton = Color(0xFFFFFFFF),
     sendButtonDisabled = Color(0x2EEBEBF5),
     codeBlockBg = Color(0xFF262626),
     codeBlockText = Color(0xFFE5E5EA),

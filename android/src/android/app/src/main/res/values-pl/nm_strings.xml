@@ -136,6 +136,8 @@
     <string name="nm_routine_run_now">Uruchom teraz</string>
     <string name="nm_routine_delete">Usuń</string>
     <string name="nm_routine_paused">Wył.</string>
+    <!-- The chat row a routine sent: its label and the clock time it fired -->
+    <string name="nm_routine_wake_caption">Rutyna · %1$s · %2$s</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">Pomysły</string>
@@ -357,6 +359,23 @@
     <string name="nm_avatar_use_this">Użyj tego</string>
     <string name="nm_avatar_use_this_hint">Nastroje (praca, czekanie, gotowe, ups) rysowane są z niego w następnej kolejności, w tle.</string>
     <string name="nm_avatar_footer">Obrazki są przechowywane na tym telefonie w minis-global/nanomuse/avatar. Każda twarz to pięć obrazów od twojego dostawcy: jeden wybrany przez ciebie plus cztery nastroje.</string>
+    <string name="nm_own_clip_title">Twój własny klip</string>
+    <string name="nm_own_clip_body">Krótki film z Twojej galerii gra jako twarz w spoczynku, a pozostałe nastroje też z niego korzystają. MP4 lub MOV z wideo H.264, najwyżej 15 sekund i 30 MB; odtwarza się w pętli, bez dźwięku.</string>
+    <string name="nm_own_clip_on">Twój klip jest włączony i gra w każdym nastroju; tam, gdzie pokazywany jest nieruchomy obraz, nadal używane są narysowane obrazy. „Domyślna twarz” go usuwa.</string>
+    <string name="nm_own_clip_local">Klip zostaje na tym telefonie. Nie jest wysyłany do nanoMuse Cloud ani synchronizowany z Twoimi innymi urządzeniami.</string>
+    <string name="nm_own_clip_choose">Wybierz klip</string>
+    <string name="nm_own_clip_replace">Zamień klip</string>
+    <string name="nm_own_clip_default">Domyślna twarz</string>
+    <string name="nm_own_clip_menu">Twój własny klip…</string>
+    <string name="nm_own_clip_preview_title">Podgląd</string>
+    <string name="nm_own_clip_preview_body">Tak gra jako twarz: bez dźwięku, w pętli, przycięty do koła.</string>
+    <string name="nm_own_clip_details">%1$d s · %2$s</string>
+    <string name="nm_own_clip_use">Użyj</string>
+    <string name="nm_own_clip_refused_format">Tego pliku nie da się tu użyć. Wybierz MP4 lub MOV z wideo H.264, najwyżej 15 sekund i 30 MB.</string>
+    <string name="nm_own_clip_refused_long">Ten klip trwa %1$d sekund. Limit to 15 sekund i 30 MB.</string>
+    <string name="nm_own_clip_refused_large">Ten klip ma %1$s. Limit to 30 MB i 15 sekund.</string>
+    <string name="nm_own_clip_unreadable">Nie udało się odczytać klipu. Spróbuj innego.</string>
+    <string name="nm_a11y_own_clip_preview">Podgląd Twojego klipu</string>
 
     <!-- First run (Muse-style welcome; the steps are OpenMinis' provider and model screens) -->
     <string name="nm_setup_title">Witaj w nanoMuse</string>
@@ -600,6 +619,8 @@
     <string name="nm_risk_title_device">Zezwolić „%1$s” na sterowanie tym telefonem?</string>
     <string name="nm_risk_desc_device">„%1$s”, inne urządzenie na twoim koncie, chce %2$s na tym telefonie. Co dokładnie, widać poniżej. „Zawsze” pozwala temu urządzeniu robić tu takie rzeczy bez pytania; cofniesz to w Uprawnieniach.</string>
     <string name="nm_risk_preview_device">O co poprosiło urządzenie</string>
+    <string name="nm_risk_preview_show_all">Pokaż wszystko (%1$d wierszy)</string>
+    <string name="nm_risk_preview_show_less">Pokaż mniej</string>
     <string name="nm_risk_class_remote">Zdalne sterowanie</string>
     <string name="nm_hub_remote_reason">%1$s może sterować tym telefonem</string>
 
@@ -633,7 +654,6 @@
     <string name="nm_welcome_skip">Pomiń na razie</string>
     <string name="nm_welcome_hands_fine_print">Wszystko inne działa bez nich. Znajdziesz je w Ustawienia → Ręce, kiedy zechcesz.</string>
     <string name="nm_welcome_meet_fine_print">Przed wszystkim, czego nie da się cofnąć (usuwaniem, wysyłaniem, płaceniem) zatrzymuje się i najpierw pyta ciebie.</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">Zacznij z nanoMuse Cloud</string>
     <string name="nm_cloud_signin_subtitle">Kod na telefon lub skrzynkę, albo hasło, gdy już je ustawisz.</string>
     <string name="nm_cloud_mode_code">Kodem</string>
@@ -641,7 +661,7 @@
     <string name="nm_cloud_password">Hasło</string>
     <string name="nm_cloud_forgot_password">Nie pamiętasz hasła? Zaloguj się kodem</string>
     <string name="nm_cloud_identifier">Numer telefonu z Chin kontynentalnych lub e-mail</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · ty@example.com</string>
+    <string name="nm_cloud_identifier_hint">ty@example.com</string>
     <string name="nm_cloud_code">Kod</string>
     <string name="nm_cloud_send_code">Wyślij kod</string>
     <string name="nm_cloud_resend">Wyślij ponownie</string>
@@ -651,7 +671,6 @@
     <!-- Your own relay (0.1.38): the sign-in screen's server form and the account page's row -->
     <string name="nm_cloud_other_server">Użyj innego serwera</string>
     <string name="nm_cloud_server_url">Adres relay</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
     <string name="nm_cloud_server_check">Sprawdź</string>
     <string name="nm_cloud_server_use">Użyj tego serwera</string>
     <string name="nm_cloud_server_now">Serwer: %1$s</string>
@@ -713,6 +732,8 @@
     <string name="nm_cloud_err_password_short">Hasło musi mieć co najmniej 8 znaków.</string>
     <string name="nm_cloud_err_password_weak">To hasło jest zbyt łatwe do odgadnięcia.</string>
     <string name="nm_cloud_err_signup_closed">Rejestracja na tym relayu jest na razie wstrzymana. Istniejące konto nadal może się zalogować.</string>
+    <string name="nm_cloud_err_domain_limited">Adresy z tej domeny osiągnęły dzisiejszy limit rejestracji na tym relay. Spróbuj jutro albo użyj innego adresu.</string>
+    <string name="nm_cloud_err_channel_unsupported">Ten relay nie wysyła kodów na ten rodzaj adresu. Użyj drugiego rodzaju (e-mail albo numer telefonu) albo zaloguj się hasłem.</string>
     <string name="nm_cloud_err_too_large">Ta wiadomość jest za duża dla modelu. Skróć ją, usuń część załączników albo zacznij nowy czat.</string>
     <string name="nm_cloud_err_content_rejected">Kontrola treści dostawcy modelu odrzuciła to żądanie. Spróbuj innych słów, a jeśli to się powtarza, zacznij nowy czat: zakwestionowane słowa mogą być wcześniej w rozmowie.</string>
     <string name="nm_cloud_err_provider_busy">Dostawca modelu jest teraz zajęty. Spróbuj ponownie za chwilę.</string>
@@ -759,7 +780,7 @@
     <string name="nm_face_cost_not_now">Nie teraz</string>
     <string name="nm_face_cost_declined">W porządku, twarz zostaje bez zmian.</string>
     <string name="nm_cloud_invite_title">Zaproś znajomego</string>
-    <string name="nm_cloud_invite_why">Każda nowa osoba, która zarejestruje się twoim kodem, dodaje ¥%1$s do twojego limitu, i ¥%1$s do swojego. Nigdy nie wygasa.</string>
+    <string name="nm_cloud_invite_why">Gdy znajomy zarejestruje się twoim kodem i wyśle pierwsze zapytanie, oboje dostajecie ¥%1$s. Nigdy nie wygasa.</string>
     <string name="nm_cloud_invite_code">Twój kod</string>
     <string name="nm_cloud_invite_share">Udostępnij link</string>
     <string name="nm_cloud_invite_copy">Kopiuj</string>
@@ -797,7 +818,7 @@
     <string name="nm_cap_clips_unavailable">Klipy wymagają dostawcy z modelami wideo: Alibaba Cloud Bailian.</string>
     <string name="nm_cap_hands_unavailable">Ręce wymagają modelu, który widzi ekran: Bailian, OpenRouter, OpenAI, Anthropic, Gemini lub dowolny dostawca z modelami wizyjnymi.</string>
     <string name="nm_cap_chat_unavailable">Czat wymaga dostawcy z modelami czatu: dodaj klucz albo zaloguj się.</string>
-    <string name="nm_ways_invite_title">Zaproś znajomego: +¥%1$s dla ciebie i +¥%2$s dla niego, za każdą nową osobę, która zarejestruje się z twojego linku.</string>
+    <string name="nm_ways_invite_title">Zaproś znajomego: +¥%1$s dla ciebie i +¥%2$s dla niego, gdy nowa osoba zarejestrowana z twojego linku wyśle pierwsze zapytanie.</string>
     <string name="nm_ways_invite_share">Udostępnij link</string>
     <string name="nm_ways_invite_copy">Kopiuj link</string>
     <string name="nm_cloud_ev_contribute_on">Kontrola danych: pomoc w ulepszaniu włączona</string>
@@ -1130,4 +1151,16 @@
     <string name="nm_a11y_liked">Polubione</string>
     <string name="nm_a11y_not_liked">Niepolubione</string>
     <string name="nm_a11y_post_details">Szczegóły wpisu</string>
+    <string name="nm_claude_sign_in_unavailable">Ta wersja nie obsługuje logowania przez Claude. Dodaj Anthropic z kluczem API.</string>
+    <string name="nm_oauth_rescue_hint">Jeśli przeglądarka pokazuje stronę błędu pod localhost, twój proxy lub VPN przechwytuje odpowiedź. Dodaj localhost do jego listy wyjątków albo skopiuj adres tej strony i wklej go tutaj.</string>
+    <string name="nm_oauth_rescue_placeholder">Wklej adres tutaj</string>
+    <string name="nm_oauth_rescue_continue">Dalej</string>
+    <string name="nm_oauth_rescue_no_code">Ten adres nie zawiera kodu logowania.</string>
+    <string name="nm_oauth_rescue_failed">Logowanie nie czeka już na ten adres. Stuknij Zaloguj się i spróbuj ponownie.</string>
+    <!-- Font scale labels -->
+    <string name="nm_font_scale_extra_small">Bardzo mały</string>
+    <string name="nm_font_scale_small">Mały</string>
+    <string name="nm_font_scale_medium">Średni</string>
+    <string name="nm_font_scale_large">Duży</string>
+    <string name="nm_font_scale_extra_large">Bardzo duży</string>
 </resources>

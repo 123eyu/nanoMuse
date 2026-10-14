@@ -1,8 +1,8 @@
 # nanoMuse 桌面版
 
 电脑上的 Muse，装在一个窗口里：nanoMuse 建在
-[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（`dsh`）之上，布局照着
-Muse 桌面版（[desktop-muse.md](desktop-muse.md)），账号、形象、在这台电脑屏幕上动手的
+[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（`dsh`）之上，窗口的
+布局一屏一屏见 [desktop-muse.md](desktop-muse.md)，账号、形象、在这台电脑屏幕上动手的
 「手」（Hands）、够得着账号下每一台其他设备的 Reach，都以插件的形式加进来
 （[harness.md](harness.md)）。支持 Windows 10 以上、macOS 12 以上和 Linux x64；每个平台一个
 安装包，不需要先装别的：harness、nanoMuse 插件包和负责手的运行时都在里面。
@@ -14,6 +14,12 @@ Muse 桌面版（[desktop-muse.md](desktop-muse.md)），账号、形象、在�
 | Linux | `nanoMuse-Desktop-<version>-linux-x64.deb`（推荐）/ `.AppImage` / `.tar.gz`；见 [Linux 注意事项](#linux-notes) |
 
 每个版本都带着这些安装包（`.github/workflows/desktop-app.yml`；旁边有 `SHA256SUMS-desktop.txt`）。
+Windows 版本还带着 electron-updater 要读的更新元数据：`latest.yml` 写着安装包的名字和它的
+SHA-512，旁边是安装包的 `.exe.blockmap`。CI 在把它们附上 release 之前，会先让 electron-updater
+亲自检查这一套：它必须能在 `latest.yml` 里找到候选版本、从测试源下载安装包并校验通过，字节对不上
+的会被拒绝（`harness/desktop/scripts/update-feed-check.mjs`）。这套元数据对应的更新源是下载镜像的
+[nanomuse.cn/dl/win/](https://nanomuse.cn/dl/win/)：只有当一个版本的 `latest.yml`、安装包和 `.blockmap`
+三个都到齐、安装包的字节也对得上时，它才切到这个版本；在那之前继续提供上一个版本。
 代码在 [`harness/`](../../harness/) 下：插件包在 `harness/dsh-nanomuse`，Electron 外壳在
 `harness/desktop`；自己怎么构建见 [harness/README.md](../../harness/README.md)。到 0.1.29 为止，
 同名的安装包装的是 Python 运行时和网页版，套在它们自己的 Electron 外壳里（`desktop/app`），
@@ -24,9 +30,9 @@ harness 构建以 *nanoMuse Harness* 的名字另放在旁边；从 0.1.30 起�
 
 一个由外壳作为子进程启动的 dsh Host，把 harness 的网页应用显示在我们自己的窗口里：侧栏
 （聊天、搜索、动态、点子、目标、资源库、设备，还有汉堡菜单），放着主要聊天和旁聊的聊天列，
-钉在对话上方的形象和名字，带一行实时状态和「停止」，盖在 harness 审批之上的 Muse 式审批卡片，
+钉在对话上方的形象和名字，带一行实时状态和「停止」，盖在 harness 审批之上的权限卡片，
 聊天里手的一次运行的轨迹（每一步的截图、画在上面的动作和智能体说的话，运行中和运行后都能
-回看），带记忆的个人资料面板，Muse 的那些设置页（连接器、电脑操作、文件访问、听写、权限、
+回看），带记忆的个人资料面板，那些设置页（连接器、电脑操作、文件访问、听写、权限、
 带导出和重置的数据控制），以及占满整个窗口的第一次打开。智能体是 dsh 的（它的智能体循环、
 工具、技能、目标、计划模式、压缩、子智能体、MCP），通过 `nanomuse` 预设以 nanoMuse 的身份
 说话，再加上：
@@ -38,6 +44,11 @@ harness 构建以 *nanoMuse Harness* 的名字另放在旁边；从 0.1.30 起�
   邀请码、按类型和按模型的用量、密码、持有 key 的设备、时间线、注销），通过 Host 的透传路由
   读出来（`/nanomuse/cloud/me`、`/sessions`、`/account-events`、`/password`、`/sign-out-all`、
   `/delete-account`、`/config`）；
+- **一段你自己的视频当形象**：智能体页面钢笔菜单和形象工作室里的「你自己的视频…」接受一段
+  MP4 或 MOV（最长 15 秒、最大 30 MB；H.264 视频，或这台电脑能解码的 HEVC：Windows 和 macOS
+  带解码器，多数 Linux 构建没有，预览放不出来的视频会在那里被拒绝），先在形象的圆形框里预览，再在所有状态下
+  静音循环播放；视频只保存在这台电脑的 `$DSH_HOME/nanomuse/avatar/own-clip.mp4`，不会发给
+  nanoMuse Cloud，「默认形象」可移除（回退规则见 [avatar.md](avatar.md)）；
 - **手（Hands）**，在这台电脑上：自带运行时的 `nanomuse mcp` 走 stdio，运行时的
   `computer_screen` 和 `computer_act` 工具连同它们的审批一起接进来，所以「我屏幕上是什么？」
   和「打开设置把音量调小」开箱就能用。鼠标、键盘和截图是应用自己的（`src/operator.ts`，
@@ -48,7 +59,7 @@ harness 构建以 *nanoMuse Harness* 的名字另放在旁边；从 0.1.30 起�
   那张图的像素（[gui.md](gui.md#hands-on-the-computer-the-picture-is-the-unit)）。不是由这个
   应用来跑运行时的时候，运行时自己的后端仍然是退路。运行时 `config.toml` 里打开的连接器
   （邮箱、日历、通讯录）经同一个服务器送过来，「设置 → 连接器」里有每一个的设置方法；
-- **房间**：动态、点子、目标和资源库，和 Muse 里的一样，由 Host 保存在
+- **房间**：动态、点子、目标和资源库，和手机上的一样，由 Host 保存在
   `nanomuse/rooms.json` 里，由智能体在隐藏聊天里写（动态和点子）或在各自的聊天里写（目标，
   自动化部分用 harness 的日程插件；资源库里的作品放在 `~/nanoMuse/Library` 下），再加上记忆：
   它对你的了解，每段聊天都会读进去（[desktop-muse.md](desktop-muse.md#rail-rooms)）；
@@ -56,15 +67,15 @@ harness 构建以 *nanoMuse Harness* 的名字另放在旁边；从 0.1.30 起�
   `device_screen`、`device_shell`、`device_files`、`device_open`、`device_notify` 和 `delegate`
   这些工具面向手机和其他电脑；手机发来的 `delegate` 在这里落成一段「来自 <device>」的 dsh
   会话，它的审批被转回手机；远程控制（`shell`、`files`、`open`、`screen`）在一个开关后面；
-- **编程助手**：「设置 → 编程助手」，这台电脑上的 Cursor、Codex 和 Claude Code 聊天
-  （从磁盘读取，发一条消息就启动助手自己的 CLI，运行连同它的工具一边跑一边显示，「停止」
+- **编程助手**：「设置 → 编程助手」，这台电脑上的 Cursor、Codex、Claude Code 和 DeepSeek Harness
+  聊天（从磁盘读取，发一条消息就启动助手自己的 CLI，运行连同它的工具一边跑一边显示，「停止」
   结束它），之后是账号下其他电脑的，走这台电脑同样声明的 `coding.*` hub 动作；设备卡片上的
   「编程助手」标签打开那台电脑的这一页（[coding-agents.md](coding-agents.md)）。
 - **网络**（设置 → nanoMuse Cloud → 网络）：给这个应用对外请求用的一个代理（`http://host:port`、
   `https://`、`socks5://` 或 `socks5h://`，可以带 `user:pass@`，显示时会遮住）。dsh Host 发出的请求
   都经过它：你自己的 key、ChatGPT 登录的调用、「列出模型」、工具读取的网页、连接的服务、更新检查，
   还有手的运行时（`nanomuse mcp` 继承同一组变量）。nanoMuse Cloud（中继、hub 的 WebSocket、同步）和本机回环永远不经过。
-  外壳把它存在 `desktop.json` 里，和「登录时启动」放在一起，启动 dsh Host 时写进它的环境
+  外壳把它存在 `desktop.json` 里（权限 0600，因为地址里可能带密码），和「登录时启动」放在一起，启动 dsh Host 时写进它的环境
   （`HTTP_PROXY`、`HTTPS_PROXY`、SOCKS 时还有 `ALL_PROXY`，`NO_PROXY` 带着
   `localhost,127.0.0.1,::1`、`cloud.nanomuse.cn` 和插件所连的中继，以及让 Node 的 fetch 读这些
   变量的 `NODE_USE_ENV_PROXY=1`），所以重启后生效；这一行下面的「立即重启」会在窗口不关的
@@ -77,6 +88,12 @@ harness 构建以 *nanoMuse Harness* 的名字另放在旁边；从 0.1.30 起�
   时候，带一个「撤回」；空状态说明是卡片上的「始终」把一行放到这里来的。电脑操作页和个人资料
   抽屉各自保留较短的列表；这一张是完整的。Host 用 `GET /nanomuse/cloud/grants` 回答这张表，
   `POST /grants/revoke {id}` 撤回其中任何一行。
+- **真正的退出会保护进行中的工作。** 退出（菜单里的「退出」、Ctrl+Q、托盘的「退出」，或者在没有
+  托盘时关闭最后一个窗口）先问 Host 还有什么在进行：正在生成的回复、屏幕上的电脑操作、其他设备
+  交来的任务、等你确认的操作。弹窗会列出这些工作，「继续运行」是默认；只有在这里明确确认，工作才会
+  被结束，退出也会等工作结束之后才停止 Host。退出交接期间到来的任务会得到和平时一样的 busy 拒绝，
+  请它的设备稍后再发一次。开着菜单栏图标时关闭窗口只是留在托盘，从来不算退出。相关路由是插件的
+  `GET /nanomuse/cloud/work`（聚合）、`POST /work/gate {open}`（交接）和 `POST /work/stop`（确认后的结束）。
 
 ## 额度用完时，以及中继的其他回答 {#when-the-allowance-is-used-up-and-the-relay-s-other-answers}
 
@@ -89,7 +106,7 @@ harness 构建以 *nanoMuse Harness* 的名字另放在旁边；从 0.1.30 起�
   这份清单是中继随拒绝和 `/v1/me` 一起发来的（`spend.guidance`，[cloud.md](cloud.md#allowance)），
   不是写死在应用里的，还有「图文教程」（[own-key.md](own-key.md)）；
 - **你已经在付费的套餐**：ChatGPT 登录就在这里，附上中继对它的提醒；
-- **邀请朋友**：你们各得的奖励，和「复制链接」；
+- **邀请朋友**：朋友发出第一次请求后你们各得的奖励，和「复制链接」；
 - 请你在 GitHub 上点一颗 star，只出现一次，且只在提示策略允许时：卡片的标题和按钮是应用
   自己的；那句话也是应用自己的，除非中继的策略带了一句（`star.text`、`star.text_zh`，最多
   200 个字符；中文界面取 `text_zh`，没有就取 `text`；[cloud.md](cloud.md)）；

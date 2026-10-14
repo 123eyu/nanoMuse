@@ -1,7 +1,7 @@
 {
   "name": "nanomuse-desktop",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.0.5",
   "description": "nanoMuse Desktop: the nanoMuse desktop built on DeepSeek Harness. The harness's web app in a window of our own, with nanoMuse's account, face, Hands and Reach as plugins and the runtime for the hands bundled.",
   "homepage": "https://nanomuse.cn/",
   "license": "GPL-3.0-or-later",
@@ -16,13 +16,16 @@
     "prepare-dsh": "node scripts/prepare-dsh.mjs",
     "start": "tsc -p tsconfig.json && electron .",
     "smoke": "node scripts/smoke.mjs",
-    "dist": "tsc -p tsconfig.json && electron-builder --config electron-builder.yml",
-    "dist:dir": "tsc -p tsconfig.json && electron-builder --config electron-builder.yml --dir"
+    "dist": "tsc -p tsconfig.json && electron-builder --config electron-builder.yml --publish never",
+    "dist:dir": "tsc -p tsconfig.json && electron-builder --config electron-builder.yml --dir",
+    "check:update-feed": "node scripts/update-feed-check.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.20.4",
-    "electron": "44.6.0",
+    "builder-util-runtime": "9.7.0",
+    "electron": "44.7.0",
     "electron-builder": "^26.15.3",
+    "electron-updater": "^6.8.9",
     "typescript": "^5.6.0"
   },
   "author": {

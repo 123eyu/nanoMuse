@@ -92,15 +92,7 @@ struct NanoMuseSettingsHomeView: View {
     private var cloudLine: String {
         _ = store.instances
         guard NanoMuseCloud.isSignedIn, let account = NanoMuseCloud.account else { return AppLocalized("Sign in") }
-        if account.unlimited { return account.hint }
-        if let left = account.poolLeftCny {
-            let whole = left.rounded() == left
-            return String(format: AppLocalized("%@ left"), "¥" + left.formatted(.number.precision(.fractionLength(whole ? 0 : 2))))
-        }
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        let left = formatter.string(from: NSNumber(value: account.remaining)) ?? "\(account.remaining)"
-        return String(format: AppLocalized("%@ left"), left)
+        return account.leftLine ?? account.hint
     }
 
     // MARK: Card 2 — the agent
@@ -282,7 +274,7 @@ struct NanoMuseRoutinesView: View {
     var body: some View {
         List {
             Section {
-                Text(AppLocalized("A routine is a message the agent sends itself at a set time, in its own conversation. On the iPhone it runs when the app is open: when it comes due while the app is asleep, the phone shows a reminder and the run happens as soon as you open it. iOS also wakes the app now and then in the background; when it does, the routine runs there."))
+                Text(AppLocalized("A routine is a message the agent sends itself at a set time, in its own conversation. On the iPhone it runs only while the app is open: when it comes due while the app is asleep, the phone shows a reminder, and the run happens as soon as you open the app. Nothing runs in the background."))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -315,7 +307,7 @@ struct NanoMuseRoutinesView: View {
                     Label(AppLocalized("Background App Refresh in iOS Settings"), systemImage: "arrow.clockwise")
                 }
             } footer: {
-                Text(AppLocalized("Reminders need notification permission; background runs need Background App Refresh for nanoMuse."))
+                Text(AppLocalized("Reminders need notification permission. With Background App Refresh on, iOS can wake the app for a moment around the due time to post the reminder; the routine itself still waits for you to open the app."))
             }
         }
         .navigationTitle(AppLocalized("Scheduled tasks"))
@@ -352,6 +344,7 @@ struct NanoMuseRoutinesView: View {
                 Toggle("", isOn: Binding(get: { routine.enabled }, set: { scheduler.setEnabled(routine.id, $0) }))
                     .labelsHidden()
                     .tint(NanoMuseTones.action)
+                    .accessibilityLabel(Text(label(for: routine)))
             }
         }
         .contentShape(Rectangle())

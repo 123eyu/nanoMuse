@@ -120,7 +120,10 @@ fun AllowanceWaysCard(
     val mainland = remember { Region.mainland(context) }
     val chinese = remember { ProviderCatalogue.chinese(context) }
     val ways = remember(info.guidance, mainland) {
-        Ways.resolve(info.guidance ?: NanoMuseCloud.guidance(context), ProviderCatalogue.load(context), mainland, chinese)
+        Ways.resolve(
+            info.guidance ?: NanoMuseCloud.guidance(context), ProviderCatalogue.load(context), mainland, chinese,
+            claudeSignIn = io.github.nanomuse.cloud.ClaudeSignIn.available,
+        )
     }
     val guideUrl = info.ownKeyDocs.ifBlank { account?.ownKeyDocs.orEmpty() }.ifBlank { ways.docs }.ifBlank { OWN_KEY_DOCS }
     val vendors = ways.vendors

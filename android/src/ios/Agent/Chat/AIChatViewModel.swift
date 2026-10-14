@@ -2649,6 +2649,7 @@ final class AIChatViewModel: ObservableObject, SpeechControlling {
                 self.agentHistory[userIdx].dbMessageId = persistedId
             }
             if let sid = self.sessionId { NanoMuseSync.shared.userMessageSent(session: sid) } // nanoMuse: C8 — the person's line goes up now, the reply when the turn ends
+            if let wake = userMsg.nmRoutine, userIdx < self.agentHistory.count, let mid = self.agentHistory[userIdx].dbMessageId { NanoMuseRoutineWakes.shared.record(mid: mid, label: wake.label, at: wake.at) } // nanoMuse: a routine's row keeps its mark across reloads
 
             // Wait for kernel to finish booting
             while self.kernelStatus == .booting {

@@ -25,6 +25,9 @@ What it changes, and only this:
   Soul emoji, the accent colour. Icons: scripts/gen-ios-icons.py.
 
 Anything else is a hand edit marked `// nanoMuse:` in the file.
+
+    python scripts/rebrand.py            # apply, then report what is still upstream's
+    python scripts/rebrand.py --check    # report only, write nothing
 """
 
 from __future__ import annotations
@@ -45,8 +48,8 @@ IOS = ROOT / "android" / "src" / "ios"
 
 APP_ID = "io.github.nanomuse.app"
 NAME = "nanoMuse"
-VERSION_NAME = "1.0.2"
-VERSION_CODE = 45
+VERSION_NAME = "1.0.5"
+VERSION_CODE = 48
 REPO = "nano-muse/nanoMuse"
 REPO_URL = f"https://github.com/{REPO}"
 PRIVACY_URL = f"{REPO_URL}/blob/main/docs/privacy.md"
@@ -126,6 +129,20 @@ def soul_defaults() -> None:
             (r'const val DISPLAY_EMOJI = "✨"', 'const val DISPLAY_EMOJI = "🐾"'),
         ],
     )
+    # The default-name round-trip follows DEFAULT; explicit stored-name fixtures stay intact.
+    test = APP / "src" / "test" / "java" / "com" / "openminis" / "app" / "agent"
+    test /= "SoulIconConfigEdgeTest.kt"
+    if test.is_file():
+        edit(
+            test,
+            [
+                (
+                    r'^([ \t]*)assertEquals\("Minis", back\.metadata\.name\)$',
+                    r"\1// nanoMuse: round-trip the rebranded default name.\n"
+                    r"\1assertEquals(SoulMetadata.DEFAULT.name, back.metadata.name)",
+                ),
+            ],
+        )
 
 
 def links() -> None:
@@ -192,16 +209,16 @@ THEME_MAP = [
     ("0xFF899390", "0xFF8E8E93"),  # dark outline
 ]
 
-# Applied to ChatColors.kt only; light palette first, then dark.
+# Applied to ChatColors.kt only; light palette first, then dark. The user's own
+# message is a black pill in the light theme and a white one in the dark theme
+# (docs/design.md); the send button keeps upstream's black / white, so no entry.
 CHAT_MAP = [
-    ("userBubble = Color(0x1E787880)", "userBubble = Color(0xFFE5F0FF)"),
-    ("sendButton = Color(0xFF000000)", "sendButton = Color(0xFF015CFB)"),
+    ("userBubble = Color(0x1E787880)", "userBubble = Color(0xFF000000)"),
     ("codeBlockText = Color(0xFF34C759)", "codeBlockText = Color(0xFFE5E5EA)"),
     ("inlineCodeText = Color(0xFFFF9500)", "inlineCodeText = Color(0xFF015CFB)"),
     ("blockquoteBar = Color(0x80FF9500)", "blockquoteBar = Color(0x80015CFB)"),
     ("fabAccent = Color(0xFFB7AF96)", "fabAccent = Color(0xFF015CFB)"),
-    ("userBubble = Color(0xFF2F3A5C)", "userBubble = Color(0xFF1A2B4A)"),
-    ("sendButton = Color(0xFFFFFFFF)", "sendButton = Color(0xFF58A6FF)"),
+    ("userBubble = Color(0xFF2F3A5C)", "userBubble = Color(0xFFFFFFFF)"),
     ("codeBlockText = Color(0xFF8CF38C)", "codeBlockText = Color(0xFFE5E5EA)"),
     ("inlineCodeText = Color(0xFFFF9F0A)", "inlineCodeText = Color(0xFF58A6FF)"),
     ("blockquoteBar = Color(0x80FF9F0A)", "blockquoteBar = Color(0x8058A6FF)"),
@@ -553,6 +570,15 @@ def ios_check() -> int:
 
 def check() -> int:
     problems = 0
+    gradle_text = (APP / "build.gradle.kts").read_text(encoding="utf-8")
+    for want in (
+        f'applicationId = "{APP_ID}"',
+        f"versionCode = {VERSION_CODE}",
+        f'versionName = "{VERSION_NAME}"',
+    ):
+        if want not in gradle_text:
+            print(f"  ! app/build.gradle.kts lacks {want}")
+            problems += 1
     for path in sorted(RES.glob("values*/strings.xml")):
         if WORD.search(path.read_text(encoding="utf-8")):
             print(f"  ! Minis left in {path.relative_to(ROOT)}")
@@ -571,9 +597,20 @@ def check() -> int:
     return problems
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    args = sys.argv[1:] if argv is None else argv
+    if args in (["-h"], ["--help"]):
+        print(__doc__.strip())
+        return 0
+    if args not in ([], ["--check"]):
+        print(f"usage: {sys.argv[0]} [--check]  (unknown: {' '.join(args)})", file=sys.stderr)
+        return 2
     if not APP.is_dir():
         sys.exit(f"{APP} not found")
+    if args == ["--check"]:
+        problems = check() + ios_check()
+        print("clean" if problems == 0 else f"{problems} leftovers")
+        return 1 if problems else 0
     gradle()
     package_ids()
     product_name()

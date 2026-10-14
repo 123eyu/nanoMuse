@@ -13,6 +13,12 @@ Codex
 Claude Code
     ``~/.claude/projects/<slug>/<id>.jsonl``: ``{"type": "user"|"assistant", "message":
     {"role", "content"}, "timestamp", "cwd", "sessionId"}``.
+dsh (DeepSeek Harness)
+    ``~/.dsh/sessions/<slug>/<id>/session.v4.jsonl.zstd``: the harness's own store, one
+    zstd-compressed JSON object a line. A ``session`` header (``{id, createdAt, cwd}``),
+    ``user/message`` and ``assistant/message`` events, tools as ``tool/call`` +
+    ``tool/result``, and ``<id>`` is the session id itself. The file is many zstd frames
+    appended as the session is written, so it is read frame by frame.
 
 Everything here is read-only and best effort: a line that does not parse is skipped, a
 missing directory is an agent with no sessions.
@@ -20,6 +26,7 @@ missing directory is an agent with no sessions.
 
 from __future__ import annotations
 
+import io
 import json
 import os
 import re
@@ -41,6 +48,7 @@ AGENTS: dict[str, dict[str, Any]] = {
     },
     "codex": {"name": "Codex", "bins": ("codex",), "process": ("codex",)},
     "claude": {"name": "Claude Code", "bins": ("claude",), "process": ("claude",)},
+    "dsh": {"name": "DeepSeek Harness", "bins": ("dsh",), "process": ("dsh",)},
 }
 
 # A session whose transcript changed this recently is "active" (the agent is working or
@@ -251,6 +259,7 @@ def sessions_root(agent: str) -> Path:
         "cursor": h / ".cursor" / "projects",
         "codex": h / ".codex" / "sessions",
         "claude": h / ".claude" / "projects",
+        "dsh": h / ".dsh" / "sessions",
     }[agent]
 
 
@@ -420,7 +429,7 @@ def _cursor_cli_meta() -> dict[str, dict[str, Any]]:
             meta = c / "meta.json"
             if meta.is_file():
                 try:
-                    out[c.name] = json.loads(meta.read_text())
+                    out[c.name] = json.loads(meta.read_text("utf-8"))
                 except (OSError, ValueError):
                     continue
     return out
@@ -688,13 +697,196 @@ def _iso_to_ts(s: str) -> float:
         return 0.0
 
 
+# -- dsh (DeepSeek Harness) -------------------------------------------------------------------
+DSH_SESSION_FILE = "session.v4.jsonl.zstd"
+# The zstd frame magic (RFC 8878): the store appends one frame per write.
+_ZSTD_MAGIC = b"\x28\xb5\x2f\xfd"
+
+
+def _decompress_zstd_frames(buf: bytes) -> str:
+    """Decompress a dsh session file, which is many zstd frames appended as it is written.
+
+    A single decompression stops at the end of the first frame, so a long chat would lose
+    everything after its opening lines; ``stream_reader`` follows the frames to the end.
+    ``zstandard`` is imported here rather than at the top so that a machine without it
+    reads dsh as an agent with no sessions instead of failing to import the module.
+    """
+    try:
+        import zstandard
+    except ImportError:
+        return ""
+    chunks: list[bytes] = []
+    try:
+        with zstandard.ZstdDecompressor().stream_reader(
+            io.BytesIO(buf), read_across_frames=True
+        ) as reader:
+            while chunk := reader.read(1 << 16):
+                chunks.append(chunk)
+    except Exception:
+        # a last frame cut short (a write in progress) keeps the frames before it; a broken
+        # last line is then skipped like any other line that does not parse
+        pass
+    return b"".join(chunks).decode("utf-8", "replace")
+
+
+def _read_zstd_lines(path: Path, limit_bytes: int = 64 * 1024 * 1024) -> list[dict[str, Any]]:
+    """The JSON objects of a dsh session file: zstd-compressed JSONL, one object a line."""
+    out: list[dict[str, Any]] = []
+    try:
+        if path.stat().st_size > limit_bytes:
+            return out
+        text = _decompress_zstd_frames(path.read_bytes())
+    except OSError:
+        return out
+    for raw in text.splitlines():
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            obj = json.loads(raw)
+        except ValueError:
+            continue
+        if isinstance(obj, dict):
+            out.append(obj)
+    return out
+
+
+def _dsh_text_of(content: Any) -> str:
+    """The words of a dsh content array: `text` parts only (reasoning is not the answer)."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "\n".join(
+            str(c.get("text"))
+            for c in content
+            if isinstance(c, dict) and c.get("type") == "text" and c.get("text")
+        )
+    return ""
+
+
+def _dsh_session(f: Path, full: bool) -> Session | None:
+    lines = _read_zstd_lines(f)
+    try:
+        st = f.stat()
+    except OSError:
+        return None
+    sid = f.parent.name
+    cwd = ""
+    created = st.st_ctime
+    stored_title = ""
+    first_user = last_user = last_assistant = ""
+    open_turn = False
+    n = 0
+    transcript: list[dict[str, Any]] = []
+    for obj in lines:
+        t = obj.get("type")
+        raw_data = obj.get("data")
+        data: dict[str, Any] = raw_data if isinstance(raw_data, dict) else {}
+        if t == "session":
+            # a subagent (or a forked session) is the harness's own working session, not a
+            # chat the person had: it has no place in the apps' list
+            if obj.get("origin") == "subagent" or obj.get("parentSession") is not None:
+                return None
+            sid = str(obj.get("id") or sid)
+            cwd = cwd or str(obj.get("cwd") or "")
+            ms = obj.get("createdAt")
+            if isinstance(ms, (int, float)) and ms:
+                created = float(ms) / 1000
+        elif t == "session/title":
+            stored_title = stored_title or str(data.get("title") or "")
+        elif t == "user/message":
+            # only what the person typed: the store also carries runtime context, the skill
+            # catalog and background-job notices as user messages, with `source.kind` naming them
+            raw_source = data.get("source")
+            source: dict[str, Any] = raw_source if isinstance(raw_source, dict) else {}
+            if source.get("kind") != "user":
+                continue
+            text = _clean(_dsh_text_of(data.get("content")))
+            if not text:
+                continue
+            first_user = first_user or text
+            last_user = text
+            open_turn = True
+            n += 1
+            if full:
+                transcript.append({"role": "user", "text": text})
+        elif t == "assistant/message":
+            raw_msg = data.get("message")
+            msg: dict[str, Any] = raw_msg if isinstance(raw_msg, dict) else {}
+            text = _dsh_text_of(msg.get("content")).strip()
+            if not text:
+                continue
+            last_assistant = text
+            n += 1
+            if full:
+                transcript.append({"role": "assistant", "text": text})
+        elif t == "turn/end":
+            open_turn = False
+    if full:
+        transcript = transcript[-400:]
+    slug = f.parent.parent.name.strip("-")
+    return Session(
+        agent="dsh",
+        id=sid,
+        title=_title(stored_title or first_user) or "Untitled session",
+        workspace=cwd or _slug_to_path(slug),
+        path=str(f),
+        created_at=created,
+        updated_at=st.st_mtime,
+        messages=n,
+        status=_status(st.st_mtime, open_turn),
+        last_user=_title(last_user, 160),
+        last_assistant=_title(last_assistant, 160),
+        # `dsh headless --session-id` adopts a session of this store, so a chat read here continues
+        resumable=True,
+        transcript=transcript,
+    )
+
+
+def _dsh_sessions(limit: int, workspace: str | None) -> list[Session]:
+    root = sessions_root("dsh")
+    if not root.is_dir():
+        return []
+    files: list[tuple[float, Path]] = []
+    for project in root.iterdir():
+        if not project.is_dir():
+            continue
+        for sdir in project.iterdir():
+            if not sdir.is_dir():
+                continue
+            f = sdir / DSH_SESSION_FILE
+            if not f.is_file():
+                f = sdir / "session.jsonl"
+            try:
+                files.append((f.stat().st_mtime, f))
+            except OSError:
+                continue
+    files.sort(key=lambda t: -t[0])
+    out = []
+    for _, f in files[: max(limit * 2, 20)]:
+        s = _dsh_session(f, full=False)
+        if s is None or (
+            workspace and os.path.realpath(s.workspace or "") != os.path.realpath(workspace)
+        ):
+            continue
+        out.append(s)
+        if len(out) >= limit:
+            break
+    return out
+
+
 # ---------------------------------------------------------------------- the public readers
 def sessions(
     agent: str | None = None, limit: int = 30, workspace: str | None = None
 ) -> list[Session]:
     """Newest first, across the agents asked for (all when ``agent`` is None)."""
     limit = max(1, min(limit, 200))
-    readers = {"cursor": _cursor_sessions, "codex": _codex_sessions, "claude": _claude_sessions}
+    readers = {
+        "cursor": _cursor_sessions,
+        "codex": _codex_sessions,
+        "claude": _claude_sessions,
+        "dsh": _dsh_sessions,
+    }
     picked = [agent] if agent else list(readers)
     out: list[Session] = []
     for a in picked:
@@ -728,6 +920,16 @@ def read_session(agent: str, session_id: str) -> Session | None:
         if root.is_dir():
             for f in root.rglob(f"{session_id}.jsonl"):
                 return _claude_session(f, full=True)
+    elif agent == "dsh":
+        # the session's own directory is named after its id: <slug>/<id>/session.v4.jsonl.zstd
+        root = sessions_root("dsh")
+        if root.is_dir():
+            for project in root.iterdir():
+                sdir = project / session_id
+                for name in (DSH_SESSION_FILE, "session.jsonl"):
+                    f = sdir / name
+                    if f.is_file():
+                        return _dsh_session(f, full=True)
     return None
 
 

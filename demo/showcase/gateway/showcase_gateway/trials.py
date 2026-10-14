@@ -239,9 +239,10 @@ class TrialManager:
             existing.last_seen = now
             log.info("trial %s: key rotated for device %s…", existing.id, device[:8])
             return existing, key
+        # a rolling 24 hours from each trial issued to the address, not a calendar day
         if self.store.issued_since(now - 86400, ip) >= self.s.trial_per_ip_daily:
             raise Refused(
-                429, "trial_ip_limit", "That is all the trial credentials for today from here."
+                429, "trial_ip_limit", "That is all the trial credentials for 24 hours from here."
             )
         if self.store.issued_since(self._day_start(now)) >= self.s.trial_daily_new:
             raise Refused(
@@ -262,7 +263,8 @@ class TrialManager:
             disabled=False,
         )
         self.store.insert(trial, key)
-        log.info("trial %s issued to %s (device %s…)", trial.id, ip, device[:8])
+        # the address is in the trial's row for the per-address limit; the log does without
+        log.info("trial %s issued (device %s…)", trial.id, device[:8])
         return trial, key
 
     # ------------------------------------------------------------------ using

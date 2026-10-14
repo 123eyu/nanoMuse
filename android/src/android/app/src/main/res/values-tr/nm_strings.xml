@@ -130,6 +130,8 @@
     <string name="nm_routine_run_now">Şimdi çalıştır</string>
     <string name="nm_routine_delete">Sil</string>
     <string name="nm_routine_paused">Kapalı</string>
+    <!-- The chat row a routine sent: its label and the clock time it fired -->
+    <string name="nm_routine_wake_caption">Rutin · %1$s · %2$s</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">Fikirler</string>
@@ -351,6 +353,23 @@
     <string name="nm_avatar_use_this">Bunu kullan</string>
     <string name="nm_avatar_use_this_hint">Ruh halleri (çalışıyor, bekliyor, tamamlandı, hata) bundan sonra arka planda ondan çizilir.</string>
     <string name="nm_avatar_footer">Resimler bu telefonda minis-global/nanomuse/avatar altında saklanır. Her yüz sağlayıcından beş görsel tutar: seçtiğin bir tane artı dört ruh hali.</string>
+    <string name="nm_own_clip_title">Kendi klibiniz</string>
+    <string name="nm_own_clip_body">Size ait kısa bir video, beklemedeki yüz olarak oynar ve diğer ruh halleri de ona döner. H.264 videolu MP4 veya MOV, en fazla 15 saniye ve 30 MB; sessiz ve döngüde oynar.</string>
+    <string name="nm_own_clip_on">Klibiniz açık ve her ruh halinde oynuyor; sabit bir görüntünün gösterildiği yerlerde çizilen resimler kullanılmaya devam eder. “Varsayılan yüz” onu kaldırır.</string>
+    <string name="nm_own_clip_local">Klip bu telefonda kalır. nanoMuse Cloud\'a yüklenmez ve diğer cihazlarınızla eşitlenmez.</string>
+    <string name="nm_own_clip_choose">Klip seç</string>
+    <string name="nm_own_clip_replace">Klibi değiştir</string>
+    <string name="nm_own_clip_default">Varsayılan yüz</string>
+    <string name="nm_own_clip_menu">Kendi klibiniz…</string>
+    <string name="nm_own_clip_preview_title">Önizleme</string>
+    <string name="nm_own_clip_preview_body">Yüz olarak böyle oynar: sessiz, döngüde, daireye kırpılmış.</string>
+    <string name="nm_own_clip_details">%1$d sn · %2$s</string>
+    <string name="nm_own_clip_use">Kullan</string>
+    <string name="nm_own_clip_refused_format">Bu dosya burada kullanılamaz. H.264 videolu, en fazla 15 saniye ve 30 MB olan bir MP4 veya MOV seçin.</string>
+    <string name="nm_own_clip_refused_long">Bu klip %1$d saniye sürüyor. Sınır 15 saniye ve 30 MB.</string>
+    <string name="nm_own_clip_refused_large">Bu klip %1$s. Sınır 30 MB ve 15 saniye.</string>
+    <string name="nm_own_clip_unreadable">Klip okunamadı. Başka birini deneyin.</string>
+    <string name="nm_a11y_own_clip_preview">Klibinizin önizlemesi</string>
 
     <!-- First run (Muse-style welcome; the steps are OpenMinis' provider and model screens) -->
     <string name="nm_setup_title">nanoMuse’a hoş geldin</string>
@@ -594,6 +613,8 @@
     <string name="nm_risk_title_device">“%1$s” bu telefonu kullansın mı?</string>
     <string name="nm_risk_desc_device">Hesabındaki başka bir cihaz olan “%1$s”, bu telefonda %2$s istiyor. Tam olarak ne istediği aşağıda. “Her zaman”, o cihazın burada böyle şeyleri sormadan yapmasına izin verir; İzinler altından geri al.</string>
     <string name="nm_risk_preview_device">Cihazın istediği</string>
+    <string name="nm_risk_preview_show_all">Tümünü göster (%1$d satır)</string>
+    <string name="nm_risk_preview_show_less">Daha az göster</string>
     <string name="nm_risk_class_remote">Uzaktan denetim</string>
     <string name="nm_hub_remote_reason">%1$s bu telefonu kullanabilir</string>
 
@@ -627,7 +648,6 @@
     <string name="nm_welcome_skip">Şimdilik atla</string>
     <string name="nm_welcome_hands_fine_print">Geri kalan her şey bunlar olmadan da çalışır. İstediğinde Ayarlar → Eller altındalar.</string>
     <string name="nm_welcome_meet_fine_print">Geri alamayacağı her şeyden önce (silme, gönderme, ödeme) durur ve önce sana sorar.</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">nanoMuse Cloud ile başla</string>
     <string name="nm_cloud_signin_subtitle">Telefonuna ya da e-postana bir kod, ya da belirlediysen parolan.</string>
     <string name="nm_cloud_mode_code">Kodla</string>
@@ -635,7 +655,7 @@
     <string name="nm_cloud_password">Parola</string>
     <string name="nm_cloud_forgot_password">Parolayı mı unuttun? Kodla oturum aç</string>
     <string name="nm_cloud_identifier">Çin anakarası telefon numarası ya da e-posta</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · sen@example.com</string>
+    <string name="nm_cloud_identifier_hint">sen@example.com</string>
     <string name="nm_cloud_code">Kod</string>
     <string name="nm_cloud_send_code">Kod gönder</string>
     <string name="nm_cloud_resend">Yeniden gönder</string>
@@ -645,7 +665,6 @@
     <!-- Your own relay (0.1.38): the sign-in screen's server form and the account page's row -->
     <string name="nm_cloud_other_server">Başka bir sunucu kullan</string>
     <string name="nm_cloud_server_url">Relay adresi</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
     <string name="nm_cloud_server_check">Denetle</string>
     <string name="nm_cloud_server_use">Bu sunucuyu kullan</string>
     <string name="nm_cloud_server_now">Sunucu: %1$s</string>
@@ -707,6 +726,8 @@
     <string name="nm_cloud_err_password_short">Parola en az 8 karakter olmalı.</string>
     <string name="nm_cloud_err_password_weak">Bu parolayı tahmin etmek çok kolay.</string>
     <string name="nm_cloud_err_signup_closed">Bu relay’de kayıtlar şimdilik durduruldu. Zaten var olan bir hesap oturum açmaya devam edebilir.</string>
+    <string name="nm_cloud_err_domain_limited">Bu alan adındaki adresler bu relay üzerinde bugünkü kayıt sınırına ulaştı. Yarın yeniden deneyin ya da başka bir adres kullanın.</string>
+    <string name="nm_cloud_err_channel_unsupported">Bu relay bu tür adreslere kod göndermiyor. Diğer türü (e-posta ya da telefon numarası) kullanın ya da parolanızla giriş yapın.</string>
     <string name="nm_cloud_err_too_large">Bu mesaj model için fazla büyük. Kısalt, bazı ekleri çıkar ya da yeni bir sohbet başlat.</string>
     <string name="nm_cloud_err_content_rejected">Model sağlayıcısının içerik denetimi bu isteği reddetti. Başka sözcükler deneyin; tekrarlanırsa yeni bir sohbet başlatın, itiraz edilen sözcükler konuşmanın daha önceki kısmında olabilir.</string>
     <string name="nm_cloud_err_provider_busy">Model sağlayıcısı şu anda yoğun. Birazdan yeniden dene.</string>
@@ -753,7 +774,7 @@
     <string name="nm_face_cost_not_now">Şimdi değil</string>
     <string name="nm_face_cost_declined">Peki, yüz olduğu gibi kalıyor.</string>
     <string name="nm_cloud_invite_title">Bir arkadaşını davet et</string>
-    <string name="nm_cloud_invite_why">Kodunla kaydolan her yeni kişi kotana ¥%1$s ekler, ve onunkine de ¥%1$s. Süresi hiç dolmaz.</string>
+    <string name="nm_cloud_invite_why">Bir arkadaşın kodunla kaydolup ilk isteğini gönderdiğinde ikiniz de ¥%1$s alırsınız. Süresi hiç dolmaz.</string>
     <string name="nm_cloud_invite_code">Kodun</string>
     <string name="nm_cloud_invite_share">Bağlantıyı paylaş</string>
     <string name="nm_cloud_invite_copy">Kopyala</string>
@@ -791,7 +812,7 @@
     <string name="nm_cap_clips_unavailable">Klipler için video modelleri olan bir sağlayıcı gerekir: Alibaba Cloud Bailian.</string>
     <string name="nm_cap_hands_unavailable">Eller için ekranı gören bir model gerekir: Bailian, OpenRouter, OpenAI, Anthropic, Gemini veya görü modelleri olan herhangi bir sağlayıcı.</string>
     <string name="nm_cap_chat_unavailable">Sohbet için sohbet modelleri olan bir sağlayıcı gerekir: bir anahtar ekle ya da oturum aç.</string>
-    <string name="nm_ways_invite_title">Bir arkadaşını davet et: bağlantınla kaydolan her yeni kişi için sana +¥%1$s, ona +¥%2$s.</string>
+    <string name="nm_ways_invite_title">Bir arkadaşını davet et: bağlantınla kaydolan yeni kişi ilk isteğini gönderdiğinde sana +¥%1$s, ona +¥%2$s.</string>
     <string name="nm_ways_invite_share">Bağlantıyı paylaş</string>
     <string name="nm_ways_invite_copy">Bağlantıyı kopyala</string>
     <string name="nm_cloud_ev_contribute_on">Veri denetimleri: geliştirmeye yardım açıldı</string>
@@ -1122,4 +1143,16 @@
     <string name="nm_a11y_liked">Beğenildi</string>
     <string name="nm_a11y_not_liked">Beğenilmedi</string>
     <string name="nm_a11y_post_details">Gönderi ayrıntıları</string>
+    <string name="nm_claude_sign_in_unavailable">Bu sürüm Claude ile oturum açmayı kullanamaz. Bunun yerine Anthropic’i bir API anahtarıyla ekleyin.</string>
+    <string name="nm_oauth_rescue_hint">Tarayıcı localhost adresinde bir hata sayfası gösteriyorsa proxy\'niz veya VPN\'iniz geri çağrıyı yutuyor demektir. localhost\'u onun istisna listesine ekleyin ya da sayfanın adresini kopyalayıp buraya yapıştırın.</string>
+    <string name="nm_oauth_rescue_placeholder">Adresi buraya yapıştırın</string>
+    <string name="nm_oauth_rescue_continue">Devam</string>
+    <string name="nm_oauth_rescue_no_code">Bu adreste oturum açma kodu yok.</string>
+    <string name="nm_oauth_rescue_failed">Oturum açma artık bu adresi beklemiyor. Oturum aç\'a dokunup yeniden deneyin.</string>
+    <!-- Font scale labels -->
+    <string name="nm_font_scale_extra_small">Çok küçük</string>
+    <string name="nm_font_scale_small">Küçük</string>
+    <string name="nm_font_scale_medium">Orta</string>
+    <string name="nm_font_scale_large">Büyük</string>
+    <string name="nm_font_scale_extra_large">Çok büyük</string>
 </resources>

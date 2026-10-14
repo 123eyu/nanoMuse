@@ -34,7 +34,11 @@ def host_of(url: str) -> str | None:
 
 
 def _is_private_host(host: str) -> bool:
-    """SSRF guard: refuse loopback / link-local / private ranges."""
+    """SSRF guard: refuse every address that is not globally routable: loopback, link-local
+    (the cloud metadata address among them), the private ranges, the carrier-grade NAT
+    block 100.64.0.0/10 (a Tailscale or an ISP network), multicast, reserved and
+    unspecified addresses, in IPv4 and IPv6 alike (IPv4-mapped addresses included). A
+    name that does not resolve is left to the request, which reports the DNS error."""
     if host in ("localhost",) or host.endswith((".local", ".internal", ".localhost")):
         return True
     try:
@@ -44,7 +48,8 @@ def _is_private_host(host: str) -> bool:
     for info in infos:
         ip = ipaddress.ip_address(info[4][0])
         if (
-            ip.is_private
+            not ip.is_global
+            or ip.is_private
             or ip.is_loopback
             or ip.is_link_local
             or ip.is_reserved
@@ -214,7 +219,9 @@ class WebFetch(BaseTool):
         except httpx.HTTPError as exc:
             return ToolResult.fail(f"request failed: {exc}")
         ctype = resp.headers.get("content-type", "")
-        text = _to_text(resp, ctype)
+        # parsing a page of a few megabytes takes seconds; off the loop so the server
+        # keeps answering meanwhile
+        text = await asyncio.to_thread(_to_text, resp, ctype)
         if resp.status_code >= 400:
             return ToolResult(output=text[:max_chars], error=f"HTTP {resp.status_code}")
         if len(text) > max_chars:

@@ -1,6 +1,6 @@
 # 部署
 
-Meta 把每个 Muse 跑在一台按用户隔离的安全虚拟机里。在本地，最接近的做法是一个容器：智能体只看得到它的数据目录和工作区。
+一个会跑 shell 命令的智能体，应当待在一个属于它自己的盒子里。在服务器上，这个盒子就是一个容器：智能体只看得到它的数据目录和工作区。
 
 这一页讲的是 Python 运行时（网页版背后的智能体）怎么在 Docker 里跑。自己运行中继（你自己的登录、hub 和同步）并把各个 App 指向它，见[自己部署](self-hosting.md)，那一页也把自己运行 nanoMuse 的三条路按顺序排好了。
 
@@ -21,7 +21,7 @@ docker compose run --rm muse run "plan my week"   # one task
 docker compose up -d daemon                       # advance goals on a timer, no UI
 ```
 
-镜像以非 root 用户运行，所有 capability 都已丢弃。状态放在两个卷里：`nanomuse-data`（记忆、目标、保险库、审计日志、对话线程）和 `./workspace`（智能体的文件）。`config/config.toml` 以只读方式挂载。在 `.env` 里设好 `NANOMUSE_SERVER_TOKEN`，令牌就不会每次重启都变；然后在手机上用主机的地址打开打印出来的那个 URL。
+镜像以非 root 用户运行，所有 capability 都已丢弃，并带有健康检查：容器每 30 秒访问一次自己的 `/api/health`，`docker ps` 会在它旁边显示 *healthy* 或 *unhealthy*。`muse` 和 `daemon` 两个服务不运行服务器，所以 compose 文件为它们关掉了这项检查；直接用 `docker run` 跑 `chat` 或 `daemon` 时加 `--no-healthcheck`。状态放在两个卷里：`nanomuse-data`（记忆、目标、保险库、审计日志、对话线程）和 `./workspace`（智能体的文件）。`config/config.toml` 以只读方式挂载。在 `.env` 里设好 `NANOMUSE_SERVER_TOKEN`，令牌就不会每次重启都变；然后在手机上用主机的地址打开打印出来的那个 URL。
 
 不克隆仓库，直接用发布的镜像（linux/amd64 和 linux/arm64，所以树莓派或 Apple 芯片的 Mac 也行）：
 

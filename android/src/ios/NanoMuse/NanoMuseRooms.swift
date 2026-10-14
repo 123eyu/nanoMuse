@@ -132,6 +132,8 @@ struct NanoMuseIdeasRoom: View {
                             ForEach(section.ideas) { idea in
                                 Button { selected = idea } label: { row(idea) }
                                     .buttonStyle(.plain)
+                                // Android's IdeasTab: a hairline under each row, from the text's left edge.
+                                NanoMuseTones.hairline.frame(height: 1).padding(.leading, 76).padding(.trailing, 20)
                             }
                         }
                         Spacer(minLength: 24)
@@ -139,7 +141,8 @@ struct NanoMuseIdeasRoom: View {
                 }
             }
         }
-        .background(NanoMuseTones.canvas.ignoresSafeArea())
+        // The chat's canvas, as Android's IdeasTab and docs/design.md; the grey page is the Feed's alone.
+        .background(ChatColors.background.ignoresSafeArea())
         .onAppear { if sections.isEmpty { sections = NanoMuseIdeas.load() } }
         .sheet(item: $selected) { idea in
             NanoMuseIdeaSheet(idea: idea) { action in
@@ -370,11 +373,12 @@ struct NanoMuseLibraryRoom: View {
                     }
                 }
             }
-            Picker("", selection: $segment) {
+            Picker(AppLocalized("Library"), selection: $segment) {
                 Text(AppLocalized("Artifacts")).tag(0)
                 Text(AppLocalized("Media")).tag(1)
             }
             .pickerStyle(.segmented)
+            .labelsHidden()
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
 
@@ -392,7 +396,7 @@ struct NanoMuseLibraryRoom: View {
                 List {
                     ForEach(shown) { entry in
                         Button { preview = entry } label: { row(entry) }
-                            .listRowBackground(NanoMuseTones.surface)
+                            .listRowBackground(ChatColors.background)
                             .contextMenu {
                                 Button {
                                     shareItem = NanoMuseShareTarget(url: entry.url)
@@ -409,11 +413,12 @@ struct NanoMuseLibraryRoom: View {
                             }
                     }
                 }
-                .listStyle(.insetGrouped)
+                .listStyle(.plain)
                 .scrollContentBackground(.hidden)
             }
         }
-        .background(NanoMuseTones.canvas.ignoresSafeArea())
+        // Plain rows on the chat's canvas, as Android's LibraryTab and docs/design.md.
+        .background(ChatColors.background.ignoresSafeArea())
         .onAppear { if entries.isEmpty { refresh() } }
         .sheet(item: $preview) { entry in
             NanoMuseQuickLook(url: entry.url)

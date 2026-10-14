@@ -81,6 +81,9 @@ final class ChatMessage: Identifiable, ObservableObject {
     /// nanoMuse: C8 — the device this row was written on when it came down through account sync
     /// (the bubble's "From {device}" caption); nil for this phone's own rows.
     var nmFromDevice: String? // nanoMuse:
+    /// nanoMuse: a routine sent this user row (the daily feed, a check-in, a routine of the person's):
+    /// the chat shows it as one quiet line, not a bubble in their voice (NanoMuseRoutineWakes).
+    var nmRoutine: NanoMuseRoutineWakes.Wake? // nanoMuse:
     /// nanoMuse: C9 — the device at work on this conversation, shown as "{device} is working…"
     /// under this row while it is the last one and a remote user line (NanoMusePresence).
     @Published var nmWorkingDevice: String? // nanoMuse:

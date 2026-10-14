@@ -21,13 +21,14 @@ jobs:
   changes:
     name: what changed
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       python: ${{ steps.filter.outputs.python }}
       web: ${{ steps.filter.outputs.web }}
       relay: ${{ steps.filter.outputs.relay }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: dorny/paths-filter@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: filter
         with:
           filters: |
@@ -35,6 +36,7 @@ jobs:
               - "nanomuse/**"
               - "tests/**"
               - "scripts/**"
+              - "config/**" # config.example.toml: the tests read it, the image carries it
               - "pyproject.toml"
               - "Dockerfile"
               - ".dockerignore"
@@ -65,6 +67,7 @@ jobs:
     env:
       RUN: ${{ needs.changes.outputs.python == 'true' || github.ref_type == 'tag' }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     # Windows is not a supported platform yet (the shell tool assumes a POSIX shell); it runs
     # so we can see how far off it is, but cannot fail the build.
     continue-on-error: ${{ matrix.experimental || false }}
@@ -80,10 +83,10 @@ jobs:
             python-version: "3.12"
             experimental: true
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: env.RUN == 'true'
 
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         if: env.RUN == 'true'
         with:
           enable-cache: true
@@ -150,14 +153,15 @@ jobs:
     env:
       RUN: ${{ needs.changes.outputs.relay == 'true' || github.ref_type == 'tag' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: cloud
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: env.RUN == 'true'
 
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         if: env.RUN == 'true'
         with:
           enable-cache: true
@@ -172,6 +176,10 @@ jobs:
         if: env.RUN == 'true'
         run: uv run ruff check .
 
+      - name: Ruff format
+        if: env.RUN == 'true'
+        run: uv run ruff format --check .
+
       - name: Tests
         if: env.RUN == 'true'
         run: uv run python -m pytest -q
@@ -181,9 +189,10 @@ jobs:
     needs: changes
     if: needs.changes.outputs.web == 'true' || github.ref_type == 'tag'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -214,13 +223,14 @@ jobs:
   docker:
     name: docker build
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: [changes, test]
     if: needs.changes.outputs.python == 'true' || github.ref_type == 'tag'
     steps:
-      - uses: actions/checkout@v7
-      - uses: docker/setup-buildx-action@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: Build image
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           push: false

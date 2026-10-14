@@ -1,0 +1,24 @@
+/* Siri invocation phrases for MinisShortcutsProvider (AppShortcuts), Russian.
+   Keys must match the English phrases exactly, with `\(.applicationName)`
+   spelled `${applicationName}`. Legacy .strings format (not .xcstrings)
+   because the deployment target is iOS 16. */
+
+"Ask ${applicationName}" = "Спросить ${applicationName}";
+"Ask ${applicationName} a question" = "Задать вопрос ${applicationName}";
+"Talk to ${applicationName}" = "Поговорить с ${applicationName}";
+"New ${applicationName} chat" = "Новый чат ${applicationName}";
+"Run a ${applicationName} quick task" = "Запустить быструю задачу ${applicationName}";
+"Use ${applicationName} quick task" = "Использовать быструю задачу ${applicationName}";
+"Send a prompt to ${applicationName}" = "Отправить запрос ${applicationName}";
+"Ask ${applicationName} something" = "Спросить что-нибудь у ${applicationName}";
+"Start a ${applicationName} task" = "Начать задачу ${applicationName}";
+"Get ${applicationName} session status" = "Статус сессии ${applicationName}";
+"Check ${applicationName} task" = "Проверить задачу ${applicationName}";
+"List ${applicationName} sessions" = "Список сессий ${applicationName}";
+"Show ${applicationName} chats" = "Показать чаты ${applicationName}";
+"Follow up a ${applicationName} session" = "Продолжить сессию ${applicationName}";
+"Continue a ${applicationName} session" = "Возобновить сессию ${applicationName}";
+"Open a ${applicationName} session" = "Открыть сессию ${applicationName}";
+
+"Voice prompt to ${applicationName}" = "Голосовой запрос ${applicationName}";
+"Talk to ${applicationName} by voice" = "Сказать ${applicationName} голосом";

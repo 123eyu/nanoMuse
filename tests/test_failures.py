@@ -276,6 +276,7 @@ def test_update_check_caches_and_survives_failures(monkeypatch):
         self.checked_at = time.monotonic()
         self.latest = "0.1.21"
         self.url = "https://github.com/nano-muse/nanoMuse/releases/tag/v0.1.21"
+        self.error = None
 
     monkeypatch.setattr(update.UpdateCheck, "_check", fake_check)
     check = update.UpdateCheck(True, current="0.1.20")
@@ -305,3 +306,16 @@ def test_update_check_caches_and_survives_failures(monkeypatch):
     view = asyncio.run(check.view())
     assert view["newer"] is False and view["latest"] is None and view["error"] == "ConnectError"
     assert not asyncio.run(update.UpdateCheck(False, current="0.1.20").view())["enabled"]
+
+    # a failed check is kept for an hour, not a day: an hour later it is asked again, and
+    # a good answer then stands for the day
+    assert check.checked_at is not None
+    check.checked_at -= update.RETRY_S / 2
+    assert asyncio.run(check.view())["checked_at"] == view["checked_at"]  # still cached
+    check.checked_at -= update.RETRY_S
+    monkeypatch.setattr(update.UpdateCheck, "_check", fake_check)
+    again = asyncio.run(check.view())
+    assert again["latest"] == "0.1.21" and calls == 2
+    check.checked_at -= update.RETRY_S * 2
+    asyncio.run(check.view())
+    assert calls == 2  # a good answer is not asked again after an hour

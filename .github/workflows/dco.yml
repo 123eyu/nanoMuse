@@ -7,12 +7,19 @@ on:
 permissions:
   contents: read
 
+# a newer push to the same pull request cancels the check of the commit it replaced; the new
+# commit gets its own run, so the required check never goes missing
+concurrency:
+  group: dco-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   dco:
     name: Signed-off-by on every commit
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Check the Developer Certificate of Origin sign-off

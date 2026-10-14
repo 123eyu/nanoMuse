@@ -98,7 +98,15 @@ The relay is the code in [`cloud/`](../cloud/README.md). It stores:
 - the agent's name and look (`/v1/me/profile`): which face it wears (the dragon,
   an emoji on a colour, or one drawn in the avatar studio, with that face's five
   stills as small WebP pictures), so every device of the account shows the same
-  one. Since 0.1.34 the same profile lists the account's **connectors**: which
+  one. The write is partial from relay 0.25: a device sends what changed on it,
+  the name alone for a rename, the face with its pictures for a new look, and
+  every field it leaves out keeps its stored value (a blank name too), so a
+  phone that renames the muse before it has pulled the account's face no
+  longer sends the dragon in the name's place and takes the face off every
+  other device; an `avatar` other than `face` drops the stored pictures, so no
+  device reads `has_face` as a face still worn. The clients of 1.0.3 send the
+  whole look on every write and are read exactly as before. Since 0.1.34 the
+  same profile lists the account's **connectors**: which
   device connected which service (a label; how it signed in: OAuth, a key, or
   open; and when), so another device can say "connected on your Mac". The
   credential itself stays on the device that holds it; the relay refuses an
@@ -232,7 +240,12 @@ conversation and its messages, and an account with no main yet gets an empty
 page whose `cursor` is the account's counter. `tail=K` (K ≤ 500, honoured with
 `since=0` only) returns the newest K messages in `seq` order, the conversations
 they belong to, `cursor` at the account's counter, `more: false` and `skipped`
-(how many older messages were left out). Any other `scope` is 400 `bad_scope`.
+(how many older messages were left out). From relay 0.25 the tail page also
+carries the account's main conversation's row whenever it exists, even with no
+message of its own among the K, so a fresh device adopts `cid_main` from its
+first pull instead of minting a second main and learning the id from a
+`main_exists` refusal (a 1.0.3 client reads the extra row as any conversation
+row and behaves the same). Any other `scope` is 400 `bad_scope`.
 `POST /v1/sync/working` says the device named in `device` (or in
 `X-Nanomuse-Device`) is answering in `cid` (`working: true`) or has finished
 (`false`); the relay keeps the live ones in memory for ten minutes (never in
@@ -250,8 +263,11 @@ characters of `a-z 0-9 . _ : -`, folded to lower case), times are Unix seconds.
 Every accepted change takes the account's next `seq`; a device keeps the
 highest `cursor` it has pulled and asks for `since=` that. A push is idempotent
 (a known `mid` is left alone unless the new row is a tombstone, a known `cid`
-takes the newer title) and at most 200 messages or conversations long (413
-`too_many_messages`). A page lists its conversations and messages in `seq`
+takes the newer title; a time more than a week past the relay's clock, or
+before the conversation began, is read as the conversation's `created_at`,
+relay 0.25, where earlier relays measured the week from `created_at` and so
+dropped every rename of a chat older than a week) and at most 200 messages or
+conversations long (413 `too_many_messages`). A page lists its conversations and messages in `seq`
 order, and the relay adds the conversation of every message in the page even
 when that conversation's own `seq` lies ahead (a rename moves it), so a client
 applies the page's conversations first, then its messages, and is never handed
@@ -274,7 +290,7 @@ to draw on, for its lifetime, not by the day (relay 0.5):
 |---|---|
 | sign-up | open to anyone with a mainland China mobile number or an e-mail address |
 | free allowance | **¥10 per account** at the time of writing, across chat, pictures and clips; it does not reset. The figure is the relay's to set (it can go up without an app update; the apps print what the relay says, `/v1/config`), and the account page always shows the current one |
-| invitations | each *new* person who signs up with your code adds **¥5** (again, the relay's figure) to your pool, and the same to theirs |
+| invitations | each *new* person who signs up with your code adds **¥5** (again, the relay's figure) to your pool, and the same to theirs; both sides get it after your friend's first request, not at sign-up |
 | when it is gone | bring your own key or a plan you already pay for: in mainland China, [Alibaba Cloud Bailian](own-key.md) first (one key covers chat, the hands, pictures and clips); elsewhere, [OpenRouter](https://openrouter.ai/keys) or OpenAI first (Bailian only signs up accounts from mainland China); a ChatGPT, Claude or Kimi plan signs in where the client has the flow; any OpenAI-compatible endpoint works; sign-in and your devices are unaffected |
 | members | the developer and the people they list have no limit, and may set any model the provider has (a chat model for chat, an image one for pictures, a video one for clips): the apps' model picker lists them after the menu as *More models on your account* (relay 0.10 reads the provider's list under the Cloud key), and an id can still be typed (*Other model…*) |
 | rate | 30 requests per minute |
@@ -336,7 +352,36 @@ list to `providers`.
 Other relays may set other rules
 (`ALLOWANCE_CNY`, `INVITE_BONUS_CNY`, `SIGNUP_OPEN`, `ALLOWED_IDENTIFIERS`;
 all three figures adjustable while the relay runs, relay 0.15; see
-[`cloud/README.md`](../cloud/README.md)).
+[`cloud/README.md`](../cloud/README.md)). The operator can see who invited
+whom: the admin page's *Invites* view ranks the inviters by the accounts their
+code brought, with how many of those ever made a request, how many are still
+pending (no first request yet, so no bonus yet) and how many were seen from
+one of the inviter's own addresses, and an account's page names its inviter
+and lists the people it brought (`GET /v1/admin/invites`). Padding one's own
+pool is not worth the trouble: the bonus is paid once the invitee uses the
+relay (`INVITE_SETTLE_MIN_SPENT_UY`, 200 micro-yuan by default, or a
+registered Hub device) from a network address different from the inviter's,
+e-mail `+tag` subaddresses and Gmail dot or `googlemail.com` aliases map to
+the same account, disposable mail domains (`DEFAULT_SIGNUP_DOMAIN_BLOCK` plus
+`SIGNUP_DOMAIN_BLOCK`) are refused, new accounts from a mail domain that is
+not a well-known provider are limited per day (`SIGNUP_PER_DOMAIN_DAY`, 5 by
+default; the refusal is `domain_limited`), and the health check raises two
+alerts, an inviter whose code brought more than ten accounts in a day and an
+inviter with twenty or more invitees of whom almost none ever made a request.
+Each unfolded inviter in the *Invites* view, and the *Brought* card of its
+account page, has one action that reclaims the invite credit (what was
+already spent stays), and may disable the account and delete the invited
+accounts that never made a request (`POST /v1/admin/invites/abuse`).
+Every operator action on an account is on record: disabling or enabling it,
+making or unmaking a member, a grant, a credit, a pool change, a settings change
+and a deletion each write a line in the audit log of the Controls section (who,
+from where, which account by the first eight characters of its id) and, where the
+account keeps a timeline, a line on it too; a deletion is counted on the Stats
+page. A disabled account that asks for a sign-in code gets the same `204` as anyone
+and no message is sent: the request counts towards the usual limits, nothing goes
+out, and the route says nothing about whether the number has an account or whether
+it is off; the person is told `403 account_disabled` when they sign in with a code,
+or with the right password (a wrong one is answered like any wrong password).
 
 nanoMuse asks for one thing in return: a star on
 [GitHub](https://github.com/nano-muse/nanoMuse), which is what helps the
@@ -438,28 +483,46 @@ whatever relay serves it at `/app`.
 The app's calls, all JSON:
 
 ```
-POST /v1/auth/code          {identifier}                      → 204
-POST /v1/auth/verify        {identifier, code, device}        → {api_key, base_url, account, tokens, models}
+GET  /healthz                                                 → {ok, version, models[], paused[]}; no key
+GET  /v1/config                                               → {version, signup_open, paused[], allowance_cny, allowance_usd, invite_bonus_cny, invitee_bonus_cny, usd_cny, invite_url, own_key_docs, openrouter_url, privacy_url, repo_url, improve_default, code_ttl_s, password_min_len}; no key, a minute's cache
+POST /v1/auth/code          {identifier}                      → 204 (a disabled account gets the same 204 and nothing is sent); 400 phone_region, 403 not_invited | signup_closed, 429 code_too_often | domain_limited, 502 send_failed
+POST /v1/auth/verify        {identifier, code, device, invite?} → {api_key, base_url, account, tokens, models, created, region}; 400 code_wrong | code_expired, 403 account_disabled
 POST /v1/auth/login         {identifier, password, device}    → the same; 401 bad_credentials, 429 locked, 400 no_password
-POST /v1/auth/password      Bearer  {password, current?}      → 204; "" with current removes it
-GET  /v1/me                 Bearer                            → {region: cn | intl | unknown, account{…, has_password, sessions, signed_in_via}, usage{today, total by kind / model}, tokens, spend{…, ways}, models, recent, nudges}
+POST /v1/auth/password      Bearer  {password, current?}      → 204; "" with current removes it; 400 password_short | password_long | password_weak | password_wrong | password_required
+POST /v1/auth/session-key   Bearer  {device?, ttl_s?}         → {api_key, expires_at}; a key that lapses on its own (90 days at most); 403 session_from_session
+GET  /v1/me                 Bearer                            → {region: cn | intl | unknown, account{…, has_password, sessions, signed_in_via}, usage{today, total by kind / model}, tokens, spend{…, ways, guidance}, invite, contribute, models, defaults, base_url, clips, recent, nudges, paused[]}
+GET  /v1/me/invite          Bearer                            → {code, url, invites, bonus_cny, invitee_bonus_cny, bonus_when: "first_use", settled, pending, earned_cny, friends[]}
+GET  /v1/estimate           Bearer  ?images=5&clips=4&image_model=&video_model=&size=  → {cny, usd, parts[{kind, model, count, seconds?, cny}], left_cny, grant_cny, unlimited, affordable}; nothing charged
+POST /v1/me/contribute      Bearer  {on}                      → {on, samples, default_on, keeps[], privacy_url}; the "help improve" switch
+DELETE /v1/me/samples       Bearer                            → {deleted}; every turn kept from this account
 GET  /v1/nudges                                               → {version, star{enabled, url, moments{signed_in, tasks[], new_look, exhausted, days_used[], goal_done}, cooldown_days, max_asks, text, text_zh}}; no key, cached an hour
 GET  /v1/me/profile         Bearer  ?face=false               → {rev, device, name, avatar, …, face?, connectors: [{id, label, url, auth, device, device_id, enabled, at}]}
-PUT  /v1/me/profile         Bearer  {device, name?, avatar?, …, connectors?}  → {rev, device}; a device's connectors replace only its own; 400 no_secrets_in_profile, too_many_connectors
+PUT  /v1/me/profile         Bearer  {device, name?, avatar?, …, face?, connectors?}  → {rev, device}; a field that is absent keeps what is stored (relay 0.25); a device's connectors replace only its own; 400 no_secrets_in_profile, too_many_connectors
 DELETE /v1/me/profile       Bearer                            → 204
-GET  /v1/me/sessions        Bearer                            → {sessions: [{prefix, device, via, created_at, last_used_at, current}]}
-DELETE /v1/me/sessions/{prefix}  Bearer                       → 204
+GET  /v1/me/sessions        Bearer                            → {sessions: [{prefix, device, via, created_at, last_used_at, expires_at, current}]}
+DELETE /v1/me/sessions/{prefix}  Bearer                       → 204; 404 no_session
 GET  /v1/me/events          Bearer  ?limit=50                 → {events: [{ts, kind, detail}]}
 POST /v1/auth/sign-out      Bearer                            → 204
 POST /v1/auth/sign-out-all  Bearer  {all?}                    → {signed_out}
 POST /v1/auth/delete        Bearer                            → 204
+GET  /v1/devices            Bearer                            → {devices: [{id, name, kind, os, version, actions[], online, last_seen, controllable, ip}]}; 503 hub_paused
+DELETE /v1/devices/{id}     Bearer                            → 204; 409 device_online
 ```
+
+`code_ttl_s` and `password_min_len` in `/v1/config` are the relay's `CODE_TTL_S`
+and `PASSWORD_MIN_LEN`; the web console prints them in its sign-in and password
+forms, so a relay that sets other figures is described rightly, and an older
+relay without the two fields is read as ten minutes and eight characters.
 
 Everything else is the OpenAI API: `GET /v1/models` (with `architecture`
 modalities so the picture model is recognisable, and a `nanomuse` block per
 model with its `kind`, prices, `for` (the lane(s) a chat model is for: `chat`
-and / or `gui`) and `recommended_for`), `POST /v1/chat/completions`
-with streaming, `POST /v1/images/generations` and `/v1/images/edits`. Errors
+and / or `gui`) and `recommended_for`), `GET /v1/models/{id}?kind=chat` (a
+member checks a typed id: `listed`, `priced_as`), `POST /v1/chat/completions`
+with streaming, `POST /v1/images/generations` and `/v1/images/edits`, and the
+clips under the provider's own paths (`POST
+/api/v1/services/aigc/video-generation/video-synthesis`, `GET
+/api/v1/tasks/{id}` for the account's own tasks, `GET /api/v1/uploads`). Errors
 are `{"error": {"message", "type": "nanomuse_cloud", "code"}}` with a stable
 `code` the app turns into a sentence. Relay 0.22 adds the codes of the
 operator's [switches](#controls): `403 signup_closed`, `503 service_paused`,

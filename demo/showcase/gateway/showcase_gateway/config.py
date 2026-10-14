@@ -80,16 +80,19 @@ def text_only(model: str) -> bool:
     """Whether a model takes no images.
 
     Only the DeepSeek family is text-only, and not all of it: ``deepseek-v4.1-flash`` and
-    later read pictures, as does anything whose id says ``vision`` or ``ocr``; ``deepseek-v4``,
-    ``v4-pro``, ``v4-flash``, ``deepseek-chat`` and ``deepseek-reasoner`` do not. On Model
-    Studio's compatible mode a message with a picture in it does not fail for those — it
-    comes back as an empty reply — so the rule is by name rather than found out at the first
-    screenshot.
+    later read pictures, as does anything whose id says ``vision`` or ``ocr``, and so do
+    ``deepseek-flash`` and ``deepseek-v4-flash*``, which DeepSeek serves with V4.1 Flash (the
+    runtime's rule, ``nanomuse/llm/vision.py``); ``deepseek-v4``, ``v4-pro``, ``deepseek-chat``
+    and ``deepseek-reasoner`` do not. On Model Studio's compatible mode a message with a
+    picture in it does not fail for those, it comes back as an empty reply, so the rule is
+    by name rather than found out at the first screenshot.
     """
-    family = model.strip().lower()
+    family = model.strip().lower().rsplit("/", 1)[-1]
     if not family.startswith("deepseek"):
         return False
     if "vision" in family or "ocr" in family:
+        return False
+    if family == "deepseek-flash" or family.startswith("deepseek-v4-flash"):
         return False
     m = _DEEPSEEK_VERSION.search(family)
     if m is None:
@@ -108,6 +111,10 @@ class Settings:
     listen_host: str
     listen_port: int
     trust_proxy: bool  # take the visitor's address from X-Forwarded-For (set by Caddy)
+    # the peers whose X-Forwarded-For is believed (peers.py): addresses, networks or names
+    # such as the compose service "caddy"; "*" is any peer, which lets a session container
+    # pick the address it is limited under
+    trusted_proxies: tuple[str, ...]
     # development only — in production Caddy serves both
     site_dir: str  # the built MobileGym
     cdn_dir: str  # MobileGym's companion dataset, for /cdn/*
@@ -227,6 +234,9 @@ class Settings:
             listen_host=_str("LISTEN_HOST", "0.0.0.0"),
             listen_port=_int("LISTEN_PORT", 8000),
             trust_proxy=_bool("TRUST_PROXY", True),
+            trusted_proxies=tuple(
+                p.strip() for p in _str("TRUSTED_PROXIES", "caddy").split(",") if p.strip()
+            ),
             site_dir=_str("SITE_DIR"),
             cdn_dir=_str("CDN_DIR"),
             sessions_network=_str("SESSIONS_NETWORK", "nanomuse-sessions"),

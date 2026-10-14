@@ -128,7 +128,24 @@ class DingTalkChannel(Channel):
             )
             client.register_callback_handler(ChatbotMessage.TOPIC, handler)
             self._client = client
-            loop.create_task(client.start())
+            stream = loop.create_task(client.start())
+
+            def _ended(task: asyncio.Task[Any]) -> None:
+                # start() runs until stop(); it coming back on its own is a failure (bad
+                # credentials, the SDK giving up), which would otherwise leave the loop
+                # running forever with the status still "connected"
+                if task.cancelled() or self._client is not client:  # stop() under way
+                    return
+                exc = task.exception()
+                lines = str(exc).splitlines() if exc else []
+                reason = lines[0] if lines else type(exc).__name__ if exc else "stream closed"
+                reason = reason[:300]
+                logger.warning("dingtalk: stream ended: {}", reason)
+                if self.bus is not None:
+                    self.bus.set_status(self.name, "error", reason)
+                loop.stop()
+
+            stream.add_done_callback(_ended)
             loop.run_forever()
         except Exception as exc:  # noqa: BLE001
             logger.warning("dingtalk: stream ended: {}", exc)

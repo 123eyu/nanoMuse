@@ -175,7 +175,12 @@ the key in `hello` instead).
 Close codes: `4000` hello expected (no hello within 15 s, or a frame that is
 not a hello first; a binary frame counts), `4001` bad key (reason `bad_key`
 or `account_deleted`; `account_gone` when the account was deleted or disabled
-under a live socket), `4002` bad device, `4003` replaced
+under a live socket; from relay 0.25.0 also `bad_key`
+under a live socket whose key was just revoked, by *Sign out everywhere*
+from another device, a
+session revoked on the account page or the device's own sign-out, so a lost
+phone loses its line at once and the other devices see it offline), `4002`
+bad device, `4003` replaced
 by a newer connection of the same device id, or, with the reason
 `hub_paused` (relay 0.22), the operator switched the hub or the whole service
 off: a client waits and reconnects later instead of retrying at once
@@ -190,7 +195,11 @@ code, then the close with `4001`. A client that sees `4001` or `4002` leaves
 the backoff, shows the hub as refused and asks the person to sign in again (the
 runtime still tries once a minute, so a key restored on the relay comes back
 without a restart); any other close is the network and is retried with
-backoff.
+backoff. A socket that stays open after the network went away (a laptop that
+slept, a Wi-Fi that changed) hears no `pong`: the runtime's client uses the
+protocol's own ping with a 20 s timeout, the desktop's drops the socket when
+nothing at all arrived between two of its `ping` frames (about 50 s) and
+reconnects the same way.
 
 Frames the relay does not know (`type` it has no handler for, a text frame
 that is not a JSON object, a binary frame) are answered with
@@ -261,7 +270,8 @@ computer's own hands) is in [every-device.md](every-device.md).
   the console under [`cloud/nanomuse_cloud/console/`](../cloud/nanomuse_cloud/console/).
 - Android: `io.github.nanomuse.hub`: `HubClient` (OkHttp, reconnect),
   `Hub` (state, prefs, `call`/`find`), `HubActions` (what the phone does for
-  others, including `task` through the headless chat runner), `HubService`
+  others, including `task` through the headless chat runner, its `language`
+  honoured), `HubService`
   (foreground, `remoteMessaging`). `nanomuse-pc` (`io.github.nanomuse.reach`)
   reaches the hub devices from the phone's sandbox shell.
 - nanoMuse Desktop: [`harness/dsh-nanomuse/src/hub.ts`](../harness/dsh-nanomuse/src/hub.ts)
@@ -272,6 +282,11 @@ computer's own hands) is in [every-device.md](every-device.md).
   refused (`no_screen`), the shell and files actions with `not_supported`. A step of a
   `task` that needs approval is not sent back as an `event`: with nanoMuse in front the
   phone shows its own card, in the background the step is declined and the answer says so.
+  The other way round, a `task` the phone sends (`@〈device〉`,
+  [`NanoMuseDeviceMention.swift`](../android/src/ios/NanoMuse/NanoMuseDeviceMention.swift))
+  has its `approval` events answered on the phone's card
+  ([`NanoMuseRemoteApproval.swift`](../android/src/ios/NanoMuse/NanoMuseRemoteApproval.swift))
+  and `approve` sent back; `approval_result` closes the card.
 - Runtime (`nanomuse serve`): [`nanomuse/cloud.py`](../nanomuse/cloud.py)
   (the account), [`nanomuse/hub/client.py`](../nanomuse/hub/client.py) (the
   socket, reconnect), [`nanomuse/hub/actions.py`](../nanomuse/hub/actions.py)

@@ -33,6 +33,8 @@ export const ACCOUNT_SECTION = 'nanomuse-cloud'
 
 /** An own-key row as the host keeps it in `cloud.json` (`src/providers.ts` `OwnProvider`): never a key. */
 export interface OwnProvider {
+  /** The row's own id: the catalogue id for a vendor; `custom`, `custom-2`, ... for hand-made endpoints, several at once (#294). */
+  id: string
   provider: string
   label: string
   protocol: string
@@ -122,7 +124,7 @@ export function UnavailableLine({ t, view, capability, link = false, className =
 
 // ---- one row -----------------------------------------------------------------------------------
 
-function KeyForm({ t, entry, region, configured, onSaved, onCancel }: { t: Translate; entry: ProviderEntry; region: Region; configured: OwnProvider | undefined; onSaved(said: string, got: { label: string; offer: SlotOffer }): void; onCancel(): void }): ReactNode {
+function KeyForm({ t, entry, region, configured, onSaved, onCancel }: { t: Translate; entry: ProviderEntry; region: Region; configured: OwnProvider | undefined; onSaved(said: string, got: { id: string; label: string; offer: SlotOffer }): void; onCancel(): void }): ReactNode {
   const base = baseUrlFor(entry, region)
   const [apiKey, setApiKey] = useState('')
   const [baseURL, setBaseURL] = useState(configured?.baseURL ?? base)
@@ -140,11 +142,13 @@ function KeyForm({ t, entry, region, configured, onSaved, onCancel }: { t: Trans
     setBusy(true)
     setError(undefined)
     const body: Record<string, unknown> = { id: entry.id, apiKey, lang: t('langTag') }
+    // a hand-made endpoint changed stays the row it is; without `row` the host adds another (#294)
+    if (configured && entry.user_capabilities) body.row = configured.id
     if (editable) body.baseURL = baseURL
     if (entry.user_capabilities) { body.capabilities = caps; body.label = label }
     if (entry.user_capabilities && models.trim()) body.models = models
     call<OwnProvider & { offer?: SlotOffer }>('providers/save', body)
-      .then((saved) => onSaved(saved.models.length ? t('ownKeySaved', { n: saved.models.length }) : t('ownKeySavedNone'), { label: saved.label, offer: saved.offer ?? {} }))
+      .then((saved) => onSaved(saved.models.length ? t('ownKeySaved', { n: saved.models.length }) : t('ownKeySavedNone'), { id: saved.id || entry.id, label: saved.label, offer: saved.offer ?? {} }))
       .catch((err: unknown) => {
         if (errorCode(err) === 'no_models') { setAskModels(true); setError(t('ownKeyNoModels')); return }
         setError(failureText(t, err))
@@ -185,7 +189,7 @@ export function ChatGptRow({ t, view, onChanged }: { t: Translate; view: Provide
   const signIn = () => {
     setBusy(true)
     setError(undefined)
-    call<{ url: string }>('chatgpt/login')
+    call<{ url: string }>('chatgpt/login', {})
       .then((r) => { if (r.url) openLink(r.url) })
       // `no_runtime` reaches the row through the live state's `login.error` already
       .catch((err: unknown) => { if ((err as Error).message !== 'no_runtime') setError(failureText(t, err)) })
@@ -193,9 +197,9 @@ export function ChatGptRow({ t, view, onChanged }: { t: Translate; view: Provide
   }
   const signOut = () => {
     setBusy(true)
-    call('chatgpt/logout').then(() => onChanged()).catch((err: unknown) => setError(failureText(t, err))).finally(() => setBusy(false))
+    call('chatgpt/logout', {}).then(() => onChanged()).catch((err: unknown) => setError(failureText(t, err))).finally(() => setBusy(false))
   }
-  const cancel = () => { void call('chatgpt/cancel').catch(() => undefined) }
+  const cancel = () => { void call('chatgpt/cancel', {}).catch(() => undefined) }
   const login = cg.login
   let state: ReactNode
   if (cg.signedIn) {
@@ -268,40 +272,75 @@ export function UseItCard({ t, id, label, offer, signedIn, onDone }: { t: Transl
     h('div', { className: 'nm-wrap', style: { ...muted, fontSize: 12 } }, t('useItFoot')))
 }
 
-export function ProviderRow({ t, entry, view, onChanged }: { t: Translate; entry: ProviderEntry; view: ProvidersView; onChanged(said?: string): void }): ReactNode {
-  const configured = view.configured.find((p) => p.provider === entry.id)
+/**
+ * One catalogue entry's row: the vendor's name, what it covers, the key form. `own` names the
+ * saved row it stands for; by default the one whose `provider` is the entry. A hand-made
+ * endpoint is one row per saved endpoint (#294): each with its own name over its host, a
+ * *Rename* beside *Change key* and *Remove*; `own: null` is the row that adds another.
+ */
+export function ProviderRow({ t, entry, view, own, onChanged }: { t: Translate; entry: ProviderEntry; view: ProvidersView; own?: OwnProvider | null; onChanged(said?: string): void }): ReactNode {
+  const configured = own === null ? undefined : (own ?? view.configured.find((p) => p.provider === entry.id))
+  const rowId = configured?.id ?? entry.id
   const [open, setOpen] = useState(false)
+  const [renaming, setRenaming] = useState(false)
+  const [label, setLabel] = useState(configured?.label ?? '')
   const [said, setSaid] = useState<string | undefined>()
-  const [offer, setOffer] = useState<{ label: string; offer: SlotOffer } | undefined>()
+  const [offer, setOffer] = useState<{ id: string; label: string; offer: SlotOffer } | undefined>()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | undefined>()
   const keyUrl = keyUrlFor(entry, view.region)
   const needsKey = !entry.auth.includes('none')
+  // a hand-made endpoint: the row reads as its name (or host); the adding row as the entry
+  const several = Boolean(entry.user_capabilities)
+  const title = several && configured ? configured.label || hostOf(configured.baseURL) : nameOf(t, entry)
   const remove = () => {
     setBusy(true)
     setError(undefined)
-    call<{ cloudModelsOn?: boolean } | undefined>('providers/remove', { id: entry.id })
+    call<{ cloudModelsOn?: boolean } | undefined>('providers/remove', { id: rowId })
       // the row was the last chat source while the account's models were off: they are on again, said once here
       .then((r) => { setSaid(r?.cloudModelsOn ? t('ownKeyRemovedCloudOn') : undefined); setOffer(undefined); onChanged() })
       .catch((err: unknown) => setError(failureText(t, err))).finally(() => setBusy(false))
   }
-  return h('div', { className: 'nm-way' },
+  const rename = (event: FormEvent) => {
+    event.preventDefault()
+    setBusy(true)
+    setError(undefined)
+    call<OwnProvider>('providers/rename', { id: rowId, label, lang: t('langTag') })
+      .then((r) => { setRenaming(false); setLabel(r.label); onChanged() })
+      .catch((err: unknown) => setError(failureText(t, err))).finally(() => setBusy(false))
+  }
+  return h('div', { className: 'nm-way', 'data-testid': several && configured ? `nm-way-${rowId}` : undefined },
     h('span', { className: 'nm-way-icon' }, configured ? h(IconCheck, { size: 15 }) : h(IconKey, { size: 15 })),
     h('div', { className: 'nm-way-main' },
-      h('div', { className: 'nm-way-title' }, nameOf(t, entry), h('span', { style: { ...muted, marginLeft: 8 } }, coverage(t, configured?.capabilities ?? entry.capabilities))),
+      h('div', { className: 'nm-way-title' }, title, h('span', { style: { ...muted, marginLeft: 8 } }, coverage(t, configured?.capabilities ?? entry.capabilities))),
+      several && configured ? h('div', { className: 'nm-way-sub nm-wrap', style: muted }, hostOf(configured.baseURL)) : null,
       open ? h('div', { className: 'nm-way-sub nm-wrap', style: muted }, noteOf(t, entry), entry.verified ? ` · ${t('ownKeyVerified', { month: entry.verified })}` : '') : null,
       configured ? h('div', { className: 'nm-way-sub' }, `${t('ownKeyConfigured')} · ${configured.models.length ? t('ownKeySaved', { n: configured.models.length }) : t('ownKeySavedNone')}`) : null,
       said ? h('div', { className: 'nm-way-sub' }, said) : null,
       offer
-        ? h(UseItCard, { t, id: entry.id, label: offer.label || nameOf(t, entry), offer: offer.offer, signedIn: view.cloud.signedIn, onDone: (text) => { setOffer(undefined); if (text) setSaid(text); onChanged(text) } })
+        ? h(UseItCard, { t, id: offer.id, label: offer.label || nameOf(t, entry), offer: offer.offer, signedIn: view.cloud.signedIn, onDone: (text) => { setOffer(undefined); if (text) setSaid(text); onChanged(text) } })
         : null,
       error ? h('div', { style: errorStyle }, error) : null,
-      open
+      renaming
+        ? h('form', { style: { ...row, marginTop: 8 }, onSubmit: rename },
+            h('input', { className: 'nm-field', value: label, placeholder: hostOf(configured?.baseURL ?? ''), 'aria-label': t('ownKeyLabelField'), autoFocus: true, onChange: (e: FormEvent<HTMLInputElement>) => setLabel(e.currentTarget.value) }),
+            h('button', { type: 'submit', className: 'nm-pill nm-pill-sm', disabled: busy }, busy ? t('sending') : t('save')),
+            h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', disabled: busy, onClick: () => { setRenaming(false); setLabel(configured?.label ?? '') } }, t('cancel')))
+        : open
         ? h(KeyForm, { t, entry, region: view.region, configured, onSaved: (text, got) => { setOpen(false); setSaid(text); setOffer(Object.keys(got.offer).length ? got : undefined); onChanged(text) }, onCancel: () => setOpen(false) })
         : h('div', { style: row },
-            h('button', { type: 'button', className: `nm-pill nm-pill-sm${configured ? ' nm-pill-ghost' : ''}`, disabled: busy, onClick: () => setOpen(true) }, configured ? t('ownKeyChange') : needsKey ? t('ownKeyAdd') : t('ownKeyConnect')),
+            h('button', { type: 'button', className: `nm-pill nm-pill-sm${configured ? ' nm-pill-ghost' : ''}`, disabled: busy, onClick: () => setOpen(true) }, configured ? t('ownKeyChange') : several ? t('ownKeyAddEndpoint') : needsKey ? t('ownKeyAdd') : t('ownKeyConnect')),
             keyUrl && needsKey ? h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', onClick: () => openLink(keyUrl) }, t('ownKeyGetKey')) : null,
+            several && configured ? h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', disabled: busy, onClick: () => setRenaming(true) }, t('ownKeyRename')) : null,
             configured ? h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', disabled: busy, onClick: remove }, t('ownKeyRemove')) : null)))
+}
+
+function hostOf(url: string): string {
+  try {
+    return new URL(url).host
+  } catch {
+    return url
+  }
 }
 
 // ---- the groups ----------------------------------------------------------------------------------
@@ -356,8 +395,11 @@ export function WaysOnRows({ t, view, groups = ALL_GROUPS, signInRow = true, hea
     for (const p of g.local) out.push(rowOf(p))
   }
   if (groups.includes('custom') && g.custom) {
+    // one row per saved endpoint, then the row that adds another (#294)
+    const custom = g.custom
     out.push(heading(t('ownKeyCustomGroup')))
-    out.push(rowOf(g.custom))
+    for (const own of view.configured.filter((p) => p.provider === custom.id)) out.push(h(ProviderRow, { key: `custom:${own.id}`, t, entry: custom, view, own, onChanged }))
+    out.push(h(ProviderRow, { key: 'custom:add', t, entry: custom, view, own: null, onChanged }))
   }
   return h('div', { className: 'nm-ways' }, out)
 }
@@ -372,7 +414,8 @@ export const MODELS_SECTION = 'nanomuse-models'
  * with what new chats answer through and what the hands see with, in `<provider> · <model>`.
  */
 export function ModelsLink({ t, view }: { t: Translate; view: ProvidersView }): ReactNode {
-  const labelOf = (provider: string) => (provider === 'nanomuse' ? 'nanoMuse Cloud' : view.configured.find((p) => p.provider === provider)?.label || provider)
+  // the slot names the row's id (`custom-2` for a second hand-made endpoint), which is the catalogue id for a vendor
+  const labelOf = (provider: string) => (provider === 'nanomuse' ? 'nanoMuse Cloud' : (view.configured.find((p) => p.id === provider) ?? view.configured.find((p) => p.provider === provider))?.label || provider)
   const line = (slot: { provider: string; model: string }) => (slot.model ? `${labelOf(slot.provider)} · ${slot.model}` : t('mdPick'))
   return h('div', { className: 'nm-card', style: { marginTop: 4 } },
     h('button', { type: 'button', className: 'nm-row nm-row-button', 'data-testid': 'nm-models-link', onClick: () => { settingsBus.openSection?.(MODELS_SECTION) } },

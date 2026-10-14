@@ -127,6 +127,8 @@
     <string name="nm_routine_run_now">Jalankan sekarang</string>
     <string name="nm_routine_delete">Padam</string>
     <string name="nm_routine_paused">Mati</string>
+    <!-- The chat row a routine sent: its label and the clock time it fired -->
+    <string name="nm_routine_wake_caption">Rutin · %1$s · %2$s</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">Idea</string>
@@ -348,6 +350,23 @@
     <string name="nm_avatar_use_this">Guna yang ini</string>
     <string name="nm_avatar_use_this_hint">Ekspresi (bekerja, menunggu, selesai, alamak) dilukis daripadanya selepas ini, di latar belakang.</string>
     <string name="nm_avatar_footer">Gambar disimpan di telefon ini di bawah minis-global/nanomuse/avatar. Setiap wajah memerlukan lima imej daripada penyedia anda: satu yang anda pilih dan empat ekspresi.</string>
+    <string name="nm_own_clip_title">Klip anda sendiri</string>
+    <string name="nm_own_clip_body">Video pendek milik anda dimainkan sebagai wajah semasa rehat, dan mood lain turut menggunakannya. MP4 atau MOV dengan video H.264, paling lama 15 saat dan 30 MB; dimainkan tanpa bunyi, berulang.</string>
+    <string name="nm_own_clip_on">Klip anda aktif dan dimainkan untuk setiap mood; di tempat imej pegun ditunjukkan, gambar yang dilukis kekal digunakan. “Wajah lalai” membuangnya.</string>
+    <string name="nm_own_clip_local">Klip kekal di telefon ini. Ia tidak dimuat naik ke nanoMuse Cloud dan tidak disegerakkan ke peranti anda yang lain.</string>
+    <string name="nm_own_clip_choose">Pilih klip</string>
+    <string name="nm_own_clip_replace">Ganti klip</string>
+    <string name="nm_own_clip_default">Wajah lalai</string>
+    <string name="nm_own_clip_menu">Klip anda sendiri…</string>
+    <string name="nm_own_clip_preview_title">Pratonton</string>
+    <string name="nm_own_clip_preview_body">Beginilah ia dimainkan sebagai wajah: tanpa bunyi, berulang, dipotong ke bulatan.</string>
+    <string name="nm_own_clip_details">%1$d s · %2$s</string>
+    <string name="nm_own_clip_use">Guna</string>
+    <string name="nm_own_clip_refused_format">Fail itu tidak boleh digunakan di sini. Pilih MP4 atau MOV dengan video H.264, paling lama 15 saat dan 30 MB.</string>
+    <string name="nm_own_clip_refused_long">Klip itu berdurasi %1$d saat. Hadnya 15 saat, dan 30 MB.</string>
+    <string name="nm_own_clip_refused_large">Klip itu bersaiz %1$s. Hadnya 30 MB, dan 15 saat.</string>
+    <string name="nm_own_clip_unreadable">Klip tidak dapat dibaca. Cuba yang lain.</string>
+    <string name="nm_a11y_own_clip_preview">Pratonton klip anda</string>
 
     <!-- First run (Muse-style welcome; the steps are OpenMinis' provider and model screens) -->
     <string name="nm_setup_title">Selamat datang ke nanoMuse</string>
@@ -591,6 +610,8 @@
     <string name="nm_risk_title_device">Benarkan “%1$s” mengendalikan telefon ini?</string>
     <string name="nm_risk_desc_device">“%1$s”, peranti lain pada akaun anda, mahu %2$s di telefon ini. Butirannya ditunjukkan di bawah. “Sentiasa” membenarkan peranti itu melakukan perkara sebegini di sini tanpa bertanya; tarik balik di bawah Kebenaran.</string>
     <string name="nm_risk_preview_device">Apa yang diminta peranti</string>
+    <string name="nm_risk_preview_show_all">Tunjukkan semua (%1$d baris)</string>
+    <string name="nm_risk_preview_show_less">Tunjukkan kurang</string>
     <string name="nm_risk_class_remote">Kawalan jauh</string>
     <string name="nm_hub_remote_reason">%1$s boleh mengendalikan telefon ini</string>
 
@@ -624,7 +645,6 @@
     <string name="nm_welcome_skip">Langkau buat masa ini</string>
     <string name="nm_welcome_hands_fine_print">Semua yang lain berfungsi tanpa ini. Ia ada di bawah Tetapan → Tangan bila-bila anda mahu.</string>
     <string name="nm_welcome_meet_fine_print">Sebelum apa-apa yang tidak boleh ditarik balik (memadam, menghantar, membayar) ia berhenti dan bertanya kepada anda dahulu.</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">Mulakan dengan nanoMuse Cloud</string>
     <string name="nm_cloud_signin_subtitle">Kod ke telefon atau peti masuk anda, atau kata laluan anda, setelah anda menetapkannya.</string>
     <string name="nm_cloud_mode_code">Dengan kod</string>
@@ -632,7 +652,7 @@
     <string name="nm_cloud_password">Kata laluan</string>
     <string name="nm_cloud_forgot_password">Lupa kata laluan? Log masuk dengan kod</string>
     <string name="nm_cloud_identifier">Nombor telefon tanah besar China atau e-mel</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · anda@example.com</string>
+    <string name="nm_cloud_identifier_hint">anda@example.com</string>
     <string name="nm_cloud_code">Kod</string>
     <string name="nm_cloud_send_code">Hantar kod</string>
     <string name="nm_cloud_resend">Hantar lagi</string>
@@ -642,7 +662,6 @@
     <!-- Your own relay (0.1.38): the sign-in screen's server form and the account page's row -->
     <string name="nm_cloud_other_server">Guna pelayan lain</string>
     <string name="nm_cloud_server_url">Alamat relay</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
     <string name="nm_cloud_server_check">Semak</string>
     <string name="nm_cloud_server_use">Guna pelayan ini</string>
     <string name="nm_cloud_server_now">Pelayan: %1$s</string>
@@ -704,6 +723,8 @@
     <string name="nm_cloud_err_password_short">Kata laluan memerlukan sekurang-kurangnya 8 aksara.</string>
     <string name="nm_cloud_err_password_weak">Kata laluan itu terlalu mudah diteka.</string>
     <string name="nm_cloud_err_signup_closed">Pendaftaran di relay ini dijeda buat masa ini. Akaun yang sudah ada masih boleh log masuk.</string>
+    <string name="nm_cloud_err_domain_limited">Alamat dari domain itu sudah mencapai had pendaftaran hari ini di relay ini. Cuba lagi esok atau gunakan alamat lain.</string>
+    <string name="nm_cloud_err_channel_unsupported">Relay ini tidak menghantar kod ke jenis alamat itu. Gunakan jenis lain (e-mel atau nombor telefon), atau log masuk dengan kata laluan.</string>
     <string name="nm_cloud_err_too_large">Mesej itu terlalu besar untuk model. Pendekkan, buang beberapa lampiran, atau mulakan sembang baharu.</string>
     <string name="nm_cloud_err_content_rejected">Semakan kandungan penyedia model menolak permintaan ini. Cuba perkataan lain, atau mulakan sembang baharu jika ia berulang: perkataan yang ditolak mungkin berada lebih awal dalam perbualan.</string>
     <string name="nm_cloud_err_provider_busy">Penyedia model sedang sibuk. Cuba lagi sebentar nanti.</string>
@@ -750,7 +771,7 @@
     <string name="nm_face_cost_not_now">Bukan sekarang</string>
     <string name="nm_face_cost_declined">Baiklah, wajah kekal seperti sedia ada.</string>
     <string name="nm_cloud_invite_title">Jemput rakan</string>
-    <string name="nm_cloud_invite_why">Setiap orang baharu yang mendaftar dengan kod anda menambah ¥%1$s pada peruntukan anda, dan ¥%1$s pada peruntukan mereka. Ia tidak pernah tamat tempoh.</string>
+    <string name="nm_cloud_invite_why">Apabila rakan mendaftar dengan kod anda dan menghantar permintaan pertamanya, anda berdua mendapat ¥%1$s. Ia tidak pernah tamat tempoh.</string>
     <string name="nm_cloud_invite_code">Kod anda</string>
     <string name="nm_cloud_invite_share">Kongsi pautan</string>
     <string name="nm_cloud_invite_copy">Salin</string>
@@ -788,7 +809,7 @@
     <string name="nm_cap_clips_unavailable">Klip memerlukan penyedia dengan model video: Alibaba Cloud Bailian.</string>
     <string name="nm_cap_hands_unavailable">Tangan memerlukan model yang dapat melihat skrin: Bailian, OpenRouter, OpenAI, Anthropic, Gemini, atau mana-mana penyedia dengan model visi.</string>
     <string name="nm_cap_chat_unavailable">Sembang memerlukan penyedia dengan model sembang: tambah kunci, atau log masuk.</string>
-    <string name="nm_ways_invite_title">Jemput rakan: +¥%1$s untuk anda dan +¥%2$s untuk mereka, bagi setiap orang baharu yang mendaftar dengan pautan anda.</string>
+    <string name="nm_ways_invite_title">Jemput rakan: +¥%1$s untuk anda dan +¥%2$s untuk mereka, apabila orang baharu yang mendaftar dengan pautan anda menghantar permintaan pertamanya.</string>
     <string name="nm_ways_invite_share">Kongsi pautan</string>
     <string name="nm_ways_invite_copy">Salin pautan</string>
     <string name="nm_cloud_ev_contribute_on">Kawalan data: bantu perbaiki dihidupkan</string>
@@ -1118,4 +1139,16 @@
     <string name="nm_a11y_liked">Disukai</string>
     <string name="nm_a11y_not_liked">Belum disukai</string>
     <string name="nm_a11y_post_details">Butiran kiriman</string>
+    <string name="nm_claude_sign_in_unavailable">Binaan ini tidak boleh menggunakan log masuk Claude. Tambah Anthropic dengan kunci API sebagai ganti.</string>
+    <string name="nm_oauth_rescue_hint">Jika pelayar menunjukkan halaman ralat di localhost, proksi atau VPN anda menelan panggilan balik itu. Tambahkan localhost ke senarai pengecualiannya, atau salin alamat halaman itu dan tampal di sini.</string>
+    <string name="nm_oauth_rescue_placeholder">Tampal alamat di sini</string>
+    <string name="nm_oauth_rescue_continue">Teruskan</string>
+    <string name="nm_oauth_rescue_no_code">Alamat itu tiada kod log masuk.</string>
+    <string name="nm_oauth_rescue_failed">Log masuk tidak lagi menunggu alamat itu. Ketik Log masuk dan cuba lagi.</string>
+    <!-- Font scale labels -->
+    <string name="nm_font_scale_extra_small">Sangat kecil</string>
+    <string name="nm_font_scale_small">Kecil</string>
+    <string name="nm_font_scale_medium">Sederhana</string>
+    <string name="nm_font_scale_large">Besar</string>
+    <string name="nm_font_scale_extra_large">Sangat besar</string>
 </resources>

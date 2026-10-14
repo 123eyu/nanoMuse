@@ -151,7 +151,7 @@ struct NanoMuseAccountSections: View {
             let bonus = yuan(invite.bonusCny)
             let earned = yuan(invite.earnedCny)
             let invited = invite.invites.formatted()
-            Text(String(format: AppLocalized("A friend who signs up with your code gets %@ of credit, and so do you. %@ invited · %@ earned."), bonus, invited, earned))
+            Text(String(format: AppLocalized("When a friend signs up with your code and makes their first request, you both get %@. %@ invited · %@ earned."), bonus, invited, earned))
         }
     }
 
@@ -161,11 +161,12 @@ struct NanoMuseAccountSections: View {
     private var usageSection: some View {
         if let sheet {
             Section {
-                Picker("", selection: $usageScope) {
+                Picker(AppLocalized("Usage"), selection: $usageScope) {
                     Text(AppLocalized("Today")).tag(0)
                     Text(AppLocalized("All time")).tag(1)
                 }
                 .pickerStyle(.segmented)
+                .labelsHidden()
                 let rows = usageScope == 0 ? sheet.today : sheet.total
                 if rows.isEmpty {
                     Text(AppLocalized("Nothing used yet.")).foregroundStyle(.secondary).font(.subheadline)

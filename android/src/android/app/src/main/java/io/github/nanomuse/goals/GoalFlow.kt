@@ -47,8 +47,8 @@ object GoalFlow {
     private fun creationAddendum(category: GoalCategory): String = """
         |## Creating a goal (nanoMuse)
         |The user just chose to create a goal in the "${category.key}" category from the Goals tab.
-        |Shape it together, like Muse does: ask at most three short questions, ONE message at a time,
-        |in the user's language — (1) what exactly they want to achieve, (2) why it matters and by
+        |Shape it together: ask at most three short questions, ONE message at a time,
+        |in the user's language: (1) what exactly they want to achieve, (2) why it matters and by
         |when, (3) how often you should check in (every N hours, or daily at a time). Two or three
         |sentences per message; if the user already answered something, skip that question.
         |When you have enough, reply with one warm sentence of confirmation and then EXACTLY ONE fenced
@@ -235,7 +235,7 @@ object GoalFlow {
         val cadence = if (goal.checkEveryHours > 0) {
             context.resources.getQuantityString(R.plurals.nm_goal_every_hours, goal.checkEveryHours, goal.checkEveryHours)
         } else {
-            context.getString(R.string.nm_goal_daily_at, "%02d:%02d".format(goal.checkHour, goal.checkMinute))
+            context.getString(R.string.nm_goal_daily_at, "%02d:%02d".format(java.util.Locale.ROOT, goal.checkHour, goal.checkMinute))
         }
         val next = goal.taskId?.let { ScheduledTaskManager(context).get(it) }?.nextTriggerMs()
         return if (next != null) {

@@ -24,6 +24,7 @@ export function MuseHeader({
   under,
   size = 72,
   className,
+  scrim = false,
 }: {
   profile: Profile | null;
   status?: Status;
@@ -43,9 +44,11 @@ export function MuseHeader({
   under?: ReactNode;
   size?: number;
   className?: string;
+  /** a shade over a list that scrolls under the header (the chat), instead of the canvas colour */
+  scrim?: boolean;
 }) {
   return (
-    <header className={cx("safe-top relative shrink-0 bg-bg pt-1.5 pb-1", className)}>
+    <header className={cx("safe-top relative shrink-0 pt-1.5 pb-1", scrim ? "header-scrim" : "bg-bg", className)}>
       <div className="flex flex-col items-center px-16">
         <button type="button" onClick={onAvatar} aria-label={name} className="relative rounded-full">
           <Avatar profile={profile} status={status} size={size} />
@@ -130,6 +133,7 @@ export function MuseRoundButton({
       type="button"
       onClick={onClick}
       aria-label={label}
+      aria-haspopup={expanded === undefined ? undefined : "menu"}
       aria-expanded={expanded}
       disabled={disabled}
       className={cx(

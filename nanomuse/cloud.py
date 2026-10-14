@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import platform
 from typing import Any
+from urllib.parse import urlencode
 
 import httpx
 
@@ -32,6 +33,8 @@ MESSAGES = {
     "code_expired": "That code has expired; ask for a new one.",
     "code_too_often": "Too many codes were sent; wait a few minutes.",
     "not_invited": "This relay is private; that address is not on its list.",
+    "domain_limited": "Today's sign-up limit for addresses at that domain is reached on this relay. Try again tomorrow, or use another address.",
+    "channel_unsupported": "This relay does not send codes to that kind of address. Use the other kind (e-mail or phone number), or sign in with a password.",
     "send_failed": "The code could not be sent; try again in a moment.",
     "bad_key": "Sign in again.",
     "out_of_tokens": "This account has used its tokens.",
@@ -261,16 +264,18 @@ class CloudClient:
     ) -> dict[str, Any]:
         """What ``images`` pictures and ``clips`` short videos would cost against the pool
         (``cny``, ``left_cny``, ``affordable``, ``unlimited``); nothing is charged."""
-        q = f"/v1/estimate?images={int(images)}"
+        params: dict[str, str] = {"images": str(int(images))}
         if image_model:
-            q += f"&image_model={image_model}"
+            params["image_model"] = image_model
         if size:
-            q += f"&size={size}"
+            params["size"] = size
         if clips:
-            q += f"&clips={int(clips)}"
+            params["clips"] = str(int(clips))
             if video_model:
-                q += f"&video_model={video_model}"
-        return await self._request("GET", q)
+                params["video_model"] = video_model
+        # model ids and sizes are typed by people and relayed by the app: encoded, so an
+        # "&" or a space in one cannot change the question asked
+        return await self._request("GET", "/v1/estimate?" + urlencode(params))
 
     @staticmethod
     def models_for(models: list[dict[str, Any]], purpose: str = "chat") -> list[dict[str, Any]]:

@@ -163,6 +163,23 @@ def test_goals_lifecycle(tmp_path: Path):
     assert store.delete(goal.id) and store.get(goal.id) is None
 
 
+def test_goals_tool_rates_creating_a_goal_as_a_change(tmp_path: Path):
+    """A goal is work the model takes up again at every check-in, so creating one is
+    ``moderate`` (strict mode asks); reading and bookkeeping stay ``safe``."""
+    from nanomuse.schema import RiskLevel
+    from nanomuse.tools import Goals
+
+    tool = Goals(store=GoalStore(tmp_path / "g.db"))
+    assert tool.assess({"action": "create", "title": "Sell my old car"}).risk == RiskLevel.MODERATE
+    for args in (
+        {"action": "list"},
+        {"action": "get", "goal_id": "g_1"},
+        {"action": "update_step", "goal_id": "g_1", "step_index": 1, "status": "done"},
+        {"action": "note", "goal_id": "g_1", "note": "buyer asked"},
+    ):
+        assert tool.assess(args).risk == RiskLevel.SAFE, args
+
+
 def test_goal_categories_due_dates_and_check_ins(tmp_path: Path):
     from datetime import UTC, datetime, timedelta
 

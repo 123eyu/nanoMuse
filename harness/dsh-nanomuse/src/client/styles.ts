@@ -45,21 +45,30 @@ html[data-nanomuse] {
   --nm-blue: #2f6fd0;
   --nm-blue-hover: #2a63ba;
   --nm-rail: 66px;
+  --nm-header-h: 108px;
   --nm-radius: 14px;
   --nm-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
 }
-/* Light: paper, white fields, grey bubbles, the user's tinted with the accent. */
+/* Light: paper, white fields; the conversation monochrome as on the phone (ChatColors.kt): the
+   chat's canvas plain white, your pill the ink (black, white text), the agent's a grey a step
+   off the canvas, the send button and the scroll-to-latest disc the same ink with the glyph in
+   the opposite colour. The paper stays under the rail, the columns and the pages. */
 html[data-nanomuse] body {
   --nm-base: #f9f9f9;
+  --nm-canvas: #ffffff;
   --nm-field: #ffffff;
   --nm-field-border: #e3e4e6;
   --nm-card: #ffffff;
   --nm-selected: #f0f0f1;
   --nm-hover: #f1f1f2;
   --nm-divider: #ececec;
-  --nm-agent-bubble: #e9e9eb;
-  --nm-user-bubble: color-mix(in srgb, var(--nm-accent) 22%, #ffffff);
-  --nm-send: #111111;
+  --nm-agent-bubble: #f2f2f7;
+  --nm-user-bubble: #000000;
+  --nm-user-bubble-fg: #ffffff;
+  --nm-user-bubble-selection: rgb(255 255 255 / 0.3);
+  --nm-ink: #000000;
+  --nm-ink-fg: #ffffff;
+  --nm-send: var(--nm-ink);
   --nm-send-idle: #c9c9cc;
   --dsw-alias-bg-base: #f9f9f9;
   --dsw-alias-bg-layer-1: #f2f2f2;
@@ -71,9 +80,12 @@ html[data-nanomuse] body {
   --dsw-specific-input-major: #ffffff;
   --dsw-alias-brand-primary: #1d1d1f;
 }
-/* Dark: one near-black, fields and cards a step lighter, bubbles a quiet grey. */
+/* Dark: one near-black, fields and cards a step lighter; the ink inverted: your pill white with
+   black text, the agent's the quiet grey a step off the near-black (the step the phone's #1c1c1e
+   is off pure black), the send button and the scroll-to-latest disc white with a black glyph. */
 html[data-nanomuse] body[data-ds-dark-theme] {
   --nm-base: #171717;
+  --nm-canvas: #171717;
   --nm-field: #2b2b2b;
   --nm-field-border: #2b2b2b;
   --nm-card: #2d2d2d;
@@ -81,8 +93,12 @@ html[data-nanomuse] body[data-ds-dark-theme] {
   --nm-hover: #222222;
   --nm-divider: #242424;
   --nm-agent-bubble: #242424;
-  --nm-user-bubble: color-mix(in srgb, var(--nm-accent) 42%, #171717);
-  --nm-send: #e8e8e8;
+  --nm-user-bubble: #ffffff;
+  --nm-user-bubble-fg: #000000;
+  --nm-user-bubble-selection: rgb(0 0 0 / 0.3);
+  --nm-ink: #ffffff;
+  --nm-ink-fg: #000000;
+  --nm-send: var(--nm-ink);
   --nm-send-idle: #3a3a3a;
   --dsw-alias-bg-base: #171717;
   --dsw-alias-bg-layer-1: #1d1d1d;
@@ -141,12 +157,12 @@ html:is([data-nm-platform='darwin'], [data-nm-platform='win32']) header[data-win
 html[data-nm-platform='darwin']:not([data-nm-fullscreen]) .nm-header-drag { height: 36px; }
 html[data-nm-platform='darwin']:not([data-nm-fullscreen]) .nm-header { top: 40px; }
 html[data-nm-platform='darwin']:not([data-nm-fullscreen]) .nm-header-back { top: 42px; }
-html[data-nm-platform='darwin']:not([data-nm-fullscreen]) header[data-window-drag]:has(.nm-header) { min-height: 136px; }
+html[data-nm-platform='darwin']:not([data-nm-fullscreen]) { --nm-header-h: 136px; }
 html[data-nm-platform='win32']:not([data-nm-fullscreen]) .nm-rail-top { height: 24px; }
 html[data-nm-platform='win32']:not([data-nm-fullscreen]) .nm-header-drag { height: 22px; right: 150px; }
 html[data-nm-platform='win32']:not([data-nm-fullscreen]) .nm-header { top: 26px; }
 html[data-nm-platform='win32']:not([data-nm-fullscreen]) .nm-header-back { top: 28px; }
-html[data-nm-platform='win32']:not([data-nm-fullscreen]) header[data-window-drag]:has(.nm-header) { min-height: 122px; }
+html[data-nm-platform='win32']:not([data-nm-fullscreen]) { --nm-header-h: 122px; }
 html[data-nm-platform='win32']:not([data-nm-fullscreen]) [data-slot="conversation.session.header"] > :first-child { padding-right: 150px; min-height: 40px; }
 html[data-nm-platform='win32']:not([data-nm-fullscreen]) .nm-ob-pager { top: 48px; }
 /* Windows, out of full screen: the caption buttons cover the top right corner, so each top bar
@@ -159,8 +175,10 @@ html[data-nm-platform='win32']:not([data-nm-fullscreen]) .nm-ob-pager { top: 48p
    giving up their width (that rule sets the bar's top padding outright; the harness's own is 0).
    The harness's bars are found by its data-* hooks; the two schedule rules also rely on its
    data-testid and a class-name stem (_pageHeading) as of dsh 0.2.0-rc.2, which
-   harness/desktop/scripts/prepare-dsh.mjs installs by exact version with no lock file: check them
-   when that version moves. */
+   harness/desktop/scripts/prepare-dsh.mjs installs by exact version with no lock file.
+   harness/desktop/scripts/check-hooks.mjs reads every data-* hook, test id and class stem out of
+   this file and looks for each in the staged dsh; the desktop and harness workflows run it, so a
+   version that renamed one fails the build instead of leaving a rule that matches nothing. */
 html[data-nm-platform='win32']:not([data-nm-fullscreen]) { --nm-caption-inset: max(0px, 100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw)); --nm-caption-height: env(titlebar-area-height, 0px); }
 html[data-nm-platform='win32']:not([data-nm-fullscreen]) .nm-room-head:not(.nm-split *) { padding-inline-end: calc(40px + var(--nm-caption-inset)); }
 html[data-nm-platform='win32']:not([data-nm-fullscreen]) .nm-lib-main .nm-room-head:not(.nm-split *) { padding-inline-end: calc(32px + var(--nm-caption-inset)); }
@@ -244,7 +262,20 @@ html[data-nm-platform='darwin']:not([data-nm-fullscreen]) .nm-col-top { height: 
 [data-conversation-content][data-content-phase="hero"] > [data-conversation-scroll] > :is(.nm-remote, .nm-traj):not(:is(.nm-remote, .nm-traj) ~ :is(.nm-remote, .nm-traj)) { margin-top: auto; padding-top: 16px; }
 
 /* ---- the pinned agent header over the conversation -------------------- */
-header[data-window-drag]:has(.nm-header) { position: relative; min-height: 108px; }
+header[data-window-drag]:has(.nm-header) { position: relative; min-height: var(--nm-header-h); }
+/* In the Muse look the header is a scrim rather than a bar: it lies over the conversation, which scrolls
+   under it and dissolves into the canvas (the canvas at 80 percent at the top edge, 35 percent past the
+   middle, clear at the bottom, as the phone draws it), and no line runs under it. The thread keeps the
+   header's height clear at its top, so the first message starts under the face rather than behind it.
+   The wheel over the empty parts of the scrim reaches the thread; the controls take their own clicks,
+   and the drag strip stays a drag strip. The chat's canvas is white in the light theme, the paper
+   staying under the rail, the columns and the pages; the harness's base token follows inside the
+   conversation so the composer's own fade matches. (The header sits in its slot's display:contents
+   anchor, so the thread is the anchor's sibling, not the header's.) */
+html[data-nm-muse] header[data-window-drag]:has(.nm-header) { position: absolute; top: 0; left: 0; right: 0; z-index: 6; border-bottom: 0; pointer-events: none; background: linear-gradient(to bottom, color-mix(in srgb, var(--nm-canvas) 80%, transparent) 0%, color-mix(in srgb, var(--nm-canvas) 35%, transparent) 55%, transparent 100%); }
+html[data-nm-muse] header[data-window-drag]:has(.nm-header) :is(button, a, input, [role="tab"], [role="dialog"], [role="menu"], .nm-header, .nm-header-drag) { pointer-events: auto; }
+html[data-nm-muse] [data-slot="conversation.header"]:has(.nm-header) ~ [data-conversation-content] { background: var(--nm-canvas); --dsw-alias-bg-base: var(--nm-canvas); }
+html[data-nm-muse] [data-slot="conversation.header"]:has(.nm-header) ~ [data-conversation-content] > [data-conversation-scroll] { padding-top: var(--nm-header-h); }
 /* Centred with auto margins, not translateX(-50%): the window's drag-region map is built from
    untransformed boxes, and a transformed, pointer-events:none box over a drag region left the
    face unclickable on macOS. The header block itself is the no-drag island (see desk-a below). */
@@ -298,8 +329,12 @@ html[data-nm-muse] [data-composer-card] [class*="_standardControls"] { gap: 2px 
 html[data-nm-muse] [data-composer-card] [data-slot="conversation.input.model"] { display: none !important; }
 html[data-nm-muse] [data-composer-card] [class*="_activity"] { display: none !important; }
 html[data-nm-muse] [data-composer-card] [class*="_add"] { width: 34px; height: 34px; border-radius: 50%; color: var(--dsw-alias-label-secondary); }
-html[data-nm-muse] [data-composer-card] [class*="_primary"] { width: 34px; height: 34px; transform: none !important; background: var(--nm-send) !important; color: var(--nm-base) !important; }
-html[data-nm-muse] [data-composer-card] [class*="_primary"]:disabled { background: var(--nm-send-idle) !important; opacity: 1 !important; color: var(--nm-base) !important; }
+/* the send disc is the ink (black in the light, white in the dark) with the arrow in the opposite colour */
+html[data-nm-muse] [data-composer-card] [class*="_primary"] { width: 34px; height: 34px; transform: none !important; background: var(--nm-send) !important; color: var(--nm-ink-fg) !important; }
+html[data-nm-muse] [data-composer-card] [class*="_primary"]:disabled { background: var(--nm-send-idle) !important; opacity: 1 !important; color: var(--nm-canvas) !important; }
+/* the harness's scroll-to-latest disc, floating over the thread, reads the same ink */
+html[data-nm-muse] [data-conversation-scroll] [class*="_toBottomSlot"] > button[class*="_toBottom"] { background: var(--nm-send); color: var(--nm-ink-fg); box-shadow: 0 2px 10px rgba(0,0,0,0.18); }
+html[data-nm-muse] [data-conversation-scroll] [class*="_toBottomSlot"] > button[class*="_toBottom"]:hover { background: var(--nm-send); opacity: 0.88; }
 html[data-nm-muse] [data-composer-card] ~ [class*="_dock"] { display: none !important; }
 .nm-mic { width: 34px; height: 34px; border: 0; padding: 0; border-radius: 50%; background: transparent; color: var(--dsw-alias-label-secondary); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
 .nm-mic:hover { background: var(--nm-hover); color: var(--dsw-alias-label-primary); }
@@ -333,8 +368,14 @@ html[data-nm-muse] [data-chat-flow-kind="user"] [data-clock="start"] [class*="_t
 html[data-nm-muse] [data-chat-flow-kind="user"] [data-clock="start"] button { opacity: 0; transition: opacity 160ms; }
 html[data-nm-muse] [data-chat-flow-kind="user"]:hover [data-clock="start"] button, html[data-nm-muse] [data-chat-flow-kind="user"] [data-clock="start"] button:focus-visible { opacity: 1; }
 html[data-nm-muse] [data-chat-flow-kind="turn-tail"] [class*="_timeEnd"] { font-size: 11px; color: var(--dsw-alias-label-dimmed); }
-/* The user's words: a tinted bubble on the right. The agent's: a quiet grey one. */
-html[data-nm-muse] [data-chat-flow-kind="user"] [class*="_bubble"] { background: var(--nm-user-bubble) !important; color: var(--dsw-alias-label-primary); border-radius: 18px !important; padding: 9px 14px !important; }
+/* The user's words: the ink pill on the right (black with white text in the light, white with black
+   in the dark). The agent's: a quiet grey one a step off the canvas. A link inside your pill keeps the
+   pill's text colour, underlined, and a selection on it is a translucent wash of that colour. */
+html[data-nm-muse] [data-chat-flow-kind="user"] [class*="_bubble"] { background: var(--nm-user-bubble) !important; color: var(--nm-user-bubble-fg); border-radius: 18px !important; padding: 9px 14px !important; }
+html[data-nm-muse] [data-chat-flow-kind="user"] [class*="_bubble"] a { color: inherit; text-decoration: underline; }
+html[data-nm-muse] [data-chat-flow-kind="user"] [class*="_bubble"] ::selection { background: var(--nm-user-bubble-selection); color: var(--nm-user-bubble-fg); }
+html[data-nm-muse] .nm-remote-user .nm-remote-bubble { background: var(--nm-user-bubble); color: var(--nm-user-bubble-fg); }
+html[data-nm-muse] .nm-remote-user .nm-remote-bubble ::selection { background: var(--nm-user-bubble-selection); color: var(--nm-user-bubble-fg); }
 html[data-nm-muse] [data-chat-flow-kind="assistant-step"] [data-slot="conversation.chat.node"] > [class*="_root"] > [class*="_body"] { width: fit-content; max-width: 100%; box-sizing: border-box; background: var(--nm-agent-bubble); border-radius: 20px; padding: 10px 16px; }
 html[data-nm-muse] [data-chat-flow-kind="assistant-step"] [data-slot="conversation.chat.node"] > [class*="_root"] > [class*="_body"]:empty { display: none; }
 html[data-nm-muse] [data-chat-flow-kind="assistant-step"] [data-slot="conversation.chat.node"] > [class*="_root"] > [class*="_body"] > [class*="_markdown"] > :first-child { margin-top: 0; }
@@ -1028,6 +1069,13 @@ html[data-nm-platform='darwin']:not([data-nm-fullscreen]) .nm-lib-col-top { heig
 .nm-st-mood { position: relative; width: 92px; height: 92px; border-radius: 14px; overflow: hidden; background: var(--nm-card); box-shadow: inset 0 0 0 1px var(--nm-field-border); display: flex; align-items: center; justify-content: center; }
 .nm-st-mood img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .nm-st-mood .nm-st-tag { left: 6px; bottom: 6px; font-size: 10.5px; padding: 1px 6px; }
+/* a clip of the person's own as the face (#324): the studio's section and the preview's disc */
+.nm-oc-section { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--nm-divider); }
+.nm-oc-section .nm-st-label { margin-top: 0; }
+.nm-sheet-body .nm-oc-body { margin: 0 0 8px; line-height: 1.5; }
+.nm-oc-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 10px; }
+.nm-oc-disc { width: 148px; height: 148px; margin: 12px auto 8px; }
+.nm-sheet-body .nm-oc-details { margin: 0 0 12px; text-align: center; }
 
 /* ---- memory and the data controls ---- */
 .nm-mem-add { display: flex; gap: 8px; align-items: center; }
@@ -1234,6 +1282,7 @@ html[data-nm-platform='darwin']:not([data-nm-fullscreen]) .nm-fr-top { height: 6
 .nm-cd-glyph-cursor { background: linear-gradient(135deg, #334155, #0f172a); }
 .nm-cd-glyph-codex { background: linear-gradient(135deg, #10b981, #0f766e); }
 .nm-cd-glyph-claude { background: linear-gradient(135deg, #fb923c, #d97706); }
+.nm-cd-glyph-dsh { background: linear-gradient(135deg, #6366f1, #3730a3); }
 .nm-cd-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .nm-cd-section-head h2 { flex: 1; }
 .nm-cd-link { display: inline-flex; align-items: center; gap: 2px; border: 0; padding: 0; background: none; color: var(--nm-blue); font: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; }
@@ -1250,7 +1299,10 @@ html[data-nm-platform='darwin']:not([data-nm-fullscreen]) .nm-fr-top { height: 6
 .nm-cd-from-you { align-items: flex-end; }
 .nm-cd-from-agent { align-items: flex-start; }
 .nm-cd-bubble { max-width: 88%; padding: 9px 14px; border-radius: 18px; font-size: 14px; line-height: 1.55; color: var(--dsw-alias-label-primary); word-break: break-word; }
-.nm-cd-from-you .nm-cd-bubble { background: var(--nm-user-bubble); }
+.nm-cd-from-you .nm-cd-bubble { background: var(--nm-user-bubble); color: var(--nm-user-bubble-fg); }
+.nm-cd-from-you .nm-cd-bubble a { color: inherit; }
+.nm-cd-from-you .nm-cd-bubble ::selection { background: var(--nm-user-bubble-selection); color: var(--nm-user-bubble-fg); }
+.nm-cd-from-you .nm-cd-bubble pre { background: rgb(127 127 127 / 0.25); }
 .nm-cd-from-agent .nm-cd-bubble { background: var(--nm-agent-bubble); }
 .nm-cd-bubble p { margin: 0 0 6px; }
 .nm-cd-bubble p:last-child { margin-bottom: 0; }

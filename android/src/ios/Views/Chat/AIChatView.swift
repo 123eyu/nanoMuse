@@ -523,12 +523,14 @@ struct AIChatView: View {
                     }
                 }
                 // nanoMuse: upstream's `.overlay(alignment: .bottom) { ZStack … }` is one link of the chain,
-                // NanoMuseComposerHost (NanoMuseChatModifiers.swift), and since 0.1.40 that host is a VStack:
-                // the composer column is a row under the list, the popup layer an overlay of the list.
-                // Build 9 overflowed the stack in this body's getter, so every link counts. The layout
-                // notes below are upstream's: the popup's anchoring they describe still holds (its bottom
-                // edge is the column's top edge, by layout), the "overlay on top of the message list" does not.
-                .modifier(NanoMuseComposerHost(stack: nmComposerStack, popup: nmComposerPopup)) // nanoMuse: was `.overlay(alignment: .bottom) {`
+                // NanoMuseComposerHost (NanoMuseChatModifiers.swift): the composer column lies over the
+                // list's bottom edge, above the shell's bottom bar (`nmBottomOverlay`), and the list's
+                // content scrolls under both with an inset of the column's height (`nmColumnHeight`);
+                // the popup layer stands on the column's top edge. 0.1.40 to 1.0.3 had the column as a
+                // row under a shorter list, which left nothing behind the bar's glass. Build 9 overflowed
+                // the stack in this body's getter, so every link counts. The layout notes below are
+                // upstream's and hold again: the popup's bottom edge is the column's top edge, by layout.
+                .modifier(NanoMuseComposerHost(stack: nmComposerStack, popup: nmComposerPopup, overlay: nmBottomOverlay, columnHeight: $nmColumnHeight, fade: !vm.messages.isEmpty && !vm.isNearBottom)) // nanoMuse: was `.overlay(alignment: .bottom) {`
                     // Tool preview + input bar stacked at the bottom.
                     // Both overlay on top of the message list for immersive scrolling.
                     //
@@ -579,8 +581,8 @@ struct AIChatView: View {
                     //      bar (NOT including toolbar) so popup covers
                     //      toolbar when both visible.
                     // nanoMuse: the VStack of that ZStack is `nmComposerColumn`, the popup and its catcher
-                    // `nmComposerPopup`; NanoMuseComposerHost lays the column out under the list and the
-                    // popup over the list's bottom edge. The list's own bottom inset for the composer is 0.
+                    // `nmComposerPopup`; NanoMuseComposerHost lays the column over the list's bottom edge
+                    // and the popup on the column. The list's bottom inset is the column's measured height.
                 // Collapse the expanded speech player on a tap anywhere in the chat
                 // area. Attached as a SIMULTANEOUS TapGesture directly on the content
                 // (no full-screen hit-test overlay, which blocked scrolling) so a tap
@@ -667,7 +669,7 @@ struct AIChatView: View {
         // nanoMuse: the Muse header's ••• menu, the composer's expectation around a turn and the C9
         // presence line, as one link (NanoMuseChatHooks) — four links here overflowed the stack in 0.1.38
         .modifier(NanoMuseChatHooks(vm: vm, processing: vm.isProcessing, composer: nmComposer, readOnly: isReadOnly, perform: { nmPerform($0) }, voice: voiceVM, enterVoice: { nmEnterVoice() })) // nanoMuse:
-        .modifier(NavBarStyleModifier(topSafeAreaInset: $topSafeAreaInset))
+        .modifier(NavBarStyleModifier(topSafeAreaInset: $topSafeAreaInset, scrolledUp: !vm.messages.isEmpty && !vm.isNearBottom)) // nanoMuse: the side chat's scrim follows the list
         .navigationBarTitleDisplayMode(.inline)
         // [T-ios-navbar-toolbar-host] The ENTIRE toolbar now lives inside an
         // equatable-gated host child. Root cause of the mid-streaming "..."
@@ -2665,9 +2667,18 @@ struct AIChatView: View {
                     screenshotPreview = ChatScreenshotPreview(image: image)
                 },
                 maxContentWidth: maxContentWidth ?? 0,
-                floatingBarHeight: 0, // nanoMuse: the tool strip is in the composer column under the list (NanoMuseComposerHost), nothing lies over the list
-                inputBarHeight: 0 // nanoMuse: the list ends where the composer column begins; its 8 pt base pad is all the room it needs
+                floatingBarHeight: 0, // nanoMuse: the tool strip is part of the composer column, measured with it (NanoMuseComposerHost)
+                inputBarHeight: nmColumnHeight + nmBottomOverlay, // nanoMuse: the column lies over the list's bottom edge and the shell's bottom bar under it; the rows scroll under both and the last one stops above the column
+                topOverlay: nmTopOverlay // nanoMuse: the shell's Muse header over the list's top edge; the rows scroll under it and start below it
             )
+            // nanoMuse: with the shell's header over the chat, the list runs up under it (and the
+            // status bar, which UIKit's own safe area handles) and keeps its rows down by
+            // `topOverlay`, so they dissolve under the header's scrim instead of ending at a hard
+            // edge under the face. A `safeAreaInset` on a UIKit view shortens the view, unlike a
+            // SwiftUI ScrollView, which is why the list needs to ignore it. The chat's own banners
+            // (the error strip, a notice) stay a safe-area inset and lie over the list's top rows
+            // while they show. Without the shell nothing changes.
+            .ignoresSafeArea(.container, edges: nmTopOverlay > 0 ? Edge.Set.top : [])
             // Empty/loading overlay for tap-to-dismiss-keyboard.
             // Placed BEFORE the directory timeline in the ZStack so the
             // timeline can sit on top and receive its own taps (folder-card
@@ -2725,14 +2736,14 @@ struct AIChatView: View {
                     Button {
                         vm.forceScrollToBottom.send()
                     } label: {
-                        scrollFloatingButtonLabel("chevron.down")
+                        scrollFloatingButtonLabel("chevron.down", ink: NanoMuseShellPrefs.shell) // nanoMuse: in the shell the scroll-to-latest disc is the chat's ink, as the send disc (Android #331)
                     }
                     .transition(.opacity.combined(with: .scale(scale: 0.8)))
                 }
                 .padding(.trailing, 4)
                 .frame(maxWidth: maxContentWidth ?? .infinity, alignment: .trailing)
                 .padding(.horizontal, 12)
-                .padding(.bottom, 12) // nanoMuse: was inputBarHeight + (hasFloatingPreview ? 80 : 12); the list ends at the composer column's top edge now
+                .padding(.bottom, nmColumnHeight + nmBottomOverlay + 12) // nanoMuse: was inputBarHeight + (hasFloatingPreview ? 80 : 12); the column and the shell's bottom bar lie over the list's bottom edge
                 .animation(.easeInOut(duration: 0.2), value: vm.isNearBottom)
                 .animation(.easeInOut(duration: 0.2), value: vm.isAtFirstTurn)
                 .animation(.easeInOut(duration: 0.2), value: hasFloatingPreview)
@@ -2752,7 +2763,7 @@ struct AIChatView: View {
             .padding(.trailing, 4)
             .frame(maxWidth: maxContentWidth ?? .infinity, alignment: .trailing)
             .padding(.horizontal, 12)
-            .padding(.bottom, 12 + 92) // nanoMuse: was inputBarHeight + (hasFloatingPreview ? 80 : 12) + 92; the list ends at the composer column's top edge now
+            .padding(.bottom, nmColumnHeight + nmBottomOverlay + 12 + 92) // nanoMuse: was inputBarHeight + (hasFloatingPreview ? 80 : 12) + 92; over the column and the shell's bottom bar, above the scroll buttons
             .animation(.easeInOut(duration: 0.2), value: hasFloatingPreview)
             .capsuleProtectedFrame("downloadButton")
         }
@@ -2760,16 +2771,16 @@ struct AIChatView: View {
 
     /// Shared label style for the floating scroll buttons (up / down), matching
     /// the original scroll-to-bottom button look.
-    private func scrollFloatingButtonLabel(_ systemName: String) -> some View {
+    private func scrollFloatingButtonLabel(_ systemName: String, ink: Bool = false) -> some View { // nanoMuse: `ink` draws the disc in NanoMuseTones.ink with the glyph in the canvas colour
         Image(systemName: systemName)
             .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(ink ? AnyShapeStyle(NanoMuseTones.onInk) : AnyShapeStyle(HierarchicalShapeStyle.secondary)) // nanoMuse:
             .frame(width: 36, height: 36)
-            .background { ScrollToBottomBackground().clipShape(Circle()) }
+            .background { if ink { NanoMuseTones.ink.clipShape(Circle()) } else { ScrollToBottomBackground().clipShape(Circle()) } } // nanoMuse:
             // Border + shadow give the near-opaque disc its edge on a white
             // page — at 0.25/0.12 the button had no readable outline over
             // plain reply text. [T-ios-scrollbtn-invisible-lightmode]
-            .overlay(Circle().stroke(Color.gray.opacity(0.35), lineWidth: 0.5))
+            .overlay(Circle().stroke(Color.gray.opacity(ink ? 0 : 0.35), lineWidth: 0.5)) // nanoMuse: the ink disc needs no edge
             .shadow(color: .black.opacity(0.18), radius: 5, y: 2)
     }
 
@@ -3486,6 +3497,16 @@ struct AIChatView: View {
     // nanoMuse: whether the composer is Muse's pill (the shell on) or the OpenMinis bar.
     private var nmPill: Bool { NanoMuseShellPrefs.shell } // nanoMuse:
 
+    // nanoMuse: the shell's floating bottom bar under this chat (0 without the shell, or while the
+    // keyboard has it away): the composer column stands this much above the bottom edge.
+    @Environment(\.nmBottomOverlay) private var nmBottomOverlay // nanoMuse:
+    // nanoMuse: the shell's Muse header over this chat's top edge (0 without the shell and in a
+    // pushed side chat): the message list extends under it and keeps its rows this much down.
+    @Environment(\.nmTopOverlay) private var nmTopOverlay // nanoMuse:
+    // nanoMuse: the composer column's height as NanoMuseComposerHost measured it; with the bar it is
+    // the list's bottom inset and the lift of the scroll buttons.
+    @State private var nmColumnHeight: CGFloat = 0 // nanoMuse:
+
     // nanoMuse: the composer column — the cards, the tool strip, the input bar — the VStack of
     // upstream's ZStack from the message list's `.overlay(alignment: .bottom)`, hosted by
     // NanoMuseComposerHost as a row under the list since 0.1.40. The comments on its layout stay
@@ -3847,7 +3868,7 @@ struct AIChatView: View {
                 }
             }
             .modifier(ComposerSurface(pill: nmPill)) // nanoMuse: the flat grey capsule in the shell
-            .frame(maxWidth: maxContentWidth)
+            .frame(maxWidth: nmPill ? NanoMuseColumn.pillWidth(for: hSizeClass, otherwise: nil) : maxContentWidth) // nanoMuse: in the shell the pill is the column less its margins on an iPad, so its edges meet the bubbles' and the bottom bar is its width
             .padding(.horizontal, nmPill ? 16 : 12) // nanoMuse: Muse's 16 pt margins
             .padding(.vertical, 8)
             // [T-ios-geometry-observer-crash] onGeometryChange replaces the
@@ -4762,7 +4783,7 @@ struct AIChatView: View {
     /// Max content width — unconstrained in compact (portrait iPhone),
     /// capped in regular (landscape / iPad) for readability.
     private var maxContentWidth: CGFloat? {
-        hSizeClass == .regular ? 900 : nil
+        hSizeClass == .regular ? NanoMuseColumn.width : nil // nanoMuse: 760, the column the composer and the bottom bar share on an iPad (was 900)
     }
 
 }
@@ -4804,6 +4825,7 @@ private struct ComposerSurface: ViewModifier {
             content // nanoMuse:
                 .background(shape.fill(NanoMuseTones.bubble)) // nanoMuse:
                 .clipShape(shape) // nanoMuse:
+                .shadow(color: Color.black.opacity(0.08), radius: 4, x: 0, y: 2) // nanoMuse: soft shadow matching Android
         } else if #available(iOS 26.0, *) {
             content
                 .glassEffect(.regular, in: shape)
@@ -4986,6 +5008,10 @@ private struct NavTitleFrameModifier: ViewModifier {
 
 private struct NavBarStyleModifier: ViewModifier {
     @Binding var topSafeAreaInset: CGFloat
+    /// nanoMuse: the list is scrolled away from the latest message (the scrim's second fade).
+    var scrolledUp: Bool = false
+    /// nanoMuse: a side chat pushed from the Muse shell (set there); the main chat has no system bar.
+    @Environment(\.nmSystemBarScrim) private var systemBarScrim
 
     func body(content: Content) -> some View {
         // nanoMuse: in the Muse shell the header is a top safe-area inset the list scrolls under,
@@ -5001,9 +5027,22 @@ private struct NavBarStyleModifier: ViewModifier {
         } else {
             // iOS 16–18: opaque navbar background
             content
-                // nanoMuse: side chats pushed from the shell float on a blur, as the main chat's header does
-                .toolbarBackground(NanoMuseShellPrefs.shell ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(ChatColors.background), for: .navigationBar) // nanoMuse:
-                .toolbarBackground(.visible, for: .navigationBar)
+                // nanoMuse: a side chat pushed from the shell gets the main chat's scrim behind the
+                // system bar (NanoMuseHeaderScrim, docs/design.md): the bar's own background and
+                // its hairline go, and a zero-height inset's background fades the canvas colour
+                // down over the rows, as the Muse header's does. Upstream's bar stays opaque.
+                // The content runs up under the bar as in the iOS 26 branch, so the rows have
+                // somewhere to fade; the bar is UIKit's, so the list's `.automatic` adjustment
+                // keeps the first row below it, as there.
+                .ignoresSafeArea(.container, edges: systemBarScrim ? Edge.Set.top : []) // nanoMuse:
+                .toolbarBackground(systemBarScrim ? Visibility.hidden : Visibility.visible, for: .navigationBar) // nanoMuse:
+                .toolbarBackground(ChatColors.background, for: .navigationBar)
+                .safeAreaInset(edge: .top, spacing: 0) { // nanoMuse:
+                    if systemBarScrim {
+                        Color.clear.frame(height: 0)
+                            .background { NanoMuseHeaderScrim(scrolledUp: scrolledUp).ignoresSafeArea(edges: .top) }
+                    }
+                }
                 .overlay(alignment: .top) {
                     // [T-ios-geometry-observer-crash] onGeometryChange replaces
                     // the GeometryReader scaffold (async-renderer SIGTRAP — see

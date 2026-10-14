@@ -1,5 +1,5 @@
-name: App bug report (Android)
-description: Something in the nanoMuse Android app does not work. (The iPhone app, the desktop app and the web console use the other form.)
+name: App bug report (Android) / Android 应用问题报告
+description: Something in the nanoMuse Android app does not work. (The iPhone app, the desktop app and the web console use the other form.) / nanoMuse Android 应用的某处不工作。（iPhone 应用、桌面版和网页控制台用另一张表单。）
 labels: ["bug", "android"]
 body:
   - type: markdown
@@ -7,47 +7,51 @@ body:
       value: |
         Thanks. A report we can reproduce on a phone is usually fixed in the next version.
         **Security issues** go through GitHub's private reporting, see [SECURITY.md](../blob/main/SECURITY.md), not here.
-        Do not paste API keys or private conversations.
+        Do not paste API keys or private conversations. You can write in English or 中文.
+
+        谢谢。能在手机上复现的问题通常下个版本就能修。
+        **安全问题**走 GitHub 的私密报告，见 [SECURITY.md](../blob/main/SECURITY.md)，不要发在这里。
+        不要贴 API key 或私人对话。英文或中文都可以。
   - type: textarea
     id: what
     attributes:
-      label: What happened
-      description: What you did, what you expected, what happened instead. A screenshot helps.
+      label: What happened / 发生了什么
+      description: "What you did, what you expected, what happened instead. A screenshot helps. / 你做了什么，期待什么，实际发生了什么。有截图更好。"
     validations:
       required: true
   - type: textarea
     id: steps
     attributes:
-      label: Steps to reproduce
+      label: Steps to reproduce / 复现步骤
       placeholder: |
-        1. Open a new chat
-        2. Ask "…"
-        3. Approve the shell command
-        4. See …
+        1. Open a new chat / 新开一个聊天
+        2. Ask "…" / 问「……」
+        3. Approve the shell command / 批准那条 shell 命令
+        4. See … / 看到……
     validations:
       required: true
   - type: input
     id: version
     attributes:
-      label: nanoMuse version
-      description: Settings → About, e.g. 1.0.2 (45)
+      label: nanoMuse version / nanoMuse 版本
+      description: "Settings → About, e.g. 1.0.5 (48) / 设置 → 关于，例如 1.0.5 (48)"
     validations:
       required: true
   - type: input
     id: device
     attributes:
-      label: Device and Android version
-      description: e.g. Android 15 (API 35), Xiaomi 23049RAD8C, HyperOS 2
+      label: Device and Android version / 设备和 Android 版本
+      description: "e.g. Android 15 (API 35), Xiaomi 23049RAD8C, HyperOS 2 / 例如 Android 15 (API 35)，Xiaomi 23049RAD8C，HyperOS 2"
     validations:
       required: true
   - type: input
     id: model
     attributes:
-      label: Model and provider
-      description: e.g. qwen3-max via 阿里云百炼, or deepseek-chat via api.deepseek.com
+      label: Model and provider / 模型和服务商
+      description: "e.g. nanoMuse Cloud, deepseek-v4.1-flash via 阿里云百炼, or deepseek-flash via api.deepseek.com / 例如 nanoMuse Cloud，deepseek-v4.1-flash via 阿里云百炼，或 deepseek-flash via api.deepseek.com"
   - type: textarea
     id: logs
     attributes:
-      label: Relevant log
-      description: "Settings → Export logs, or `adb logcat -s nanoMuse.*`. Remove anything private."
+      label: Relevant log / 相关日志
+      description: "Settings → Export logs, or `adb logcat -s nanoMuse.*`. Remove anything private. / 设置 → 导出日志，或 `adb logcat -s nanoMuse.*`。去掉私密内容。"
       render: text

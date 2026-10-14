@@ -318,8 +318,9 @@ export class Relay {
 
   /**
    * Write the agent's name and look for every device of the account
-   * (`PUT /v1/me/profile`, last writer wins). Only the fields given move; a
-   * drawn face stays as it is, since the desktop has no studio of its own.
+   * (`PUT /v1/me/profile`, last writer wins). A field left out keeps its stored
+   * value (relay 0.25); the desktop sends the whole look, with `face` when one
+   * was drawn in its studio.
    */
   async putProfile(apiKey: string, body: ProfileWrite, device: string, signal?: AbortSignal): Promise<number> {
     const res = await this.fetchImpl(`${this.origin}/v1/me/profile`, {

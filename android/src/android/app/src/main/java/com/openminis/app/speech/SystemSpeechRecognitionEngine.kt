@@ -547,23 +547,25 @@ class SystemSpeechRecognitionEngine(private val appContext: Context) : SpeechRec
     private fun startInternal(locale: Locale, allowOnDeviceRetry: Boolean) {
         mainHandler.post {
             try {
+                // nanoMuse: Keep the factory's actual mode when on-device creation falls back.
                 // Only reach for the on-device recognizer when the user actually
                 // asked for offline. It used to be created unconditionally on
                 // S+, which silently overrode the panel's "System Recognition
                 // (Online)" choice — and on a device with no on-device pack for
                 // the locale (e.g. a zh-CN Pixel 4a) SODA fails every session
                 // with "Failed to get language pack" / ERROR_LANGUAGE_
-                // UNAVAILABLE(12), so the mic opened and closed instantly.
+                // NOT_SUPPORTED(12), so the mic opened and closed instantly.
                 val wantOnDevice = preferOffline &&
                     Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
                     allowOnDeviceRetry
+                var createdOnDevice = false
                 val r = if (wantOnDevice) {
-                    try { SpeechRecognizer.createOnDeviceSpeechRecognizer(appContext) }
+                    try { SpeechRecognizer.createOnDeviceSpeechRecognizer(appContext).also { createdOnDevice = true } }
                     catch (_: Throwable) { SpeechRecognizer.createSpeechRecognizer(appContext) }
                 } else {
                     SpeechRecognizer.createSpeechRecognizer(appContext)
                 }
-                usingOnDevice = wantOnDevice
+                usingOnDevice = createdOnDevice
                 pendingLocale = locale
                 recognizer = r
                 r.setRecognitionListener(callbacks)
@@ -668,6 +670,7 @@ class SystemSpeechRecognitionEngine(private val appContext: Context) : SpeechRec
      */
     @Volatile var preferOffline: Boolean = false
 
+    // nanoMuse: Use the framework's error name in this locale explanation.
     /**
      * [T-android-asr-script-subtag] Strip the SCRIPT subtag from a language tag
      * before handing it to the recognizer.
@@ -676,8 +679,9 @@ class SystemSpeechRecognitionEngine(private val appContext: Context) : SpeechRec
      * `toLanguageTag()` faithfully returns "zh-Hans-CN". Google's recognizer
      * matches its language packs on plain `language-REGION` tags, so the script
      * subtag makes it report "Locale not supported" / "Failed to get language
-     * pack of required locale" and fail the session with ERROR_LANGUAGE_
-     * UNAVAILABLE (12) — the mic opens and immediately closes. Observed on a
+     * pack of required locale" and fail the session.
+     * nanoMuse: The framework calls this ERROR_LANGUAGE_NOT_SUPPORTED (12).
+     * The mic opens and immediately closes. Observed on a
      * Pixel 4a whose system locale is zh-Hans-CN.
      *
      * Reducing to language(+region) keeps the meaningful part ("zh-CN") and is
@@ -1068,9 +1072,9 @@ class SystemSpeechRecognitionEngine(private val appContext: Context) : SpeechRec
             SpeechRecognizer.ERROR_AUDIO -> RecognitionError.AUDIO_ERROR
             SpeechRecognizer.ERROR_CLIENT -> RecognitionError.OEM_NO_SERVICE
             SpeechRecognizer.ERROR_SERVER -> RecognitionError.NETWORK
-            // Codes added in API 33; referenced by literal for compatibility.
-            11 /* ERROR_LANGUAGE_NOT_SUPPORTED */,
-            12 /* ERROR_LANGUAGE_UNAVAILABLE   */ -> RecognitionError.LANGUAGE_UNSUPPORTED
+            // nanoMuse: API 31 language errors are 12/13; 11 is a service disconnect.
+            SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED,
+            SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE -> RecognitionError.LANGUAGE_UNSUPPORTED
             else -> RecognitionError.UNKNOWN
         }
 
@@ -1084,14 +1088,10 @@ class SystemSpeechRecognitionEngine(private val appContext: Context) : SpeechRec
             SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Recognizer busy"
             SpeechRecognizer.ERROR_SERVER -> "Server error"
             SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Speech timeout"
-            // [T-android-asr-script-subtag] mapError already classifies 11/12 as
-            // LANGUAGE_UNSUPPORTED, but this function built the user-visible
-            // string and had no case for them — so a language-pack problem
-            // surfaced as the useless "Unknown error (12)". Name the actual
-            // cause, and point at the fix the user can act on.
-            11 /* ERROR_LANGUAGE_NOT_SUPPORTED */ ->
+            // nanoMuse: Match the existing language messages to the framework's error codes.
+            SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED ->
                 "Language not supported by the recognizer"
-            12 /* ERROR_LANGUAGE_UNAVAILABLE */ ->
+            SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE ->
                 "Language pack unavailable — download it in the system speech settings"
             else -> "Unknown error ($code)"
         }

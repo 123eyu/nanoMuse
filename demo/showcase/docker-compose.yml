@@ -14,18 +14,28 @@
 # The gateway reaches Docker through `docker-proxy`, which lets through what starting and
 # stopping containers takes and nothing else of the daemon (no exec, images, volumes, build).
 
+# The three services' own logs (`docker compose logs`): the gateway writes a line per request
+# and per session, so a file that is rolled, not one that grows for as long as the box runs.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
 services:
   caddy:
     build:
       context: ../..
       dockerfile: demo/showcase/caddy/Dockerfile
       args:
-        MOBILEGYM_REF: ${MOBILEGYM_REF:-main}
+        # empty = the commit pinned in mobilegym.ref (README, "Bumping MobileGym")
+        MOBILEGYM_REF: ${MOBILEGYM_REF:-}
         # the phone's media: /cdn here (./data/mobilegym-data), or https://cdn.mobilegym.dev without the dataset
         MOBILEGYM_CDN_BASE: ${MOBILEGYM_CDN_BASE:-/cdn}
         GOPROXY: ${GOPROXY:-https://proxy.golang.org,direct}
     image: ghcr.io/nano-muse/showcase-caddy:${SHOWCASE_TAG:-latest}
     restart: unless-stopped
+    logging: *logging
     ports:
       - "80:80"
       - "443:443"
@@ -49,16 +59,30 @@ services:
       - edge
     depends_on:
       - gateway
+    # Caddy's admin endpoint answers on localhost inside the container as long as the server
+    # runs with its config loaded; `docker compose ps` shows the state, and a crash loop that
+    # keeps the process alive but not serving shows as unhealthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   gateway:
     build: ./gateway
     image: ghcr.io/nano-muse/showcase-gateway:${SHOWCASE_TAG:-latest}
     restart: unless-stopped
+    logging: *logging
     env_file: .env
     environment:
       INTERNAL_URL: http://gateway:8000
       SESSIONS_NETWORK: nanomuse-sessions
       TRUST_PROXY: "1"
+      # whose X-Forwarded-For is the visitor's address: Caddy's, by its service name (the
+      # gateway resolves it through Docker's DNS). The session containers reach the same port
+      # over the sessions network and are not believed (gateway/showcase_gateway/peers.py).
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-caddy}
       LISTEN_PORT: "8000"
       DOCKER_HOST: tcp://docker-proxy:2375
     volumes:
@@ -70,6 +94,17 @@ services:
       - control
     depends_on:
       - docker-proxy
+    # the image has Python and no curl; /api/demo/info is the cheapest answer the app gives
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/demo/info', timeout=5)"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   # the Docker API, narrowed: containers (list, inspect, create, start, stop, remove) and a look
   # at the networks — what the gateway does. Everything else answers 403: exec, images, volumes,
@@ -77,6 +112,7 @@ services:
   docker-proxy:
     image: tecnativa/docker-socket-proxy:0.3
     restart: unless-stopped
+    logging: *logging
     environment:
       CONTAINERS: "1"
       POST: "1"
@@ -86,6 +122,14 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - control
+    # the image is HAProxy on Alpine, so busybox wget is there; /_ping is allowed by default
+    # (PING=1) and answers through the proxy only while the daemon's socket answers behind it
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2375/_ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 networks:
   edge: {}

@@ -1,0 +1,4 @@
+# The MobileGym commit the phone is built from (caddy/Dockerfile, site/build.sh).
+# One line below this comment: a commit id, a tag or a branch of Purewhiter/mobilegym.
+# How to move it is in README.md, "Bumping MobileGym".
+5fbd3f34be0e9780ae4b1e9d5089963ddbd05d38

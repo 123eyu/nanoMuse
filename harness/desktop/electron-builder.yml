@@ -5,7 +5,7 @@
 # Nothing is signed by a developer certificate unless the Apple secrets are in the
 # environment: Windows asks for "Run anyway"; on macOS the workflow runs `--dir` and
 # scripts/desktop-app/package-mac.sh, which ad-hoc signs (or signs and notarizes) the
-# # bundle and writes the zip and an APFS dmg (docs/desktop.md).
+# bundle and writes the zip and an APFS dmg (docs/desktop.md).
 # The appId is the one the previous desktop app (desktop/app, retired in 0.1.30) carried, so
 # this one installs over it and keeps its place in the system's permission lists.
 appId: io.github.nanomuse.desktop
@@ -73,6 +73,17 @@ win:
     - target: nsis
       arch: [x64]
   icon: resources/app-icon.png
+  # electron-updater's feed: with a publish config in place electron-builder writes the update
+  # metadata (latest.yml: the version, the installer's name and its SHA-512) and the
+  # .exe.blockmap next to the installer, and `npm run dist` passes --publish never so nothing
+  # is uploaded from the build: the workflow attaches the three files to the GitHub release,
+  # from which the download mirror picks them up.
+  # The generic provider only shapes the metadata: the file URLs in latest.yml are relative
+  # names, so the same pair serves from GitHub and from nanomuse.cn/dl/win alike. Never a
+  # publisher certificate (docs/desktop.md): the SHA-512 is the installer's own integrity.
+  publish:
+    provider: generic
+    url: "https://nanomuse.cn/dl/win/"
 nsis:
   oneClick: false
   perMachine: false

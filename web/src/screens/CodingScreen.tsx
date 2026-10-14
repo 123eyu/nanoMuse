@@ -1,5 +1,5 @@
 import { ArrowUp, Bot, ChevronRight, FolderOpen, Loader2, MonitorSmartphone, Plus, RefreshCw, Square, TerminalSquare, Wrench } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { api } from "../api";
 import { PageBar } from "../components/BackBar";
 import { MuseRoundButton } from "../components/MuseHeader";
@@ -331,6 +331,7 @@ function SessionSheet({ agent, id, device, deviceLabel, onClose }: { agent: stri
             }}
             rows={1}
             disabled={!canSend || !!running}
+            aria-label={t("Message")}
             placeholder={
               running
                 ? t("{agent} is working…", { agent: meta?.label ?? agent })
@@ -451,6 +452,8 @@ function LiveRunCard({ live, onOpen }: { live: CodingLive; onOpen: () => void })
 function NewChatSheet({ agent: initial, agents, device, onClose, onStarted }: { agent: string; agents: CodingAgent[]; device: string; onClose: () => void; onStarted: (run: CodingRun) => void }) {
   const { toast } = useStore();
   const t = useT();
+  const workspaceId = useId();
+  const textId = useId();
   const [agent, setAgent] = useState(initial);
   const [workspace, setWorkspace] = useState("");
   const [text, setText] = useState("");
@@ -495,8 +498,8 @@ function NewChatSheet({ agent: initial, agents, device, onClose, onStarted }: { 
           ))}
         </div>
         <div>
-          <label className="text-[12px] text-muted">{t("Project folder")}</label>
-          <input value={workspace} onChange={(e) => setWorkspace(e.target.value)} placeholder="/home/you/project" className={cx(inputCls, "mt-1 font-mono text-[13px]")} />
+          <label htmlFor={workspaceId} className="text-[12px] text-muted">{t("Project folder")}</label>
+          <input id={workspaceId} value={workspace} onChange={(e) => setWorkspace(e.target.value)} placeholder="/home/you/project" className={cx(inputCls, "mt-1 font-mono text-[13px]")} />
           {recent.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {recent.map((w) => (
@@ -508,8 +511,8 @@ function NewChatSheet({ agent: initial, agents, device, onClose, onStarted }: { 
           )}
         </div>
         <div>
-          <label className="text-[12px] text-muted">{t("What to do")}</label>
-          <textarea value={text} onChange={(e) => setText(e.target.value)} rows={4} autoFocus placeholder={t("Add tests for the parser and run them")} className={cx(inputCls, "mt-1 resize-none")} />
+          <label htmlFor={textId} className="text-[12px] text-muted">{t("What to do")}</label>
+          <textarea id={textId} value={text} onChange={(e) => setText(e.target.value)} rows={4} autoFocus placeholder={t("Add tests for the parser and run them")} className={cx(inputCls, "mt-1 resize-none")} />
         </div>
         <p className="text-[12px] text-muted">{t("The agent runs on that computer with its own permissions; nanoMuse only carries the message and brings the answer back.")}</p>
         <button type="button" onClick={onClose} className={cx(secondaryBtn, "w-full")}>
@@ -525,8 +528,8 @@ function Bubble({ who, agent, badge, children }: { who: "you" | "agent"; agent: 
   return (
     <div className={cx("flex", who === "you" ? "justify-end" : "justify-start")}>
       {who === "agent" && <AgentGlyph agent={agent} size={24} className="mr-2 mt-1 shrink-0" />}
-      <div className={cx("max-w-[86%] rounded-3xl px-3.5 py-2 text-[14px] leading-relaxed", who === "you" ? "rounded-br-lg bg-bubble-user text-bubble-user-fg" : "rounded-bl-lg bg-surface-2")}>
-        {badge && <div className="mb-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-fg/45">{badge}</div>}
+      <div className={cx("max-w-[86%] rounded-3xl px-3.5 py-2 text-[14px] leading-relaxed", who === "you" ? "bubble-user rounded-br-lg bg-bubble-user text-bubble-user-fg" : "rounded-bl-lg bg-bubble-agent")}>
+        {badge && <div className="mb-0.5 text-[10.5px] font-semibold uppercase tracking-wide opacity-60">{badge}</div>}
         <div className="md break-words">{children}</div>
       </div>
     </div>

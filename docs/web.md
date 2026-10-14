@@ -36,6 +36,42 @@ requests only (`[llm] proxy`; nanoMuse Cloud never goes through it, a SOCKS
 address needs `httpx[socks]` on the runtime); a saved password comes back as
 dots, and an emptied field clears it.
 
+**Connections → Chat model → Your own endpoints.** A server that speaks the
+OpenAI API but is not in the catalogue (a gateway, a relay, vLLM or LM Studio
+on another machine) is an *endpoint* of the runtime's list, and the list holds
+as many as you use (#294). Under *Local or your own endpoint* each saved
+endpoint is a tile, reading its name over its host, and the last tile is *Add
+an endpoint*: a name (optional; the host otherwise), the base URL, the API key
+(or *No key*), and the ids of its models when it does not list them at
+`/models` (the form says so when it does not). The key goes into the vault
+under the endpoint's own name (`ENDPOINT_<ID>_API_KEY`); adding a second
+endpoint never touches the first's. With an endpoint's tile chosen, a card
+under the tiles says where its key is, how many models it serves and which
+slots answer through it, with *Rename*, *Change key*, *Edit models*, *Ask for
+its models* and *Remove*; the chat model picker lists the endpoint's models,
+and *Save* sets the chat slot by the endpoint's id (`PUT /api/connections/llm
+{"endpoint": "<id>", "model": ...}`), never by retyping its address or key.
+Renaming, rekeying or moving an endpoint reaches every slot that uses it. The
+*Hands model* picker gains one group per other endpoint of the list; a model
+picked there sends the hands' screenshots through that endpoint with its key
+(`PUT /api/connections/gui {"endpoint": "<id>", "model": ...}`), and the
+*Making pictures* and *Making clips* selects list the endpoints under *Your
+endpoints* the same way (`PUT /api/connections/image` / `/video` with
+`endpoint` and `model`). Removing an endpoint is refused while the chat model
+answers through it (pick another chat model first); hands, pictures or clips
+set on it go back to *Automatic*, and its key leaves the vault. A chat model
+set on *Other OpenAI-compatible endpoint* before the list existed becomes
+endpoint number one on the runtime's next start, its key copied to the
+endpoint's own vault entry; nothing is asked. The entry it was copied from
+(`LLM_API_KEY` as a rule) stays in the vault, since a `config.toml` may still
+name it; it can be removed by hand (`DELETE /api/vault/{name}`) once nothing
+does. One address is one endpoint: adding or moving an endpoint to an address
+another one already has is refused, naming that endpoint. The list is `GET
+/api/connections` → `endpoints`, each `{id, label, base_url, key_source,
+models, slots}`, never a key; the routes are in [app.md](app.md#api). A
+runtime without the list offers the single *Other OpenAI-compatible endpoint*
+tile as before.
+
 **Connections → Making pictures, Making clips.** The two media rows of the
 Models contract (0.1.41), one card each under the chat model. The value is
 `provider · model` as the runtime resolves it (`GET /api/connections` →
@@ -217,7 +253,7 @@ destination. The same words appear under a denied step in today's record. A
 shape it does not know is shown as it came.
 
 **Permissions you granted** (avatar → Permissions) are listed by the risk class
-of the tool they cover, the gravest first: sensitive, moderate, low, safe (the
+of the tool they cover, the gravest first: sensitive, moderate, safe (the
 class comes from `GET /api/state` → `settings.tools`); each row says the tool,
 how long the grant lasts and when it was given, and can be revoked on its own.
 

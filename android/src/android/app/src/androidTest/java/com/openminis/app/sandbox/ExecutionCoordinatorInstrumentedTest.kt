@@ -97,7 +97,8 @@ class ExecutionCoordinatorInstrumentedTest {
         // Should have session-level + global bind mounts
         // Session: attachments, offloads, workspace, browser (4)
         // Global: memory, skills (2)
-        assertEquals(6, PRootKernel.bindMounts.size)
+        // nanoMuse: the coordinator's global set is memory, skills, shared and mcp-servers, so eight mounts in all.
+        assertEquals(8, PRootKernel.bindMounts.size)
 
         // Verify session-level mounts
         assertTrue(PRootKernel.bindMounts.containsKey("/var/minis/attachments"))

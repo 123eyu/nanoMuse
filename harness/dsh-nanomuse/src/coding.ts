@@ -17,7 +17,7 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { dirname } from 'node:path'
-import { AGENTS, detect, isAgentId, readSession, sessions as readSessions, which, type AgentId, type AgentInfo, type CodingSession } from './coding-readers.ts'
+import { AGENTS, cliFor, detect, isAgentId, readSession, sessions as readSessions, type AgentId, type AgentInfo, type CodingSession } from './coding-readers.ts'
 import { Run, runFromView, startRun, type RunView } from './coding-runner.ts'
 import { HubError, type IncomingCall } from './hub.ts'
 
@@ -185,7 +185,7 @@ export class CodingService {
     return this.detected
   }
 
-  /** Whether any of the three is on this computer (CLI or store). */
+  /** Whether any of them is on this computer (CLI or store). */
   async anyInstalled(): Promise<boolean> {
     return (await this.agents()).some((a) => a.installed)
   }
@@ -221,7 +221,7 @@ export class CodingService {
   async send(agent: string, text: string, sessionId = '', workspace = '', wait = false): Promise<RunView> {
     if (!isAgentId(agent)) throw new HubError('unknown_agent', `no coding agent called '${agent}'`)
     if (!text.trim()) throw new HubError('usage', 'text is required')
-    const find = this.options.which ?? ((a: AgentId) => which(a, this.env))
+    const find = this.options.which ?? ((a: AgentId) => cliFor(a, this.env))
     if (!find(agent)) throw new HubError('not_installed', `${AGENTS[agent].name} is not installed on this computer`)
     if (sessionId && [...this.runs.values()].some((r) => r.status === 'running' && r.agent === agent && (r.result_session_id || r.session_id) === sessionId)) {
       throw new HubError('busy', 'that session already has a message running')

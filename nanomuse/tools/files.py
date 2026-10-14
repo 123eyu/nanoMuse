@@ -6,6 +6,7 @@ only for explicitly configured extra roots and is treated as *private data*.
 
 from __future__ import annotations
 
+import asyncio
 import fnmatch
 import os
 from pathlib import Path
@@ -151,7 +152,9 @@ class Files(BaseTool):
                 if target.is_dir():
                     return await self.execute(action="list", path=path)
                 if target.suffix.lower() == ".pdf":
-                    text = pdf_text(target)
+                    # pypdf on a long document takes seconds: off the event loop, so the
+                    # web app and the hub keep answering meanwhile
+                    text = await asyncio.to_thread(pdf_text, target)
                     if len(text) > MAX_READ_CHARS:
                         text = text[:MAX_READ_CHARS] + f"\n... [truncated, {len(text)} chars total]"
                     return ToolResult(output=text or "(empty file)")
@@ -192,23 +195,28 @@ class Files(BaseTool):
                 # as absolute paths under an extra root (relative_to raised there before)
                 ws = self.workspace.resolve()
                 in_ws = root == ws or ws in root.parents
-                matches = []
-                scanned = 0
-                note = ""
-                for p in root.rglob("*"):
-                    scanned += 1
-                    if p.is_file() and fnmatch.fnmatch(p.relative_to(root).as_posix(), pattern):
-                        matches.append(p.relative_to(ws).as_posix() if in_ws else str(p))
-                    if len(matches) >= 200:
-                        break
-                    if scanned >= SEARCH_MAX_ENTRIES:
-                        note = (
-                            f"\n(stopped after {SEARCH_MAX_ENTRIES} entries; "
-                            "search a narrower `path`)"
-                        )
-                        break
+                glob = str(pattern)
+
+                def _walk() -> tuple[list[str], str]:
+                    # a walk of tens of thousands of entries stays off the event loop
+                    matches: list[str] = []
+                    scanned = 0
+                    for p in root.rglob("*"):
+                        scanned += 1
+                        if p.is_file() and fnmatch.fnmatch(p.relative_to(root).as_posix(), glob):
+                            matches.append(p.relative_to(ws).as_posix() if in_ws else str(p))
+                        if len(matches) >= 200:
+                            break
+                        if scanned >= SEARCH_MAX_ENTRIES:
+                            return matches, (
+                                f"\n(stopped after {SEARCH_MAX_ENTRIES} entries; "
+                                "search a narrower `path`)"
+                            )
+                    return matches, ""
+
+                matches, note = await asyncio.to_thread(_walk)
                 return ToolResult(output=("\n".join(matches) or "(no matches)") + note)
-            return ToolResult.fail(f"unknown action '{action}' – use read/write/append/list/search")
+            return ToolResult.fail(f"unknown action '{action}'; use read/write/append/list/search")
         except (PermissionError, FileNotFoundError, IsADirectoryError, OSError) as exc:
             return ToolResult.fail(str(exc))
 

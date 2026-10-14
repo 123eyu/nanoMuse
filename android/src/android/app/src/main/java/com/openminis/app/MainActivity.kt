@@ -747,6 +747,10 @@ class MainActivity : ComponentActivity() {
             is DeepLinkAction.OpenPermissionSettings -> {
                 nav.navigate(Routes.PERMISSIONS)
             }
+            // nanoMuse: a tab of the home shell (the Feed, from its notification)
+            is DeepLinkAction.OpenHomeTab -> {
+                io.github.nanomuse.ui.home.HomeShell.openTab(nav, action.tab)
+            }
             is DeepLinkAction.OpenHtmlPreview -> {
                 DeepLinkCoordinator.setPendingHtmlPreview(
                     action.sessionId,

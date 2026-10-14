@@ -1,7 +1,7 @@
 {
   "name": "nanomuse-web",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.0.5",
   "description": "nanoMuse mobile-first web app (chat, goals, ideas, memory, approvals)",
   "license": "GPL-3.0-or-later",
   "type": "module",
@@ -36,7 +36,7 @@
     "tailwindcss": "^4.0.0",
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.71.1",
-    "vite": "^8.3.3",
+    "vite": "^8.3.4",
     "vitest": "^4.1.11"
   }
 }

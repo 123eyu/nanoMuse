@@ -26,10 +26,12 @@ LOCAL=0; BIND=127.0.0.1; PORT=8787; START=1
 while [ $# -gt 0 ]; do
   case "$1" in
     --local) LOCAL=1 ;;
-    --bind) BIND="$2"; shift ;;
-    --port) PORT="$2"; shift ;;
+    --bind) [ $# -ge 2 ] || { echo "--bind needs an address (try --help)" >&2; exit 2; }; BIND="$2"; shift ;;
+    --port)
+      [ $# -ge 2 ] && [[ "$2" =~ ^[0-9]+$ ]] || { echo "--port needs a number (try --help)" >&2; exit 2; }
+      PORT="$2"; shift ;;
     --no-start) START=0 ;;
-    -h|--help) sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "unknown option: $1 (try --help)" >&2; exit 2 ;;
   esac
   shift
@@ -199,6 +201,11 @@ if [ "$LOCAL" = 1 ]; then
 fi
 say
 say "Starting the relay$([ "$LOCAL" = 0 ] && echo " and Caddy")…"
+# The relay runs as uid 10001 in its container; the bind-mounted data directory must be its.
+# Docker creates a missing ./data as root, so the chown runs inside the image, as root, and
+# needs no sudo on the host. Idempotent.
+"${COMPOSE[@]}" "${FILES[@]}" build relay
+"${COMPOSE[@]}" "${FILES[@]}" run --rm --no-deps --user 0 relay chown -R 10001:10001 /srv/nanomuse-cloud/data
 "${COMPOSE[@]}" "${FILES[@]}" up -d --build
 
 health="$BASE/healthz"

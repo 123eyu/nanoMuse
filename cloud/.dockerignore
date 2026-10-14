@@ -1,0 +1,18 @@
+# What the image build never needs. The Dockerfile copies pyproject.toml, README.md and
+# nanomuse_cloud/ only, but without this file the whole directory, the database under
+# data/ and .env included, is sent to the Docker daemon as the build context. A pattern
+# without `**/` matches at the root only (Go's filepath.Match, not gitignore), so the caches
+# under nanomuse_cloud/ need the prefix or they ride along in the COPY.
+.env
+.env.*
+*.env
+data/
+deploy/
+tests/
+.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+**/*.egg-info

@@ -1,5 +1,5 @@
 import { ArrowRight, CloudCog, KeyRound, Loader2, LogIn } from "lucide-react";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useId, useState, useRef } from "react";
 import { api } from "../api";
 import { useT } from "../i18n";
 import { useFocusTrap } from "./useFocusTrap";
@@ -96,10 +96,11 @@ export function FirstSignInSteps() {
   };
 
   const panel = useRef<HTMLDivElement>(null);
+  const titleId = useId();
   useFocusTrap(panel, true);
   const mismatch = again.length > 0 && again !== password;
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-[2px] sm:items-center" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-[2px] sm:items-center" role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <div ref={panel} className="safe-bottom w-full max-w-[520px] rounded-t-[28px] bg-bg p-6 shadow-2xl sm:rounded-[28px]">
         <div className="mb-4 flex gap-1">
           <span className={cx("h-1.5 w-5 rounded-full bg-accent")} />
@@ -119,7 +120,7 @@ export function FirstSignInSteps() {
                 <KeyRound size={20} />
               </span>
               <div>
-                <h2 className="text-[20px] font-bold tracking-tight">{t("Set a password")}</h2>
+                <h2 id={titleId} className="text-[20px] font-bold tracking-tight">{t("Set a password")}</h2>
                 <p className="mt-1 text-[13.5px] leading-relaxed text-muted">{t("Your account is in. With a password, your phone and your other computers sign in at once, without waiting for a code. Optional; you can set one later under Account.")}</p>
               </div>
             </div>
@@ -131,9 +132,10 @@ export function FirstSignInSteps() {
                 autoComplete="new-password"
                 autoFocus
                 placeholder={t("At least 8 characters")}
+                aria-label={t("Password")}
                 className={inputCls}
               />
-              <input type="password" value={again} onChange={(e) => setAgain(e.target.value)} autoComplete="new-password" placeholder={t("Once more")} className={cx(inputCls, mismatch && "border-rose-400")} />
+              <input type="password" value={again} onChange={(e) => setAgain(e.target.value)} autoComplete="new-password" placeholder={t("Once more")} aria-label={t("Once more")} className={cx(inputCls, mismatch && "border-rose-400")} />
               {mismatch && <p className="text-[12px] text-rose-600 dark:text-rose-300">{t("The two do not match.")}</p>}
             </div>
             {error && <div className="rounded-2xl bg-rose-500/12 px-3 py-2 text-[12.5px] text-rose-700 dark:text-rose-300">{error}</div>}
@@ -153,7 +155,7 @@ export function FirstSignInSteps() {
                 <CloudCog size={20} />
               </span>
               <div>
-                <h2 className="text-[20px] font-bold tracking-tight">{t("Which model answers?")}</h2>
+                <h2 id={titleId} className="text-[20px] font-bold tracking-tight">{t("Which model answers?")}</h2>
                 <p className="mt-1 text-[13.5px] leading-relaxed text-muted">{t("Your account already brings one. You can add your own API key as well and switch at any time.")}</p>
               </div>
             </div>

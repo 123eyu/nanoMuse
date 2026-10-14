@@ -101,16 +101,17 @@ def clean_attachments(value: object) -> list[dict]:
     return out
 
 
-def _ts(value: object, default: int) -> int:
+def _ts(value: object, default: int, ceiling: int | None = None) -> int:
     """A Unix time in seconds from what a device sent: milliseconds are divided down, anything
-    unreadable or wildly off becomes `default`."""
+    unreadable, non-positive or more than a week past `ceiling` (the relay's clock; `default`
+    when not given) becomes `default`."""
     try:
         t = int(float(value))  # type: ignore[arg-type]
     except (TypeError, ValueError):
         return default
     if t > 10_000_000_000:  # milliseconds
         t //= 1000
-    if t <= 0 or t > default + 7 * 86400:
+    if t <= 0 or t > (ceiling if ceiling is not None else default) + 7 * 86400:
         return default
     return t
 
@@ -264,8 +265,9 @@ class SyncStore:
         messages, its tombstone; with no main yet the page is empty and `cursor` the
         account's counter. `tail=K` (with `since=0` only) is the first pull of a fresh
         device: the newest K messages of the scope in seq order plus the rows of the
-        conversations they belong to, `cursor` at the account's counter, `more` false and
-        `skipped` saying how many older messages stayed on the relay."""
+        conversations they belong to (and the main conversation's row whatever its messages,
+        0.25), `cursor` at the account's counter, `more` false and `skipped` saying how many
+        older messages stayed on the relay."""
         since = max(0, int(since))
         limit = max(1, min(int(limit), MAX_PAGE))
         if scope not in SCOPES:
@@ -273,9 +275,7 @@ class SyncStore:
         tail = max(0, min(int(tail or 0), MAX_TAIL)) if since == 0 else 0
         # the scope as a SQL fragment over sync_conversations (sc) and sync_messages (sm)
         conv_scope = " AND kind='main'" if scope == "main" else ""
-        msg_scope = (
-            " AND cid IN (SELECT cid FROM sync_conversations WHERE account_id=? AND kind='main')" if scope == "main" else ""
-        )
+        msg_scope = " AND cid IN (SELECT cid FROM sync_conversations WHERE account_id=? AND kind='main')" if scope == "main" else ""
         with self.db.tx() as c:
             if not self._enabled(c, account_id):
                 raise CloudError(409, "sync_off", "Conversation sync is off for this account")
@@ -323,6 +323,17 @@ class SyncStore:
                     (account_id, *wanted),
                 ).fetchall()
                 conversations.extend(extra)
+                have.update(str(r["cid"]) for r in extra)
+            if tail:
+                # 0.25: the account's main conversation rides with every tail page, even when
+                # none of the newest messages are its own (or it has none yet), so a fresh
+                # device adopts its id at once instead of minting a second main and learning
+                # the first one's id from a `main_exists` refusal
+                main = c.execute(
+                    "SELECT * FROM sync_conversations WHERE account_id=? AND kind='main' AND deleted=0 ORDER BY seq LIMIT 1", (account_id,)
+                ).fetchone()
+                if main is not None and str(main["cid"]) not in have:
+                    conversations.append(main)
         out = {
             "cursor": cursor,
             "more": more,
@@ -352,7 +363,9 @@ class SyncStore:
     @staticmethod
     def _live_conversations(c: sqlite3.Connection, account_id: str) -> int:
         return int(
-            c.execute("SELECT COUNT(*) FROM sync_conversations WHERE account_id=? AND kind='side' AND deleted=0", (account_id,)).fetchone()[0]
+            c.execute("SELECT COUNT(*) FROM sync_conversations WHERE account_id=? AND kind='side' AND deleted=0", (account_id,)).fetchone()[
+                0
+            ]
         )
 
     def _enabled(self, c: sqlite3.Connection, account_id: str) -> bool:
@@ -394,7 +407,10 @@ class SyncStore:
                     continue
                 title = str(conv.get("title") or "")[:200]
                 created_at = _ts(conv.get("created_at"), t)
-                updated_at = _ts(conv.get("updated_at"), created_at)
+                # 0.25: the week's grace is measured against the relay's clock, not the
+                # conversation's birth; before, a chat older than a week could never be
+                # renamed, since its `updated_at` fell back to `created_at` and lost
+                updated_at = max(created_at, _ts(conv.get("updated_at"), created_at, ceiling=t))
                 deleted = bool(conv.get("deleted"))
                 row = c.execute("SELECT * FROM sync_conversations WHERE account_id=? AND cid=?", (account_id, cid)).fetchone()
                 if row is None:

@@ -123,6 +123,8 @@
     <string name="nm_routine_run_now">立即執行</string>
     <string name="nm_routine_delete">刪除</string>
     <string name="nm_routine_paused">已關閉</string>
+    <!-- The chat row a routine sent: its label and the clock time it fired -->
+    <string name="nm_routine_wake_caption">例程 · %1$s · %2$s</string>
 
     <string name="nm_ideas_title">點子</string>
     <string name="nm_idea_kind_chat">會開始一段對話</string>
@@ -336,6 +338,23 @@
     <string name="nm_avatar_use_this">就用這個</string>
     <string name="nm_avatar_use_this_hint">接下來會在背景以它為底畫出各個狀態：工作、等你、搞定、出錯。</string>
     <string name="nm_avatar_footer">圖片存在這台手機的 minis-global/nanomuse/avatar 下。每換一次形象會向你的提供方要五張圖：你選的那張加四個狀態。</string>
+    <string name="nm_own_clip_title">你自己的影片</string>
+    <string name="nm_own_clip_body">一段你自己的短影片會作為待機時的形象播放，其他狀態也沿用它。MP4 或 MOV，H.264 影片，最長 15 秒、最大 30 MB；靜音循環播放。</string>
+    <string name="nm_own_clip_on">你的影片已啟用，所有狀態都播放它；需要靜態圖的地方仍用畫好的圖片。「預設形象」可移除它。</string>
+    <string name="nm_own_clip_local">影片只保存在這支手機上，不會上傳到 nanoMuse Cloud，也不會同步到你的其他裝置。</string>
+    <string name="nm_own_clip_choose">選擇影片</string>
+    <string name="nm_own_clip_replace">更換影片</string>
+    <string name="nm_own_clip_default">預設形象</string>
+    <string name="nm_own_clip_menu">你自己的影片…</string>
+    <string name="nm_own_clip_preview_title">預覽</string>
+    <string name="nm_own_clip_preview_body">作為形象時就是這樣播放的：靜音、循環、裁成圓形。</string>
+    <string name="nm_own_clip_details">%1$d 秒 · %2$s</string>
+    <string name="nm_own_clip_use">使用</string>
+    <string name="nm_own_clip_refused_format">這個檔案無法在這裡使用。請選擇 MP4 或 MOV（H.264 影片），最長 15 秒、最大 30 MB。</string>
+    <string name="nm_own_clip_refused_long">這段影片長 %1$d 秒。上限是 15 秒，以及 30 MB。</string>
+    <string name="nm_own_clip_refused_large">這段影片有 %1$s。上限是 30 MB，以及 15 秒。</string>
+    <string name="nm_own_clip_unreadable">無法讀取這段影片，請換一段試試。</string>
+    <string name="nm_a11y_own_clip_preview">你的影片預覽</string>
 
     <!-- 首次執行 -->
     <string name="nm_setup_title">歡迎使用 nanoMuse</string>
@@ -572,6 +591,8 @@
     <string name="nm_risk_title_device">允許「%1$s」操作這支手機嗎？</string>
     <string name="nm_risk_desc_device">「%1$s」是你帳號下的另一台裝置，想在這支手機上 %2$s。具體內容見下方。選「始終」後，那台裝置以後在這裡做這類事不再詢問；可在「權限」裡收回。</string>
     <string name="nm_risk_preview_device">那台裝置的請求</string>
+    <string name="nm_risk_preview_show_all">全部顯示（%1$d 行）</string>
+    <string name="nm_risk_preview_show_less">收起</string>
     <string name="nm_risk_class_remote">遠端控制</string>
     <string name="nm_hub_remote_reason">%1$s 可以操作這支手機</string>
 
@@ -604,7 +625,6 @@
     <string name="nm_welcome_skip">暫時跳過</string>
     <string name="nm_welcome_hands_fine_print">不開也不影響其他功能。之後隨時可以在「設定 → Hands」裡開啟。</string>
     <string name="nm_welcome_meet_fine_print">凡是無法撤回的事（刪除、傳送、付款）它都會先停下來問你。</string>
-    <string name="nm_cloud_title">nanoMuse Cloud</string>
     <string name="nm_cloud_signin_title">用 nanoMuse Cloud 開始</string>
     <string name="nm_cloud_signin_subtitle">手機號或信箱收一個驗證碼；設過密碼的話也可以直接用密碼。</string>
     <string name="nm_cloud_mode_code">驗證碼登入</string>
@@ -612,7 +632,7 @@
     <string name="nm_cloud_password">密碼</string>
     <string name="nm_cloud_forgot_password">忘了密碼？用驗證碼登入</string>
     <string name="nm_cloud_identifier">中國大陸手機號或信箱</string>
-    <string name="nm_cloud_identifier_hint">138 0000 0000 · you@example.com</string>
+    <string name="nm_cloud_identifier_hint">you@example.com</string>
     <string name="nm_cloud_code">驗證碼</string>
     <string name="nm_cloud_send_code">發送驗證碼</string>
     <string name="nm_cloud_resend">重新發送</string>
@@ -621,7 +641,6 @@
     <!-- 自架中繼伺服器（0.1.38）：登入頁的伺服器表單與帳號頁的那一列 -->
     <string name="nm_cloud_other_server">使用其他伺服器</string>
     <string name="nm_cloud_server_url">伺服器位址</string>
-    <string name="nm_cloud_server_hint">https://relay.example.org</string>
     <string name="nm_cloud_server_check">檢查</string>
     <string name="nm_cloud_server_use">使用這個伺服器</string>
     <string name="nm_cloud_server_now">伺服器：%1$s</string>
@@ -682,6 +701,8 @@
     <string name="nm_cloud_err_password_short">密碼至少 8 位。</string>
     <string name="nm_cloud_err_password_weak">這個密碼太好猜了。</string>
     <string name="nm_cloud_err_signup_closed">這台中繼暫時關閉了註冊。已有的帳號仍可登入。</string>
+    <string name="nm_cloud_err_domain_limited">這個網域的信箱今天在這台中繼上的註冊名額已經用完。明天再試，或者換一個地址。</string>
+    <string name="nm_cloud_err_channel_unsupported">這台中繼不會給這類地址發送驗證碼。換另一類地址（信箱或手機號），或者用密碼登入。</string>
     <string name="nm_cloud_err_too_large">這則訊息對模型來說太長了。縮短一些、去掉幾個附件，或者新開一個對話。</string>
     <string name="nm_cloud_err_content_rejected">模型服務商的內容審核沒有放行這次請求。換個說法試試；如果反覆出現，就新開一個對話，被攔下的可能是對話裡更早的內容。</string>
     <string name="nm_cloud_err_provider_busy">模型服務商現在很忙，稍後再試。</string>
@@ -727,7 +748,7 @@
     <string name="nm_face_cost_not_now">先不了</string>
     <string name="nm_face_cost_declined">好，形象先保持現在這樣。</string>
     <string name="nm_cloud_invite_title">邀請朋友</string>
-    <string name="nm_cloud_invite_why">每有一位新用戶用你的邀請碼註冊，你的額度 +¥%1$s，對方也 +¥%1$s，不過期。</string>
+    <string name="nm_cloud_invite_why">朋友用你的邀請碼註冊並發出第一次請求後，你們各得 ¥%1$s，不過期。</string>
     <string name="nm_cloud_invite_code">邀請碼</string>
     <string name="nm_cloud_invite_share">分享連結</string>
     <string name="nm_cloud_invite_copy">複製</string>
@@ -765,7 +786,7 @@
     <string name="nm_cap_clips_unavailable">影片需要有影片模型的提供方：阿里雲百煉。</string>
     <string name="nm_cap_hands_unavailable">手需要能看螢幕的模型：百煉、OpenRouter、OpenAI、Anthropic、Gemini，或任何有視覺模型的提供方。</string>
     <string name="nm_cap_chat_unavailable">對話需要有對話模型的提供方：新增一把 key，或登入。</string>
-    <string name="nm_ways_invite_title">邀請朋友：每有一位新用戶透過你的連結註冊，你 +¥%1$s，對方也 +¥%2$s。</string>
+    <string name="nm_ways_invite_title">邀請朋友：每有一位新用戶透過你的連結註冊並發出第一次請求，你 +¥%1$s，對方也 +¥%2$s。</string>
     <string name="nm_ways_invite_share">分享連結</string>
     <string name="nm_ways_invite_copy">複製連結</string>
     <string name="nm_cloud_ev_contribute_on">資料控制：已開啟「協助改進」</string>
@@ -906,7 +927,7 @@
     <string name="nm_hub_err_device_offline">那台電腦不在線上。</string>
     <string name="nm_hub_err_busy">電腦正忙著另一個任務，稍後再試。</string>
     <string name="nm_hub_err_not_controllable">那個裝置不能接受操作。</string>
-    <string name="nm_hub_err_unknown_agent">電腦上沒有這個 程式設計助手。</string>
+    <string name="nm_hub_err_unknown_agent">電腦上沒有這個程式設計助手。</string>
     <string name="nm_hub_err_no_session">這個會話已經不在電腦上了。</string>
     <string name="nm_hub_err_unknown_action">電腦上的 nanoMuse 版本較舊，不認識這個操作。</string>
     <string name="nm_hub_err_bad_key">中繼上已登出，請重新登入。</string>
@@ -1088,4 +1109,16 @@
     <string name="nm_a11y_liked">已喜歡</string>
     <string name="nm_a11y_not_liked">未喜歡</string>
     <string name="nm_a11y_post_details">貼文詳情</string>
+    <string name="nm_claude_sign_in_unavailable">這個版本不能用 Claude 帳號登入。請改用 API key 新增 Anthropic。</string>
+    <string name="nm_oauth_rescue_hint">如果瀏覽器在 localhost 停在一個錯誤頁，是手機上的代理或 VPN 吞掉了回呼。把 localhost 加進它的直連（略過）清單，或者把那個頁面的網址複製下來貼到這裡。</string>
+    <string name="nm_oauth_rescue_placeholder">把網址貼到這裡</string>
+    <string name="nm_oauth_rescue_continue">繼續</string>
+    <string name="nm_oauth_rescue_no_code">這個網址裡沒有登入碼。</string>
+    <string name="nm_oauth_rescue_failed">這次登入已經不再等待這個網址了。點「登入」再試一次。</string>
+    <!-- Font scale labels -->
+    <string name="nm_font_scale_extra_small">特小</string>
+    <string name="nm_font_scale_small">小</string>
+    <string name="nm_font_scale_medium">中</string>
+    <string name="nm_font_scale_large">大</string>
+    <string name="nm_font_scale_extra_large">特大</string>
 </resources>

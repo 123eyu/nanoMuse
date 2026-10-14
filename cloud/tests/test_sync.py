@@ -122,7 +122,9 @@ async def test_a_renamed_conversation_rides_along_with_its_messages():
     app, client, sender, up, cloud, settings = make()
     key = await signed_in(client, sender)
     cid, m1 = uid(), uid()
-    await client.post("/v1/sync/changes", json={"device": "d1", "conversations": [conv(cid)], "messages": [msg(m1, cid)]}, headers=auth(key))
+    await client.post(
+        "/v1/sync/changes", json={"device": "d1", "conversations": [conv(cid)], "messages": [msg(m1, cid)]}, headers=auth(key)
+    )
     await client.post(
         "/v1/sync/changes", json={"device": "d1", "conversations": [conv(cid, title="Renamed", updated_at=1738000500)]}, headers=auth(key)
     )
@@ -444,12 +446,18 @@ async def test_scope_main_delivers_the_main_conversation_only():
     key = await signed_in(client, sender)
     # no main yet: an empty page whose cursor is the account's counter
     side, s1 = uid(), uid()
-    await client.post("/v1/sync/changes", json={"device": "a", "conversations": [conv(side, "side", "Side")], "messages": [msg(s1, side)]}, headers=auth(key))
+    await client.post(
+        "/v1/sync/changes",
+        json={"device": "a", "conversations": [conv(side, "side", "Side")], "messages": [msg(s1, side)]},
+        headers=auth(key),
+    )
     r = await client.get("/v1/sync/changes?scope=main", headers=auth(key))
     assert r.status_code == 200 and r.json() == {"cursor": 2, "more": False, "conversations": [], "messages": []}
     main, m1 = uid(), uid()
     await client.post(
-        "/v1/sync/changes", json={"device": "a", "conversations": [conv(main, "main", "Main")], "messages": [msg(m1, main)]}, headers=auth(key)
+        "/v1/sync/changes",
+        json={"device": "a", "conversations": [conv(main, "main", "Main")], "messages": [msg(m1, main)]},
+        headers=auth(key),
     )
     out = (await client.get("/v1/sync/changes?scope=main", headers=auth(key))).json()
     assert [c["cid"] for c in out["conversations"]] == [main] and [m["mid"] for m in out["messages"]] == [m1]
@@ -482,13 +490,18 @@ async def test_tail_is_the_newest_messages_with_their_conversations():
         cid = main if i % 2 == 0 else old_side
         mid = uid()
         mids.append((cid, mid))
-        await client.post("/v1/sync/changes", json={"device": "a", "messages": [msg(mid, cid, text=f"m{i}", created_at=1738000000 + i)]}, headers=auth(key))
+        await client.post(
+            "/v1/sync/changes",
+            json={"device": "a", "messages": [msg(mid, cid, text=f"m{i}", created_at=1738000000 + i)]},
+            headers=auth(key),
+        )
     newest = uid()  # seq 10, in the side chat nobody else wrote in
     await client.post("/v1/sync/changes", json={"device": "a", "messages": [msg(newest, new_side, text="newest")]}, headers=auth(key))
-    # the two newest messages, in seq order, with the rows of their conversations and nothing else
+    # the two newest messages, in seq order, with the rows of their conversations, the main's
+    # row (0.25: a fresh device adopts the account's main at once) and nothing else
     out = (await client.get("/v1/sync/changes?since=0&tail=2", headers=auth(key))).json()
     assert [m["mid"] for m in out["messages"]] == [mids[5][1], newest]
-    assert sorted(c["cid"] for c in out["conversations"]) == sorted([old_side, new_side])
+    assert sorted(c["cid"] for c in out["conversations"]) == sorted([old_side, new_side, main])
     assert out["cursor"] == 10 and out["more"] is False and out["skipped"] == 5
     # within the main scope: the main's newest two and its row
     out = (await client.get("/v1/sync/changes?since=0&tail=2&scope=main", headers=auth(key))).json()
@@ -503,6 +516,78 @@ async def test_tail_is_the_newest_messages_with_their_conversations():
     await client.post("/v1/sync/changes", json={"device": "a", "messages": [msg(uid(), main, text="after")]}, headers=auth(key))
     out = (await client.get("/v1/sync/changes?since=10", headers=auth(key))).json()
     assert [m["text"] for m in out["messages"]] == ["after"]
+
+
+async def test_tail_carries_the_main_row_before_it_has_messages():
+    """A fresh device's first pull (`since=0&tail=K`) names the account's main conversation
+    even when it has no messages yet or none among the newest K, so the device joins it
+    instead of minting a second main and learning the first one's id from `main_exists`."""
+    app, client, sender, up, cloud, settings = make()
+    key = await signed_in(client, sender)
+    main = uid()
+    await client.post("/v1/sync/changes", json={"device": "a", "conversations": [conv(main, "main", "")]}, headers=auth(key))
+    for scope in ("main", "all"):
+        out = (await client.get(f"/v1/sync/changes?since=0&tail=300&scope={scope}", headers=auth(key))).json()
+        assert [c["cid"] for c in out["conversations"]] == [main] and out["messages"] == [] and out["cursor"] == 1
+    # a second device that read the tail pushes under the main's id and is accepted
+    r = await client.post(
+        "/v1/sync/changes",
+        json={"device": "b", "conversations": [conv(main, "main", "")], "messages": [msg(uid(), main)]},
+        headers=auth(key),
+    )
+    assert r.json()["rejected"] == [] and r.json()["accepted"] == 1
+    # a side chat alone fills the tail: the main's row still rides along, once
+    side = uid()
+    await client.post(
+        "/v1/sync/changes",
+        json={"device": "a", "conversations": [conv(side)], "messages": [msg(uid(), side) for _ in range(3)]},
+        headers=auth(key),
+    )
+    out = (await client.get("/v1/sync/changes?since=0&tail=2", headers=auth(key))).json()
+    assert sorted(c["cid"] for c in out["conversations"]) == sorted([side, main])
+    # an ordinary pull from a cursor is unchanged: no main row unless it moved
+    out = (await client.get(f"/v1/sync/changes?since={out['cursor']}", headers=auth(key))).json()
+    assert out["conversations"] == [] and out["messages"] == []
+
+
+async def test_a_conversation_older_than_a_week_can_still_be_renamed():
+    """`updated_at` is checked against the relay's clock, not the conversation's birth: a
+    rename a month after the chat began used to fall back to `created_at` and be dropped
+    without a word, so the main chat's title never followed after its first week."""
+    import time
+
+    app, client, sender, up, cloud, settings = make()
+    key = await signed_in(client, sender)
+    t = int(time.time())
+    cid = uid()
+    born = t - 30 * 86400
+    r = await client.post(
+        "/v1/sync/changes",
+        json={"device": "a", "conversations": [conv(cid, "main", "Old", created_at=born, updated_at=born + 2 * 86400)]},
+        headers=auth(key),
+    )
+    assert r.json()["accepted"] == 1
+    r = await client.post(
+        "/v1/sync/changes",
+        json={"device": "a", "conversations": [conv(cid, "main", "New", created_at=born, updated_at=t)]},
+        headers=auth(key),
+    )
+    assert r.json()["accepted"] == 1, r.json()
+    out = (await client.get("/v1/sync/changes?since=0", headers=auth(key))).json()
+    assert [(c["title"], c["updated_at"]) for c in out["conversations"]] == [("New", t)]
+    # a time from the future, or before the chat began, is still brought back to the chat's clock
+    r = await client.post(
+        "/v1/sync/changes",
+        json={"device": "a", "conversations": [conv(cid, "main", "Later", created_at=born, updated_at=t + 30 * 86400)]},
+        headers=auth(key),
+    )
+    assert r.json()["accepted"] == 0  # falls back to created_at, which is older than what is stored
+    r = await client.post(
+        "/v1/sync/changes",
+        json={"device": "a", "conversations": [conv(cid, "main", "Earlier", created_at=born, updated_at=born - 5)]},
+        headers=auth(key),
+    )
+    assert r.json()["accepted"] == 0
 
 
 async def test_working_is_presence_kept_ten_minutes_in_memory():
@@ -622,8 +707,12 @@ async def test_deleting_the_account_purges_everything_and_the_next_sign_in_start
         headers=auth(key),
     )
     assert r.status_code == 200 and r.json()["accepted"] == 2
-    assert (await client.put("/v1/me/profile", json={"device": "phone-1", "name": "kwai", "avatar": "dragon"}, headers=auth(key))).status_code == 200
-    assert (await client.post("/v1/sync/working", json={"cid": cid, "working": True, "device": "phone-1"}, headers=auth(key))).status_code == 204
+    assert (
+        await client.put("/v1/me/profile", json={"device": "phone-1", "name": "kwai", "avatar": "dragon"}, headers=auth(key))
+    ).status_code == 200
+    assert (
+        await client.post("/v1/sync/working", json={"cid": cid, "working": True, "device": "phone-1"}, headers=auth(key))
+    ).status_code == 204
     assert app.state.sync.presence.working(account_id)
 
     assert (await client.post("/v1/auth/delete", headers=auth(key))).status_code == 204
@@ -635,7 +724,9 @@ async def test_deleting_the_account_purges_everything_and_the_next_sign_in_start
     r = await client.post("/v1/chat/completions", json={"model": "x", "messages": []}, headers=auth(key))
     assert r.status_code == 401 and r.json()["error"]["code"] == "account_deleted"
     assert cloud.db._conn.execute("SELECT COUNT(*) FROM deleted_keys").fetchone()[0] == 1
-    assert cloud.db._conn.execute("SELECT * FROM deleted_keys").fetchone().keys() == ["key_hash", "deleted_at"], "a dead key's hash names nobody"
+    assert cloud.db._conn.execute("SELECT * FROM deleted_keys").fetchone().keys() == ["key_hash", "deleted_at"], (
+        "a dead key's hash names nobody"
+    )
 
     # every table that names the account is empty of it
     for table, column in (
@@ -650,10 +741,14 @@ async def test_deleting_the_account_purges_everything_and_the_next_sign_in_start
         ("sync_cursors", "account_id"),
         ("samples", "account_id"),
         ("video_tasks", "account_id"),
+        ("daily", "key"),  # the `active` counter is keyed by the account id
     ):
         n = cloud.db._conn.execute(f"SELECT COUNT(*) FROM {table} WHERE {column}=?", (account_id,)).fetchone()[0]
         assert n == 0, f"{table} still holds {n} row(s) of the deleted account"
     assert app.state.sync.presence.working(account_id) == []
+    # the one line left says a deletion happened, across accounts, and names nobody
+    deleted = [dict(r) for r in cloud.db.events_recent(50) if r["kind"] == "account.deleted"]
+    assert len(deleted) == 1 and deleted[0]["account_id"] == "" and deleted[0]["detail"] == f"{account_id[:8]} by the person"
 
     # the same number again: a new account, a new id, nothing to pull
     again = await sign_up(client, sender, "13800138000", "pixel")

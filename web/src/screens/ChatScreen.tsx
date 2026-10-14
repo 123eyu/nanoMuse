@@ -15,7 +15,7 @@ import { stripNamingFence } from "../fences";
 import { localDetail, localLabel, useLocale, useT } from "../i18n";
 import { mentionSuggestions, mentionTarget } from "../mention";
 import { WORKING_TTL_MS } from "../presence";
-import { useStore } from "../store";
+import { useStore, type Stream } from "../store";
 import type { AttachmentInfo, HubDevice, SkillInfo, ThreadMeta, TimelineEvent, UserEvent, WorkingPresence } from "../types";
 import { cx, timeDivider, timeShort } from "../util";
 import { MuseSheet } from "./MuseSheet";
@@ -45,6 +45,23 @@ export function ChatScreen() {
   const contentRef = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
   const [showJump, setShowJump] = useState(false);
+  // away from the latest message by any amount: the top edge fades into the canvas
+  const [scrolledUp, setScrolledUp] = useState(false);
+
+  // The header lies over the list as a scrim rather than above it, so the conversation scrolls
+  // under the face and dissolves. The list keeps the header's height clear at its top, measured
+  // here because the header grows with the chip under the name tag and the safe area.
+  const headerRef = useRef<HTMLDivElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  useLayoutEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    setHeaderHeight(el.offsetHeight);
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => setHeaderHeight(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // The first conversation (contract C4), when it is bound to this chat: the runtime's state,
   // the opening lines it speaks, the chooser. `fr` is null on an older runtime.
@@ -110,6 +127,7 @@ export function ChatScreen() {
     if (!el) return;
     el.scrollTop = el.scrollHeight;
     setShowJump(false);
+    setScrolledUp(false);
   }, []);
 
   const measure = useCallback(() => {
@@ -118,6 +136,7 @@ export function ChatScreen() {
     const gap = el.scrollHeight - el.scrollTop - el.clientHeight;
     stickToBottom.current = gap < 120;
     setShowJump(gap > 400);
+    setScrolledUp(gap > 8);
   }, []);
 
   // a chat opens at its latest message whatever the previous chat's position was; the pill
@@ -184,44 +203,52 @@ export function ChatScreen() {
   );
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Header: Muse's — the face on its disc, the name tag with what it is doing, the round hamburger and menu */}
-      <MuseHeader
-        profile={profile}
-        status={status}
-        name={name}
-        statusLine={statusLine}
-        statusTone={status.state === "idle" && !thread?.busy ? "muted" : "accent"}
-        spinning={((status.state === "working" && status.thread === activeThread) || !!thread?.busy) && waitingHere === 0}
-        badge={queued}
-        onAvatar={() => setActivityOpen(true)}
-        leading={
-          <MuseRoundButton onClick={() => setDrawer(true)} label={t("Chats")} dot={threads.length > 1 && activeThread !== "main"} className="wide:invisible">
-            <Menu size={22} />
-          </MuseRoundButton>
-        }
-        trailing={<MoreMenu actions={[{ label: t("Coding agents"), onClick: () => setTab("coding") }]} />}
-        under={
-          thread && thread.id !== "main" ? (
-            thread.device ? (
-              <span className="flex max-w-full items-center gap-1 rounded-full bg-accent/12 px-2.5 py-0.5 text-[11.5px] font-medium text-accent">
-                {deviceOnline === false ? <span className="h-1.5 w-1.5 rounded-full bg-border" /> : <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />}
-                <span className="truncate">{t("on {device}", { device: thread.device_name || thread.device })}</span>
-              </span>
-            ) : thread.remote_from ? (
-              <span className="flex max-w-full items-center gap-1 rounded-full bg-surface-2 px-2.5 py-0.5 text-[11.5px] font-medium text-fg/80">
-                <MonitorSmartphone size={11} /> <span className="truncate">{t("from {device}", { device: thread.remote_from.name })}</span>
-              </span>
-            ) : (
-              <span className="truncate rounded-full bg-surface-2 px-2.5 py-0.5 text-[11.5px] font-medium text-fg/80">{thread.title}</span>
-            )
-          ) : undefined
-        }
-      />
+    <div className="relative flex h-full flex-col">
+      {/* Muse's header: the face on its disc, the name tag with what it is doing, the round hamburger
+          and menu. A scrim over the list, which scrolls under it; no bar and no line below it. */}
+      <div ref={headerRef} className="pointer-events-none absolute inset-x-0 top-0 z-10">
+        <MuseHeader
+          scrim
+          profile={profile}
+          status={status}
+          name={name}
+          statusLine={statusLine}
+          statusTone={status.state === "idle" && !thread?.busy ? "muted" : "accent"}
+          spinning={((status.state === "working" && status.thread === activeThread) || !!thread?.busy) && waitingHere === 0}
+          badge={queued}
+          onAvatar={() => setActivityOpen(true)}
+          leading={
+            <MuseRoundButton onClick={() => setDrawer(true)} label={t("Chats")} dot={threads.length > 1 && activeThread !== "main"} className="wide:invisible">
+              <Menu size={22} />
+            </MuseRoundButton>
+          }
+          trailing={<MoreMenu actions={[{ label: t("Coding agents"), onClick: () => setTab("coding") }]} />}
+          under={
+            thread && thread.id !== "main" ? (
+              thread.device ? (
+                <span className="flex max-w-full items-center gap-1 rounded-full bg-accent/12 px-2.5 py-0.5 text-[11.5px] font-medium text-accent">
+                  {deviceOnline === false ? <span className="h-1.5 w-1.5 rounded-full bg-border" /> : <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />}
+                  <span className="truncate">{t("on {device}", { device: thread.device_name || thread.device })}</span>
+                </span>
+              ) : thread.remote_from ? (
+                <span className="flex max-w-full items-center gap-1 rounded-full bg-surface-2 px-2.5 py-0.5 text-[11.5px] font-medium text-fg/80">
+                  <MonitorSmartphone size={11} /> <span className="truncate">{t("from {device}", { device: thread.remote_from.name })}</span>
+                </span>
+              ) : (
+                <span className="truncate rounded-full bg-surface-2 px-2.5 py-0.5 text-[11.5px] font-medium text-fg/80">{thread.title}</span>
+              )
+            ) : undefined
+          }
+        />
+      </div>
+      {/* while reading older messages the top edge fades fully into the canvas, under the header */}
+      <div aria-hidden className="list-fade-top pointer-events-none absolute inset-x-0 top-0 z-[5] h-20" style={{ opacity: scrolledUp ? 1 : 0 }} />
 
       {/* Timeline */}
-      <div ref={listRef} onScroll={measure} className="relative flex-1 overflow-y-auto px-3 py-3">
+      <div ref={listRef} onScroll={measure} className="relative flex-1 overflow-y-auto px-3 pb-3">
         <div ref={contentRef} className="space-y-2.5">
+          {/* the room the header takes; the first message starts under it, not behind it */}
+          <div aria-hidden style={{ height: headerHeight }} />
           {state.hasMore[activeThread] && events.length > 0 && (
             <div className="flex justify-center">
               <button
@@ -260,6 +287,7 @@ export function ChatScreen() {
           {stream && stream.text && (
             <AssistantBubble text={stream.text} streaming files={files} onOpenFile={openFile} />
           )}
+          <LiveReply stream={stream} name={name} />
           {(thread?.busy || status.state !== "idle") && !stream?.text && status.state !== "waiting" && (
             <TypingIndicator label={thread?.queued ? t("{n} queued", { n: thread.queued }) : undefined} />
           )}
@@ -277,9 +305,10 @@ export function ChatScreen() {
           <button
             type="button"
             onClick={jumpToBottom}
-            className="sticky bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-surface border border-border shadow px-3 py-1.5 text-[12.5px] flex items-center gap-1"
+            className="sticky bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-ink text-ink-fg shadow px-3 py-1.5 text-[12.5px] font-medium flex items-center gap-1"
           >
-            <ChevronDown size={14} /> {t("Latest")}{pendingApprovals ? ` · ${t("{n} approval", { n: pendingApprovals })}` : ""}
+            <ChevronDown size={14} /> {t("Latest")}
+            {pendingApprovals ? ` · ${pendingApprovals > 1 ? t("{n} approvals", { n: pendingApprovals }) : t("1 approval")}` : ""}
           </button>
         )}
       </div>
@@ -510,14 +539,14 @@ function AssistantBubble({
             {reasoning}
           </div>
         )}
-        {/* Muse's grey bubbles: one per block of the reply; code and tables carry their own frame */}
+        {/* the agent's pills, a step off the canvas: one per block of the reply; code and tables carry their own frame */}
         {blocks.map((b, i) =>
           b.bare ? (
             <div key={i} className="my-1 max-w-full">
               <Markdown text={b.text} files={files} onOpenFile={onOpenFile} />
             </div>
           ) : (
-            <div key={i} className={cx("my-1 max-w-[340px] rounded-[20px] bg-surface-2 px-3.5 py-2.5 wide:max-w-[600px]", spoken && "border border-accent/15")}>
+            <div key={i} className={cx("my-1 max-w-[340px] rounded-[20px] bg-bubble-agent px-3.5 py-2.5 wide:max-w-[600px]", spoken && "border border-accent/15")}>
               {spoken && i === 0 && (
                 <div className="mb-0.5 flex items-center gap-1 text-[11px] font-medium text-accent/80">
                   <Phone size={10} /> {t("said on a call")}
@@ -529,7 +558,7 @@ function AssistantBubble({
           ),
         )}
         {blocks.length === 0 && streaming && (
-          <div className="my-1 rounded-[20px] bg-surface-2 px-3.5 py-2.5">
+          <div className="my-1 rounded-[20px] bg-bubble-agent px-3.5 py-2.5">
             <span className="inline-block w-1.5 h-4 align-middle bg-accent/70 animate-pulse rounded-sm" />
           </div>
         )}
@@ -557,14 +586,46 @@ function QuietLine({ text, about, ts }: { text: string; about?: string; ts?: str
 }
 
 function TypingIndicator({ label }: { label?: string }) {
+  const t = useT();
   return (
-    <div className="flex items-center gap-2">
-      <div className="rounded-[20px] rounded-bl-md bg-surface-2 px-3.5 py-2.5 flex items-center gap-1">
+    <div className="flex items-center gap-2" role="status">
+      <div aria-hidden className="rounded-[20px] rounded-bl-md bg-bubble-agent px-3.5 py-2.5 flex items-center gap-1">
         <span className="typing-dot h-2 w-2 rounded-full bg-muted" />
         <span className="typing-dot h-2 w-2 rounded-full bg-muted" />
         <span className="typing-dot h-2 w-2 rounded-full bg-muted" />
       </div>
+      <span className="sr-only">{t("On it")}</span>
       {label && <span className="text-[12px] text-muted">{label}</span>}
+    </div>
+  );
+}
+
+/**
+ * What a screen reader hears of a streamed reply: one line when the agent starts writing,
+ * and the whole reply once it is complete. The tokens in between are not read out; a
+ * live region that changed on every token would talk over itself. Sighted readers see the
+ * bubble fill as before.
+ */
+function LiveReply({ stream, name }: { stream: Stream | undefined; name: string }) {
+  const t = useT();
+  const [said, setSaid] = useState("");
+  // which announcement was made last, so a delta does not repeat it
+  const last = useRef<string | null>(null);
+  useEffect(() => {
+    if (!stream) {
+      // a stream dropped without a reply (discarded or empty) leaves nothing to read
+      if (last.current?.endsWith(":start")) setSaid("");
+      last.current = null;
+      return;
+    }
+    const key = `${stream.id}:${stream.ended ? "end" : "start"}`;
+    if (last.current === key) return;
+    last.current = key;
+    setSaid(stream.ended ? stripNamingFence(stream.text) : t("{name} is writing a reply", { name }));
+  }, [stream, name, t]);
+  return (
+    <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+      {said}
     </div>
   );
 }
@@ -688,8 +749,15 @@ function Composer({
   const fileRef = useRef<HTMLInputElement>(null);
   const t = useT();
 
-  // previews are object URLs; let them go when the chip goes
-  useEffect(() => () => pending.forEach((p) => p.preview?.startsWith("blob:") && URL.revokeObjectURL(p.preview)), [pending]);
+  // previews are object URLs; let them go when the chip goes (remove, a sent message) and
+  // whatever is still waiting when the composer goes away
+  const revoke = (items: Pending[]) =>
+    items.forEach((p) => p.preview?.startsWith("blob:") && URL.revokeObjectURL(p.preview));
+  const pendingRef = useRef<Pending[]>([]);
+  useEffect(() => {
+    pendingRef.current = pending;
+  }, [pending]);
+  useEffect(() => () => revoke(pendingRef.current), []);
 
   // the desktop's quick-chat shortcut: the window is up, the cursor goes here
   useEffect(() => {
@@ -719,7 +787,10 @@ function Composer({
         });
     }
   };
-  const remove = (key: string) => setPending((cur) => cur.filter((p) => p.key !== key));
+  const remove = (key: string) => {
+    revoke(pending.filter((p) => p.key === key));
+    setPending((cur) => cur.filter((p) => p.key !== key));
+  };
   const uploading = pending.some((p) => !p.info && !p.error);
   const attached = pending.flatMap((p) => (p.info ? [p.info.path] : []));
 
@@ -778,6 +849,7 @@ function Composer({
     setPending([]);
     ref.current?.focus();
     onSend(trimmed, attached)
+      .then(() => revoke(files))
       .catch(() => {
         setText((cur) => cur || trimmed);
         setPending((cur) => (cur.length ? cur : files));
@@ -906,6 +978,7 @@ function Composer({
           }}
           rows={1}
           placeholder={waiting ? t("Answer {name}…", { name }) : pending.length > 0 ? t("Say what to do with it…") : t("Message")}
+          aria-label={t("Message")}
           className="flex-1 resize-none bg-transparent px-1 py-2 text-[15px] leading-[1.4] outline-none placeholder:text-muted"
         />
         {dictation.supported && <MicButton listening={dictation.listening} onClick={toggleDictation} />}
@@ -914,8 +987,9 @@ function Composer({
           disabled={(!text.trim() && attached.length === 0) || uploading}
           aria-label={t("Send")}
           className={cx(
+            // the ink disc of the phone: black with a white arrow in the light theme, inverted in the dark
             "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition active:scale-95",
-            text.trim() || attached.length > 0 ? "bg-accent text-accent-fg" : "bg-surface-2 text-muted",
+            text.trim() || attached.length > 0 ? "bg-ink text-ink-fg" : "bg-surface-2 text-muted",
             "disabled:opacity-60",
           )}
         >
@@ -1081,6 +1155,7 @@ export function ThreadList({
             if (e.key === "Enter" && !creating) void create();
           }}
           placeholder={compact ? t("New side chat") : t("New side chat, e.g. “Trip to Kyoto”")}
+          aria-label={t("New side chat")}
           className={cx("min-w-0 flex-1 bg-surface-2 outline-none focus:ring-2 focus:ring-accent/40", compact ? "rounded-xl px-3 py-2 text-[13px]" : "rounded-2xl px-3.5 py-2.5 text-[14px]")}
         />
         <button

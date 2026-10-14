@@ -47,6 +47,34 @@ struct HubError: LocalizedError {
     var errorDescription: String? { message }
 }
 
+/// A failure from the hub or from a computer, said in the phone's language: Android's
+/// `HubErrors.describe`. The codes are the relay's (`cloud/nanomuse_cloud/hub.py`) and the
+/// runtime's coding service's (`nanomuse/coding/service.py`); anything else is one plain
+/// sentence, and the computer's own words stay in the log.
+enum NanoMuseHubErrors {
+    static func describe(_ error: Error) -> String {
+        guard let hub = error as? HubError else { return AppLocalized("The computer could not do it.") }
+        return describe(code: hub.code, message: hub.message)
+    }
+
+    static func describe(code: String, message: String = "") -> String {
+        switch code {
+        case "disconnected", "closed": return AppLocalized("Not connected to the hub right now.")
+        case "timeout": return AppLocalized("The computer did not answer in time.")
+        case "device_offline", "no_device": return AppLocalized("That computer is offline.")
+        case "busy": return AppLocalized("The computer is busy with another run; try again in a moment.")
+        case "not_controllable", "self_call": return AppLocalized("That device cannot be asked to do things.")
+        case "unknown_agent": return AppLocalized("That coding agent is not on the computer.")
+        case "no_session": return AppLocalized("That session is not on the computer any more.")
+        case "unknown_action": return AppLocalized("The computer runs an older nanoMuse that does not know this action.")
+        case "bad_key", "bad_device": return AppLocalized("Signed out on the relay; sign in again.")
+        default:
+            if !message.isEmpty { AppLogger(category: "NanoMuseHub").info("hub failure \(code): \(message)") }
+            return AppLocalized("The computer could not do it.")
+        }
+    }
+}
+
 // MARK: - The hub
 
 @MainActor

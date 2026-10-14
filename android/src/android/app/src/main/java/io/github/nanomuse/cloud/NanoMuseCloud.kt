@@ -645,6 +645,11 @@ object NanoMuseCloud {
                 io.github.nanomuse.account.AccountData.leave(context, before, keep = true)
                 io.github.nanomuse.account.AccountData.enter(context, after)
             }
+            // the profile bookkeeping (the rev last worn, the face's hash, the other devices'
+            // connections) was the account before's: with it kept, a new account whose rev is
+            // not past the old one's would be read as "nothing new" and its name and face
+            // never worn here
+            ProfileSync.forget(context)
         }
         _signedIn.value = true
         io.github.nanomuse.hub.Hub.restart(context) // the new key joins the hub
@@ -720,6 +725,8 @@ object NanoMuseCloud {
             "code_too_often" -> context.getString(R.string.nm_cloud_err_code_too_often)
             "not_invited" -> context.getString(R.string.nm_cloud_err_not_invited)
             "signup_closed" -> context.getString(R.string.nm_cloud_err_signup_closed)
+            "domain_limited" -> context.getString(R.string.nm_cloud_err_domain_limited)
+            "channel_unsupported" -> context.getString(R.string.nm_cloud_err_channel_unsupported)
             "send_failed" -> context.getString(R.string.nm_cloud_err_send_failed)
             "phone_region" -> context.getString(R.string.nm_cloud_sms_region) // the same sentence the sign-in screen shows before asking
             "account_disabled" -> context.getString(R.string.nm_cloud_err_disabled)

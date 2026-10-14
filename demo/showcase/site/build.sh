@@ -18,7 +18,14 @@ gateway=${NANOMUSE_DEMO:-/api/demo}
 cdn=${MOBILEGYM_CDN_BASE:-/cdn}
 
 if [ ! -d "$checkout" ]; then
-  git clone --depth 1 "${MOBILEGYM_REPO:-https://github.com/Purewhiter/mobilegym.git}" "$checkout"
+  # the commit pinned in ../mobilegym.ref unless MOBILEGYM_REF says otherwise, fetched by
+  # name so a commit id works as well as a branch or tag (the same as caddy/Dockerfile)
+  ref=${MOBILEGYM_REF:-$(grep -v '^#' "$here/../mobilegym.ref" | tr -d '[:space:]')}
+  git init -q "$checkout"
+  git -C "$checkout" remote add origin "${MOBILEGYM_REPO:-https://github.com/Purewhiter/mobilegym.git}"
+  git -C "$checkout" fetch -q --depth 1 origin "$ref"
+  git -C "$checkout" checkout -q --detach FETCH_HEAD
+  echo "MobileGym $ref is $(git -C "$checkout" rev-parse HEAD)"
 fi
 cd "$checkout"
 [ -d node_modules ] || npm ci --no-audit --no-fund

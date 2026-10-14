@@ -233,6 +233,7 @@ def test_the_socket_s_first_frame_wakes_a_slept_muse(web, monkeypatch):
         host = me["origin"].split("//")[1]
         token = me["url"].split("token=")[1]
         clock.now += settings.web_idle_stop_s + 1
+        assert tc.portal is not None  # open while the client is entered
         tc.portal.call(accounts.reap_once)
         assert runner.kept[name]["running"] is False
 

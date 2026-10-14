@@ -15,10 +15,15 @@
 //  stands in for `URLSession.shared` on the sign-in and model-list paths. A proxy with a user
 //  name and password gets the credentials from the shared credential storage.
 //
-//  Off by default. Nothing here is synced. The Android twin is io.github.nanomuse.net.OwnProviderProxy.
+//  Off by default. Nothing here is synced. The host, the port and the user name are in
+//  UserDefaults; the password is in the Keychain, on this device only, next to the relay's key
+//  (`io.github.nanomuse.app.proxy`). Up to 1.0.3 the password was a UserDefaults string too and
+//  so part of every backup; `config()` moves it over once. The Android twin is
+//  io.github.nanomuse.net.OwnProviderProxy.
 //
 
 import Foundation
+import Security
 
 enum NanoMuseProxy {
     struct Config: Equatable, Sendable {
@@ -39,7 +44,18 @@ enum NanoMuseProxy {
         static let host = "nanomuse.proxy.host"
         static let port = "nanomuse.proxy.port"
         static let user = "nanomuse.proxy.user"
-        static let password = "nanomuse.proxy.password"
+        /// The 1.0.3 home of the password, read once by `config()` and then removed.
+        static let legacyPassword = "nanomuse.proxy.password"
+        /// "host:port" the credentials were last stored for, so a change of address or a
+        /// switch-off takes the old entry out of the credential storage.
+        static let credentialSpace = "nanomuse.proxy.credential_space"
+    }
+
+    /// The Keychain item: the sweep on a fresh install removes every `io.github.nanomuse.app.*`
+    /// service, this one with them (NanoMuseAccountData.sweepDeviceKeychain).
+    private enum KeychainItem {
+        static let service = "io.github.nanomuse.app.proxy"
+        static let account = "password"
     }
 
     private static let lock = NSLock()
@@ -54,12 +70,24 @@ enum NanoMuseProxy {
         lock.lock(); defer { lock.unlock() }
         if let c = cached { return c }
         let d = UserDefaults.standard
+        var password = readPassword()
+        // 1.0.3 kept the password in UserDefaults: it moves to the Keychain once, and the old
+        // string goes, so the next backup no longer carries it.
+        if let legacy = d.string(forKey: Keys.legacyPassword) {
+            var moved = legacy.isEmpty || !password.isEmpty
+            if !moved, writePassword(legacy) {
+                password = legacy
+                moved = true
+            }
+            // The old string stays only while the Keychain refused the write, for the next try.
+            if moved { d.removeObject(forKey: Keys.legacyPassword) }
+        }
         let c = Config(
             enabled: d.bool(forKey: Keys.enabled),
             host: d.string(forKey: Keys.host) ?? "",
             port: d.integer(forKey: Keys.port),
             user: d.string(forKey: Keys.user) ?? "",
-            password: d.string(forKey: Keys.password) ?? ""
+            password: password
         )
         cached = c
         return c
@@ -67,29 +95,88 @@ enum NanoMuseProxy {
 
     static func save(_ c: Config) {
         let d = UserDefaults.standard
-        d.set(c.enabled, forKey: Keys.enabled)
-        d.set(c.host.trimmingCharacters(in: .whitespaces), forKey: Keys.host)
-        d.set(c.port, forKey: Keys.port)
-        d.set(c.user, forKey: Keys.user)
-        d.set(c.password, forKey: Keys.password)
+        let next = Config(enabled: c.enabled, host: c.host.trimmingCharacters(in: .whitespaces), port: c.port, user: c.user, password: c.password)
+        d.set(next.enabled, forKey: Keys.enabled)
+        d.set(next.host, forKey: Keys.host)
+        d.set(next.port, forKey: Keys.port)
+        d.set(next.user, forKey: Keys.user)
         lock.lock()
-        cached = Config(enabled: c.enabled, host: c.host.trimmingCharacters(in: .whitespaces), port: c.port, user: c.user, password: c.password)
+        let before = cached?.password
+        cached = next
         lock.unlock()
-        storeCredentials(c)
+        // `save` runs on every keystroke of the Network page; the Keychain is written only when
+        // the password itself changed.
+        if before != next.password { writePassword(next.password) }
+        storeCredentials(next)
     }
 
+    // MARK: - The password in the Keychain
+
+    /// The stored password, empty when there is none (or the Keychain is not readable yet).
+    private static func readPassword() -> String {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: KeychainItem.service,
+            kSecAttrAccount as String: KeychainItem.account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+        ]
+        var result: AnyObject?
+        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess, let data = result as? Data else { return "" }
+        return String(data: data, encoding: .utf8) ?? ""
+    }
+
+    /// Writes the password on this device only (no iCloud Keychain, readable after the first
+    /// unlock); an empty password removes the item. True when the Keychain holds what was asked.
+    @discardableResult
+    private static func writePassword(_ password: String) -> Bool {
+        let base: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: KeychainItem.service,
+            kSecAttrAccount as String: KeychainItem.account,
+        ]
+        let deleted = SecItemDelete(base as CFDictionary)
+        guard !password.isEmpty else { return deleted == errSecSuccess || deleted == errSecItemNotFound }
+        var add = base
+        add[kSecValueData as String] = Data(password.utf8)
+        add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        add[kSecAttrSynchronizable as String] = false
+        return SecItemAdd(add as CFDictionary, nil) == errSecSuccess
+    }
+
+    // MARK: - The credential storage
+
     /// The proxy's credentials in the shared storage, where a session without a delegate
-    /// finds them for a 407; removed when there are none.
+    /// finds them for a 407. Removed when the proxy is off, has no user name, or moved to
+    /// another address, so no stale entry stays behind for a host that is no longer the proxy.
     private static func storeCredentials(_ c: Config) {
-        guard c.usable else { return }
+        let d = UserDefaults.standard
         let storage = URLCredentialStorage.shared
-        for type in [NSURLProtectionSpaceHTTPSProxy, NSURLProtectionSpaceHTTPProxy] {
-            let space = URLProtectionSpace(proxyHost: c.host, port: c.port, type: type, realm: nil, authenticationMethod: NSURLAuthenticationMethodHTTPBasic)
-            if let existing = storage.defaultCredential(for: space) { storage.remove(existing, for: space) }
-            if c.hasCredentials {
-                storage.setDefaultCredential(URLCredential(user: c.user, password: c.password, persistence: .permanent), for: space)
+        func clear(host: String, port: Int) {
+            for type in [NSURLProtectionSpaceHTTPSProxy, NSURLProtectionSpaceHTTPProxy] {
+                let space = URLProtectionSpace(proxyHost: host, port: port, type: type, realm: nil, authenticationMethod: NSURLAuthenticationMethodHTTPBasic)
+                if let existing = storage.defaultCredential(for: space) { storage.remove(existing, for: space) }
             }
         }
+        if let previous = d.string(forKey: Keys.credentialSpace), let colon = previous.lastIndex(of: ":"),
+           let port = Int(previous[previous.index(after: colon)...]) {
+            let host = String(previous[..<colon])
+            if !(c.usable && host == c.host && port == c.port) { clear(host: host, port: port) }
+        }
+        guard c.usable else {
+            d.removeObject(forKey: Keys.credentialSpace)
+            return
+        }
+        clear(host: c.host, port: c.port)
+        guard c.hasCredentials else {
+            d.removeObject(forKey: Keys.credentialSpace)
+            return
+        }
+        for type in [NSURLProtectionSpaceHTTPSProxy, NSURLProtectionSpaceHTTPProxy] {
+            let space = URLProtectionSpace(proxyHost: c.host, port: c.port, type: type, realm: nil, authenticationMethod: NSURLAuthenticationMethodHTTPBasic)
+            storage.setDefaultCredential(URLCredential(user: c.user, password: c.password, persistence: .permanent), for: space)
+        }
+        d.set("\(c.host):\(c.port)", forKey: Keys.credentialSpace)
     }
 
     // MARK: - The hosts

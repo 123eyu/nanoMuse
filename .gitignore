@@ -3,7 +3,11 @@ config/config.toml
 config/*.local.toml
 .env
 .env.*
+*.env
 !.env.example
+# the phones' build-time values, copied from the .example beside each (docs/ios.md, android/BUILDING.md)
+android/src/ios/Configs/ProviderCustomization.xcconfig
+android/src/android/app/provider-customization.properties
 
 # runtime data
 workspace/
@@ -53,7 +57,8 @@ android/build/
 android/app/build/
 android/local.properties
 android/keystore.properties
-android/.kotlin/
+# the Kotlin daemon's session files, beside the Gradle project (android/src/android)
+android/src/android/.kotlin/
 android/native/build/
 *.jks
 *.keystore

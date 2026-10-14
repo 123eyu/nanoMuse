@@ -40,4 +40,23 @@ internal class HubTasks {
     fun markStopped(sessionId: String) {
         runs.values.filter { it.sessionId == sessionId }.forEach { it.stopped = true }
     }
+
+    companion object {
+        /**
+         * What this phone's Muse is told for a `task`. A web console speaks for the person
+         * directly; a device's Muse gets [prefix] (who asked, from where). [language] is the
+         * asking device's screen language (`task.language`, docs/hub.md, a BCP-47 tag): when it
+         * is there the answer is asked for in it, so the person reads the result in the language
+         * of the device they used; without it the model goes by the text. The line is English,
+         * for the model, like the rest of the prompt's framing.
+         */
+        fun prompt(text: String, prefix: String?, language: String?): String {
+            val tag = language.orEmpty().trim().take(20)
+            return buildList {
+                if (!prefix.isNullOrBlank()) add(prefix)
+                if (tag.isNotEmpty()) add("Answer in the language tagged $tag; the device that asked shows its screens in it.")
+                add(text)
+            }.joinToString("\n\n")
+        }
+    }
 }

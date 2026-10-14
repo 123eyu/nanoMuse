@@ -88,40 +88,46 @@ class GitHubCollector:
         return h
 
     async def collect(self) -> dict[str, Any]:
-        """One run: fetch, write today's snapshot, remember how it went. Never raises."""
+        """One run: fetch, write today's snapshot, remember how it went. A GitHub error is
+        an answer, not an exception; whatever happens, `running` is let go at the end."""
         if not self.enabled:
             return {"ok": False, "error": "no repository configured"}
         if self.running:
             return {"ok": False, "error": "already running"}
+        # `running` is let go in `finally`: an error escaping the write below (a locked
+        # database, an asset of an unexpected shape) used to leave it set, and every run
+        # after that, the six-hourly one and *Refresh now*, answered "already running"
+        # until a restart
         self.running = True
         t = int(self.clock())
         try:
-            async with httpx.AsyncClient(timeout=20.0, transport=self.transport, headers=self._headers()) as c:
-                repo = await self._json(c, f"{self.api}/repos/{self.repo}")
-                releases: list[dict] = []
-                for page in range(1, RELEASES_PAGES + 1):
-                    chunk = await self._json(c, f"{self.api}/repos/{self.repo}/releases", params={"per_page": 100, "page": page})
-                    if not isinstance(chunk, list):
-                        break
-                    releases.extend(x for x in chunk if isinstance(x, dict))
-                    if len(chunk) < 100:
-                        break
-        except (httpx.HTTPError, ValueError) as e:
-            self.error = f"{type(e).__name__}: {str(e)[:160]}"
-            self.last_run = t
+            try:
+                async with httpx.AsyncClient(timeout=20.0, transport=self.transport, headers=self._headers()) as c:
+                    repo = await self._json(c, f"{self.api}/repos/{self.repo}")
+                    releases: list[dict] = []
+                    for page in range(1, RELEASES_PAGES + 1):
+                        chunk = await self._json(c, f"{self.api}/repos/{self.repo}/releases", params={"per_page": 100, "page": page})
+                        if not isinstance(chunk, list):
+                            break
+                        releases.extend(x for x in chunk if isinstance(x, dict))
+                        if len(chunk) < 100:
+                            break
+            except (httpx.HTTPError, ValueError) as e:
+                self.error = f"{type(e).__name__}: {str(e)[:160]}"
+                self.last_run = t
+                self._remember()
+                log.warning("github: could not read %s: %s", self.repo, self.error)
+                return {"ok": False, "error": self.error}
+            snapshot = self.snapshot_from(repo, releases)
+            day = utc_day(t)
+            for metric, keyed in snapshot.items():
+                for key, value in keyed.items():
+                    self.db.daily_set(day, metric, key, value, ts=t)
+            self.error = ""
+            self.last_run = self.last_ok = t
             self._remember()
-            log.warning("github: could not read %s: %s", self.repo, self.error)
+        finally:
             self.running = False
-            return {"ok": False, "error": self.error}
-        snapshot = self.snapshot_from(repo, releases)
-        day = utc_day(t)
-        for metric, keyed in snapshot.items():
-            for key, value in keyed.items():
-                self.db.daily_set(day, metric, key, value, ts=t)
-        self.error = ""
-        self.last_run = self.last_ok = t
-        self._remember()
-        self.running = False
         log.info(
             "github: %s has %d stars, %d forks, %d downloads across %d releases",
             self.repo,

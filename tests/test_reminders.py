@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from nanomuse.reminders import ReminderStore, parse_when
+from nanomuse.schema import RiskLevel
 from nanomuse.tools import Reminders
 
 
@@ -99,7 +100,10 @@ def test_reminders_tool(tmp_path: Path):
     assert r.ok and r.output.startswith("Cancelled.") and len(changes) == 3
     r = run(tool.execute(action="cancel", reminder_id=item.id))
     assert not r.ok
-    assert tool.assess({"action": "create", "text": "call mum", "at": soon}).summary.startswith(
-        f"reminders create: {soon}"
-    )
+    create = tool.assess({"action": "create", "text": "call mum", "at": soon})
+    assert create.summary.startswith(f"reminders create: {soon}")
+    # creating standing work is a change of state; listing and cancelling are not
+    assert create.risk == RiskLevel.MODERATE
+    assert tool.assess({"action": "list"}).risk == RiskLevel.SAFE
+    assert tool.assess({"action": "cancel", "reminder_id": "r_x"}).risk == RiskLevel.SAFE
     store.close()

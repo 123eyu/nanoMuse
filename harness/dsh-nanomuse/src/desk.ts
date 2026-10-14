@@ -320,6 +320,23 @@ const FORBIDDEN_FIELD = /token|secret|key|authorization|password/i
 
 export const SHARED_CONNECTORS_CAP = 64
 
+/**
+ * A connector's address without a `user:pass@` in it. New addresses with one are refused when
+ * saved; one saved before that check keeps it in connectors.json, and the profile the other
+ * devices read must not carry it.
+ */
+export function withoutUserinfo(url: string): string {
+  try {
+    const parsed = new URL(url)
+    if (!parsed.username && !parsed.password) return url
+    parsed.username = ''
+    parsed.password = ''
+    return parsed.toString()
+  } catch {
+    return url
+  }
+}
+
 /** This device's connections as the profile should list them. */
 export function sharedConnectors(
   connections: { service: string; id: string; label: string; url: string; auth: string; state: string; connectedAt: number; updatedAt: number }[],
@@ -329,7 +346,7 @@ export function sharedConnectors(
   const rows = connections.slice(0, SHARED_CONNECTORS_CAP).map((c): SharedConnector => ({
     id: (c.service && c.service !== 'custom' ? c.service : c.id).slice(0, 64),
     label: c.label.slice(0, 80),
-    ...(c.url ? { url: c.url.slice(0, 256) } : {}),
+    ...(c.url ? { url: withoutUserinfo(c.url).slice(0, 256) } : {}),
     auth: c.auth === 'oauth' ? 'oauth' : c.auth === 'none' ? 'open' : 'key',
     device: device.slice(0, 80),
     device_id: deviceId.slice(0, 80),
@@ -520,6 +537,23 @@ export async function checkForUpdate(current: string, fetchImpl: Fetch = fetch a
     errors.push(`github: ${error instanceof Error ? error.message : String(error)}`)
   }
   return { ...base, error: errors.join('; ') }
+}
+
+/** One check a day, at most, by itself; the About row may ask any time. */
+export const UPDATE_EVERY_MS = 24 * 60 * 60_000
+/** A check that could not read either source is tried again after an hour, not a day. */
+export const UPDATE_RETRY_MS = 60 * 60_000
+
+/**
+ * Whether a cached check still answers for the bundle that runs now: made by this very
+ * version, and younger than a day; a failed one (`source: 'none'`, nothing read) is good for
+ * an hour only, so a network that was down at start does not leave "Could not check" on the
+ * About row for the rest of the day. A cache made by another version is no answer at all.
+ */
+export function updateCacheFresh(cached: UpdateInfo | undefined, current: string, now = Date.now()): boolean {
+  if (!cached || cached.current !== current) return false
+  const ttl = cached.source === 'none' ? UPDATE_RETRY_MS : UPDATE_EVERY_MS
+  return now - cached.checkedAt < ttl
 }
 
 // ---- models (C4) --------------------------------------------------------------------
