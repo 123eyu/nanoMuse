@@ -453,6 +453,9 @@ TypeScript can change freely).
 
 ## macOS signing
 
+The runtime staging step preserves PyInstaller's relative framework and library links.
+This keeps the framework layout intact when the app is copied and signed.
+
 Without an Apple developer certificate the bundle is ad-hoc signed and macOS asks once.
 With the repository secrets `MAC_CERT_P12_BASE64`, `MAC_CERT_PASSWORD`,
 `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`, `APP_STORE_CONNECT_KEY_P8` and

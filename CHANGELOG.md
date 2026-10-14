@@ -12,6 +12,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Desktop
 
+- **The bundled runtime kept its library links.** Staging the PyInstaller output preserved relative library aliases and macOS framework links instead of copying their targets into duplicate files and directories.
+
 ### Android
 
 - **A single assistant markdown turn stays in one bubble, and the stop button matches the send disc.** A reply turn containing lists, headings, paragraphs and code blocks now stays inside one assistant bubble on Android as it does on iOS instead of splitting into separate sibling bubbles per markdown block, while text before and after a tool call and separate messages remain distinct bubbles. While a reply is streaming, the stop button in the composer uses the monochrome ink disc (`ChatColors.sendButton` with the inner square in `ChatColors.background`, black with a white square in light and inverted in dark) instead of a red circle.
