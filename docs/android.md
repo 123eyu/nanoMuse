@@ -258,6 +258,10 @@ milliseconds. Unit tests: `ProviderReachTest`, `OwnProviderProxyTest`.
 
 ## Voice input
 
+Provider voice input returns to idle when a silent session reaches its limit or a very short
+utterance expires without enough speech to transcribe. A transcription already in progress
+still delivers its result before the session finishes.
+
 System voice input can prefer on-device recognition. If the phone has no usable on-device
 service, it falls back to the default recognition service. A language error from that
 default service is shown in the voice panel. A running on-device recognizer whose language
