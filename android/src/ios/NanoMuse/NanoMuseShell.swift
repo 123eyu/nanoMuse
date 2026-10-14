@@ -1319,11 +1319,12 @@ struct NanoMuseDrawer: View {
                         } preview: {
                             // The default preview lifts the List cell, which the system lays out
                             // wider than the drawer; the drawer then clips it at its edge and the
-                            // chat shows through. An explicit preview at the panel's width does not.
+                            // chat shows through. An explicit preview does not: the system sets it
+                            // 16 pt in from the edge, so it is the panel's width less 16 pt each side.
                             row(session)
                                 .padding(.horizontal, 20)
                                 .padding(.vertical, 12)
-                                .frame(width: width, alignment: .leading)
+                                .frame(width: width - 32, alignment: .leading)
                                 .background(NanoMuseTones.surface)
                         }
                     }
