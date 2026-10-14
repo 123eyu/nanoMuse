@@ -458,7 +458,8 @@ nothing about the install is sent beyond the runtime's version in the request's 
 web session (a runtime started with `NANOMUSE_CLOUD_KEY`) never checks; its operator updates it.
 
 These settings apply to the Python runtime. The Windows desktop shell checks separately
-after startup and every six hours; downloads are manual. See [desktop.md](desktop.md#updating-on-windows).
+after startup and every six hours. Its saved automatic download switch is on by default,
+but metered or unknown networks wait for a manual download. See [desktop.md](desktop.md#updating-on-windows).
 
 ## Where things live
 

@@ -36,11 +36,19 @@ The Windows x64 app checks for a newer stable release after starting and every s
 hours. Settings shows the running app's version and the same update state as the
 corner menu, with **Check now** to refresh immediately.
 
-In the existing bottom-left menu, choose **Download** when an update is available.
+Updates download in the background by default when Windows reports an unmetered
+internet connection. **Download updates automatically** in Settings saves your choice
+across restarts. Switching it off stops new automatic downloads, while a download
+already running can finish. Checks continue on metered or unknown networks; the menu
+explains the pause and **Download** overrides it for that request without changing the switch.
 The menu shows download progress and verification, then **Restart to update** once
 electron-updater has verified the complete installer. A dot means an action is
 waiting: download, retry or restart. Downloading has no update dot, and completion
 does not open a dialog. Failed checks and downloads can be retried from the menu.
+After a failed download, automatic retries wait one minute, then five minutes, with
+at most two retries. Each one rechecks your switch and Windows' network cost. After
+that, the app waits for a manual retry or the next six-hour check; turning automatic
+downloads off also prevents those later checks from starting a download.
 The download mirror is tried first, then GitHub for the same version and checksum.
 An already downloaded installer is verified again before reuse.
 
@@ -51,7 +59,7 @@ are pending, the app lists them and defaults to keeping them running. Only an
 explicit confirmation ends the work; installation waits until it has ended and
 blocks new work during handoff. A cancelled or failed handoff lets work continue.
 
-Downloads start when you request them. Quitting normally, closing to the tray and
+Quitting normally, closing to the tray and
 leaving the app idle do not install the package. Other platforms, older shells and
 the standalone harness retain the external download flow. A version that has no
 in-app updater must first be upgraded with the downloaded installer. Development
