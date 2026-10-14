@@ -16,6 +16,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### iOS
 
+- **A side chat's long-press preview stays inside the drawer.** Holding a chat in the drawer lifted a preview wider than the drawer, cut off at its edge with the conversation showing through; the preview is now the row at the drawer's width on the drawer's background.
+
 ### Project
 
 ## [1.0.5] - 2026-10-14 · Lookout
