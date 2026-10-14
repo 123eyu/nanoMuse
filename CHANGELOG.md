@@ -20,6 +20,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 - **The composer halo and the bottom pill-bar icons match Android.** `NanoMuseComposerHost` now draws a rounded vignette (`NanoMuseComposerVignette`) following the composer pill's 26 pt contour and soft shadow instead of a full-width opaque rectangular strip behind the composer column. The five bottom pill-bar tabs use the same icon shapes as Android's `MuseBottomBar`: single chat bubble (`bubble.left`), document with lines (`doc.text`), lightbulb (`lightbulb`), checked square (`checkmark.square`) and the three-shape category glyph for Library.
 - **A side chat's long-press preview stays inside the drawer.** Holding a chat in the drawer lifted a preview wider than the drawer, cut off at its edge with the conversation showing through; the preview is now the row at the drawer's width on the drawer's background.
+- **The composer's text lines up with its plus and mic.** One line of text sat about 6 pt below the two buttons; it now sits on their centre line, and a longer text keeps them level with its last line.
 
 ### Project
 
