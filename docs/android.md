@@ -265,6 +265,10 @@ started to answer but has not finished sending the response.
 
 ## Voice input
 
+On Android 13 and later, continuous system dictation keeps feeding audio when the recognizer
+starts its next segment. A write that fails on the previous segment's closed pipe cannot
+disable the new segment's audio stream.
+
 Provider voice input returns to idle when a silent session reaches its limit or a very short
 utterance expires without enough speech to transcribe. A transcription already in progress
 still delivers its result before the session finishes.

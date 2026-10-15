@@ -245,8 +245,8 @@ class SystemSpeechRecognitionEngine(private val appContext: Context) : SpeechRec
     @Volatile
     private var audioPipeWrite: android.os.ParcelFileDescriptor? = null
 
-    @Volatile
-    private var audioPipeStream: java.io.OutputStream? = null
+    // nanoMuse: a retired writer can fail after a segment restart publishes its replacement.
+    private val audioPipeStream = java.util.concurrent.atomic.AtomicReference<java.io.OutputStream?>()
 
     /** Read end, handed to the recogniser; closed once it has taken ownership. */
     @Volatile
@@ -308,7 +308,8 @@ class SystemSpeechRecognitionEngine(private val appContext: Context) : SpeechRec
         }
         audioPipeRead = pipe[0]
         audioPipeWrite = pipe[1]
-        audioPipeStream = android.os.ParcelFileDescriptor.AutoCloseOutputStream(pipe[1])
+        // nanoMuse: publish the stream atomically for the capture worker.
+        audioPipeStream.set(android.os.ParcelFileDescriptor.AutoCloseOutputStream(pipe[1]))
 
         val det = VoiceActivityDetector(
             appContext,
@@ -408,7 +409,8 @@ class SystemSpeechRecognitionEngine(private val appContext: Context) : SpeechRec
         // ONE capture serves both: the VAD judges these samples and the very
         // same frames go down the pipe to the recogniser.
         det.rawAudioSink = { bytes, len ->
-            val out = audioPipeStream
+            // nanoMuse: retain the identity of the stream used by this write.
+            val out = audioPipeStream.get()
             if (out != null) {
                 try {
                     out.write(bytes, 0, len)
@@ -416,7 +418,8 @@ class SystemSpeechRecognitionEngine(private val appContext: Context) : SpeechRec
                     // Recogniser closed its end (finished or died). Stop
                     // writing; the session is over either way.
                     Log.i(TAG, "[vad] audio pipe closed by reader: ${t.javaClass.simpleName}")
-                    audioPipeStream = null
+                    // nanoMuse: a failed old write must not clear a newer segment's pipe.
+                    audioPipeStream.compareAndSet(out, null)
                 }
             }
         }
@@ -489,7 +492,8 @@ class SystemSpeechRecognitionEngine(private val appContext: Context) : SpeechRec
         }
         audioPipeRead = pipe[0]
         audioPipeWrite = pipe[1]
-        audioPipeStream = android.os.ParcelFileDescriptor.AutoCloseOutputStream(pipe[1])
+        // nanoMuse: publish the replacement independently of any retiring write.
+        audioPipeStream.set(android.os.ParcelFileDescriptor.AutoCloseOutputStream(pipe[1]))
         feedingAudio = true
 
         startInternal(locale, allowOnDeviceRetry = false)
@@ -510,8 +514,8 @@ class SystemSpeechRecognitionEngine(private val appContext: Context) : SpeechRec
     }
 
     private fun closeAudioPipe() {
-        audioPipeStream?.let { runCatching { it.close() } }
-        audioPipeStream = null
+        // nanoMuse: detach before closing; an in-flight write only owns the retired stream.
+        audioPipeStream.getAndSet(null)?.let { runCatching { it.close() } }
         audioPipeWrite = null
         audioPipeRead?.let { runCatching { it.close() } }
         audioPipeRead = null
