@@ -16,6 +16,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Desktop
 
+- **Mac packaging selected the requested architecture and stopped on failed checks.** Building with both Intel and Apple silicon bundles present no longer put the wrong app in a named installer; inner signing and app, helper and disk-image verification failures returned an error instead of continuing.
+
 - **The bundled-runtime build check stopped hanging on startup logs or timeouts.** It captures logs without filling an unread pipe, waits for the checked process to stop, and chooses a free loopback port so an existing service on port 8765 cannot make a broken bundle pass.
 
 - **The bundled runtime kept its library links.** Staging the PyInstaller output preserved relative library aliases and macOS framework links instead of copying their targets into duplicate files and directories.

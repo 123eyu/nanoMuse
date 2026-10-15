@@ -499,6 +499,11 @@ TypeScript can change freely).
 
 ## macOS signing
 
+`scripts/desktop-app/package-mac.sh x64` packages `dist/mac`, and `arm64` packages
+`dist/mac-arm64`, even when both builds are present. A missing or ambiguous bundle,
+a failed inner Mach-O signature, or a failed app, helper or disk-image verification
+stops packaging with an error.
+
 The runtime staging step preserves PyInstaller's relative framework and library links.
 This keeps the framework layout intact when the app is copied and signed.
 
