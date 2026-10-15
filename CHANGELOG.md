@@ -24,6 +24,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Android
 
+- **Voice input released the recorder when capture could not start.** A recorder allocated before a cancelled capture task began, or whose startup failed, is now released on every exit path instead of being left allocated. Errors in a capture callback cannot skip that cleanup.
+
 - Chat-only x86_64 builds excluded cached arm64 sandbox assets, so switching from a phone build no longer bundled the unusable proot and root filesystem payloads.
 
 - **Replacing avatar candidates no longer lets an old result change the new set.** Ownership is checked together with publication, including a late retry. PNG encoding and decoding use private temporary files outside the replacement lock, so Again does not wait for an old picture write and an old writer cannot overwrite the new candidate files. For #337.
