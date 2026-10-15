@@ -18,8 +18,10 @@ import argparse
 import json
 import os
 import shutil
+import socket
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.request
 from pathlib import Path
@@ -56,7 +58,8 @@ def build(target: Path) -> Path:
     if not exe.exists():
         raise SystemExit(f"PyInstaller produced nothing at {exe}")
     shutil.rmtree(target, ignore_errors=True)
-    shutil.copytree(built, target)
+    # Keep PyInstaller's relative library aliases and macOS framework layout intact.
+    shutil.copytree(built, target, symlinks=True)
     size = sum(p.stat().st_size for p in target.rglob("*") if p.is_file()) // (1024 * 1024)
     print(f"runtime: {target} ({size} MB)")
     return target / exe.name
@@ -70,7 +73,9 @@ def check(exe: Path) -> None:
     under that data directory (0.1.20/0.1.21 on Windows created ``./workspace`` wherever the
     shell happened to start it and died when that was not writable).
     """
-    port = 8765
+    with socket.socket() as listener:
+        listener.bind(("127.0.0.1", 0))
+        port = listener.getsockname()[1]
     home = ROOT / "build" / "runtime-check-home"
     cwd = ROOT / "build" / "runtime-check-cwd"
     for d in (home, cwd):
@@ -85,47 +90,56 @@ def check(exe: Path) -> None:
         "NANOMUSE_WORKSPACE",
     ):
         env.pop(key, None)
-    proc = subprocess.Popen(
-        [str(exe), "serve", "--no-qr", "--no-auth", "--port", str(port)],
-        cwd=cwd,
-        env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-    )
-    try:
-        deadline = time.time() + 60
-        while time.time() < deadline:
-            try:
-                with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/health", timeout=1) as r:
-                    body = json.loads(r.read())
-                    if body.get("ok"):
-                        print("health:", body)
-                        with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=2) as r2:
-                            page = r2.read()
-                            assert (
-                                b'<div id="root"' in page
-                                or b"<div id=root" in page
-                                or len(page) > 200
-                            )
-                        assert (home / "workspace").is_dir(), "workspace not under the data dir"
-                        assert not (cwd / "workspace").exists(), "workspace created in the cwd"
-                        print("the app is served; the bundled runtime works")
-                        return
-            except Exception:  # noqa: BLE001
+    # A startup log can exceed a pipe's capacity before the server listens.
+    # A regular file also lets the timeout read diagnostics without waiting for EOF.
+    with tempfile.TemporaryFile() as log:
+        proc = subprocess.Popen(
+            [str(exe), "serve", "--no-qr", "--no-auth", "--port", str(port)],
+            cwd=cwd,
+            env=env,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+        )
+        try:
+            deadline = time.monotonic() + 60
+            while time.monotonic() < deadline:
                 if proc.poll() is not None:
                     break
-                time.sleep(0.5)
-        out = proc.stdout.read() if proc.stdout else ""
-        raise SystemExit(f"the bundled runtime did not come up:\n{out[-4000:]}")
-    finally:
-        proc.terminate()
-        try:
-            proc.wait(10)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-        for d in (home, cwd):
-            shutil.rmtree(d, ignore_errors=True)
+                try:
+                    with urllib.request.urlopen(
+                        f"http://127.0.0.1:{port}/api/health", timeout=1
+                    ) as r:
+                        body = json.loads(r.read())
+                        if body.get("ok"):
+                            print("health:", body)
+                            with urllib.request.urlopen(
+                                f"http://127.0.0.1:{port}/", timeout=2
+                            ) as r2:
+                                page = r2.read()
+                                assert (
+                                    b'<div id="root"' in page
+                                    or b"<div id=root" in page
+                                    or len(page) > 200
+                                )
+                            assert (home / "workspace").is_dir(), "workspace not under the data dir"
+                            assert not (cwd / "workspace").exists(), "workspace created in the cwd"
+                            print("the app is served; the bundled runtime works")
+                            return
+                except Exception:  # noqa: BLE001
+                    time.sleep(0.5)
+            log.seek(0, os.SEEK_END)
+            log.seek(max(0, log.tell() - 4000))
+            out = log.read(4000).decode("utf-8", errors="replace")
+            raise SystemExit(f"the bundled runtime did not come up:\n{out}")
+        finally:
+            proc.terminate()
+            try:
+                proc.wait(10)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait(10)
+            for d in (home, cwd):
+                shutil.rmtree(d, ignore_errors=True)
 
 
 def main() -> None:
