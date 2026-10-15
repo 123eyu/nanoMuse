@@ -91,7 +91,7 @@ The same presets are offered in the web console (*Connections → Chat model*, a
 ```toml
 [llm]
 provider = "chatgpt"     # the sign-in from `nanomuse chatgpt login`; no base_url, no api_key
-model    = ""            # empty → gpt-5.6-sol (also gpt-5.4, gpt-5.4-mini)
+model    = ""            # empty → gpt-5.6-sol (also gpt-6.1-sol, gpt-6-sol, gpt-6-luna, gpt-6-astra, gpt-5.4, gpt-5.4-mini)
 ```
 
 A person with a ChatGPT plan (Plus, Pro, Team) can let nanoMuse use it for chat and for the hands, the way OpenAI's own Codex CLI does: `nanomuse chatgpt login` opens OpenAI's sign-in page in the browser (PKCE, the same client id, scopes and redirect as Codex), waits for the callback on port 1455 of the machine the runtime runs on, and stores the tokens in `<data_dir>/chatgpt.json` (mode 0600), refreshed before they expire. `nanomuse chatgpt status` says who is signed in and until when (never the tokens); `nanomuse chatgpt logout` deletes the store. The same three steps are on the web console's *Connections* screen (*Or sign in with a ChatGPT plan*), which calls `POST /api/chatgpt/login`, `GET /api/chatgpt/status` and `POST /api/chatgpt/logout` on the runtime ([web.md](web.md)). After a sign-in nothing switches by itself: set `provider = "chatgpt"` here, pick *Use it for the chat* on the web, or `PUT /api/connections/llm {"provider": "chatgpt"}`. `[gui] provider = "chatgpt"` works the same way for the hands.

@@ -28,7 +28,12 @@ object OpenAIModelsApi {
     // (`/v1/responses` requires the `reasoning` object on this auth path),
     // so set supportsReasoning = true up front. Without it the Thinking
     // pill in chat is disabled and the user can't pick low/medium/high.
-    fun fetchModelsOAuth(): List<LLMModel> = listOf(
+    // nanoMuse: GPT-6 series and live Codex OAuth models refresh (#475)
+    private val builtInCodexOAuthModels: List<LLMModel> = listOf(
+        LLMModel("gpt-6.1-sol", "GPT-6.1 Sol", "OpenAI", supportsReasoning = true),
+        LLMModel("gpt-6-sol", "GPT-6 Sol", "OpenAI", supportsReasoning = true),
+        LLMModel("gpt-6-luna", "GPT-6 Luna", "OpenAI", supportsReasoning = true),
+        LLMModel("gpt-6-astra", "GPT-6 Astra", "OpenAI", supportsReasoning = true),
         // [T-android-thinking-level-arch] GPT-5.6 family — Codex OAuth only
         // (not in LLMModel.allOpenAI, matching iOS). sol/terra reach ULTRA,
         // luna reaches MAX (see ThinkingLevelCatalog).
@@ -40,30 +45,9 @@ object OpenAIModelsApi {
         // [T-codex-oauth-model-prune] Verified callable on a live
         // ChatGPT-account token (2026-08-01); we had never listed it.
         LLMModel("gpt-5.4-mini", "GPT-5.4 Mini", "OpenAI", supportsReasoning = true),
-        // [T-codex-oauth-model-prune] gpt-5.3-codex, gpt-5.3-codex-spark,
-        // gpt-5-codex-mini, gpt-5.3, gpt-5.2 and gpt-5 were removed here.
-        // The Codex backend answers each with
-        //   HTTP 400 {"detail":"The '<id>' model is not supported when using
-        //   Codex with a ChatGPT account."}
-        // and that error renders as an EMPTY assistant turn, so leaving them in
-        // the picker reads to the user as "tool calls are broken" rather than
-        // "wrong model". Verified on-device 2026-08-01 against a real Codex
-        // OAuth token; the survivors match the set CLIProxyAPI ships for its
-        // Codex client (internal/registry/models/codex_client_models.json).
-        // Availability is tier-dependent — re-probe before restoring any id,
-        // do not add one back from documentation alone. Mirrors iOS
-        // LLMModel.allOpenAICodexOAuth.
-    ).let {
-        AppLogger.info(TAG, "Codex OAuth model list (${it.size} models): ${it.joinToString { m -> m.id }}")
-        ModelsDevApi.enrichModels(it)
-    } + listOf(
-        // [T-codex-gpt-image2-oauth-android] Special image-generation model on
-        // the Codex OAuth path. Appended AFTER enrichModels so its declared
-        // image input/output modalities survive (models.dev doesn't know it).
-        // It does NOT take the normal Chat Completions / Responses path — the
-        // gpt-image-2 branch in OpenAIProvider routes it through the Codex
-        // image_generation tool. Additive only: the GPT-5.x entries above and
-        // their existing OAuth flow are unchanged.
+    )
+
+    private val codexImageModels: List<LLMModel> = listOf(
         LLMModel(
             id = "gpt-image-2",
             displayName = "GPT Image 2",
@@ -72,6 +56,59 @@ object OpenAIModelsApi {
             outputModalities = listOf("image"),
         ),
     )
+
+    fun fetchModelsOAuth(): List<LLMModel> = builtInCodexOAuthModels.let {
+        AppLogger.info(TAG, "Codex OAuth model list (${it.size} models): ${it.joinToString { m -> m.id }}")
+        ModelsDevApi.enrichModels(it)
+    } + codexImageModels
+
+    // nanoMuse: query https://chatgpt.com/backend-api/codex/models when an OAuth token is present (#475)
+    suspend fun fetchModelsOAuth(accessToken: String?, accountId: String? = null): List<LLMModel> = withContext(Dispatchers.IO) {
+        val token = accessToken?.trim().orEmpty()
+        if (token.isEmpty()) return@withContext fetchModelsOAuth()
+        val live = try {
+            val builder = Request.Builder()
+                .url("https://chatgpt.com/backend-api/codex/models?client_version=99.99.99")
+                .header("Authorization", "Bearer $token")
+                .header("Originator", "codex_cli_rs")
+                .header("Accept", "application/json")
+            if (!accountId.isNullOrBlank()) {
+                builder.header("Chatgpt-Account-Id", accountId)
+            }
+            client.newCall(builder.build()).execute().use { resp ->
+                val body = resp.body?.string().orEmpty()
+                if (!resp.isSuccessful || body.isEmpty()) emptyList() else parseCodexModelsJson(body)
+            }
+        } catch (e: Exception) {
+            AppLogger.warning(TAG, "Codex live models fetch failed, using built-in list: ${e.message}")
+            emptyList()
+        }
+        if (live.isEmpty()) return@withContext fetchModelsOAuth()
+        val seen = live.mapTo(mutableSetOf()) { it.id }
+        val merged = live + builtInCodexOAuthModels.filter { it.id !in seen }
+        ModelsDevApi.enrichModels(merged) + codexImageModels
+    }
+
+    // nanoMuse: parse `{"models":[{"slug":"gpt-6.1-sol","display_name":"...","visibility":"list"}, ...]}`
+    internal fun parseCodexModelsJson(body: String): List<LLMModel> = try {
+        val rows = JSONObject(body).optJSONArray("models") ?: JSONArray()
+        val out = mutableListOf<LLMModel>()
+        val seen = mutableSetOf<String>()
+        for (i in 0 until rows.length()) {
+            val row = rows.optJSONObject(i) ?: continue
+            val vis = row.optString("visibility", "")
+            if (vis == "hide" || vis == "none") continue
+            val slug = row.optString("slug").ifBlank { row.optString("id") }.trim()
+            if (slug.isEmpty() || !seen.add(slug)) continue
+            val builtIn = builtInCodexOAuthModels.find { it.id == slug }
+            val title = row.optString("display_name").ifBlank { row.optString("title") }.trim()
+            val name = title.ifEmpty { builtIn?.displayName ?: LLMModel.modelDisplayName(slug) }
+            out.add(LLMModel(slug, name, "OpenAI", supportsReasoning = true))
+        }
+        out
+    } catch (_: Exception) {
+        emptyList()
+    }
 
     // Chat-capable model prefixes (matching iOS)
     private val chatPrefixes = listOf("gpt-", "o1", "o3", "o4-", "codex-", "chatgpt-")
@@ -155,6 +192,7 @@ object OpenAIModelsApi {
                 // stays disabled.
                 val idLower = id.lowercase()
                 val knownReasoning = idLower.startsWith("gpt-5") ||
+                    idLower.startsWith("gpt-6") || // nanoMuse: GPT-6 series (#475)
                     idLower.startsWith("o1") ||
                     idLower.startsWith("o3") ||
                     idLower.startsWith("o4") ||

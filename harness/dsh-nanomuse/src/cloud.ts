@@ -1846,7 +1846,7 @@ export default class NanomuseCloud extends Service {
     const entry = this.catalogue.find((p) => p.id === 'openai')
     const capabilities: Capability[] = entry ? capabilitiesForAuth(entry, 'oauth-chatgpt').filter((c) => c !== 'image' && c !== 'video') : ['chat', 'vision']
     const listed = models.length ? models : await listModels('openai', url, token)
-    const ids = listed.length ? listed : ['gpt-5.6-sol', 'gpt-5.4', 'gpt-5.4-mini']
+    const ids = listed.length ? listed : ['gpt-6.1-sol', 'gpt-6-sol', 'gpt-6-luna', 'gpt-6-astra', 'gpt-5.6-sol', 'gpt-5.4', 'gpt-5.4-mini']
     const label = this.chatgpt.login.label || this.state.chatgpt?.label || 'ChatGPT'
     const own: OwnModel[] = ids.map((id) => ({ id, name: id, vision: capabilities.includes('vision'), kind: 'chat' as const }))
     const row: OwnProvider = { id: CHATGPT_PROVIDER, provider: CHATGPT_PROVIDER, label, protocol: 'openai', baseURL: url, keyRef: CHATGPT_KEY_REF, capabilities, models: own, at: Date.now() }

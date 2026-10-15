@@ -55,7 +55,15 @@ MODELS_CLIENT_VERSION = "99.99.99"
 HOST = "chatgpt.com"
 
 DEFAULT_MODEL = "gpt-5.6-sol"
-BUILTIN_MODELS: tuple[str, ...] = ("gpt-5.6-sol", "gpt-5.4", "gpt-5.4-mini")
+BUILTIN_MODELS: tuple[str, ...] = (
+    "gpt-6.1-sol",
+    "gpt-6-sol",
+    "gpt-6-luna",
+    "gpt-6-astra",
+    "gpt-5.6-sol",
+    "gpt-5.4",
+    "gpt-5.4-mini",
+)
 #: what the sign-in covers (the Codex backend has no image or video endpoints)
 CAPABILITIES: tuple[str, ...] = ("chat", "vision")
 

@@ -381,6 +381,10 @@ test('reasoningFor: the first matching rule, without regard to case; the list wi
   assert.deepEqual(reasoningFor(openai, 'o3-mini'), { levels: ['low', 'medium', 'high'], default: 'medium' })
   assert.deepEqual(reasoningFor(openai, 'gpt-5'), { levels: ['minimal', 'low', 'medium', 'high'], default: 'medium' })
   assert.deepEqual(reasoningFor(openai, 'gpt-5.4-mini'), { levels: ['low', 'medium', 'high', 'xhigh'], default: 'none' })
+  assert.deepEqual(reasoningFor(openai, 'gpt-6.1-sol'), { levels: ['low', 'medium', 'high', 'xhigh'] })
+  assert.deepEqual(reasoningFor(openai, 'gpt-6-sol'), { levels: ['low', 'medium', 'high', 'xhigh'] })
+  assert.deepEqual(reasoningFor(openai, 'gpt-6-luna'), { levels: ['low', 'medium', 'high', 'xhigh'] })
+  assert.deepEqual(reasoningFor(openai, 'gpt-6-astra'), { levels: ['low', 'medium', 'high', 'xhigh'] })
   assert.equal(reasoningFor(openai, 'gpt-4.1'), undefined)
   assert.equal(reasoningFor(openai, 'gpt-image-2.5-flare'), undefined)
   const minimax = catalogue.find((p) => p.id === 'minimax').reasoning

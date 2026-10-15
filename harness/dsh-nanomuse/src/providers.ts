@@ -230,7 +230,7 @@ export function apiOf(protocol: Protocol, baseURL = ''): string {
 }
 
 /** Ids that name a sighted model, as far as a name says (the endpoint's list carries no modalities). */
-const SIGHTED = /vl|vision|ocr|4o|gpt-5|\bo[34]\b|claude|gemini|grok|kimi|glm-4(\.\d)?v|pixtral|llama-?4|qwen3|minimax|mistral-medium|magistral|step-3|doubao-seed|ark/i
+const SIGHTED = /vl|vision|ocr|4o|gpt-[56]|\bo[34]\b|claude|gemini|grok|kimi|glm-4(\.\d)?v|pixtral|llama-?4|qwen3|minimax|mistral-medium|magistral|step-3|doubao-seed|ark/i
 
 /** Whether a chat model of a provider with `vision` takes pictures, by its id (the catalogue's `hands` default always does). */
 export function sighted(entry: Pick<ProviderEntry, 'capabilities' | 'defaults'>, modelId: string): boolean {

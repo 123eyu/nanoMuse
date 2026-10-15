@@ -663,7 +663,15 @@ def test_the_cli_status_and_logout_as_json(cli_home: Path):
     assert out.exit_code == 0, out.output
     view = json.loads(out.stdout.strip())
     assert view["signed_in"] is False and view["label"] == "" and view["expires_at"] == 0
-    assert view["models"] == ["gpt-5.6-sol", "gpt-5.4", "gpt-5.4-mini"]
+    assert view["models"] == [
+        "gpt-6.1-sol",
+        "gpt-6-sol",
+        "gpt-6-luna",
+        "gpt-6-astra",
+        "gpt-5.6-sol",
+        "gpt-5.4",
+        "gpt-5.4-mini",
+    ]
     assert view["path"] == str(cli_home / "chatgpt.json")
 
     TokenStore.in_dir(cli_home).save(token())

@@ -91,7 +91,7 @@ video_base_url = ""                # the asynchronous video API when it is not o
 ```toml
 [llm]
 provider = "chatgpt"     # the sign-in from `nanomuse chatgpt login`; no base_url, no api_key
-model    = ""            # empty → gpt-5.6-sol (also gpt-5.4, gpt-5.4-mini)
+model    = ""            # empty → gpt-5.6-sol (also gpt-6.1-sol, gpt-6-sol, gpt-6-luna, gpt-6-astra, gpt-5.4, gpt-5.4-mini)
 ```
 
 有 ChatGPT 套餐（Plus、Pro、Team）的人可以让 nanoMuse 用它来聊天和动手，方式和 OpenAI 自己的 Codex CLI 一样：`nanomuse chatgpt login` 在浏览器里打开 OpenAI 的登录页（PKCE，和 Codex 相同的 client id、scope 和重定向地址），在运行时所在机器的 1455 端口等回调，然后把令牌存进 `<data_dir>/chatgpt.json`（权限 0600），到期前自动刷新。`nanomuse chatgpt status` 说明是谁登录的、有效到什么时候（从不显示令牌）；`nanomuse chatgpt logout` 删掉存储。同样的三步也在网页控制台的「连接」屏幕上（「或者用 ChatGPT 套餐登录」），它调用运行时的 `POST /api/chatgpt/login`、`GET /api/chatgpt/status` 和 `POST /api/chatgpt/logout`（[web.md](web.md)）。登录之后什么都不会自己切换：在这里设 `provider = "chatgpt"`，在网页上选「让它来回答对话」，或者 `PUT /api/connections/llm {"provider": "chatgpt"}`。`[gui] provider = "chatgpt"` 对手同样适用。

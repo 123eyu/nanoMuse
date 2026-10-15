@@ -380,6 +380,18 @@ class ThinkingRulesRegressionTest {
             "literal 'ultra' must never be sent (backends 400 on it): $body",
             body.optString("reasoning_effort", "") == "ultra",
         )
+        // nanoMuse: GPT-6 series models reach MAX in ThinkingLevelCatalog (#475)
+        for (id in listOf("gpt-6.1-sol", "gpt-6-sol", "gpt-6-luna", "gpt-6-astra")) {
+            org.junit.Assert.assertEquals(
+                ThinkingLevel.MAX,
+                com.openminis.app.provider.ThinkingLevelCatalog.declaredMaxLevel(id),
+            )
+        }
+        val parsed = com.openminis.app.provider.openai.OpenAIModelsApi.parseCodexModelsJson(
+            """{"models":[{"slug":"gpt-6.1-sol","display_name":"GPT-6.1 Sol","visibility":"list"},{"slug":"gpt-6-sol","visibility":"list"},{"slug":"hidden-1","visibility":"hide"}]}"""
+        )
+        org.junit.Assert.assertEquals(listOf("gpt-6.1-sol", "gpt-6-sol"), parsed.map { it.id })
+        org.junit.Assert.assertEquals("GPT-6 Sol", parsed[1].displayName)
     }
 
     // ============================================================ OFF semantics

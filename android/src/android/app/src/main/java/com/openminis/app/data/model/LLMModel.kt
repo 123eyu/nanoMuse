@@ -253,7 +253,7 @@ data class LLMModel(
             // OpenAI family
             if (lid.contains("gpt-3.5")) return 16_000
             if (lid.contains("gpt-4o") || lid.contains("gpt-4-turbo")) return 128_000
-            if (lid.contains("gpt-5")) return 400_000
+            if (lid.contains("gpt-5") || lid.contains("gpt-6")) return 400_000 // nanoMuse: GPT-6 family fallback window
             if (lid.contains("gpt-4")) return 8_000
             if (lid.contains("o3") || lid.contains("o4")) return 200_000
             if (lid.contains("codex")) return 200_000

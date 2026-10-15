@@ -29,7 +29,7 @@ object VisionFamilies {
     private val sees = listOf(
         "kimi-vl", "glm-4v", "glm-4.5v", "glm-4.6v", "glm-5",
         "qwen3", "qwen-max", "qwen-plus", "qwen-turbo", "qwen-flash", "qvq",
-        "gpt-4o", "gpt-4.1", "gpt-4.5", "gpt-5", "gpt-4-turbo", "chatgpt-4o",
+        "gpt-4o", "gpt-4.1", "gpt-4.5", "gpt-5", "gpt-6", "gpt-4-turbo", "chatgpt-4o",
         "claude-3", "claude-4", "claude-opus", "claude-sonnet", "claude-haiku",
         "gemini", "gemma-3", "gemma3", "grok-2-vision", "grok-3", "grok-4",
         "llama-4", "llama4", "mistral-medium", "mistral-large-2", "mistral-small-3", "magistral",
