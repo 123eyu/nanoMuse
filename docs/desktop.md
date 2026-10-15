@@ -227,6 +227,14 @@ a timeout on its side into the codes `unreachable` 503 and `timeout` 504).
 shows above the composer (what is left, the invite bonus, *See the ways*) once per pool
 size, as the phones show it in the chat and the web app above its composer.
 
+### Checking a packaged runtime
+
+After building the bundled runtime, `python scripts/desktop-app/build-runtime.py --check-only`
+starts it in an empty working directory and checks its health, web page and workspace location.
+The check chooses a free loopback port and captures startup logs in a temporary file. If the
+runtime is still not ready after 60 seconds, it reports the end of the log and stops the child
+process before removing the check's data directories.
+
 ## Config and data
 
 `~/.nanomuse/desktop` (`NANOMUSE_DESKTOP_HOME` moves it) is the app's dsh home: the
