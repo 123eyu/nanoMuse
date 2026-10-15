@@ -387,10 +387,10 @@ class Cloud:
             log.warning("CLOUD_MODELS: %s", line)
         # The members' identifiers, hashed once so a request can be matched
         # against the list without ever seeing the plaintext.
-        self.member_hashes: frozenset[str] = frozenset(i.hash(settings.hmac_key) for i in self._listed_identifiers())
-        # The reviewer's addresses (REVIEW_ADDRESSES), hashed the same way; empty — and so
-        # the whole feature off — unless REVIEW_CODE is six digits as well.
-        self.review_hashes: frozenset[str] = frozenset(i.hash(settings.hmac_key) for i in self._review_identifiers())
+        self.member_hashes: frozenset[str] = frozenset(h for i in self._listed_identifiers() for h in i.hashes(settings.hmac_key))
+        # The reviewer's addresses (REVIEW_ADDRESSES), hashed the same way; empty, and so
+        # the whole feature off, unless REVIEW_CODE is six digits as well.
+        self.review_hashes: frozenset[str] = frozenset(h for i in self._review_identifiers() for h in i.hashes(settings.hmac_key))
         if self.review_hashes:
             log.warning("review sign-in is on for %d address(es): a fixed code, nothing sent", len(self.review_hashes))
         if settings.signup_open:
@@ -674,11 +674,17 @@ class Cloud:
         the reviewer's address either way, since the operator named it."""
         return self.s.signup_open or self.listed(ident) or self.is_review(ident)
 
+    def _account_for(self, ident: Identifier) -> sqlite3.Row | None:
+        """Look up an account by ``ident``'s canonical hash, falling back to its
+        legacy pre-canonical hash when present so existing dotted Gmail accounts
+        keep matching."""
+        return self.db.account_by_hashes(ident.hashes(self.s.hmac_key))
+
     def _refuse_if_signups_closed(self, ident: Identifier) -> None:
-        """0.22: the *Sign-ups* switch is off — an identifier without an account is turned
+        """0.22: the *Sign-ups* switch is off; an identifier without an account is turned
         away (`signup_closed`); everyone who already has one carries on, and so does the
         reviewer's address (a review must not fail on a paused switch)."""
-        if self.controls.on("signups") or self.is_review(ident) or self.db.account_by_hash(ident.hash(self.s.hmac_key)) is not None:
+        if self.controls.on("signups") or self.is_review(ident) or self._account_for(ident) is not None:
             return
         raise CloudError(
             403,
@@ -686,20 +692,43 @@ class Cloud:
             "New sign-ups are paused on this relay for now; existing accounts keep working. Try again later.",
         )
 
+    def _is_blocked_domain(self, domain: str) -> bool:
+        """Whether ``domain`` or one of its parent domains is on the disposable-mail blocklist
+        and not explicitly allowed in ``signup_domain_allow_set``."""
+        if domain in self.s.signup_domain_allow_set:
+            return False
+        blocked = self.s.signup_domain_block_set
+        if not blocked:
+            return False
+        if domain in blocked:
+            return True
+        return any(domain.endswith("." + b) for b in blocked)
+
     def _refuse_if_domain_limited(self, ident: Identifier) -> None:
         """At most SIGNUP_PER_DOMAIN_DAY new accounts per e-mail domain per rolling day, for
         domains that are not a well known provider or on the allow list: an address of such
         a domain without an account yet is turned away (`domain_limited`) once the day's
-        count is reached. An existing account always gets its code; phone numbers are never
-        limited; the reviewer's address is never limited. A catch-all domain of one's own,
-        or a bought list of mailboxes, is how one person made hundreds of accounts."""
-        limit = self.s.signup_per_domain_day
-        if limit <= 0 or ident.channel != "email" or self.is_review(ident):
+        count is reached, and domains on the disposable blocklist are refused for new
+        sign-ups right away. An existing account always gets its code; phone numbers are
+        never limited; the reviewer's address is never limited."""
+        if ident.channel != "email" or self.is_review(ident):
             return
         domain = ident.value.rpartition("@")[2].lower()
-        if not domain or domain in self.s.signup_domain_allow_set:
+        if not domain:
             return
-        if self.db.account_by_hash(ident.hash(self.s.hmac_key)) is not None:
+        if self._is_blocked_domain(domain):
+            if self._account_for(ident) is not None:
+                return
+            self.db.add_event("", "signup.domain_limited", domain[:200])
+            raise CloudError(
+                429,
+                "domain_limited",
+                "This address's domain has reached today's sign-up limit on this relay; try again tomorrow or use another address",
+            )
+        limit = self.s.signup_per_domain_day
+        if limit <= 0 or domain in self.s.signup_domain_allow_set:
+            return
+        if self._account_for(ident) is not None:
             return
         if self.db.signups_from_domain_since(domain, now() - 86400) < limit:
             return
@@ -714,7 +743,7 @@ class Cloud:
         review = self.is_review(ident)
         if not review and not self.sender.accepts(ident):
             # the honest answer up front: a Hong Kong or overseas number gets no SMS from
-            # 号码认证, so the person should not wait for one — e-mail works everywhere
+            # 号码认证, so the person should not wait for one; e-mail works everywhere
             if ident.channel == "phone" and not ident.value.startswith("+86"):
                 raise CloudError(
                     400,
@@ -730,7 +759,7 @@ class Cloud:
             raise CloudError(403, "not_invited", "This relay is private; that address is not on its list")
         self._refuse_if_signups_closed(ident)
         self._refuse_if_domain_limited(ident)
-        account = self.db.account_by_hash(ident.hash(self.s.hmac_key))
+        account = self._account_for(ident)
         disabled = account is not None and bool(account["disabled"])
         t = now()
         if self.db.codes_recent_for(ident.hash(self.s.hmac_key), t - 600) >= self.s.code_per_identifier_10m:
@@ -783,10 +812,11 @@ class Cloud:
         if not self.allowed(ident):
             raise CloudError(403, "not_invited", "This relay is private; that address is not on its list")
         id_hash = ident.hash(self.s.hmac_key)
-        account = self.db.account_by_hash(id_hash)
+        account = self._account_for(ident)
         created = account is None
         if account is None:
             self._refuse_if_signups_closed(ident)
+            self._refuse_if_domain_limited(ident)
             account_id = self.db.new_account_id()
             enc = self.crypto.encrypt(account_id, ident.value)
             account = self.db.create_account(
@@ -865,7 +895,12 @@ class Cloud:
         try:
             if not self.db.invite_pending(account_id):
                 return False
-            settled, inviter_id, inviter_paid = self.db.settle_invite(account_id, self.s.cny_to_uy(self.s.invite_bonus_cny))
+            settled, inviter_id, inviter_paid = self.db.settle_invite(
+                account_id,
+                self.s.cny_to_uy(self.s.invite_bonus_cny),
+                min_spent_uy=self.s.invite_settle_min_spent_uy,
+                refuse_same_ip=True,
+            )
         except sqlite3.Error as e:
             log.warning("invite: could not settle for %s: %s", account_id[:8], e)
             return False
@@ -1011,7 +1046,7 @@ class Cloud:
             raise CloudError(429, "locked", "Too many wrong passwords from this network; wait a while or sign in with a code")
         if not self.allowed(ident):
             raise CloudError(403, "not_invited", "This relay is private; that address is not on its list")
-        account = self.db.account_by_hash(ident.hash(self.s.hmac_key))
+        account = self._account_for(ident)
         if account is None:
             # Same answer as a wrong password: the sign-in form must not tell
             # whether a number has an account.
@@ -2183,7 +2218,7 @@ class Cloud:
                 ident = parse(identifier)
             except BadIdentifier as e:
                 raise CloudError(400, "bad_identifier", str(e)) from e
-            row = self.db.account_by_hash(ident.hash(self.s.hmac_key))
+            row = self._account_for(ident)
         else:
             row = self.db.account(account_id)
         if row is None:

@@ -161,6 +161,8 @@ Codex 登录的 ChatGPT 套餐只有聊天和视觉（Codex 后端没有图片�
 一样。没有任何已配置的服务商具备某项能力时，页面用一句话说明（「画图需要有图像模型的
 提供方：百炼、OpenAI、Gemini 或 OpenRouter。」），而不是报错。
 
+在形象工作室重新生成候选图时，新一组会替换旧一组。旧请求随后返回的图片或失败结果，不会改动新一组的候选格或文件。点击重新生成即可开始新请求，无需等待旧图片保存完毕。
+
 **连不上服务商的时候**（`net/ProviderReach.kt`、`ui/chat/ProviderReachCard.kt`）。失败的一轮，如果
 错误来自传输层（OkHttp 的「failed to connect to chatgpt.com/…（port 443）」「Unable to resolve host」、
 一条 TLS 或超时信息），或者是 OpenAI 的「region not supported」，就显示为一张卡片而不是红色横幅：
@@ -202,11 +204,15 @@ base URL（从不包括中继的，从不包括局域网地址）它回答代理
 「测试」按填写的代理抓取 `https://chatgpt.com/`，报告状态码和毫秒数。单元测试：`ProviderReachTest`、
 `OwnProviderProxyTest`。
 
+离开登录页或「网络」页，会取消该页尚未完成的请求，服务器已开始回复但还未传完时也一样。
+
 ## 语音输入 {#voice-input}
 
 使用服务商语音模型时，静默录音达到时限，或极短语音等待补充超时后，面板会回到空闲状态。已经开始的转写仍会等待结果，不会被空结果提前结束。
 
 系统语音输入可以优先使用设备端识别。手机没有可用的设备端识别服务时，会改用默认识别服务；默认服务返回的语言错误会显示在语音面板中。已经启动的设备端识别器缺少语言包时，仍会尝试一次默认服务。
+
+录音无法启动，或在开始采集前被取消时，语音检测器也会释放已经创建的录音器，避免重试语音输入时留下未释放的录音器。
 
 ## 隐私与权限 {#privacy-and-permissions}
 
@@ -262,6 +268,8 @@ keytool -genkeypair -keystore ~/.nanomuse-release/nanomuse.jks -alias nanomuse \
 
 然后把它的四个值填进 `android/keystore.properties`（已 git-ignore：`storeFile`、
 `storePassword`、`keyAlias`、`keyPassword`）。
+
+仅用于聊天测试的模拟器构建（`-Pnm.abi=x86_64`）会排除缓存中的 arm64 proot 和 Alpine 根文件系统资源。切回默认的 arm64 构建后会重新包含这些资源，无需删除缓存。
 
 ## 发布 {#releases}
 
