@@ -44,6 +44,11 @@ export function updatePresentation(state: WindowsUpdateState, t: Translate) {
       action = state.failure === 'check' || !state.version ? 'check' : 'download'
       break
   }
+  if (state.paused && (state.phase === 'available' || state.phase === 'failed')) {
+    const reason = t(state.paused === 'disabled' ? 'wuAutoOff' : state.paused === 'metered' ? 'wuMetered' : 'wuCostUnknown')
+    status += ` · ${reason}`
+    if (state.paused !== 'disabled') label += ` · ${reason}`
+  }
   if (state.phase === 'ready' && state.failure) status += ` · ${t(state.failure === 'check' ? 'vrFailed' : 'wuRestartFailed')}`
   return { dot: ['available', 'ready', 'failed'].includes(state.phase), action, label, status,
     busy: ['checking', 'downloading', 'verifying', 'installing'].includes(state.phase) }

@@ -18,6 +18,7 @@ import { HostStartWatch, maskToken, waitedText, type WaitState } from "./host-st
 import { HostWork } from "./host-work";
 import { ProtectedExit, type ExitDialog, type ExitIntent, type WorkItem, type WorkSource } from "./protected-exit";
 import { WindowsUpdates, RestartNsisUpdater } from "./windows-updates";
+import { windowsNetworkCost } from "./windows-network-cost";
 
 /**
  * nanoMuse Desktop — the nanoMuse desktop, built on DeepSeek Harness.
@@ -773,6 +774,7 @@ interface Prefs {
   openAtLogin: boolean;
   menuBar: boolean;
   quickChat: boolean;
+  autoDownloadUpdates?: boolean;
   /** The person's own quick-chat combination (an Electron accelerator); absent means the platform's default. */
   quickChatKey?: string;
   /** The proxy for the model providers (`http://host:port`, `socks5://host:port`); absent means none. */
@@ -813,14 +815,15 @@ function readPrefs(): Prefs {
   }
 }
 
-function writePrefs(): void {
+function writePrefs(next: Prefs = prefs, strict = false): void {
   try {
     mkdirSync(harnessHome(), { recursive: true });
     // the proxy address may carry `user:pass@`: the file is the owner's alone, like cloud.json and
     // hands.json next to it (`mode` applies to a new file only, so an existing one is tightened too)
-    writeFileSync(prefsPath(), `${JSON.stringify(prefs, null, 2)}\n`, { mode: 0o600 });
+    writeFileSync(prefsPath(), `${JSON.stringify(next, null, 2)}\n`, { mode: 0o600 });
     chmodSync(prefsPath(), 0o600);
   } catch (exc) {
+    if (strict) throw exc;
     log(`prefs: could not save: ${String(exc)}`);
   }
 }
@@ -991,6 +994,10 @@ function registerBridge(): void {
     relaunchNow();
   });
   ipcMain.handle("nanomuse:updates:snapshot", () => windowsUpdates?.snapshot() ?? null);
+  ipcMain.handle("nanomuse:updates:auto-download", async (_e, enabled: boolean) => {
+    await windowsUpdates?.setAutoDownload(enabled);
+    return windowsUpdates?.snapshot() ?? null;
+  });
   for (const action of ["check", "download", "restart"] as const) {
     ipcMain.handle(`nanomuse:updates:${action}`, async () => {
       await windowsUpdates?.[action]();
@@ -2016,6 +2023,13 @@ if (!app.requestSingleInstanceLock({ version: app.getVersion() })) {
       if (process.platform === "win32" && process.arch === "x64" && app.isPackaged && !screenshotFlag) {
         windowsUpdates = new WindowsUpdates({
           currentVersion: app.getVersion(), supported: true,
+          autoDownload: prefs.autoDownloadUpdates !== false,
+          saveAutoDownload: (enabled) => {
+            const next = { ...prefs, autoDownloadUpdates: enabled };
+            writePrefs(next, true);
+            prefs = next;
+          },
+          networkCost: windowsNetworkCost,
           createUpdater: (canQuit) => {
             const updater = new RestartNsisUpdater(canQuit);
             updater.logger = { info: (line) => log(`update: ${line}`), warn: (line) => log(`update: ${line}`), error: (line) => log(`update: ${line}`) };

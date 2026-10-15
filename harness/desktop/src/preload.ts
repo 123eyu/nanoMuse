@@ -26,6 +26,7 @@ const bridge = {
     check: (): Promise<WindowsUpdateState | null> => ipcRenderer.invoke("nanomuse:updates:check"),
     download: (): Promise<WindowsUpdateState | null> => ipcRenderer.invoke("nanomuse:updates:download"),
     restart: (): Promise<WindowsUpdateState | null> => ipcRenderer.invoke("nanomuse:updates:restart"),
+    setAutoDownload: (enabled: boolean): Promise<WindowsUpdateState | null> => ipcRenderer.invoke("nanomuse:updates:auto-download", enabled),
     subscribe: (listener: (state: WindowsUpdateState) => void): (() => void) => {
       const handler = (_event: Electron.IpcRendererEvent, state: WindowsUpdateState) => listener(state);
       ipcRenderer.on("nanomuse:updates:state", handler);

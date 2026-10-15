@@ -16,6 +16,9 @@ export interface WindowsUpdateState {
   source: 'mirror' | 'github' | null
   failure: 'check' | 'download' | 'restart' | null
   checkedAt: number | null
+  /** Absent in the previous shell, which only downloads on request. */
+  autoDownload?: boolean
+  paused?: 'disabled' | 'metered' | 'unknown' | null
 }
 
 export interface WindowsUpdateBridge {
@@ -24,6 +27,7 @@ export interface WindowsUpdateBridge {
   check(): Promise<WindowsUpdateState | null>
   download(): Promise<WindowsUpdateState | null>
   restart(): Promise<WindowsUpdateState | null>
+  setAutoDownload?(enabled: boolean): Promise<WindowsUpdateState | null>
 }
 
 /** App behaviour, as the shell keeps it: the values, the quick-chat key's name, what this platform can do. */

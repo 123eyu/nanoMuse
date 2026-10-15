@@ -64,6 +64,21 @@ test('a cancelled restart keeps the ready action while explaining that work can 
   assert.match(result.status, /Your work can continue/)
 })
 
+test('paused automatic downloads explain network cost and keep a manual action and dot in both languages', () => {
+  for (const lang of ['en', 'zh']) for (const paused of ['metered', 'unknown', 'disabled']) {
+    const result = view.updatePresentation(state('available', { autoDownload: paused !== 'disabled', paused }), t(lang))
+    assert.equal(result.dot, true)
+    assert.equal(result.action, 'download')
+    const reason = t(lang)(paused === 'metered' ? 'wuMetered' : paused === 'unknown' ? 'wuCostUnknown' : 'wuAutoOff')
+    assert.ok(result.status.includes(reason))
+    if (paused !== 'disabled') assert.ok(result.label.includes(reason))
+    const failed = view.updatePresentation(state('failed', { failure: 'download', paused }), t(lang))
+    assert.equal(failed.action, 'download')
+    assert.equal(failed.dot, true)
+    assert.ok(failed.status.includes(reason))
+  }
+})
+
 test('menu actions reach the shell bridge rather than opening an external installer', async () => {
   const actions = []
   globalThis.nanomuseHarness = { platform: 'win32', permissions: () => undefined,

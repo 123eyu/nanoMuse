@@ -20,7 +20,11 @@ export interface WindowsUpdateState {
   source: "mirror" | "github" | null;
   failure: "check" | "download" | "restart" | null;
   checkedAt: number | null;
+  autoDownload: boolean;
+  paused: "disabled" | "metered" | "unknown" | null;
 }
+
+export type NetworkCost = "unmetered" | "metered" | "unknown";
 
 interface Sources {
   mirrorCheck: string;
@@ -43,24 +47,33 @@ export interface WindowsUpdatesOptions {
   /** The protected exit invokes install only after its final quiet check. */
   restart(install: () => void): Promise<boolean>;
   cancelHandoff(): Promise<void>;
+  autoDownload?: boolean;
+  saveAutoDownload?(enabled: boolean): void;
+  networkCost?(): Promise<NetworkCost>;
   sources?: Sources;
   now?(): number;
   setInterval?(fn: () => void, ms: number): NodeJS.Timeout;
   clearInterval?(timer: NodeJS.Timeout): void;
+  setTimeout?(fn: () => void, ms: number): NodeJS.Timeout;
+  clearTimeout?(timer: NodeJS.Timeout): void;
 }
 
-/** The Windows shell's one manual update flow; electron-updater owns all package I/O. */
+/** The Windows shell's update flow; electron-updater owns all package I/O. */
 export class WindowsUpdates {
   private state: WindowsUpdateState;
   private readonly listeners = new Set<(state: WindowsUpdateState) => void>();
   private candidate: UpdateInfo | null = null;
   private operation: Promise<void> | null = null;
   private timer: NodeJS.Timeout | null = null;
+  private retryTimer: NodeJS.Timeout | null = null;
+  private retries = 0;
+  private disposed = false;
   private readonly sources: Sources;
 
   constructor(private readonly options: WindowsUpdatesOptions) {
     this.sources = options.sources ?? SOURCES;
-    this.state = { currentVersion: options.currentVersion, phase: "idle", version: null, progress: null, source: null, failure: null, checkedAt: null };
+    this.state = { currentVersion: options.currentVersion, phase: "idle", version: null, progress: null, source: null, failure: null, checkedAt: null,
+      autoDownload: options.autoDownload !== false, paused: null };
   }
 
   snapshot(): WindowsUpdateState {
@@ -80,6 +93,8 @@ export class WindowsUpdates {
   }
 
   dispose(): void {
+    this.disposed = true;
+    this.clearRetry();
     if (this.timer) (this.options.clearInterval ?? clearInterval)(this.timer);
     this.timer = null;
     this.listeners.clear();
@@ -87,6 +102,8 @@ export class WindowsUpdates {
 
   check(): Promise<void> {
     return this.run(async () => {
+      this.clearRetry();
+      this.retries = 0;
       const previous = this.snapshot();
       this.publish({ phase: "checking", failure: null });
       for (const source of ["mirror", "github"] as const) {
@@ -101,7 +118,8 @@ export class WindowsUpdates {
           const keepReady = newer && previous.phase === "ready" && this.sameCandidate(info);
           this.candidate = newer ? info : null;
           this.publish({ phase: newer ? keepReady ? "ready" : "available" : "current", version: newer ? info.version : null,
-            progress: keepReady ? 100 : null, source, failure: null, checkedAt: (this.options.now ?? Date.now)() });
+            progress: keepReady ? 100 : null, source, failure: null, paused: null, checkedAt: (this.options.now ?? Date.now)() });
+          if (newer && !keepReady) await this.automaticDownload();
           return;
         } catch {
           // A failed mirror check tries the release's GitHub metadata next.
@@ -113,14 +131,64 @@ export class WindowsUpdates {
 
   download(): Promise<void> {
     if (!this.candidate || this.state.phase === "ready") return Promise.resolve();
+    // Cost detection publishes an actionable state before its operation settles.
+    // Preserve a manual request, then share the existing download boundary.
+    if (this.operation && (this.state.phase === "available" || this.state.phase === "failed")) {
+      return this.operation.then(() => this.download());
+    }
     return this.run(async () => {
-      try {
-        await this.verifiedDownload();
-        this.publish({ phase: "ready", progress: 100, failure: null });
-      } catch {
-        this.publish({ phase: "failed", failure: "download", progress: null });
-      }
+      this.clearRetry();
+      this.retries = 0;
+      await this.downloadAttempt();
     });
+  }
+
+  async setAutoDownload(enabled: boolean): Promise<void> {
+    if (typeof enabled !== "boolean" || !this.options.supported || enabled === this.state.autoDownload) return;
+    this.options.saveAutoDownload?.(enabled);
+    this.publish({ autoDownload: enabled });
+    if (!enabled) {
+      this.clearRetry();
+      if (this.state.phase === "available" || this.state.phase === "failed") this.publish({ paused: "disabled" });
+    } else if (this.state.phase === "available" || (this.state.phase === "failed" && this.state.failure === "download")) {
+      await this.run(async () => {
+        this.clearRetry();
+        this.retries = 0;
+        await this.automaticDownload();
+      });
+    }
+  }
+
+  private async automaticDownload(): Promise<void> {
+    if (!this.state.autoDownload) { this.publish({ paused: "disabled" }); return; }
+    const cost = await this.options.networkCost?.().catch(() => "unknown" as const) ?? "unknown";
+    if (this.disposed) return;
+    if (!this.state.autoDownload) { this.publish({ paused: "disabled" }); return; }
+    if (cost !== "unmetered") { this.publish({ paused: cost === "metered" ? "metered" : "unknown" }); return; }
+    await this.downloadAttempt();
+  }
+
+  private async downloadAttempt(): Promise<void> {
+    this.publish({ paused: null });
+    try {
+      await this.verifiedDownload();
+      this.publish({ phase: "ready", progress: 100, failure: null });
+    } catch {
+      this.publish({ phase: "failed", failure: "download", progress: null });
+      if (this.state.autoDownload && this.retries < 2 && !this.disposed) {
+        const delay = this.retries++ === 0 ? 60_000 : 300_000;
+        this.retryTimer = (this.options.setTimeout ?? setTimeout)(() => {
+          this.retryTimer = null;
+          void this.run(() => this.automaticDownload());
+        }, delay);
+        this.retryTimer.unref?.();
+      }
+    }
+  }
+
+  private clearRetry(): void {
+    if (this.retryTimer) (this.options.clearTimeout ?? clearTimeout)(this.retryTimer);
+    this.retryTimer = null;
   }
 
   restart(): Promise<void> {
@@ -206,7 +274,7 @@ export class WindowsUpdates {
   }
 
   private run(action: () => Promise<void>): Promise<void> {
-    if (!this.options.supported || this.state.phase === "installing") return Promise.resolve();
+    if (!this.options.supported || this.disposed || this.state.phase === "installing") return Promise.resolve();
     if (this.operation) return this.operation;
     this.operation = action().finally(() => { this.operation = null; });
     return this.operation;
