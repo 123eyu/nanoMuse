@@ -358,16 +358,20 @@ code brought, with how many of those ever made a request, how many are still
 pending (no first request yet, so no bonus yet) and how many were seen from
 one of the inviter's own addresses, and an account's page names its inviter
 and lists the people it brought (`GET /v1/admin/invites`). Padding one's own
-pool is not worth the trouble: the bonus is paid at the invitee's first
-charged request, new accounts from a mail domain that is not a well-known
-provider are limited per day (`SIGNUP_PER_DOMAIN_DAY`, 20 by default; the
-refusal is `domain_limited`), and the health check raises two alerts, an
-inviter whose code brought more than ten accounts in a day and an inviter with
-twenty or more invitees of whom almost none ever made a request. Each unfolded
-inviter in the *Invites* view, and the *Brought* card of its account page, has
-one action that reclaims the invite credit (what was already spent stays),
-and may disable the account and delete the invited accounts that never made a
-request (`POST /v1/admin/invites/abuse`).
+pool is not worth the trouble: the bonus is paid once the invitee uses the
+relay (`INVITE_SETTLE_MIN_SPENT_UY`, 200 micro-yuan by default, or a
+registered Hub device) from a network address different from the inviter's,
+e-mail `+tag` subaddresses and Gmail dot or `googlemail.com` aliases map to
+the same account, disposable mail domains (`DEFAULT_SIGNUP_DOMAIN_BLOCK` plus
+`SIGNUP_DOMAIN_BLOCK`) are refused, new accounts from a mail domain that is
+not a well-known provider are limited per day (`SIGNUP_PER_DOMAIN_DAY`, 5 by
+default; the refusal is `domain_limited`), and the health check raises two
+alerts, an inviter whose code brought more than ten accounts in a day and an
+inviter with twenty or more invitees of whom almost none ever made a request.
+Each unfolded inviter in the *Invites* view, and the *Brought* card of its
+account page, has one action that reclaims the invite credit (what was
+already spent stays), and may disable the account and delete the invited
+accounts that never made a request (`POST /v1/admin/invites/abuse`).
 Every operator action on an account is on record: disabling or enabling it,
 making or unmaking a member, a grant, a credit, a pool change, a settings change
 and a deletion each write a line in the audit log of the Controls section (who,

@@ -308,8 +308,23 @@ class ProviderSpeechRecognitionEngine(private val appContext: Context) : SpeechR
         locale: Locale,
         repo: com.openminis.app.data.repository.ProviderRepository,
         candidates: List<Pair<com.openminis.app.data.model.ProviderInstance, com.openminis.app.data.model.ModelEntry>>,
-        listener: SpeechRecognitionEngine.Listener,
+        captureListener: SpeechRecognitionEngine.Listener,
     ) {
+        // nanoMuse: a session guard and a finishing transcription may race to settle capture.
+        val terminalDelivered = AtomicBoolean(false)
+        val listener = object : SpeechRecognitionEngine.Listener by captureListener {
+            override fun onFinal(text: String) {
+                if (!cancelled.get() && terminalDelivered.compareAndSet(false, true)) {
+                    captureListener.onFinal(text)
+                }
+            }
+
+            override fun onError(error: RecognitionError, message: String?) {
+                if (!cancelled.get() && terminalDelivered.compareAndSet(false, true)) {
+                    captureListener.onError(error, message)
+                }
+            }
+        }
         val det = VoiceActivityDetector(
             appContext,
             object : VoiceActivityListener {
@@ -360,13 +375,17 @@ class ProviderSpeechRecognitionEngine(private val appContext: Context) : SpeechR
                             val held = WavSegmentMerger.totalSeconds(pendingSegments)
                             Log.i(TAG, "[vad] hold expired at ${"%.2f".format(held)}s — settling")
                             stopVad()
+                            // nanoMuse: retire held audio before delivering a terminal callback.
+                            pendingSegments.clear()
                             if (held > TOO_SHORT_TOAST_FLOOR) {
                                 listener.onError(
                                     RecognitionError.NO_MATCH,
                                     "Too short — hold the mic and speak.",
                                 )
+                            } else {
+                                // nanoMuse: silence still completes capture so the panel leaves recording.
+                                listener.onFinal("")
                             }
-                            pendingSegments.clear()
                         }
                         return
                     }
@@ -393,11 +412,15 @@ class ProviderSpeechRecognitionEngine(private val appContext: Context) : SpeechR
                 }
 
                 override fun onSessionLimit(limit: SessionLimit) {
-                    // Allowance exhausted, not a failure. The library has
-                    // already delivered any closed segment; nothing is pending
-                    // here, so just settle the mic.
+                    // nanoMuse: a quiet session must settle the listener as well as the mic;
+                    // an in-flight transcription remains responsible for its own result.
+                    if (cancelled.get()) return
                     Log.i(TAG, "[vad] session limit $limit — stopping")
                     stopVad()
+                    holdFlushJob?.cancel()
+                    holdFlushJob = null
+                    pendingSegments.clear()
+                    if (transcribeJob?.isActive != true) listener.onFinal("")
                 }
 
                 override fun onCaptureError(message: String) {

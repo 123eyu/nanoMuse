@@ -9,9 +9,15 @@ import com.openminis.app.data.model.ProviderType
 import io.github.nanomuse.avatar.AvatarStudio.Slot
 import io.github.nanomuse.ui.avatar.AgentMood
 import java.io.IOException
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
+import kotlin.concurrent.thread
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.After
@@ -99,6 +105,163 @@ class AvatarStudioTest {
         secondGate.complete(Unit)
         AvatarStudio.candidateJob!!.join()
         assertTrue(AvatarStudio.slots.value.toString(), AvatarStudio.slots.value.all { it is Slot.Ready })
+    }
+
+    @Test fun `an old failure cannot publish across a replacement during a slot update`() = runBlocking {
+        assertPublicationOwnership(ready = false)
+    }
+
+    @Test fun `an old picture cannot publish across a replacement during a slot update`() = runBlocking {
+        assertPublicationOwnership(ready = true)
+    }
+
+    private suspend fun assertPublicationOwnership(ready: Boolean) {
+        AvatarStore.useDirForTests(tmp.newFolder())
+        val selectedChild = AtomicBoolean(false)
+        val oldStarted = CountDownLatch(1)
+        val finishOld = CompletableDeferred<Unit>()
+        val holdOthers = CompletableDeferred<Unit>()
+        val holdReplacement = CompletableDeferred<Unit>()
+        val publicationThread = AtomicReference<Thread>()
+        val copying = CountDownLatch(1)
+        val releaseCopy = CountDownLatch(1)
+        val copied = AtomicBoolean(false)
+        val replacementFinished = CountDownLatch(1)
+        val replacementError = AtomicReference<Throwable>()
+        val bitmap = picture()
+        AvatarStudio.drawer = { _, _, _, prompt ->
+            if ("panda" in prompt) {
+                if (selectedChild.compareAndSet(false, true)) {
+                    oldStarted.countDown()
+                    finishOld.await()
+                    publicationThread.set(Thread.currentThread())
+                    if (!ready) throw IOException("old-A failure")
+                } else holdOthers.await()
+            } else holdReplacement.await()
+            bitmap
+        }
+        AvatarStudio.startCandidates(context, endpoint, "a round red panda", AvatarStudio.Style.MUSE, null)
+        val oldJob = AvatarStudio.candidateJob!!
+        var replacement: Thread? = null
+        try {
+            assertTrue("old drawer started", oldStarted.await(5, TimeUnit.SECONDS))
+            // Pause a real production StateFlow update while toMutableList copies its input.
+            // A previously completed tile makes this list differ from the initial Loading list,
+            // so StateFlow stores it. No production generation logic is replaced by the fixture.
+            val prior = List<Slot>(AvatarStudio.CANDIDATES) { if (it == 3) Slot.Failed("prior-A") else Slot.Loading }
+            val barrier = object : java.util.AbstractList<Slot>() {
+                override val size: Int get() = prior.size
+                override fun get(index: Int): Slot {
+                    if (Thread.currentThread() === publicationThread.get() && copied.compareAndSet(false, true)) {
+                        copying.countDown()
+                        check(releaseCopy.await(5, TimeUnit.SECONDS)) { "publication barrier timed out" }
+                    }
+                    return prior[index]
+                }
+            }
+            (AvatarStudio.slots as MutableStateFlow<List<Slot>>).value = barrier
+            finishOld.complete(Unit)
+            assertTrue("old child reached slot publication", copying.await(5, TimeUnit.SECONDS))
+            val replacementThread = thread(isDaemon = true, name = "avatar-replacement") {
+                try {
+                    AvatarStudio.startCandidates(context, endpoint, "a small blue whale", AvatarStudio.Style.MUSE, null)
+                } catch (error: Throwable) {
+                    replacementError.set(error)
+                } finally {
+                    replacementFinished.countDown()
+                }
+            }
+            replacement = replacementThread
+            // A serialized implementation waits for the old publication; an atomic state
+            // implementation may finish replacement immediately. Both must keep B's tiles.
+            waitUntil("replacement completed or waits for publication") {
+                replacementFinished.count == 0L || (replacementThread.state == Thread.State.BLOCKED &&
+                    replacementThread.stackTrace.any { it.className == AvatarStudio::class.java.name && it.methodName.startsWith("startCandidates") })
+            }
+            releaseCopy.countDown()
+            assertTrue("replacement started", replacementFinished.await(5, TimeUnit.SECONDS))
+            assertEquals(null, replacementError.get())
+            withTimeout(5_000) { oldJob.join() }
+            assertTrue("replacement tiles while its drawer is held: ${AvatarStudio.slots.value}",
+                AvatarStudio.slots.value.all { it is Slot.Loading })
+            assertEquals(null, AvatarStudio.error.value)
+            holdReplacement.complete(Unit)
+            withTimeout(5_000) { AvatarStudio.candidateJob!!.join() }
+            assertTrue(AvatarStudio.slots.value.toString(), AvatarStudio.slots.value.all { it is Slot.Ready })
+        } finally {
+            releaseCopy.countDown()
+            finishOld.complete(Unit)
+            holdOthers.complete(Unit)
+            holdReplacement.complete(Unit)
+            replacement?.join(5_000)
+            oldJob.cancel()
+            AvatarStudio.candidateJob?.cancel()
+            withTimeout(5_000) {
+                oldJob.join()
+                AvatarStudio.candidateJob?.join()
+            }
+        }
+    }
+
+    @Test fun `a replacement does not wait for an old PNG and keeps its own files`() = runBlocking {
+        AvatarStore.useDirForTests(tmp.newFolder())
+        val encoding = CountDownLatch(1)
+        val releaseEncoding = CountDownLatch(1)
+        val replacementStarted = CountDownLatch(1)
+        val first = AtomicBoolean(true)
+        val holdOld = CompletableDeferred<Unit>()
+        val holdNew = CompletableDeferred<Unit>()
+        fun encodedPicture(contents: String, blocked: Boolean): Bitmap {
+            val bitmap = org.mockito.Mockito.mock(Bitmap::class.java)
+            org.mockito.Mockito.doAnswer { call ->
+                if (blocked) {
+                    encoding.countDown()
+                    check(releaseEncoding.await(10, TimeUnit.SECONDS))
+                }
+                call.getArgument<java.io.OutputStream>(2).write(contents.toByteArray())
+                true
+            }.`when`(bitmap).compress(org.mockito.Mockito.any(), org.mockito.Mockito.anyInt(), org.mockito.Mockito.any())
+            return bitmap
+        }
+        val oldPicture = encodedPicture("old", true)
+        val newPicture = encodedPicture("new", false)
+        AvatarStudio.drawer = { _, _, _, prompt ->
+            if ("panda" in prompt) {
+                if (!first.compareAndSet(true, false)) holdOld.await()
+                oldPicture
+            } else {
+                holdNew.await()
+                newPicture
+            }
+        }
+        AvatarStudio.startCandidates(context, endpoint, "panda", AvatarStudio.Style.MUSE, null)
+        val oldJob = AvatarStudio.candidateJob!!
+        var replacement: Thread? = null
+        try {
+            assertTrue("old picture entered PNG encoding", encoding.await(5, TimeUnit.SECONDS))
+            replacement = thread(isDaemon = true) {
+                AvatarStudio.startCandidates(context, endpoint, "whale", AvatarStudio.Style.MUSE, null)
+                replacementStarted.countDown()
+            }
+            assertTrue("Again must not wait for the old PNG writer", replacementStarted.await(2, TimeUnit.SECONDS))
+            holdNew.complete(Unit)
+            withTimeout(5_000) { AvatarStudio.candidateJob!!.join() }
+            releaseEncoding.countDown()
+            withTimeout(5_000) { oldJob.join() }
+            val slots = AvatarStudio.slots.value
+            assertTrue(slots.toString(), slots.all { it is Slot.Ready })
+            slots.forEach { assertEquals("new", (it as Slot.Ready).file.readText()) }
+            assertEquals((0 until AvatarStudio.CANDIDATES).map { "$it.png" }.toSet(),
+                AvatarStore.candidatesDir().list()!!.toSet())
+        } finally {
+            releaseEncoding.countDown()
+            holdOld.complete(Unit)
+            holdNew.complete(Unit)
+            replacement?.join(5_000)
+            oldJob.cancel()
+            AvatarStudio.candidateJob?.cancel()
+            withTimeout(5_000) { oldJob.join(); AvatarStudio.candidateJob?.join() }
+        }
     }
 
     @Test fun `four candidates get four different prompts from one description`() {

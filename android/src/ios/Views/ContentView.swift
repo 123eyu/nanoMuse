@@ -7188,6 +7188,7 @@ private struct AppearanceSettingsView: View {
                 Text("When on, the keyboard pops up automatically after the model finishes replying so the input is ready for a follow-up. On by default; turn off if you prefer to read the response without an unexpected keyboard.")
             }
 
+            if !NanoMuseShellPrefs.shell { // nanoMuse: the shell's step bar has no thumbnail (NanoMuseToolBar.swift)
             Section {
                 Toggle(AppLocalized("Tool Preview Window"), isOn: $toolPreviewEnabled)
             } header: {
@@ -7195,6 +7196,7 @@ private struct AppearanceSettingsView: View {
             } footer: {
                 Text("Show a live preview thumbnail alongside the tool status bar during agent execution.")
             }
+            } // nanoMuse:
 
             // [T-thinking-auto-expand-toggle] Whether a NEW streaming thinking
             // block opens expanded (historical behavior, default) or stays

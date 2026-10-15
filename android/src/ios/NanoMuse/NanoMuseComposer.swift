@@ -48,8 +48,10 @@ struct NanoMuseComposerPill<Field: View>: View {
     var body: some View {
         HStack(alignment: .bottom, spacing: 2) {
             plusButton
+            // One line as tall as a glyph, so its text sits on the plus and the mic's centre line;
+            // the row stays bottom-aligned, so a longer text keeps them level with its last line.
             field()
-                .padding(.vertical, 4)
+                .padding(.vertical, max(4, (glyph - NanoMuseComposerWatch.fieldFloor) / 2))
             trailingButton
         }
         .padding(.horizontal, 6)

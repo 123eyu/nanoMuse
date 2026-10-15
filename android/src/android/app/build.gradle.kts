@@ -119,6 +119,12 @@ android {
 
     androidResources {
         noCompress += listOf("tar.gz", "proot-aarch64")
+        // nanoMuse: a warm arm64 build leaves sandbox payloads in the shared assets directory.
+        if (project.findProperty("nm.abi") == "x86_64") {
+            // An explicit list replaces AGP's defaults, so retain its normal hidden-file filters.
+            ignoreAssetsPatterns += "!.svn:!.git:!.ds_store:!*.scc:.*:<dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~".split(":")
+            ignoreAssetsPatterns += listOf("proot-aarch64", "alpine-minirootfs.tar.gz", "alpine-minirootfs.tar")
+        }
     }
 
     testOptions {
