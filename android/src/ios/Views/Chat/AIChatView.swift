@@ -2812,8 +2812,8 @@ struct AIChatView: View {
             }, onTakeoverDone: {
                 vm.resumeFromBrowserTakeover()
             })
-                .frame(maxWidth: maxContentWidth)
-                .padding(.horizontal, 12)
+                .frame(maxWidth: nmPill ? NanoMuseColumn.pillWidth(for: hSizeClass, otherwise: nil) : maxContentWidth) // nanoMuse: in the shell the bar is the composer pill's width
+                .padding(.horizontal, nmPill ? 16 : 12) // nanoMuse: and keeps its 16 pt margins
                 // [T-ios-geometry-observer-crash] onGeometryChange replaces the
                 // GeometryReader+onAppear+onChange scaffold: writing state from
                 // onChange(of: geo.*) inside the geometry-observer path re-drives

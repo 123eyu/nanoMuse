@@ -24,6 +24,7 @@ import { FEED_PANEL, GOALS_PANEL, IDEAS_PANEL, LIBRARY_PANEL, REPO_URL, ROOM_PAN
 import { useRooms } from './rooms.ts'
 import { usePrefs } from './prefs.ts'
 import { useWin, win, type RecentDoc } from './win.ts'
+import { useWindowsUpdates, updatePresentation, requestWindowsUpdate } from './windows-updates.ts'
 
 /** The id the harness's Schedules plugin registers its global panel under. */
 const SCHEDULES_PANEL = 'schedules'
@@ -97,6 +98,7 @@ interface MenuItem {
   hint?: string | undefined
   /** A dot after the label: something new behind it (an update). */
   dot?: boolean | undefined
+  disabled?: boolean | undefined
   onSelect(): void
 }
 
@@ -124,7 +126,7 @@ function CornerMenu({ anchor, items, onClose }: { anchor: HTMLElement; items: (M
   return h('div', { ref: menu, className: 'nm-menu', role: 'menu', style },
     items.map((item, index) => item === 'sep'
       ? h('div', { key: `sep-${index}`, className: 'nm-menu-sep', role: 'separator' })
-      : h('button', { key: item.id, type: 'button', role: 'menuitem', className: 'nm-menu-item', onClick: () => { onClose(); item.onSelect() } },
+      : h('button', { key: item.id, type: 'button', role: 'menuitem', className: 'nm-menu-item', disabled: item.disabled, onClick: () => { onClose(); item.onSelect() } },
           item.icon,
           h('span', { className: 'nm-menu-item-label' }, item.label, item.dot ? h('span', { className: 'nm-menu-dot', 'aria-hidden': true }) : null),
           item.hint ? h('span', { className: 'nm-menu-hint' }, item.hint) : null)))
@@ -133,6 +135,9 @@ function CornerMenu({ anchor, items, onClose }: { anchor: HTMLElement; items: (M
 export function MuseSidebar(props: MuseSidebarProps): ReactNode {
   const { collapsed, width, t, renderSlot, startSession, toggleSidebar, selectPanel, openSettings: openSettingsHook, openProfile, openSearch, issuesUrl, chatActions, usePanels, usePanelInfo, useShortcuts, useSessions, useSessionStatus, useWorkspaces } = props
   const live = useLive()
+  const update = useWindowsUpdates()
+  const updateView = update ? updatePresentation(update, t) : null
+  const updateDot = update === null ? Boolean(live.update?.newer) : updateView?.dot === true
   const prefs = usePrefs()
   const { recent, split } = useWin()
   const panels = usePanels((rows) => rows)
@@ -200,8 +205,10 @@ export function MuseSidebar(props: MuseSidebarProps): ReactNode {
         setNotice({ id: Date.now(), text: name ? t('reportSaved', { name }) : t('reportOpened') })
       }).catch(() => openLink(issuesUrl))
     } },
-    { id: 'settings', label: t('menuSettings'), icon: h(IconSettings, { size: 16 }), hint: keysHint(settingsShortcut?.keys), dot: Boolean(live.update?.newer), onSelect: openSettings },
-    ...(live.update?.newer ? [{ id: 'update', label: t('menuUpdate', { version: live.update.latest }), icon: h(IconDownload, { size: 16 }), onSelect: () => openLink(live.update?.page ?? REPO_URL) }] : []),
+    { id: 'settings', label: t('menuSettings'), icon: h(IconSettings, { size: 16 }), hint: keysHint(settingsShortcut?.keys), dot: updateDot, onSelect: openSettings },
+    ...(updateView?.label ? [{ id: 'update', label: updateView.label, icon: h(IconDownload, { size: 16 }), disabled: updateView.action === null, dot: updateView.dot,
+      onSelect: () => { if (updateView.action) requestWindowsUpdate(updateView.action) } }] : []),
+    ...(update === null && live.update?.newer ? [{ id: 'update', label: t('menuUpdate', { version: live.update.latest }), icon: h(IconDownload, { size: 16 }), onSelect: () => openLink(live.update?.page ?? REPO_URL) }] : []),
     { id: 'about', label: t('menuAbout'), icon: h(IconInfo, { size: 16 }), onSelect: () => aboutBus.open?.() },
     'sep',
     ...(schedules ? [{ id: 'schedules', label: schedules.label, icon: h('span', { style: { display: 'inline-flex', width: 16, height: 16 } }, renderSlot('sidebar.panellist', { size: 16, active: false }, { only: SCHEDULES_PANEL, fallback: h(IconCalendar, { size: 16 }) })), onSelect: () => selectPanel(SCHEDULES_PANEL) }] : []),
@@ -250,7 +257,7 @@ export function MuseSidebar(props: MuseSidebarProps): ReactNode {
       }, h(IconDoc, { size: 20 }), h('span', { className: 'nm-rail-doc-tag' }, docTag(doc.name))))) : null,
     h('div', { className: 'nm-rail-spacer' }),
     collapsed ? h(RailButton, { label: t('railNew'), onClick: startSession }, h(IconPlus, { size: 21 })) : null,
-    h(RailButton, { label: t('railMore'), expanded: menuAnchor !== null, dot: Boolean(live.update?.newer), onClick: () => setMenuAnchor((current) => (current ? null : menuButton.current)), buttonRef: (el) => { menuButton.current = el } }, h(IconMenu, { size: 21 })),
+    h(RailButton, { label: t('railMore'), expanded: menuAnchor !== null, dot: updateDot, onClick: () => setMenuAnchor((current) => (current ? null : menuButton.current)), buttonRef: (el) => { menuButton.current = el } }, h(IconMenu, { size: 21 })),
     // The settings shell lives in this seat: its trigger is hidden here (the
     // menu opens it), but its dialog and the onboarding steps mount through it.
     h('div', { ref: settingsSeat, className: 'nm-hidden' }, renderSlot('sidebar.settings', { wide: false })),

@@ -260,6 +260,9 @@ Provider clients carry `OwnProviderProxy.authenticator` for a proxy that asks fo
 *Test* fetches `https://chatgpt.com/` through the proxy as entered and reports the status and the
 milliseconds. Unit tests: `ProviderReachTest`, `OwnProviderProxyTest`.
 
+Leaving sign-in or the Network page ends its pending request, even if the server has
+started to answer but has not finished sending the response.
+
 ## Voice input
 
 System voice input can prefer on-device recognition. If the phone has no usable on-device
