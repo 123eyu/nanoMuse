@@ -161,6 +161,8 @@ Codex 登录的 ChatGPT 套餐只有聊天和视觉（Codex 后端没有图片�
 一样。没有任何已配置的服务商具备某项能力时，页面用一句话说明（「画图需要有图像模型的
 提供方：百炼、OpenAI、Gemini 或 OpenRouter。」），而不是报错。
 
+在形象工作室重新生成候选图时，新一组会替换旧一组。旧请求随后返回的图片或失败结果，不会改动新一组的候选格或文件。点击重新生成即可开始新请求，无需等待旧图片保存完毕。
+
 **连不上服务商的时候**（`net/ProviderReach.kt`、`ui/chat/ProviderReachCard.kt`）。失败的一轮，如果
 错误来自传输层（OkHttp 的「failed to connect to chatgpt.com/…（port 443）」「Unable to resolve host」、
 一条 TLS 或超时信息），或者是 OpenAI 的「region not supported」，就显示为一张卡片而不是红色横幅：
@@ -201,6 +203,8 @@ base URL（从不包括中继的，从不包括局域网地址）它回答代理
 中继、沙箱镜像都不受影响。服务商客户端带着 `OwnProviderProxy.authenticator`，应付要密码的代理。
 「测试」按填写的代理抓取 `https://chatgpt.com/`，报告状态码和毫秒数。单元测试：`ProviderReachTest`、
 `OwnProviderProxyTest`。
+
+离开登录页或「网络」页，会取消该页尚未完成的请求，服务器已开始回复但还未传完时也一样。
 
 ## 语音输入 {#voice-input}
 

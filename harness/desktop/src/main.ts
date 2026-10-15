@@ -17,6 +17,8 @@ import { maskProxyUrl, proxyEnv, validProxyUrl } from "./proxy";
 import { HostStartWatch, maskToken, waitedText, type WaitState } from "./host-start";
 import { HostWork } from "./host-work";
 import { ProtectedExit, type ExitDialog, type ExitIntent, type WorkItem, type WorkSource } from "./protected-exit";
+import { WindowsUpdates, RestartNsisUpdater } from "./windows-updates";
+import { windowsNetworkCost } from "./windows-network-cost";
 
 /**
  * nanoMuse Desktop — the nanoMuse desktop, built on DeepSeek Harness.
@@ -116,6 +118,7 @@ let child: ChildProcess | null = null;
 let mainWindow: BrowserWindow | null = null;
 let hostUrl: string | null = null;
 let quitting = false;
+let sessionEnding = false;
 let restarts = 0;
 /** The proxy the running Host was started with ("" for none): the Network row offers a restart while it differs from the setting. */
 let hostProxy = "";
@@ -525,21 +528,26 @@ async function restartHost(): Promise<void> {
 // closes so nothing new starts under the hand-over, and work that is on is named first, with
 // keeping it running as the default; an explicit confirmation ends it, and the stop is waited
 // for before the Host goes. Closing the window to stay in the tray, idling, a crash and the
-// system switching off never come through here, and `approval` stays `none` for them: the
-// later install-on-exit change reads that flag and nothing else.
+// system switching off never request installation through this path.
 
 /** The Host's work routes, once the Host is up; until then nothing answers and the exit reads as idle. */
 let hostWork: HostWork | null = null;
-/** The one protected exit (a quit today; the restart-update request of the update tickets reuses it). */
+/** The one protected exit, reused by both update installation intents. */
 let exitGuard: ProtectedExit | null = null;
+let windowsUpdates: WindowsUpdates | null = null;
 
 const workSource: WorkSource = {
-  busy: async () => (await hostWork?.busy()) ?? [],
-  setGate: async (open) => {
-    await hostWork?.setGate(open);
+  busy: async (strict) => {
+    if (strict && !hostWork) throw new Error("The Host is not ready for an update restart");
+    return (await hostWork?.busy(strict)) ?? [];
   },
-  stopAll: async () => {
-    await hostWork?.stopAll();
+  setGate: async (open, strict) => {
+    if (strict && !hostWork) throw new Error("The Host is not ready for an update restart");
+    await hostWork?.setGate(open, strict);
+  },
+  stopAll: async (strict) => {
+    if (strict && !hostWork) throw new Error("The Host is not ready for an update restart");
+    await hostWork?.stopAll(strict);
   },
 };
 
@@ -576,14 +584,17 @@ const exitDialog: ExitDialog = {
 
 /** A real exit, the person's own: the protected exit asks about the work first. */
 function protectedQuit(intent: ExitIntent = "quit"): void {
-  if (quitting || !exitGuard) {
+  if (quitting || sessionEnding || !exitGuard) {
     app.quit();
     return;
   }
-  void exitGuard.requestExit(intent).then((went) => {
+  const exit = windowsUpdates && intent === "quit" ? windowsUpdates.quit() : exitGuard.requestExit(intent);
+  void exit.then(() => {
     // Keep running after the last window closed with no tray to come back through: the
     // window comes back, or the app would stay alive with nothing on screen to reach it by.
-    if (!went && !mainWindow && !tray) void showWindow();
+    // An update being installed is on its way out (the library quits after the installer
+    // has started), so it is not read as kept running.
+    if (!quitting && windowsUpdates?.snapshot().phase !== "installing" && !mainWindow && !tray) void showWindow();
   });
 }
 
@@ -766,6 +777,7 @@ interface Prefs {
   openAtLogin: boolean;
   menuBar: boolean;
   quickChat: boolean;
+  autoDownloadUpdates?: boolean;
   /** The person's own quick-chat combination (an Electron accelerator); absent means the platform's default. */
   quickChatKey?: string;
   /** The proxy for the model providers (`http://host:port`, `socks5://host:port`); absent means none. */
@@ -806,14 +818,15 @@ function readPrefs(): Prefs {
   }
 }
 
-function writePrefs(): void {
+function writePrefs(next: Prefs = prefs, strict = false): void {
   try {
     mkdirSync(harnessHome(), { recursive: true });
     // the proxy address may carry `user:pass@`: the file is the owner's alone, like cloud.json and
     // hands.json next to it (`mode` applies to a new file only, so an existing one is tightened too)
-    writeFileSync(prefsPath(), `${JSON.stringify(prefs, null, 2)}\n`, { mode: 0o600 });
+    writeFileSync(prefsPath(), `${JSON.stringify(next, null, 2)}\n`, { mode: 0o600 });
     chmodSync(prefsPath(), 0o600);
   } catch (exc) {
+    if (strict) throw exc;
     log(`prefs: could not save: ${String(exc)}`);
   }
 }
@@ -983,6 +996,17 @@ function registerBridge(): void {
   ipcMain.handle("nanomuse:relaunch", () => {
     relaunchNow();
   });
+  ipcMain.handle("nanomuse:updates:snapshot", () => windowsUpdates?.snapshot() ?? null);
+  ipcMain.handle("nanomuse:updates:auto-download", async (_e, enabled: boolean) => {
+    await windowsUpdates?.setAutoDownload(enabled);
+    return windowsUpdates?.snapshot() ?? null;
+  });
+  for (const action of ["check", "download", "restart"] as const) {
+    ipcMain.handle(`nanomuse:updates:${action}`, async () => {
+      await windowsUpdates?.[action]();
+      return windowsUpdates?.snapshot() ?? null;
+    });
+  }
   ipcMain.handle("nanomuse:permissions:settings", (_e, kind: PermissionKind | "files") => {
     if (process.platform === "darwin" && typeof kind === "string" && kind in PERMISSION_PANES) void shell.openExternal(PERMISSION_PANES[kind]);
   });
@@ -1824,6 +1848,8 @@ function createWindow(): BrowserWindow {
     callback(permission === "media" && sameOrigin(details.requestingUrl, hostUrl));
   });
   win.on("closed", mainWindowClosed);
+  // Windows logoff/shutdown may close the last window without before-quit.
+  win.on("session-end", () => { sessionEnding = true; });
   // the splash: the logo in a loading ring and the wordmark (resources/loading.html) — no face
   void win.loadFile(join(ownResources(), "loading.html"), { query: { lang: zh ? "zh" : "en" } });
   return win;
@@ -1999,6 +2025,30 @@ if (!app.requestSingleInstanceLock({ version: app.getVersion() })) {
     if (!screenshotFlag) void ensureMacPermissionsAtLaunch().catch((exc: unknown) => log(`permissions: ${String(exc)}`));
     try {
       await boot();
+      if (process.platform === "win32" && process.arch === "x64" && app.isPackaged && !screenshotFlag) {
+        windowsUpdates = new WindowsUpdates({
+          currentVersion: app.getVersion(), supported: true,
+          autoDownload: prefs.autoDownloadUpdates !== false,
+          saveAutoDownload: (enabled) => {
+            const next = { ...prefs, autoDownloadUpdates: enabled };
+            writePrefs(next, true);
+            prefs = next;
+          },
+          networkCost: windowsNetworkCost,
+          createUpdater: (canQuit) => {
+            const updater = new RestartNsisUpdater(canQuit);
+            updater.logger = { info: (line) => log(`update: ${line}`), warn: (line) => log(`update: ${line}`), error: (line) => log(`update: ${line}`) };
+            return updater;
+          },
+          handoff: async (intent, install) => !quitting && !sessionEnding && !!exitGuard && exitGuard.requestExit(intent, install ? () => {
+            if (quitting || sessionEnding) throw new Error("The system is ending the session");
+            install();
+          } : undefined),
+          cancelHandoff: async () => { await exitGuard?.cancelHandoff(); },
+        });
+        windowsUpdates.subscribe((state) => { mainWindow?.webContents.send("nanomuse:updates:state", state); });
+        windowsUpdates.start();
+      }
     } catch (exc) {
       await reportStartupFailure(exc);
       app.quit();
@@ -2019,9 +2069,9 @@ if (!app.requestSingleInstanceLock({ version: app.getVersion() })) {
     globalShortcut.unregisterAll();
     if (quitting) return;
     quitting = true;
-    // The record the install-on-exit change will read: a quit that did not go through the
-    // protected exit (a crash, the system switching off, a Host that never came up) is not
-    // the person approving an installation.
+    windowsUpdates?.dispose();
+    // This cleanup never requests installation. Only the explicit protected
+    // quit or restart above can hand a verified package to the installer.
     log(`quit: the exit ${exitGuard?.approval === "user" ? "went through the protected exit with the person's say-so" : "did not go through the protected exit (the system, a crash, or a Host that was not up)"}`);
     if (startWatch) {
       // a Host still starting goes with the app; the log says it was alive

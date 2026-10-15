@@ -15,6 +15,7 @@ import { useLive, type UpdateInfo } from './live.ts'
 import { openStar } from './AccountPage.tsx'
 import { DOCS_URL, ISSUES_URL, REPO_URL } from './panels.ts'
 import { Sheet } from './ui.tsx'
+import { useWindowsUpdates, updatePresentation, requestWindowsUpdate } from './windows-updates.ts'
 
 export const RELEASES_URL = 'https://github.com/nano-muse/nanoMuse/releases'
 
@@ -75,14 +76,19 @@ let autoChecked = false
 
 export function UpdateRow({ t, bundle }: { t: Translate; bundle: string }): ReactNode {
   const app = useAppInfo()
+  const desktop = useWindowsUpdates()
   const { info, checking, check } = useUpdateCheck()
   const asset = info && app ? pickAsset(info.assets, app.platform, app.arch, app.appImage === true) : undefined
   // nothing known yet (the host's daily check has not run): one check per window, on sight
-  useEffect(() => { if (!info && !checking && !autoChecked) { autoChecked = true; check() } }, [info === null])
+  useEffect(() => { if (desktop === null && !info && !checking && !autoChecked) { autoChecked = true; check() } }, [info === null, desktop === null])
   const installed = app ? t('vrInstalled', { app: app.version || '—', bundle: bundle || '—' }) : t('abVersionBundle', { bundle: bundle || '—' })
   let found: ReactNode
   let action: ReactNode = null
-  if (checking || !info) {
+  if (desktop) {
+    const view = updatePresentation(desktop, t)
+    found = view.status
+    action = h('button', { type: 'button', className: 'nm-ob-link nm-inline', disabled: view.busy, onClick: () => requestWindowsUpdate('check') }, t('vrCheckNow'))
+  } else if (desktop === undefined || checking || !info) {
     found = t('vrChecking')
   } else if (info.source === 'none') {
     found = h(Fragment, null, t('vrFailed'), ' · ', h('button', { type: 'button', className: 'nm-ob-link nm-inline', onClick: check }, t('vrCheckNow')))
@@ -98,6 +104,20 @@ export function UpdateRow({ t, bundle }: { t: Translate; bundle: string }): Reac
       h('span', { className: 'nm-row-sub nm-version-line' }, installed),
       h('span', { className: 'nm-row-sub nm-version-line' }, found)),
     action)
+}
+
+/** Settings alone offers the saved switch; actions stay in the corner menu. */
+export function AutomaticUpdateRow({ t }: { t: Translate }): ReactNode {
+  const desktop = useWindowsUpdates()
+  const [failed, setFailed] = useState(false)
+  const updates = bridge()?.updates
+  if (!desktop || desktop.autoDownload === undefined || !updates?.setAutoDownload) return null
+  return h('div', { className: 'nm-row' },
+    h('div', { className: 'nm-row-main' },
+      h('span', { className: 'nm-row-title' }, t('wuAutomatic')),
+      h('span', { className: 'nm-row-sub nm-wrap', role: failed ? 'alert' : undefined }, t(failed ? 'wuSettingFailed' : 'wuAutomaticDetail'))),
+    h('button', { type: 'button', role: 'switch', className: 'nm-switch', 'aria-label': t('wuAutomatic'), 'aria-checked': desktop.autoDownload,
+      onClick: () => { setFailed(false); void updates.setAutoDownload!(!desktop.autoDownload).catch(() => setFailed(true)) } }))
 }
 
 export function makeAboutSheet(t: Translate, bundle: string) {

@@ -3,6 +3,7 @@ package io.github.nanomuse.net
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.Response
@@ -105,5 +106,22 @@ class OwnProviderProxyTest {
         assertEquals("chatgpt.com", OwnProviderProxy.hostOf("https://chatgpt.com/backend-api"))
         assertEquals("dashscope.aliyuncs.com", OwnProviderProxy.hostOf(" https://dashscope.aliyuncs.com/compatible-mode/v1 "))
         assertEquals("", OwnProviderProxy.hostOf("not a url"))
+    }
+
+    @Test fun `cancelling the probe while peeking a 403 body closes the call`() = runBlocking {
+        BodyHoldingServer(403).use { server ->
+            val cfg = OwnProviderProxy.Config(enabled = true, host = "127.0.0.1", port = server.port)
+            val job = launch(Dispatchers.Default) { OwnProviderProxy.probe(cfg, "http://provider.invalid/") }
+            try {
+                assertTrue("the proxy body reader was not entered", server.awaitBodyReader("OwnProviderProxy.kt", "peekBody"))
+                job.cancel()
+                assertTrue("the proxy body stayed open after cancel", server.closedByClient.await(1, TimeUnit.SECONDS))
+                withTimeout(1_000) { job.join() }
+            } finally {
+                job.cancel()
+                server.close()
+                withTimeout(5_000) { job.join() }
+            }
+        }
     }
 }

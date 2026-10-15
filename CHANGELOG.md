@@ -12,17 +12,28 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Web
 
+- **Each Feed section showed its own load error and retry.** Posts, activity, Next up and calendar requests kept their last successful content when a refresh failed; retrying one section no longer refetched the others.
+
 ### Desktop
+
+- **The bundled runtime kept its library links.** Staging the PyInstaller output preserved relative library aliases and macOS framework links instead of copying their targets into duplicate files and directories.
 
 ### Android
 
 - Chat-only x86_64 builds excluded cached arm64 sandbox assets, so switching from a phone build no longer bundled the unusable proot and root filesystem payloads.
+
+- **Replacing avatar candidates no longer lets an old result change the new set.** Ownership is checked together with publication, including a late retry. PNG encoding and decoding use private temporary files outside the replacement lock, so Again does not wait for an old picture write and an old writer cannot overwrite the new candidate files. For #337.
+
+- Leaving sign-in or Network also cancelled requests while response bodies were arriving, instead of waiting for the read timeout (For #336).
 
 - **A single assistant markdown turn stays in one bubble, and the stop button matches the send disc.** A reply turn containing lists, headings, paragraphs and code blocks now stays inside one assistant bubble on Android as it does on iOS instead of splitting into separate sibling bubbles per markdown block, while text before and after a tool call and separate messages remain distinct bubbles. While a reply is streaming, the stop button in the composer uses the monochrome ink disc (`ChatColors.sendButton` with the inner square in `ChatColors.background`, black with a white square in light and inverted in dark) instead of a red circle.
 
 ### iOS
 
 - **The composer halo and the bottom pill-bar icons match Android.** `NanoMuseComposerHost` now draws a rounded vignette (`NanoMuseComposerVignette`) following the composer pill's 26 pt contour and soft shadow instead of a full-width opaque rectangular strip behind the composer column. The five bottom pill-bar tabs use the same icon shapes as Android's `MuseBottomBar`: single chat bubble (`bubble.left`), document with lines (`doc.text`), lightbulb (`lightbulb`), checked square (`checkmark.square`) and the three-shape category glyph for Library.
+- **A side chat's long-press preview stays inside the drawer.** Holding a chat in the drawer lifted a preview wider than the drawer, cut off at its edge with the conversation showing through; the preview is now the row at the drawer's width on the drawer's background.
+- **The composer's text lines up with its plus and mic.** One line of text sat about 6 pt below the two buttons; it now sits on their centre line, and a longer text keeps them level with its last line.
+- **The step bar above the composer lines up with it.** In the Muse layout the bar no longer has a terminal or page thumbnail standing out above it: a glyph for the kind of step (terminal, file, page, picture, memory) sits inside the bar, which takes the composer's width and colour. Tapping it opens the live view as before; the *Tool Preview Window* setting is hidden there, since it no longer applies. Android is unchanged.
 
 ### Project
 
@@ -142,6 +153,12 @@ Compass: the day after Helm, a health check of the whole project. Nine passes re
 - **The MCP form takes environment variables, and says where they go.** *Connections → MCP servers → Add a server* has an *Environment* field, one `KEY=value` per line, with the note that each value goes into the vault and the settings file keeps a reference; a connected server lists its variable names, and one whose value is written as plain text in `config.toml` is marked with the line to move it to the vault. In English and 简体中文.
 
 ### Desktop
+
+- **Windows installed ready updates on a normal user quit and stayed closed.** Quit reused the restart update's integrity check and work protection, while restart still reopened the app. Without a ready update, the normal protected exit was unchanged. Closing to the tray, idling, a crash or system shutdown did not request installation, and a failed installer launch kept the app running.
+
+- **Windows downloaded updates automatically on known unmetered networks.** The saved Settings switch defaulted to on; metered or unknown connections kept checking and offered a manual download without changing the switch. Failed downloads retried after one and five minutes at most, rechecking the switch and network each time, then waited for a manual retry or the next six-hour check. Turning the switch off stopped new automatic starts without interrupting a download already running.
+
+- **Windows gained downloads and protected restart updates in the corner menu.** The app checked stable releases on startup and every six hours, showed download progress and verification, retried manually after failure, and reused complete packages only after electron-updater's integrity check. The mirror was tried before GitHub for the same candidate. Settings shared the menu's state and offered a manual check; restarting waited for confirmed work to end and kept new work out during installation handoff. An installer that failed to start left the app running instead of completing the library's queued quit.
 
 - **A clip of your own with a fragmented layout is read right, and the connector sheet's Chinese title has its space.** A fragmented MP4 whose 64-bit movie header says "unknown" for the length was refused as too long instead of being read from its `mehd` box; it is now read like the 32-bit case. The sheet that connects a service reads 连接 Notion rather than 连接Notion in Chinese. The desktop shell's own tests now run in the desktop workflow on every platform and pass on a Windows checkout with CRLF line ends ([#383](https://github.com/nano-muse/nanoMuse/pull/383)).
 - **The invite sentences say when the bonus arrives.** The Invite card at the top of the chat, the allowance card's *Invite a friend* row and the hint under the invite code on the welcome and sign-in forms now say that both sides get the ¥5 (or the relay's figure) after the invited friend's first request to nanoMuse Cloud, not at sign-up. In English and 简体中文.
