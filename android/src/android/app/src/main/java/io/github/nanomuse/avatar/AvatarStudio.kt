@@ -69,6 +69,8 @@ object AvatarStudio {
      * a late picture) into its replacement's tiles (#337).
      */
     @Volatile private var generation = 0
+    /** A replacement and a completed slot must agree on ownership in one critical section. */
+    private val candidateLock = Any()
     private var moodJob: Job? = null
     /** Image endpoints throttle hard; two in flight is what most of them tolerate. */
     private val lane = Semaphore(2)
@@ -152,17 +154,21 @@ object AvatarStudio {
 
     /** The run itself, once the endpoint and the words are settled; tests enter here with a fake [drawer]. */
     internal fun startCandidates(context: Context, ep: ImageGen.Endpoint, text: String, chosen: Style, referenceImage: Bitmap?) {
-        candidateJob?.cancel()
-        val gen = ++generation
-        _selected.value = null
-        _error.value = null
-        _slots.value = List(CANDIDATES) { Slot.Loading }
-        lastRequest = Triple(text, chosen, ep)
-        reference = referenceImage
-        candidateJob = scope.launch {
-            (0 until CANDIDATES).map { i -> async { drawCandidate(context, ep, text, chosen, i, gen) } }.awaitAll()
-            if (gen == generation && _slots.value.all { it is Slot.Failed }) {
-                _error.value = (_slots.value.first() as Slot.Failed).message
+        synchronized(candidateLock) {
+            candidateJob?.cancel()
+            val gen = ++generation
+            _selected.value = null
+            _error.value = null
+            _slots.value = List(CANDIDATES) { Slot.Loading }
+            lastRequest = Triple(text, chosen, ep)
+            reference = referenceImage
+            candidateJob = scope.launch {
+                (0 until CANDIDATES).map { i -> async { drawCandidate(context, ep, text, chosen, i, gen) } }.awaitAll()
+                synchronized(candidateLock) {
+                    if (gen == generation && _slots.value.all { it is Slot.Failed }) {
+                        _error.value = (_slots.value.first() as Slot.Failed).message
+                    }
+                }
             }
         }
     }
@@ -181,11 +187,13 @@ object AvatarStudio {
 
     /** One tile again, after a failure. */
     fun retrySlot(context: Context, index: Int) {
-        val (text, chosen, ep) = lastRequest ?: return
-        if (_slots.value.getOrNull(index) !is Slot.Failed) return
-        _slots.update { list -> list.toMutableList().also { it[index] = Slot.Loading } }
-        val gen = generation
-        scope.launch { drawCandidate(context, ep, text, chosen, index, gen) }
+        synchronized(candidateLock) {
+            val (text, chosen, ep) = lastRequest ?: return
+            if (_slots.value.getOrNull(index) !is Slot.Failed) return
+            _slots.update { list -> list.toMutableList().also { it[index] = Slot.Loading } }
+            val gen = generation
+            scope.launch { drawCandidate(context, ep, text, chosen, index, gen) }
+        }
     }
 
     private suspend fun drawCandidate(context: Context, ep: ImageGen.Endpoint, text: String, chosen: Style, i: Int, gen: Int) {
@@ -195,22 +203,37 @@ object AvatarStudio {
         val result = runCatching { throttled { drawer(context, ep, ref, prompt) } }
         // Cancelled, or a new set was asked for meanwhile: nothing to say about this tile any more.
         if (result.exceptionOrNull() is CancellationException || !currentCoroutineContext().isActive || gen != generation) return
-        val slot = result.fold(
-            onSuccess = { bmp ->
-                val f = File(dir, "$i.png")
+        val jobContext = currentCoroutineContext()
+        var pending: File? = null
+        try {
+            // Encoding and decoding can be slow. Each draw owns its temporary files, so
+            // Again can replace it without waiting or letting an old writer overwrite a tile.
+            val prepared = result.mapCatching { bmp ->
+                val f = File.createTempFile("candidate-$gen-$i-", ".png", dir)
+                pending = f
                 AvatarStore.write(f, bmp)
-                Slot.Ready(AvatarStore.decodeBitmap(f) ?: bmp, f)
-            },
-            onFailure = { e ->
-                AppLogger.warning(TAG, "candidate $i failed: ${e.message}")
-                // a provider still busy after the retries: a sentence, not its status line
-                Slot.Failed(if (looksRateLimited(e)) context.getString(R.string.nm_avatar_provider_busy) else e.message ?: "failed")
-            },
-        )
-        // Atomic: the four candidates finish on different threads, and a plain
-        // read-modify-write here would let one tile's result overwrite another's.
-        // Only for the set this picture was asked for: a later set owns the slots now.
-        if (gen == generation) _slots.update { list -> list.toMutableList().also { it[i] = slot } }
+                Slot.Ready(AvatarStore.decodeBitmap(f) ?: bmp, File(dir, "$i.png"))
+            }
+            synchronized(candidateLock) {
+                // Only the ownership check, same-directory rename and slot publication share
+                // the replacement lock. A stale draw never touches the published PNG path.
+                if (gen != generation || !jobContext.isActive) return
+                val slot = prepared.mapCatching { ready ->
+                    check(pending!!.renameTo(ready.file)) { "could not save candidate $i" }
+                    ready
+                }.getOrElse { e ->
+                    AppLogger.warning(TAG, "candidate $i failed: ${e.message}")
+                    // a provider still busy after the retries: a sentence, not its status line
+                    Slot.Failed(if (looksRateLimited(e)) context.getString(R.string.nm_avatar_provider_busy) else e.message ?: "failed")
+                }
+                _slots.update { list -> list.toMutableList().also { it[i] = slot } }
+            }
+        } finally {
+            pending?.let { f ->
+                f.delete()
+                File(f.parentFile, f.name + ".tmp").delete()
+            }
+        }
     }
 
     /** The picked candidate becomes the face; the moods follow in the background. */

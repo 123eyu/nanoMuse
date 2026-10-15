@@ -13,7 +13,7 @@
 import { useModalLayer } from '@deepseek-ai/dsh-client-ui-primitives'
 import { createElement as h, Fragment, useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { UpdateRow } from './About.tsx'
+import { UpdateRow, AutomaticUpdateRow } from './About.tsx'
 import { openStar } from './AccountPage.tsx'
 import { call, type CloudStatus, type Translate, failureText } from './api.ts'
 import { Avatar } from './Avatar.tsx'
@@ -335,6 +335,7 @@ export function makeGeneralSection(t: Translate, version: string) {
       h('h2', null, t('gnAbout')),
       h('div', { className: 'nm-card' },
         h(UpdateRow, { t, bundle: version }),
+        h(AutomaticUpdateRow, { t }),
         // going to GitHub from here counts as the star being done: the asks stop (C1)
         h('button', { type: 'button', className: 'nm-row nm-row-button', onClick: () => openStar(REPO_URL) },
           h('div', { className: 'nm-row-main' },

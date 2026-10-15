@@ -4,10 +4,19 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.SharedPreferences
 import io.github.nanomuse.net.HoldingServer
+import io.github.nanomuse.net.BodyHoldingServer
 import java.util.concurrent.TimeUnit
+import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
+import org.junit.Assert.assertEquals
+import org.junit.Assert.fail
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -71,6 +80,60 @@ class NanoMuseCloudCancelTest {
             // Before #336 the socket stayed open until the client's 30 s read timeout.
             assertTrue("the relay connection stayed open after the cancel", server.closedByClient.await(1, TimeUnit.SECONDS))
             job.join()
+        }
+    }
+
+    @Test fun `cancelling while reading a successful relay body closes the call`() = runBlocking {
+        cancelDuringBodyRead(200)
+    }
+
+    @Test fun `cancelling while reading a relay error body closes the call`() = runBlocking {
+        cancelDuringBodyRead(403)
+    }
+
+    private suspend fun cancelDuringBodyRead(status: Int) = kotlinx.coroutines.coroutineScope {
+        BodyHoldingServer(status).use { server ->
+            val context = PrefsContext()
+            NanoMuseCloud.setBaseUrl(context, "http://127.0.0.1:${server.port}")
+            val job = launch(Dispatchers.Default) {
+                try {
+                    NanoMuseCloud.requestCode(context, "someone")
+                } catch (error: IOException) {
+                    // A failing regression closes the fixture in finally. Do not let its EOF
+                    // replace the assertion while the canceled baseline is still reading.
+                    currentCoroutineContext().ensureActive()
+                    throw error
+                }
+            }
+            try {
+                assertTrue("the relay body reader was not entered", server.awaitBodyReader("NanoMuseCloud.kt", "string"))
+                job.cancel()
+                assertTrue("the relay body stayed open after cancel", server.closedByClient.await(1, TimeUnit.SECONDS))
+                withTimeout(1_000) { job.join() }
+            } finally {
+                job.cancel()
+                server.close()
+                withTimeout(5_000) { job.join() }
+            }
+        }
+    }
+
+    @Test fun `relay HTTP errors preserve their code and metadata`() = runBlocking {
+        MockWebServer().use { server ->
+            server.enqueue(MockResponse().setResponseCode(429).setBody(
+                """{"error":{"code":"limited","message":"fixture limit","retry_after":3,"paused":true}}""",
+            ))
+            val context = PrefsContext()
+            NanoMuseCloud.setBaseUrl(context, server.url("/").toString().trimEnd('/'))
+            try {
+                NanoMuseCloud.requestCode(context, "someone")
+                fail("the relay error must be delivered")
+            } catch (error: NanoMuseCloud.CloudException) {
+                assertEquals("limited", error.code)
+                assertEquals(429, error.status)
+                assertEquals(3, error.retryAfterS)
+                assertTrue(error.paused)
+            }
         }
     }
 }
