@@ -24,6 +24,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Android
 
+- **Quiet provider voice sessions returned to idle.** A silent session limit or an expired tiny utterance previously stopped the microphone without ending the voice panel's recording state. Both now finish quietly, while a pending transcription keeps its final result.
+
 - **Voice input released the recorder when capture could not start.** A recorder allocated before a cancelled capture task began, or whose startup failed, is now released on every exit path instead of being left allocated. Errors in a capture callback cannot skip that cleanup.
 
 - Chat-only x86_64 builds excluded cached arm64 sandbox assets, so switching from a phone build no longer bundled the unusable proot and root filesystem payloads.
