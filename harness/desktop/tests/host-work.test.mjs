@@ -13,6 +13,10 @@ function fakeHost() {
   let failMint = false;
   let workStatus = 200;
   let workBody = { busy: [] };
+  let gateStatus = 200;
+  let gateBody;
+  let stopStatus = 200;
+  let stopBody = { busy: [] };
   let mint = 0;
   let valid = "";
   const server = createServer((req, res) => {
@@ -43,13 +47,14 @@ function fakeHost() {
         return;
       }
       if (req.method === "POST" && url.pathname === "/nanomuse/cloud/work/gate") {
-        seen.gates.push(JSON.parse(await collect()));
-        res.writeHead(200, { "content-type": "application/json" }).end('{"open":true}');
+        const body = JSON.parse(await collect());
+        seen.gates.push(body);
+        res.writeHead(gateStatus, { "content-type": "application/json" }).end(JSON.stringify(gateBody ?? body));
         return;
       }
       if (req.method === "POST" && url.pathname === "/nanomuse/cloud/work/stop") {
         seen.stops += 1;
-        res.writeHead(200, { "content-type": "application/json" }).end('{"busy":[]}');
+        res.writeHead(stopStatus, { "content-type": "application/json" }).end(JSON.stringify(stopBody));
         return;
       }
       res.writeHead(404).end();
@@ -74,6 +79,8 @@ function fakeHost() {
       workStatus = status;
       workBody = body;
     },
+    gateAnswers: (status, body) => { gateStatus = status; gateBody = body; },
+    stopAnswers: (status, body) => { stopStatus = status; stopBody = body; },
     close: () =>
       new Promise((done) => {
         server.closeAllConnections?.();
@@ -160,4 +167,40 @@ test("a malformed answer reads as no work", async () => {
   host.answers(200, { busy: [{ kind: "nope", label: "" }, { kind: "reply" }, 7, { kind: "computer", label: "" }] });
   assert.deepEqual(await work.busy(), [{ kind: "computer", label: "" }]);
   await host.close();
+});
+
+test("an update restart requires authenticated and valid work state from the real HTTP boundary", async () => {
+  const host = fakeHost();
+  const work = new HostWork(await host.launchUrl, { log: () => undefined });
+  try {
+    host.failMint(true);
+    await assert.rejects(work.busy(true), /unavailable/);
+    await assert.rejects(work.setGate(false, true), /acknowledge/);
+    host.failMint(false);
+    for (const [status, body] of [[500, { busy: [] }], [404, {}], [200, {}], [200, { busy: [{ kind: "reply" }] }]]) {
+      host.answers(status, body);
+      await assert.rejects(work.busy(true));
+    }
+    host.answers(200, { busy: [{ kind: "reply", label: "" }] });
+    assert.deepEqual(await work.busy(true), [{ kind: "reply", label: "" }]);
+  } finally { await host.close(); }
+});
+
+test("an update restart must receive a gate acknowledgement and a completed stop", async () => {
+  const host = fakeHost();
+  const work = new HostWork(await host.launchUrl, { log: () => undefined });
+  try {
+    host.gateAnswers(500, { open: false });
+    await assert.rejects(work.setGate(false, true));
+    host.gateAnswers(200, { open: true });
+    await assert.rejects(work.setGate(false, true));
+    host.gateAnswers(200, { open: false });
+    await work.setGate(false, true);
+    for (const [status, body] of [[500, { busy: [] }], [200, {}], [200, { busy: [{ kind: "reply", label: "" }] }]]) {
+      host.stopAnswers(status, body);
+      await assert.rejects(work.stopAll(true));
+    }
+    host.stopAnswers(200, { busy: [] });
+    await work.stopAll(true);
+  } finally { await host.close(); }
 });

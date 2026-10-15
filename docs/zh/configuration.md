@@ -456,6 +456,9 @@ start_grace      = 4             # seconds the services may take before the app 
 `NANOMUSE_NO_UPDATE_CHECK=1` 同样能关掉它；托管的网页会话（用 `NANOMUSE_CLOUD_KEY`
 启动的运行时）从不检查；由它的运营者来更新。
 
+这些设置只适用于 Python 运行时。Windows 桌面壳在启动后和每六小时独立检查，下载由你
+主动发起，详见[桌面版](desktop.md#updating-on-windows)。
+
 ## 东西都在哪 {#where-things-live}
 
 | 路径 | 内容 |

@@ -30,6 +30,34 @@ Python runtime and the web app in an Electron shell of their own (`desktop/app`)
 harness build shipped beside them as *nanoMuse Harness*; from 0.1.30 there is the one
 desktop, and it installs over the old one (same application id).
 
+## Updating on Windows
+
+The Windows x64 app checks for a newer stable release after starting and every six
+hours. Settings shows the running app's version and the same update state as the
+corner menu, with **Check now** to refresh immediately.
+
+In the existing bottom-left menu, choose **Download** when an update is available.
+The menu shows download progress and verification, then **Restart to update** once
+electron-updater has verified the complete installer. A dot means an action is
+waiting: download, retry or restart. Downloading has no update dot, and completion
+does not open a dialog. Failed checks and downloads can be retried from the menu.
+The download mirror is tried first, then GitHub for the same version and checksum.
+An already downloaded installer is verified again before reuse.
+
+Restarting for an update uses the installed app's normal user-level NSIS upgrade.
+It keeps conversations, settings and account data outside the application files,
+then opens the app again. If replies, computer operations, remote tasks or approvals
+are pending, the app lists them and defaults to keeping them running. Only an
+explicit confirmation ends the work; installation waits until it has ended and
+blocks new work during handoff. A cancelled or failed handoff lets work continue.
+
+Downloads start when you request them. Quitting normally, closing to the tray and
+leaving the app idle do not install the package. Other platforms, older shells and
+the standalone harness retain the external download flow. A version that has no
+in-app updater must first be upgraded with the downloaded installer. Development
+builds do not run an installer. This uses the existing installation behaviour;
+mixed copies or stale installation registration need to be sorted out separately.
+
 ## What it is
 
 A dsh Host started by the shell as a child process, showing the harness's web app in a
