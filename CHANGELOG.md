@@ -24,6 +24,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Android
 
+- Chat-only x86_64 builds excluded cached arm64 sandbox assets, so switching from a phone build no longer bundled the unusable proot and root filesystem payloads.
+
 - **Replacing avatar candidates no longer lets an old result change the new set.** Ownership is checked together with publication, including a late retry. PNG encoding and decoding use private temporary files outside the replacement lock, so Again does not wait for an old picture write and an old writer cannot overwrite the new candidate files. For #337.
 
 - Leaving sign-in or Network also cancelled requests while response bodies were arriving, instead of waiting for the read timeout (For #336).
