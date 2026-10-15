@@ -56,6 +56,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### iOS
 
+- **A picked avatar clip keeps its preview open.** The photo picker finishes closing before the clip preview opens, and the preview no longer deletes the pending video when SwiftUI briefly removes the sheet. Use and Cancel remain the explicit ways to finish the choice.
+
 - **Per-mood avatar clips.** The avatar studio can choose and remove a separate local video for each mood without changing other moods or the existing single-video setting.
 
 - **The composer halo and the bottom pill-bar icons match Android.** `NanoMuseComposerHost` now draws a rounded vignette (`NanoMuseComposerVignette`) following the composer pill's 26 pt contour and soft shadow instead of a full-width opaque rectangular strip behind the composer column. The five bottom pill-bar tabs use the same icon shapes as Android's `MuseBottomBar`: single chat bubble (`bubble.left`), document with lines (`doc.text`), lightbulb (`lightbulb`), checked square (`checkmark.square`) and the three-shape category glyph for Library.

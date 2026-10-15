@@ -293,9 +293,33 @@ final class NanoMuseOwnClipPicker: ObservableObject {
     var mood: NanoMuseMood?
     @Published var message: String?
     @Published private(set) var busy = false
+    private var readyForPreview: NanoMuseOwnClip.Pending?
+    private var previewTask: Task<Void, Never>?
 
     /// Open the picker.
-    func choose(mood: NanoMuseMood? = nil) { self.mood = mood; presented = true }
+    func choose(mood: NanoMuseMood? = nil) {
+        previewTask?.cancel()
+        if let previous = readyForPreview { NanoMuseOwnClip.shared.discard(previous) }
+        readyForPreview = nil
+        self.mood = mood
+        presented = true
+    }
+
+    /// Wait for PhotosPicker's dismissal animation before opening another sheet.
+    func presentPreviewWhenPickerCloses() {
+        guard !presented, readyForPreview != nil else { return }
+        previewTask?.cancel()
+        previewTask = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(for: .milliseconds(350))
+            } catch {
+                return
+            }
+            guard let self, !self.presented, let next = self.readyForPreview else { return }
+            self.readyForPreview = nil
+            self.pending = next
+        }
+    }
 
     /// The picker returned: look at the file, refuse or preview.
     func handle(_ picked: PhotosPickerItem?) {
@@ -311,8 +335,8 @@ final class NanoMuseOwnClipPicker: ObservableObject {
             }
             switch await NanoMuseOwnClip.importClip(from: file.url) {
             case .ready(let next):
-                if let old = self.pending { NanoMuseOwnClip.shared.discard(old) }
-                self.pending = next
+                self.readyForPreview = next
+                self.presentPreviewWhenPickerCloses()
             case .refused(let why, let probe):
                 self.message = Self.refusalText(why, probe)
             case .failed:
@@ -343,6 +367,9 @@ struct NanoMuseOwnClipHost: ViewModifier {
         content
             .photosPicker(isPresented: $picker.presented, selection: $picker.item, matching: .videos)
             .nmOnChange(of: picker.item) { picked in picker.handle(picked) }
+            .nmOnChange(of: picker.presented) { shown in
+                if !shown { picker.presentPreviewWhenPickerCloses() }
+            }
             .sheet(item: $picker.pending) { pending in
                 NanoMuseOwnClipPreview(
                     pending: pending,
@@ -356,6 +383,7 @@ struct NanoMuseOwnClipHost: ViewModifier {
                     }
                 )
                 .presentationDetents([.large])
+                .interactiveDismissDisabled()
             }
             .alert(
                 AppLocalized("Your own clip"),
@@ -387,7 +415,6 @@ struct NanoMuseOwnClipPreview: View {
     let pending: NanoMuseOwnClip.Pending
     var onUse: () -> Void
     var onCancel: () -> Void
-    @State private var decided = false
 
     var body: some View {
         VStack(spacing: 14) {
@@ -415,7 +442,6 @@ struct NanoMuseOwnClipPreview: View {
                 .foregroundStyle(.secondary)
             Spacer(minLength: 0)
             Button {
-                decided = true
                 onUse()
             } label: {
                 Text(AppLocalized("Use"))
@@ -426,7 +452,6 @@ struct NanoMuseOwnClipPreview: View {
             .buttonStyle(.borderedProminent)
             .tint(NanoMuseTones.action)
             Button(AppLocalized("Cancel")) {
-                decided = true
                 onCancel()
             }
             .frame(maxWidth: .infinity)
@@ -436,9 +461,5 @@ struct NanoMuseOwnClipPreview: View {
                 .multilineTextAlignment(.center)
         }
         .padding(22)
-        .onDisappear {
-            // Swiped away: the same as "Cancel".
-            if !decided { onCancel() }
-        }
     }
 }

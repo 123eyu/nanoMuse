@@ -92,6 +92,8 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   先预览，只保存在这台手机的 `Application Support/nanomuse/avatar/own-clip.mp4`，连同它的
   静帧一起不进 iCloud 和电脑备份，*默认形象* 可移除；回退规则见 [avatar.md](avatar.md)
   里的那一节）。
+  选好视频后，照片选择器会先收起，再显示预览。预览需要明确点击「使用」或「取消」才能关闭，
+  避免切换窗口的动画误删还没确认的视频。
   抽屉里放着会话、搜索、新建旁聊、*设为主要聊天*、*全部对话* 和 nanoMuse 设置；点圆形按钮
   打开，在主要聊天里从左边缘向右滑也打开（`NanoMuseEdgeSwipe.swift`，挂在窗口上的屏幕边缘
   手势，和 Android 聊天页上的抽屉一样；推出来的旁聊仍然用系统的返回手势）。

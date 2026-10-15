@@ -101,6 +101,8 @@ Ours, in `NanoMuse/`:
   before it is used, kept on that phone only under `Application Support/nanomuse/avatar/own-clip.mp4`
   and left out of the iCloud and computer backups with its still, and *Default face* removes it;
   the section in [avatar.md](avatar.md) has the fallback rule).
+  After choosing a video, the photo picker closes before the preview appears. The preview stays
+  open until *Use* or *Cancel* is tapped, so closing animations cannot discard the pending clip.
   The drawer holds the sessions, search,
   a new side chat, *Pin as the main chat*, *All chats* and the nanoMuse settings; it opens from
   the round button and, on the main chat, from a swipe in at the left edge
