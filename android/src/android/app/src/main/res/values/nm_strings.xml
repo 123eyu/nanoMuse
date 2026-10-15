@@ -354,6 +354,8 @@
     <string name="nm_own_clip_choose">Choose a clip</string>
     <string name="nm_own_clip_replace">Replace the clip</string>
     <string name="nm_own_clip_default">Default face</string>
+    <!-- The per-mood row of the own clip: takes that mood's clip away, the others stay -->
+    <string name="nm_own_clip_mood_remove">Remove</string>
     <string name="nm_own_clip_menu">Your own clip…</string>
     <string name="nm_own_clip_preview_title">Preview</string>
     <string name="nm_own_clip_preview_body">This is how it plays as the face: muted, in a loop, cropped to the circle.</string>

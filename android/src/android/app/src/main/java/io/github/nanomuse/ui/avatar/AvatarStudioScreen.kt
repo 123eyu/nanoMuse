@@ -111,6 +111,7 @@ fun AvatarStudioScreen(onBack: () -> Unit, onOpenSoul: () -> Unit, onOpenMediaMo
     var previewMood by remember { mutableStateOf(AgentMood.IDLE) }
     // A clip of the person's own as the face (#324): picked here, previewed in a sheet.
     val ownClip by io.github.nanomuse.avatar.OwnClip.current.collectAsState()
+    val ownMoods by io.github.nanomuse.avatar.OwnClip.moods.collectAsState()
     val clipChooser = rememberOwnClipChooser()
     OwnClipChooserHost(clipChooser)
     val generating = slots.any { it is AvatarStudio.Slot.Loading }
@@ -403,6 +404,28 @@ fun AvatarStudioScreen(onBack: () -> Unit, onOpenSoul: () -> Unit, onOpenMediaMo
                                 colors = ButtonDefaults.buttonColors(containerColor = MuseTones.fill, contentColor = MaterialTheme.colorScheme.onSurface),
                             ) {
                                 Text(stringResource(R.string.nm_own_clip_default), fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                            }
+                        }
+                    }
+                    AgentMood.values().forEach { state ->
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                stringResource(when (state) {
+                                    AgentMood.IDLE -> R.string.nm_avatar_mood_idle
+                                    AgentMood.WORKING -> R.string.nm_avatar_mood_working
+                                    AgentMood.WAITING -> R.string.nm_avatar_mood_waiting
+                                    AgentMood.HAPPY -> R.string.nm_avatar_mood_happy
+                                    AgentMood.ERROR -> R.string.nm_avatar_mood_error
+                                }),
+                                modifier = Modifier.weight(1f),
+                            )
+                            TextButton(onClick = { clipChooser.choose(state) }) {
+                                Text(stringResource(if (ownMoods.containsKey(state)) R.string.nm_own_clip_replace else R.string.nm_own_clip_choose))
+                            }
+                            if (ownMoods.containsKey(state)) {
+                                TextButton(onClick = { io.github.nanomuse.avatar.OwnClip.clear(state) }) {
+                                    Text(stringResource(R.string.nm_own_clip_mood_remove))
+                                }
                             }
                         }
                     }

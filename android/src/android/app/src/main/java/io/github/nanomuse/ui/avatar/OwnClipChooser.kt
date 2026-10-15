@@ -61,9 +61,10 @@ import kotlinx.coroutines.withContext
  */
 class OwnClipChooserState internal constructor() {
     internal var request by mutableIntStateOf(0)
+    internal var mood by mutableStateOf<AgentMood?>(null)
 
     /** Open the picker. */
-    fun choose() { request += 1 }
+    fun choose(mood: AgentMood? = null) { this.mood = mood; request += 1 }
 }
 
 @Composable
@@ -161,9 +162,10 @@ fun OwnClipChooserHost(state: OwnClipChooserState) {
                     onClick = {
                         // Two renames and the poster write: off the main thread, with the busy
                         // disc up so Cancel cannot delete the file half-way through.
+                        val selectedMood = state.mood
                         busy = true
                         scope.launch {
-                            withContext(Dispatchers.IO) { OwnClip.adopt(p) }
+                            withContext(Dispatchers.IO) { OwnClip.adopt(p, selectedMood) }
                             busy = false
                             pending = null
                         }

@@ -360,6 +360,8 @@
     <string name="nm_own_clip_choose">Elegir un clip</string>
     <string name="nm_own_clip_replace">Sustituir el clip</string>
     <string name="nm_own_clip_default">Cara predeterminada</string>
+    <!-- The per-mood row of the own clip: takes that mood's clip away, the others stay -->
+    <string name="nm_own_clip_mood_remove">Quitar</string>
     <string name="nm_own_clip_menu">Tu propio clip…</string>
     <string name="nm_own_clip_preview_title">Vista previa</string>
     <string name="nm_own_clip_preview_body">Así se reproduce como cara: sin sonido, en bucle, recortado al círculo.</string>

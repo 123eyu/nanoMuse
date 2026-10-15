@@ -350,6 +350,8 @@
     <string name="nm_own_clip_choose">选择视频</string>
     <string name="nm_own_clip_replace">更换视频</string>
     <string name="nm_own_clip_default">默认形象</string>
+    <!-- The per-mood row of the own clip: takes that mood's clip away, the others stay -->
+    <string name="nm_own_clip_mood_remove">移除</string>
     <string name="nm_own_clip_menu">你自己的视频…</string>
     <string name="nm_own_clip_preview_title">预览</string>
     <string name="nm_own_clip_preview_body">作为形象时就是这样播放的：静音、循环、裁成圆形。</string>

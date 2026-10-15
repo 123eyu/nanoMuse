@@ -137,6 +137,8 @@ fun AgentAvatar(
     val clips by io.github.nanomuse.avatar.AvatarMotion.clips.collectAsState()
     val ownClip by io.github.nanomuse.avatar.OwnClip.current.collectAsState()
     val ownPoster by io.github.nanomuse.avatar.OwnClip.poster.collectAsState()
+    val ownMoods by io.github.nanomuse.avatar.OwnClip.moods.collectAsState()
+    val ownMoodPosters by io.github.nanomuse.avatar.OwnClip.moodPosters.collectAsState()
     val density = LocalDensity.current
     val motion = rememberInfiniteTransition(label = "avatarMotion")
 
@@ -211,7 +213,8 @@ fun AgentAvatar(
             modifier = Modifier.size(size),
         ) { current ->
             val set = custom
-            val poster = ownPoster
+            val moodOwn = ownMoods[current]
+            val poster = ownMoodPosters[current] ?: ownPoster
             if (set != null) {
                 Image(
                     bitmap = set.forMood(current),
@@ -222,13 +225,13 @@ fun AgentAvatar(
                 // The clip for this mood, when the video model has made one: it plays over the
                 // still and shows only once its first frame is on screen, so nothing flickers.
                 // A clip of the person's own stands in for all of them (below, outside the fade).
-                val clip = if (own == null) clips[current] else null
+                val clip = if (own == null && moodOwn == null) clips[current] else null
                 if (clip != null) {
                     androidx.compose.runtime.key(clip.path) {
                         LoopingClip(key = clip.path, modifier = Modifier.size(size)) { it.setDataSource(clip.path) }
                     }
                 }
-            } else if (own != null && poster != null) {
+            } else if ((moodOwn != null || own != null) && poster != null) {
                 // No studio face: the clip's first frame is the still, for every mood.
                 Image(
                     bitmap = poster,
@@ -244,7 +247,7 @@ fun AgentAvatar(
                     modifier = Modifier.size(size),
                 )
                 // The built-in character ships with its clips, so it moves without a video model.
-                val res = if (own == null) current.motion else null
+                val res = if (own == null && moodOwn == null) current.motion else null
                 if (res != null) {
                     val context = androidx.compose.ui.platform.LocalContext.current
                     androidx.compose.runtime.key(res) {
@@ -254,10 +257,15 @@ fun AgentAvatar(
                     }
                 }
             }
+            if (moodOwn != null) {
+                androidx.compose.runtime.key(moodOwn.key) {
+                    LoopingClip(key = moodOwn.key, modifier = Modifier.size(size)) { it.setDataSource(moodOwn.file.path) }
+                }
+            }
         }
         // The person's own clip (#324): one clip for every mood, so it sits outside the mood
         // fade and keeps playing while the still under it changes.
-        if (own != null) {
+        if (own != null && ownMoods[mood] == null) {
             androidx.compose.runtime.key(own.key) {
                 LoopingClip(key = own.key, modifier = Modifier.size(size)) { it.setDataSource(own.file.path) }
             }

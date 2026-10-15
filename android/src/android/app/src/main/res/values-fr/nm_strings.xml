@@ -361,6 +361,8 @@
     <string name="nm_own_clip_choose">Choisir un clip</string>
     <string name="nm_own_clip_replace">Remplacer le clip</string>
     <string name="nm_own_clip_default">Visage par défaut</string>
+    <!-- The per-mood row of the own clip: takes that mood's clip away, the others stay -->
+    <string name="nm_own_clip_mood_remove">Retirer</string>
     <string name="nm_own_clip_menu">Votre propre clip…</string>
     <string name="nm_own_clip_preview_title">Aperçu</string>
     <string name="nm_own_clip_preview_body">Voici comment il joue comme visage : sans le son, en boucle, recadré dans le cercle.</string>

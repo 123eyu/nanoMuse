@@ -39,14 +39,18 @@ const reducedMotion = typeof window !== 'undefined' && typeof window.matchMedia 
  * Document-relative, so it resolves under whatever mount served the page. With `ownClip`
  * and no drawn face, the own clip's first frame stands in for the dragon.
  */
-export function stillUrl(profile: LiveProfile | undefined, mood: Mood = 'idle', ownClip?: LiveOwnClip | null): string {
+export function stillUrl(profile: LiveProfile | undefined, mood: Mood = 'idle', ownClip?: LiveOwnClip | null, ownClips?: Partial<Record<Mood, LiveOwnClip>>): string {
   if (profile?.avatar === 'face' && profile.faceId) return `nanomuse/assets/face/${profile.faceId}/${mood}.webp`
+  const override = ownClips?.[mood]
+  if (override?.poster) return `nanomuse/avatar/own-clip-${mood}.png?v=${override.v}`
   if (ownClip?.poster) return `nanomuse/avatar/own-clip.png?v=${ownClip.v}`
   return `nanomuse/assets/dragon-${mood}.webp`
 }
 
 /** The person's own clip, when one is set: the same for every mood, keyed by its mtime. */
-export function ownClipUrl(ownClip: LiveOwnClip | null | undefined): string | null {
+export function ownClipUrl(ownClip: LiveOwnClip | null | undefined, mood?: Mood, ownClips?: Partial<Record<Mood, LiveOwnClip>>): string | null {
+  const override = mood ? ownClips?.[mood] : undefined
+  if (override && mood) return `nanomuse/avatar/own-clip-${mood}.mp4?v=${override.v}`
   return ownClip ? `nanomuse/avatar/own-clip.mp4?v=${ownClip.v}` : null
 }
 
@@ -105,9 +109,9 @@ export function Avatar({ size, profile, mood = 'idle', className, title, still =
   const live = useLive()
   const visible = useVisible()
   const video = useRef<HTMLVideoElement | null>(null)
-  const candidate = still || reducedMotion || size < CLIP_MIN_PX ? null : ownClipUrl(live.ownClip) ?? clipUrl(profile, mood, live.motion)
+  const candidate = still || reducedMotion || size < CLIP_MIN_PX ? null : ownClipUrl(live.ownClip, mood, live.ownClips) ?? clipUrl(profile, mood, live.motion)
   const clip = candidate && !noClip.has(candidate) ? candidate : null
-  const poster = stillUrl(profile, mood, live.ownClip)
+  const poster = stillUrl(profile, mood, live.ownClip, live.ownClips)
   // the whole face moves when nothing inside it does
   const motion = still || clip || reducedMotion ? '' : mood === 'working' ? ' nm-avatar-working' : mood === 'waiting' ? ' nm-avatar-waiting' : mood === 'idle' ? ' nm-avatar-idle' : ''
 

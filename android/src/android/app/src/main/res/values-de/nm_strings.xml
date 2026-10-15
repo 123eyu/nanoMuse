@@ -360,6 +360,8 @@
     <string name="nm_own_clip_choose">Clip auswählen</string>
     <string name="nm_own_clip_replace">Clip ersetzen</string>
     <string name="nm_own_clip_default">Standardgesicht</string>
+    <!-- The per-mood row of the own clip: takes that mood's clip away, the others stay -->
+    <string name="nm_own_clip_mood_remove">Entfernen</string>
     <string name="nm_own_clip_menu">Dein eigener Clip…</string>
     <string name="nm_own_clip_preview_title">Vorschau</string>
     <string name="nm_own_clip_preview_body">So läuft er als Gesicht: stumm, in einer Schleife, auf den Kreis zugeschnitten.</string>

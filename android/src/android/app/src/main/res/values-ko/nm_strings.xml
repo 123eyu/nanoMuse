@@ -357,6 +357,8 @@
     <string name="nm_own_clip_choose">동영상 선택</string>
     <string name="nm_own_clip_replace">동영상 바꾸기</string>
     <string name="nm_own_clip_default">기본 얼굴</string>
+    <!-- The per-mood row of the own clip: takes that mood's clip away, the others stay -->
+    <string name="nm_own_clip_mood_remove">제거</string>
     <string name="nm_own_clip_menu">내 동영상…</string>
     <string name="nm_own_clip_preview_title">미리보기</string>
     <string name="nm_own_clip_preview_body">얼굴로 재생되면 이렇게 보입니다. 음소거, 반복, 원형으로 잘라서.</string>
