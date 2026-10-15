@@ -16,6 +16,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Desktop
 
+- **The bundled runtime kept its library links.** Staging the PyInstaller output preserved relative library aliases and macOS framework links instead of copying their targets into duplicate files and directories.
+
 ### Android
 
 - Leaving sign-in or Network also cancelled requests while response bodies were arriving, instead of waiting for the read timeout (For #336).
