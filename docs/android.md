@@ -204,6 +204,10 @@ models' word, as before. When no configured provider has a capability, the page 
 sentence (*Pictures need a provider with image models: Bailian, OpenAI, Gemini or
 OpenRouter.*) instead of failing.
 
+In the avatar studio, asking for a new set of candidates replaces the previous set. A picture
+or failure that finishes from the previous request cannot change the new set's tiles or files.
+Again starts the new request without waiting for the old picture to finish saving.
+
 **When the provider cannot be reached** (`net/ProviderReach.kt`, `ui/chat/ProviderReachCard.kt`).
 A failed turn whose error is the transport's (OkHttp's *failed to connect to chatgpt.com/… (port
 443)*, *Unable to resolve host*, a TLS or timeout line) or OpenAI's *region not supported* is
@@ -256,12 +260,26 @@ Provider clients carry `OwnProviderProxy.authenticator` for a proxy that asks fo
 *Test* fetches `https://chatgpt.com/` through the proxy as entered and reports the status and the
 milliseconds. Unit tests: `ProviderReachTest`, `OwnProviderProxyTest`.
 
+Leaving sign-in or the Network page ends its pending request, even if the server has
+started to answer but has not finished sending the response.
+
 ## Voice input
+
+On Android 13 and later, continuous system dictation keeps feeding audio when the recognizer
+starts its next segment. A write that fails on the previous segment's closed pipe cannot
+disable the new segment's audio stream.
+
+Provider voice input returns to idle when a silent session reaches its limit or a very short
+utterance expires without enough speech to transcribe. A transcription already in progress
+still delivers its result before the session finishes.
 
 System voice input can prefer on-device recognition. If the phone has no usable on-device
 service, it falls back to the default recognition service. A language error from that
 default service is shown in the voice panel. A running on-device recognizer whose language
 pack is unavailable still falls back once to the default service.
+
+The voice detector releases its allocated recorder if recording cannot start or is cancelled
+before capture begins. You can retry voice input without leaving that recorder allocated.
 
 ## Privacy and permissions
 
@@ -331,6 +349,8 @@ keytool -genkeypair -keystore ~/.nanomuse-release/nanomuse.jks -alias nanomuse \
 
 and put its four values in `android/keystore.properties` (git-ignored: `storeFile`,
 `storePassword`, `keyAlias`, `keyPassword`).
+
+The chat-only emulator build (`-Pnm.abi=x86_64`) excludes cached arm64 proot and Alpine root filesystem assets. Switching back to the default arm64 build includes those assets again; no cache deletion is needed.
 
 ## Releases
 

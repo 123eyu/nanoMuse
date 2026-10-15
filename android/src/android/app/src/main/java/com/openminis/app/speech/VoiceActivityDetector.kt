@@ -8,8 +8,12 @@ import android.util.Log
 import io.codeconcept.realtimecutvadlibrary.VADCallback
 import io.codeconcept.realtimecutvadlibrary.VADWrapper
 import kotlinx.coroutines.CoroutineScope
+// nanoMuse: an allocated recorder must reach its finally even when dispatch is cancelled.
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
@@ -334,9 +338,17 @@ class VoiceActivityDetector(
         }
         recorder = rec
 
-        captureJob = scope.launch { captureLoop(rec) }
+        // nanoMuse: the worker owns this allocation even before it is dispatched.
+        captureJob = launchCapture(rec)
         return null
     }
+
+    // nanoMuse: enter the cleanup owner even if cancellation wins before IO dispatch.
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun launchCapture(rec: AudioRecord): Job =
+        scope.launch(start = CoroutineStart.ATOMIC) {
+            if (isActive) captureLoop(rec) else releaseRecorder(rec)
+        }
 
     private fun applyThresholds(w: VADWrapper) {
         w.setVADThreshold(
@@ -350,6 +362,22 @@ class VoiceActivityDetector(
     }
 
     private fun captureLoop(rec: AudioRecord) {
+        // nanoMuse: release on startup failure, callback failure and pre-dispatch cancellation too.
+        try {
+            if (!running.get() || cancelled.get()) return
+            captureFrames(rec)
+        } finally {
+            releaseRecorder(rec)
+        }
+    }
+
+    // nanoMuse: stop may throw when startup failed; release must still be attempted.
+    private fun releaseRecorder(rec: AudioRecord) {
+        runCatching { rec.stop() }
+        rec.release()
+    }
+
+    private fun captureFrames(rec: AudioRecord) {
         val shorts = ShortArray(FRAME_SAMPLES)
         val floats = FloatArray(FRAME_SAMPLES)
         // Little-endian PCM16 staging for rawAudioSink; reused per frame.
@@ -491,8 +519,7 @@ class VoiceActivityDetector(
             }
         }
 
-        try { rec.stop() } catch (_: Throwable) {}
-        rec.release()
+        // nanoMuse: captureLoop owns recorder release for every exit path.
     }
 
     /** iOS's noise-aware AGC, ported verbatim (`VoiceActivityDetector.swift:617-655`). */

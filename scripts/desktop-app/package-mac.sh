@@ -28,25 +28,29 @@
 # besides the runtime.
 set -euo pipefail
 arch="${1:?arch: arm64 | x64}"
+case "$arch" in
+  arm64) mac_dir=mac-arm64 ;;
+  x64) mac_dir=mac ;;
+  *) echo "unsupported macOS architecture: $arch" >&2; exit 1 ;;
+esac
 here="$(cd "$(dirname "$0")/../.." && pwd)"
 app_dir="${APP_DIR:-$here/harness/desktop}"
 case "$app_dir" in /*) ;; *) app_dir="$here/$app_dir" ;; esac
 app_name="${APP_NAME:-nanoMuse}"
 artifact="${ARTIFACT:-nanoMuse-Desktop}"
 version="$(node -p "require('$app_dir/package.json').version")"
-app="$(ls -d "$app_dir"/dist/mac*/"$app_name".app 2>/dev/null | head -1 || true)"
+bundle_dir="$app_dir/dist/$mac_dir"
+app="$bundle_dir/$app_name.app"
 if [ ! -d "$app" ]; then
   # electron-builder names the bundle after `executableName` when the config sets one
   # (nanoMuse Desktop builds as nanomuse-desktop.app); what people drag into Applications
   # should carry the product's name, so the bundle is renamed before it is signed
-  found="$(ls -d "$app_dir"/dist/mac*/*.app 2>/dev/null | head -1 || true)"
-  if [ -d "$found" ]; then
-    app="$(dirname "$found")/$app_name.app"
-    mv "$found" "$app"
-    echo "renamed $(basename "$found") -> $app_name.app"
-  fi
+  shopt -s nullglob
+  candidates=("$bundle_dir"/*.app)
+  [ "${#candidates[@]}" = 1 ] || { echo "expected one .app under $bundle_dir" >&2; exit 1; }
+  mv "${candidates[0]}" "$app"
+  echo "renamed $(basename "${candidates[0]}") -> $app_name.app"
 fi
-[ -d "$app" ] || { echo "no $app_name.app under $app_dir/dist — run 'npm run dist:dir' first" >&2; exit 1; }
 out="$app_dir/dist"
 name="$artifact-$version-mac-$arch"
 
@@ -92,8 +96,14 @@ echo "== signature"
 # loose files under Resources, which --deep does not visit — unsigned, notarization refuses them
 for inner in runtime dsh app.asar.unpacked; do
   [ -d "$app/Contents/Resources/$inner" ] || continue
-  find "$app/Contents/Resources/$inner" -type f \( -perm -u+x -o -name "*.so" -o -name "*.dylib" -o -name "*.node" \) -print0 \
-    | xargs -0 -n 50 codesign --force --sign "$identity" "${sign_flags[@]}" 2>/dev/null || true
+  while IFS= read -r -d '' binary; do
+    # Executable scripts are resources; each Mach-O signature must succeed.
+    kind="$(file -b "$binary")"
+    if [[ "$kind" == Mach-O* ]]; then
+      codesign --force --sign "$identity" "${sign_flags[@]}" "$binary"
+    fi
+  done < <(find "$app/Contents/Resources/$inner" -type f \
+    \( -perm -u+x -o -name "*.so" -o -name "*.dylib" -o -name "*.node" \) -print0)
 done
 # "nanoMuse Computer Use.app" (harness/desktop/mac/computer-use): the helper that holds Screen
 # Recording and Accessibility. Signed as a bundle of its own, before the outer app, with the
@@ -107,10 +117,12 @@ if [ -d "$helper" ]; then
   helper_flags=(--timestamp=none)
   [ "$identity" != "-" ] && helper_flags=(--timestamp --options runtime)
   codesign --force --sign "$identity" "${helper_flags[@]}" --identifier io.github.nanomuse.desktop.computer-use "$helper"
-  codesign --verify --strict "$helper" && echo "helper signature ok"
+  codesign --verify --strict "$helper"
+  echo "helper signature ok"
 fi
 codesign --force --deep --sign "$identity" "${sign_flags[@]}" "$app"
-codesign --verify --deep --strict "$app" && echo "signature ok"
+codesign --verify --deep --strict "$app"
+echo "signature ok"
 
 # ---------------------------------------------------------------------------- notarization
 notarize() { # file — submits it, waits, and fails the build when Apple refuses
@@ -140,7 +152,8 @@ ln -s /Applications "$stage/Applications"
 rm -f "$out/$name.dmg"
 hdiutil create -volname "$app_name $version" -srcfolder "$stage" -ov -fs APFS -format UDZO -quiet "$out/$name.dmg"
 rm -rf "$stage"
-hdiutil verify -quiet "$out/$name.dmg" && echo "dmg ok"
+hdiutil verify -quiet "$out/$name.dmg"
+echo "dmg ok"
 if [ "$identity" != "-" ]; then
   codesign --force --sign "$identity" --timestamp "$out/$name.dmg"
   if [ "$notarized" = 1 ]; then

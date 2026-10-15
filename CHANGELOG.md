@@ -12,15 +12,44 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Web
 
+- **Each Feed section showed its own load error and retry.** Posts, activity, Next up and calendar requests kept their last successful content when a refresh failed; retrying one section no longer refetched the others.
+
 ### Desktop
 
+- **Custom videos for each avatar mood.** The avatar studio can assign a separate local clip to idle, working, waiting, happy or error, preview and replace it, and remove each override without changing the other clips or the original single-video setting.
+
+- **Mac packaging selected the requested architecture and stopped on failed checks.** Building with both Intel and Apple silicon bundles present no longer put the wrong app in a named installer; inner signing and app, helper and disk-image verification failures returned an error instead of continuing.
+
+- **The bundled-runtime build check stopped hanging on startup logs or timeouts.** It captures logs without filling an unread pipe, waits for the checked process to stop, and chooses a free loopback port so an existing service on port 8765 cannot make a broken bundle pass.
+
+- **The bundled runtime kept its library links.** Staging the PyInstaller output preserved relative library aliases and macOS framework links instead of copying their targets into duplicate files and directories.
+
 ### Android
+
+- **Per-mood avatar clips.** The avatar studio now accepts an optional local video for each of the five moods. Moods without a video keep the existing single-video or built-in animation.
+
+- **Continuous system dictation kept its next segment's audio.** A delayed write failure from a retired recognition pipe previously cleared the replacement pipe, leaving the new recognizer without audio. Failed writes now retire only the stream they used.
+
+- **Quiet provider voice sessions returned to idle.** A silent session limit or an expired tiny utterance previously stopped the microphone without ending the voice panel's recording state. Both now finish quietly, while a pending transcription keeps its final result.
+
+- **Voice input released the recorder when capture could not start.** A recorder allocated before a cancelled capture task began, or whose startup failed, is now released on every exit path instead of being left allocated. Errors in a capture callback cannot skip that cleanup.
+
+- Chat-only x86_64 builds excluded cached arm64 sandbox assets, so switching from a phone build no longer bundled the unusable proot and root filesystem payloads.
+
+- **Replacing avatar candidates no longer lets an old result change the new set.** Ownership is checked together with publication, including a late retry. PNG encoding and decoding use private temporary files outside the replacement lock, so Again does not wait for an old picture write and an old writer cannot overwrite the new candidate files. For #337.
+
+- Leaving sign-in or Network also cancelled requests while response bodies were arriving, instead of waiting for the read timeout (For #336).
 
 - **A single assistant markdown turn stays in one bubble, and the stop button matches the send disc.** A reply turn containing lists, headings, paragraphs and code blocks now stays inside one assistant bubble on Android as it does on iOS instead of splitting into separate sibling bubbles per markdown block, while text before and after a tool call and separate messages remain distinct bubbles. While a reply is streaming, the stop button in the composer uses the monochrome ink disc (`ChatColors.sendButton` with the inner square in `ChatColors.background`, black with a white square in light and inverted in dark) instead of a red circle.
 
 ### iOS
 
+- **Per-mood avatar clips.** The avatar studio can choose and remove a separate local video for each mood without changing other moods or the existing single-video setting.
+
 - **The composer halo and the bottom pill-bar icons match Android.** `NanoMuseComposerHost` now draws a rounded vignette (`NanoMuseComposerVignette`) following the composer pill's 26 pt contour and soft shadow instead of a full-width opaque rectangular strip behind the composer column. The five bottom pill-bar tabs use the same icon shapes as Android's `MuseBottomBar`: single chat bubble (`bubble.left`), document with lines (`doc.text`), lightbulb (`lightbulb`), checked square (`checkmark.square`) and the three-shape category glyph for Library.
+- **A side chat's long-press preview stays inside the drawer.** Holding a chat in the drawer lifted a preview wider than the drawer, cut off at its edge with the conversation showing through; the preview is now the row at the drawer's width on the drawer's background.
+- **The composer's text lines up with its plus and mic.** One line of text sat about 6 pt below the two buttons; it now sits on their centre line, and a longer text keeps them level with its last line.
+- **The step bar above the composer lines up with it.** In the Muse layout the bar no longer has a terminal or page thumbnail standing out above it: a glyph for the kind of step (terminal, file, page, picture, memory) sits inside the bar, which takes the composer's width and colour. Tapping it opens the live view as before; the *Tool Preview Window* setting is hidden there, since it no longer applies. Android is unchanged.
 
 ### Project
 
@@ -50,7 +79,6 @@ Lookout: the day after Compass, a second health check of the whole project toget
 
 - **Eight buttons reach the host again.** *Default face* (in the avatar studio and in the profile menu), the clip preview's *Cancel*, Media's *Check which models answer*, the ChatGPT *Open the sign-in page*, *Sign out* and *Cancel*, and *Download* and *Reset* under Memory called the host without a body, which the window sends as a GET; the host serves those routes to POST only, so each click ended in a quiet 404 and nothing happened. They post now, and a test checks every body-less call against the routes the host serves to GET.
 - **The feed is written out of sight.** The chat the daily feed is written in no longer shows in the chats column or in search while the batch runs, and the request goes into it as a one-line notice (*Writing today's feed*) instead of a message in your voice; the posts arrive in the Feed as before.
-- **Custom videos for each avatar mood.** The avatar studio can assign a separate local clip to idle, working, waiting, happy or error, preview and replace it, and remove each override without changing the other clips or the original single-video setting.
 - **The Windows release carries the files an in-app update needs.** Beside the installer, the release now has `latest.yml`, which names the installer and its SHA-512, and the installer's `.exe.blockmap`, and `SHA256SUMS-desktop.txt` covers them. Before anything is attached, CI hands the set to electron-updater itself: it must find the new version in the metadata, download the installer from a test feed and verify it, and refuse one that is corrupted or missing.
 - **A real quit protects the work in progress.** Quit (the menu, Ctrl+Q, the tray's Quit, or closing the last window when there is no tray) first asks what is still on: a reply being written, the hands on the screen, a task another device asked for, an approval waiting on you. *Keep running* is the default; only an explicit confirmation ends the work, and the quit waits for it to end before the Host stops. A task that arrives while the quit hands over is refused with the usual busy answer, so the asking device can send it again. Closing the window with the menu-bar switch on stays in the tray and is not a quit.
 - **A dead hub link is noticed within a minute.** After the network went away under an open socket (a laptop that slept, a Wi-Fi that changed) the desktop showed itself connected to the hub until the operating system gave the socket up, which can take many minutes; a call to another device meanwhile was written into nothing and failed only at its own timeout. The client now drops the socket when nothing at all arrived between two of its pings, about 50 seconds, fails the calls in flight and reconnects with the usual backoff.
@@ -64,7 +92,6 @@ Lookout: the day after Compass, a second health check of the whole project toget
 - **The font-size labels speak the app's language.** The labels under Appearance, the default label on all three sliders included, are translated (by @Mola-maker, #431).
 - **The daily feed is written quietly.** Its conversation no longer appears in the drawer, the chat list or as the main chat, and *Write today's feed.* no longer stands anywhere as a message in your voice; when posts were written while the app was in the background, one notification names them and opens the Feed tab, in place of the generic task notice that quoted the model's text and opened the conversation.
 - **A scheduled task speaks first.** The prompt a routine sends is shown as one quiet line, *Routine · 〈label〉 · 08:00*, instead of a bubble in your voice, and the agent is told the turn is the routine's, so it opens with the result rather than thanking you for asking.
-- **Per-mood avatar clips.** The avatar studio now accepts an optional local video for each of the five moods. Moods without a video keep the existing single-video or built-in animation.
 - **The approval card fits the screen.** A long command made the card taller than the screen: Allow, Deny and the composer were pushed below the bottom edge and the chat looked frozen. The card now takes at most two thirds of the screen, a command longer than six lines is folded behind *Show all (N lines)*, the description and the preview scroll in the middle and the buttons stay in view (reported by @HBSTAR0501, #436).
 - **The ChatGPT sign-in has a way through a proxy.** The sign-in page sends the browser back to `localhost:1455`; a proxy or VPN app on the phone that routes every address into its tunnel took that one too, the browser showed a connection error and the app waited for ever with a spinner. After ten seconds without the browser's call (at once when the phone's proxy settings would take the address) a note under *Sign in* explains it and offers a box: paste the address of the error page, tap *Continue*, and the code reaches the waiting sign-in without going through the proxy. The same box serves the Anthropic, xAI and OpenRouter sign-ins; the hand-off from a redirect caught by the app no longer goes through the system proxy either (reported by @Kooooooo-G, #441).
 - **The ChatGPT sign-in's tokens stay out of the log file.** The line that records the token exchange's answer quoted the first 500 characters of the body, access and refresh token included; it masks them now like the other sign-ins' lines.
@@ -76,7 +103,6 @@ Lookout: the day after Compass, a second health check of the whole project toget
 - **The daily feed is written quietly and a routine speaks first.** The feed's conversation no longer appears in the drawer or the chat lists, the prompt a routine sends is shown as one quiet line, *Routine · 〈label〉 · 08:00*, instead of a bubble in your voice, and the agent is told the turn is the routine's, so it opens with the result rather than thanking you for asking.
 - **The conversation scrolls under the header now.** The rows pass under the face and fade in the scrim behind it, as they do under the composer and the pill bar, and as on Android; in 1.0.3 and 1.0.4 the list ended right under the header and the top row was cut at a hard edge there. The shell hands the header's measured height to the chat (`nmTopOverlay`), and the message list extends under it with that much top inset. A side chat opened from the drawer runs under its system bar the same way.
 - **On an iPad the agent's replies line up with the composer.** The agent's rows padded outside the 760 pt column while the user's rows padded inside it, so the reply pill began 16 pt left of the composer's and the pill bar's edge; the three assistant cells now pad inside the column too.
-- **Per-mood avatar clips.** The avatar studio can choose and remove a separate local video for each mood without changing other moods or the existing single-video setting.
 - **Siri understands the app's shortcuts in all nine languages.** The phrases for *Ask nanoMuse*, *New nanoMuse chat*, *Voice prompt to nanoMuse* and the rest existed in English and the two Chinese tables only; a phone set to Japanese, Korean, German, Spanish, French or Russian had to be spoken to in English.
 - **Page titles and the agent's name grow with the text size.** The Muse pages' titles and the name in the drawer and on the agent's page follow Dynamic Type, capped at 1.35 times their base as the header's lines already were; they were fixed at 17 and 24 pt.
 - **Create routine on an idea opens the editor.** The routine was created at the idea's time and nothing opened, since the editor was asked of the Goals room, which is not on screen while Ideas is; the shell shows it now.
@@ -143,6 +169,12 @@ Compass: the day after Helm, a health check of the whole project. Nine passes re
 - **The MCP form takes environment variables, and says where they go.** *Connections → MCP servers → Add a server* has an *Environment* field, one `KEY=value` per line, with the note that each value goes into the vault and the settings file keeps a reference; a connected server lists its variable names, and one whose value is written as plain text in `config.toml` is marked with the line to move it to the vault. In English and 简体中文.
 
 ### Desktop
+
+- **Windows installed ready updates on a normal user quit and stayed closed.** Quit reused the restart update's integrity check and work protection, while restart still reopened the app. Without a ready update, the normal protected exit was unchanged. Closing to the tray, idling, a crash or system shutdown did not request installation, and a failed installer launch kept the app running.
+
+- **Windows downloaded updates automatically on known unmetered networks.** The saved Settings switch defaulted to on; metered or unknown connections kept checking and offered a manual download without changing the switch. Failed downloads retried after one and five minutes at most, rechecking the switch and network each time, then waited for a manual retry or the next six-hour check. Turning the switch off stopped new automatic starts without interrupting a download already running.
+
+- **Windows gained downloads and protected restart updates in the corner menu.** The app checked stable releases on startup and every six hours, showed download progress and verification, retried manually after failure, and reused complete packages only after electron-updater's integrity check. The mirror was tried before GitHub for the same candidate. Settings shared the menu's state and offered a manual check; restarting waited for confirmed work to end and kept new work out during installation handoff. An installer that failed to start left the app running instead of completing the library's queued quit.
 
 - **A clip of your own with a fragmented layout is read right, and the connector sheet's Chinese title has its space.** A fragmented MP4 whose 64-bit movie header says "unknown" for the length was refused as too long instead of being read from its `mehd` box; it is now read like the 32-bit case. The sheet that connects a service reads 连接 Notion rather than 连接Notion in Chinese. The desktop shell's own tests now run in the desktop workflow on every platform and pass on a Windows checkout with CRLF line ends ([#383](https://github.com/nano-muse/nanoMuse/pull/383)).
 - **The invite sentences say when the bonus arrives.** The Invite card at the top of the chat, the allowance card's *Invite a friend* row and the hint under the invite code on the welcome and sign-in forms now say that both sides get the ¥5 (or the relay's figure) after the invited friend's first request to nanoMuse Cloud, not at sign-up. In English and 简体中文.
