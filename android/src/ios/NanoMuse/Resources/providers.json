@@ -425,6 +425,24 @@
       "verified": "2026-10"
     },
     {
+      "id": "standardcompute",
+      "name": "Standard Compute",
+      "name_zh": "Standard Compute",
+      "protocol": "openai",
+      "base_url": "https://api.stdcmpt.com/v1",
+      "key_url": "https://standardcompute.com/dashboard/api-keys",
+      "key_hint": "sk_live_…",
+      "auth": ["key"],
+      "regions": ["global"],
+      "capabilities": ["chat"],
+      "defaults": {
+        "chat": "standardcompute"
+      },
+      "note": "A gateway with one key for open and closed models (DeepSeek, GLM, Kimi, Qwen, GPT, Claude, Gemini and others) on a fixed monthly plan from $19; each plan has a monthly compute budget, and once it is used, requests stop with 402; there are no overage charges. The model standardcompute is a router: it picks a model for each request from the ones enabled on the account's Models page, and any id from /v1/models can be set instead. Chat only here: the router's entry in /v1/models declares no picture input, so the hands are not claimed.",
+      "note_zh": "一把 key 用开源和闭源模型（DeepSeek、GLM、Kimi、Qwen、GPT、Claude、Gemini 等），按月付固定费用，每月 19 美元起；每个套餐有每月的算力预算，用完后请求返回 402，没有超额费用。模型 standardcompute 是一个路由：每个请求从账号 Models 页面里启用的模型中挑一个；也可以改填 /v1/models 里的任意模型 id。这里只有对话：路由在 /v1/models 里没有声明能看图，所以「动手」不列入。",
+      "verified": "2026-10"
+    },
+    {
       "id": "ollama",
       "name": "Ollama",
       "name_zh": "Ollama（本机）",
