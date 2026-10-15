@@ -828,3 +828,57 @@ test('C10: the same account again changes nothing; a 0.1.38 state gives its mapp
   assert.ok(![...relay.msgs.values()].some((m) => m.text === 'a-words'))
   e.stop()
 })
+
+test('a sync frame arriving while a pull is in flight triggers a follow-up pull, and RemoteStore records keptAt for clock-skewed anchors', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'nm-remote-skew-'))
+  try {
+    const store = new RemoteStore(join(dir, 'sync-remote.json'))
+    const beforeKeep = Date.now()
+    // Remote device clock is 8 hours ahead of this computer, as in a misconfigured cross-timezone setup (#395)
+    store.add('s1', { mid: 'm-skew', role: 'assistant', text: 'from Mac mini', at: beforeKeep + 8 * 3600_000, device: 'mini', deviceName: 'Mac mini' })
+    const kept = store.linesOf('s1')[0]
+    assert.ok(typeof kept.keptAt === 'number' && kept.keptAt >= beforeKeep)
+    // A local prompt typed on this computer after the remote line was kept is recognized as younger despite the skewed remote `at`
+    const localPromptTime = kept.keptAt + 10
+    const seenAt = Math.min(kept.at, kept.keptAt)
+    assert.ok(localPromptTime > seenAt || localPromptTime >= kept.keptAt)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+
+  // While pull #1 is awaiting `inject`, the other device pushes its assistant reply and a second hub `sync` frame arrives
+  const relay = fakeRelay()
+  relay.add('c-main', 'main', 'Main chat', 'mini', 'Mac mini')
+  relay.say('c-main', 'user', 'question on mini', 'mini', 'Mac mini', 1738000010)
+  let releaseInject
+  const injectGate = new Promise((resolve) => {
+    releaseInject = resolve
+  })
+  const sessions = fakeSessions()
+  const origInject = sessions.api.inject
+  let firstInject = true
+  sessions.api.inject = async (id, text) => {
+    if (firstInject) {
+      firstInject = false
+      await injectGate
+    }
+    return origInject(id, text)
+  }
+  const { engine: e } = engine(relay, sessions)
+  const firstPull = e.pull()
+  await until(() => !firstInject)
+  // Second message lands on the relay and its hub frame arrives while the first pull is still in flight
+  relay.say('c-main', 'assistant', 'answer on mini', 'mini', 'Mac mini', 1738000012)
+  e.onFrame({ cursor: relay.seq, from: 'mini' })
+  await tick(15)
+  releaseInject()
+  await firstPull
+  await until(() => e.state.cursor === relay.seq)
+  const mainSid = e.state.mainSession
+  assert.deepEqual(
+    sessions.remote(mainSid).map((l) => l.text),
+    ['question on mini', 'answer on mini'],
+  )
+  e.stop()
+})
+

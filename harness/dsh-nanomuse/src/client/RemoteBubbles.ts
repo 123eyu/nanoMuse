@@ -45,6 +45,7 @@ interface Working {
 }
 interface Remote {
   lines: RemoteRow[]
+  prompts?: string[]
   hidden: string[]
   working: Working | null
 }
@@ -53,6 +54,8 @@ interface Remote {
 const WORKING_TTL_MS = 10 * 60_000
 /** Mutations within this window become one sweep. */
 const SWEEP_DELAY_MS = 100
+/** Minimum interval between focus-triggered background pulls. */
+const FOCUS_PULL_MS = 3_000
 
 const nodeKey = (id: string): string => `13:input-message${id}`
 
@@ -78,33 +81,57 @@ function bubble(t: Translate, row: RemoteRow): HTMLElement {
 /** The element the chat lays out: the row itself, or the turn-process group it sits in. */
 function flowItem(node: HTMLElement, content: HTMLElement): HTMLElement {
   let item = node
-  while (item.parentElement && item.parentElement !== content && item.parentElement.hasAttribute('data-chat-group-key')) item = item.parentElement
+  while (
+    item.parentElement &&
+    item.parentElement !== content &&
+    !item.parentElement.hasAttribute('data-chat-flow') &&
+    item.parentElement.hasAttribute('data-chat-group-key')
+  ) {
+    item = item.parentElement
+  }
   return item
+}
+
+function placeBefore(target: HTMLElement, node: HTMLElement): void {
+  if (target.previousElementSibling !== node) target.insertAdjacentElement('beforebegin', node)
+}
+
+function placeAfter(target: HTMLElement, node: HTMLElement): void {
+  if (target.nextElementSibling !== node) target.insertAdjacentElement('afterend', node)
 }
 
 /** Watch the document for the other devices' turns and show them as bubbles; returns the stop function. */
 export function renderRemoteBubbles(t: Translate): () => void {
   const cache = new Map<string, Remote>()
   const inflight = new Set<string>()
+  const refreshNeeded = new Set<string>()
   let scheduled: ReturnType<typeof setTimeout> | undefined
   let expiry: ReturnType<typeof setTimeout> | undefined
+  let lastFocusPull = 0
   let stopped = false
 
   const fetchFor = (sessionId: string) => {
-    if (inflight.has(sessionId)) return
+    if (inflight.has(sessionId)) {
+      refreshNeeded.add(sessionId)
+      return
+    }
     inflight.add(sessionId)
     call<Remote>(`sync/remote?session=${encodeURIComponent(sessionId)}`)
       .then((remote) => {
         if (stopped) return
-        cache.set(sessionId, { lines: remote.lines ?? [], hidden: remote.hidden ?? [], working: remote.working ?? null })
-        // placed afresh: a prompt sent here since the last read is a new anchor for the older lines
-        for (const content of document.querySelectorAll<HTMLElement>(`[data-conversation-content][data-conversation-session="${CSS.escape(sessionId)}"]`)) {
-          for (const node of content.querySelectorAll('.nm-remote')) node.remove()
-        }
+        cache.set(sessionId, {
+          lines: remote.lines ?? [],
+          prompts: remote.prompts ?? [],
+          hidden: remote.hidden ?? [],
+          working: remote.working ?? null,
+        })
         schedule()
       })
       .catch(() => undefined)
-      .finally(() => inflight.delete(sessionId))
+      .finally(() => {
+        inflight.delete(sessionId)
+        if (!stopped && refreshNeeded.delete(sessionId)) fetchFor(sessionId)
+      })
   }
 
   /** The bubble the working line belongs under: the other device's last line, when it is a prompt without a reply yet. */
@@ -115,16 +142,24 @@ export function renderRemoteBubbles(t: Translate): () => void {
     return last && last.role === 'user' && (!w.from || last.device === w.from) ? last : undefined
   }
 
-  const dress = (content: HTMLElement, remote: Remote) => {
+  const dress = (sessionId: string, content: HTMLElement, remote: Remote) => {
     const hidden = new Set(remote.hidden)
     const rows = new Map<string, HTMLElement>()
     for (const node of content.querySelectorAll<HTMLElement>('[data-chat-node-key]')) rows.set(node.getAttribute('data-chat-node-key') ?? '', node)
     const bubbles = new Map<string, HTMLElement>()
     for (const node of content.querySelectorAll<HTMLElement>('.nm-remote')) bubbles.set(node.getAttribute(KEY) ?? '', node)
-    // The chat renders no row for a message appended outside a turn (the log has it, the model
-    // reads it, the transcript shows nothing) — so a line without a row gets its bubble all the
-    // same: before the local prompt it is older than, else after everything shown so far. Lines
-    // come in log order, which is time order, so appended bubbles keep that order.
+    const knownPrompts = new Set(remote.prompts ?? [])
+    for (const line of remote.lines) if (line.before) knownPrompts.add(line.before)
+    let firstUnseenPrompt: HTMLElement | undefined
+    for (const [k, node] of rows) {
+      if (k.startsWith('13:input-message') && !knownPrompts.has(k)) {
+        firstUnseenPrompt ??= node
+      }
+    }
+    if (firstUnseenPrompt) fetchFor(sessionId)
+    const flow = content.querySelector<HTMLElement>('[data-chat-flow]')
+    const pendingTurn = flow?.querySelector<HTMLElement>('[data-submission-echo], [data-chat-running]') ?? null
+    const knownRows = [...rows.entries()].filter(([k]) => !k.startsWith('13:input-message') || knownPrompts.has(k))
     let tail: HTMLElement | null = null
     const under = workingLine(remote)
     for (const line of remote.lines) {
@@ -135,19 +170,46 @@ export function renderRemoteBubbles(t: Translate): () => void {
         row.style.display = 'none'
       }
       let shown = bubbles.get(key)
-      if (!shown) {
-        shown = bubble(t, line)
-        const anchor = line.before ? rows.get(line.before) : undefined
-        if (anchor) flowItem(anchor, content).insertAdjacentElement('beforebegin', shown)
-        else if (row) flowItem(row, content).insertAdjacentElement('afterend', shown)
-        else if (tail) tail.insertAdjacentElement('afterend', shown)
-        else {
-          const last = [...rows.values()].at(-1)
-          // no row at all: the chat's "hero" layout — the bubbles go into the scrolling body, above the composer
-          const seat = last ? null : content.querySelector<HTMLElement>('[data-conversation-scroll] > [data-composer-seat]')
-          if (last) flowItem(last, content).insertAdjacentElement('afterend', shown)
-          else if (seat) seat.insertAdjacentElement('beforebegin', shown)
-          else content.append(shown)
+      if (!shown) shown = bubble(t, line)
+      let anchor = line.before ? rows.get(line.before) : undefined
+      if (!anchor && line.before && remote.prompts) {
+        const idx = remote.prompts.indexOf(line.before)
+        if (idx >= 0) {
+          for (let i = idx + 1; i < remote.prompts.length; i++) {
+            const later = rows.get(remote.prompts[i]!)
+            if (later) {
+              anchor = later
+              break
+            }
+          }
+        }
+      }
+      if (!anchor && !line.before && firstUnseenPrompt) anchor = firstUnseenPrompt
+      if (anchor) {
+        placeBefore(flowItem(anchor, content), shown)
+      } else if (row) {
+        placeAfter(flowItem(row, content), shown)
+      } else if (tail) {
+        placeAfter(tail, shown)
+      } else if (line.before && remote.prompts && remote.prompts.includes(line.before) && rows.size > 0) {
+        const firstRow = [...rows.values()][0]!
+        placeBefore(flowItem(firstRow, content), shown)
+      } else {
+        const last = (firstUnseenPrompt ? knownRows.map(([, n]) => n) : [...rows.values()]).at(-1)
+        if (last) {
+          placeAfter(flowItem(last, content), shown)
+        } else if (pendingTurn) {
+          placeBefore(pendingTurn, shown)
+        } else if (flow) {
+          if (flow.firstElementChild && !flow.firstElementChild.classList.contains('nm-remote')) {
+            placeBefore(flow.firstElementChild as HTMLElement, shown)
+          } else if (shown.parentElement !== flow) {
+            flow.append(shown)
+          }
+        } else {
+          const seat = content.querySelector<HTMLElement>('[data-conversation-scroll] > [data-composer-seat]')
+          if (seat) placeBefore(seat, shown)
+          else if (shown.parentElement !== content) content.append(shown)
         }
       }
       if (!row && !line.before) tail = shown
@@ -182,7 +244,7 @@ export function renderRemoteBubbles(t: Translate): () => void {
       }
       // nothing from elsewhere in this chat: its rows are not read at all
       if (remote.lines.length === 0) continue
-      dress(content, remote)
+      dress(sessionId, content, remote)
     }
   }
   const schedule = () => {
@@ -209,11 +271,22 @@ export function renderRemoteBubbles(t: Translate): () => void {
     cache.clear()
     schedule()
   })
+  const pullOnFocus = () => {
+    if (stopped || document.visibilityState === 'hidden') return
+    const now = Date.now()
+    if (now - lastFocusPull < FOCUS_PULL_MS) return
+    lastFocusPull = now
+    void call('sync/pull', {}).catch(() => undefined)
+  }
+  window.addEventListener('focus', pullOnFocus)
+  document.addEventListener('visibilitychange', pullOnFocus)
   schedule()
   return () => {
     stopped = true
     observer.disconnect()
     offLive()
+    window.removeEventListener('focus', pullOnFocus)
+    document.removeEventListener('visibilitychange', pullOnFocus)
     if (scheduled) clearTimeout(scheduled)
     if (expiry) clearTimeout(expiry)
     for (const node of document.querySelectorAll('.nm-remote')) node.remove()

@@ -861,6 +861,13 @@ export default class NanomuseCloud extends Service {
       )
       ctx.effect(() => this.hub.onSync((cursor, from) => sync.onFrame({ cursor, from })), 'nanomuse cloud: sync frame')
       ctx.effect(() => this.hub.onWorking((frame) => sync.onWorking(frame)), 'nanomuse cloud: working frame')
+      ctx.effect(
+        () =>
+          this.hub.onState(() => {
+            if (this.hub.connected) sync.onFrame({})
+          }),
+        'nanomuse cloud: sync on hub connect',
+      )
       if (this.state.account) sync.start()
       ctx.effect(() => () => {
         sync.stop()
@@ -3247,9 +3254,12 @@ export default class NanomuseCloud extends Service {
    * younger than it (`before`, the row's `data-chat-node-key`), so the bubble is shown
    * before that prompt; none when the turn is the newest thing in the chat.
    */
-  private async remoteLines(ctx: Context, sessionId: string): Promise<Array<RemoteLine & { id: string; before: string | null }>> {
+  private async remoteLines(
+    ctx: Context,
+    sessionId: string,
+  ): Promise<{ lines: Array<RemoteLine & { id: string; before: string | null }>; prompts: string[] }> {
     const lines = this.kept?.linesOf(sessionId) ?? []
-    if (lines.length === 0) return []
+    if (lines.length === 0) return { lines: [], prompts: [] }
     const entry = this.cached(sessionId)
     let prompts = entry.prompts
     if (!prompts) {
@@ -3261,7 +3271,9 @@ export default class NanomuseCloud extends Service {
           for (const event of inspection.events) {
             if (event.type !== 'user/message') continue
             const data = event.data as unknown as { id?: string; source?: { kind?: string } }
-            if (data.source?.kind === 'user') prompts.push({ key: `13:input-message${String(data.id ?? '')}`, time: event.time })
+            const rawTime = Number((event as { time?: number; timestamp?: number }).time ?? (event as { timestamp?: number }).timestamp ?? 0)
+            const time = rawTime > 0 && rawTime < 1e11 ? rawTime * 1000 : rawTime
+            if (data.source?.kind === 'user') prompts.push({ key: `13:input-message${String(data.id ?? '')}`, time })
           }
           entry.prompts = prompts
         } catch {
@@ -3269,7 +3281,14 @@ export default class NanomuseCloud extends Service {
         }
       }
     }
-    return lines.map((line) => ({ ...line, id: line.mid, before: prompts.find((p) => p.time > line.at)?.key ?? null }))
+    return {
+      lines: lines.map((line) => {
+        const seenAt = line.keptAt !== undefined && line.keptAt > 0 ? Math.min(line.at, line.keptAt) : line.at
+        const anchor = prompts.find((p) => p.time > seenAt || (line.keptAt !== undefined && line.keptAt > 0 && p.time >= line.keptAt))
+        return { ...line, id: line.mid, before: anchor?.key ?? null }
+      }),
+      prompts: prompts.map((p) => p.key),
+    }
   }
 
   private async writeState(): Promise<void> {
@@ -3463,8 +3482,8 @@ export default class NanomuseCloud extends Service {
         if (req.method === 'GET' && route === '/sync/remote') {
           const sessionId = url.searchParams.get('session') ?? ''
           // another account's chat shows no bubbles and no working line (C10)
-          const lines = sessionId && sync.owns(sessionId) ? await this.remoteLines(this.ctx, sessionId) : []
-          return send(res, 200, { lines, hidden: sync.view().hidden, working: sync.workingOf(sessionId) })
+          const remote = sessionId && sync.owns(sessionId) ? await this.remoteLines(this.ctx, sessionId) : { lines: [], prompts: [] }
+          return send(res, 200, { lines: remote.lines, prompts: remote.prompts, hidden: sync.view().hidden, working: sync.workingOf(sessionId) })
         }
         if (req.method === 'POST' && route === '/sync/archived') {
           const body = await json(req)
