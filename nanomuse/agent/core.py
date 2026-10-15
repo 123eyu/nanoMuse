@@ -296,6 +296,8 @@ class MuseAgent:
                 memories = prompts.MEMORY_SECTION.format(
                     items="\n".join(f"- {m.render()}" for m in items)
                 )
+                if self.turns <= 1:
+                    memories += prompts.MEMORY_OPENING_NOTE
         goals = ""
         if self.goals is not None:
             active = self.goals.list("active")[:5]

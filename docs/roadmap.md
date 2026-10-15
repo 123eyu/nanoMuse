@@ -16,7 +16,7 @@ The agent keeps `SOUL.md`, `USER.md`, `MEMORY.md` and `HEARTBEAT.md` and a `reme
 
 - Module: `nanomuse/memory/` (`store.py`, `consolidate.py`, `embeddings.py`); the phone's `io.github.nanomuse.sysfiles`; the desktop's profile panel *Memory*.
 - Read: [desktop-muse.md](desktop-muse.md) (the Memory page), [android.md](android.md).
-- First task: a test in `tests/test_memory_recall.py` for a fact the agent should bring up unprompted in a later conversation, then make it pass.
+- Done first task: `tests/test_memory_recall.py` now covers a fact stored in one conversation that the agent brings up unprompted on the opening turn of the next (`MEMORY_OPENING_NOTE` + most-recent slot reservation in `MemoryStore.relevant` / `relevant_async`). Next task: forgetting that you can see in the chat and syncing the same memory store across devices.
 
 ### Proactivity
 

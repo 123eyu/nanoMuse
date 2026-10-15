@@ -203,6 +203,13 @@ class MemoryStore:
         ).fetchall()
         return [self._row(r) for r in rows]
 
+    def _recent(self, limit: int = 1000) -> list[MemoryItem]:
+        rows = self._conn.execute(
+            "SELECT * FROM memories ORDER BY COALESCE(NULLIF(updated_at, ''), created_at) DESC, rowid DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return [self._row(r) for r in rows]
+
     def forget(self, memory_id: str) -> bool:
         cur = self._conn.execute("DELETE FROM memories WHERE id = ?", (memory_id,))
         self._conn.commit()
@@ -270,7 +277,7 @@ class MemoryStore:
 
     def relevant(self, context: str, limit: int = 20) -> list[MemoryItem]:
         """Memories to inject into the system prompt: matches first, then most recent."""
-        items = self.all()
+        items = self._recent()
         if len(items) <= limit:
             return items
         return self._fill(self.search(context, limit=limit), items, limit)
@@ -284,6 +291,8 @@ class MemoryStore:
             if item.id not in seen:
                 matched.append(item)
                 seen.add(item.id)
+        if len(matched) >= limit and limit >= 2 and items and items[0].id not in seen:
+            matched = [*matched[: limit - 1], items[0]]
         return matched
 
     async def search_async(self, query: str, limit: int = 10) -> list[MemoryItem]:
@@ -294,7 +303,7 @@ class MemoryStore:
 
     async def relevant_async(self, context: str, limit: int = 20) -> list[MemoryItem]:
         """``relevant`` with the meaning-based ranking fused in when an index is set up."""
-        items = self.all()
+        items = self._recent()
         if len(items) <= limit:
             return items
         if self.index is not None:
