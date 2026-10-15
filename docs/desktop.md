@@ -30,6 +30,44 @@ Python runtime and the web app in an Electron shell of their own (`desktop/app`)
 harness build shipped beside them as *nanoMuse Harness*; from 0.1.30 there is the one
 desktop, and it installs over the old one (same application id).
 
+## Updating on Windows
+
+The Windows x64 app checks for a newer stable release after starting and every six
+hours. Settings shows the running app's version and the same update state as the
+corner menu, with **Check now** to refresh immediately.
+
+Updates download in the background by default when Windows reports an unmetered
+internet connection. **Download updates automatically** in Settings saves your choice
+across restarts. Switching it off stops new automatic downloads, while a download
+already running can finish. Checks continue on metered or unknown networks; the menu
+explains the pause and **Download** overrides it for that request without changing the switch.
+The menu shows download progress and verification, then **Restart to update** once
+electron-updater has verified the complete installer. A dot means an action is
+waiting: download, retry or restart. Downloading has no update dot, and completion
+does not open a dialog. Failed checks and downloads can be retried from the menu.
+After a failed download, automatic retries wait one minute, then five minutes, with
+at most two retries. Each one rechecks your switch and Windows' network cost. After
+that, the app waits for a manual retry or the next six-hour check; turning automatic
+downloads off also prevents those later checks from starting a download.
+The download mirror is tried first, then GitHub for the same version and checksum.
+An already downloaded installer is verified again before reuse.
+
+Restarting for an update uses the installed app's normal user-level NSIS upgrade.
+It keeps conversations, settings and account data outside the application files,
+then opens the app again. If replies, computer operations, remote tasks or approvals
+are pending, the app lists them and defaults to keeping them running. Only an
+explicit confirmation ends the work; installation waits until it has ended and
+blocks new work during handoff. A cancelled or failed handoff lets work continue.
+
+On the next normal quit, an already verified update is installed with the same
+work protection, then the app stays closed. Without a ready update, quit follows
+the normal protected exit. Closing to the tray, leaving the app idle, a crash or
+system shutdown does not request installation. Other platforms, older shells and
+the standalone harness retain the external download flow. A version that has no
+in-app updater must first be upgraded with the downloaded installer. Development
+builds do not run an installer. This uses the existing installation behaviour;
+mixed copies or stale installation registration need to be sorted out separately.
+
 ## What it is
 
 A dsh Host started by the shell as a child process, showing the harness's web app in a
@@ -460,6 +498,9 @@ app to tccd, so `npm start` asks for both grants again each time the Swift chang
 TypeScript can change freely).
 
 ## macOS signing
+
+The runtime staging step preserves PyInstaller's relative framework and library links.
+This keeps the framework layout intact when the app is copied and signed.
 
 Without an Apple developer certificate the bundle is ad-hoc signed and macOS asks once.
 With the repository secrets `MAC_CERT_P12_BASE64`, `MAC_CERT_PASSWORD`,

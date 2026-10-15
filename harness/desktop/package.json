@@ -25,7 +25,6 @@
     "builder-util-runtime": "9.7.0",
     "electron": "44.7.0",
     "electron-builder": "^26.15.3",
-    "electron-updater": "^6.8.9",
     "typescript": "^5.6.0"
   },
   "author": {
@@ -33,7 +32,8 @@
     "email": "lgy0404@users.noreply.github.com"
   },
   "dependencies": {
-    "@computer-use/nut-js": "4.2.0"
+    "@computer-use/nut-js": "4.2.0",
+    "electron-updater": "^6.8.9"
   },
   "optionalDependencies": {
     "@computer-use/mac-screen-capture-permissions": "1.0.2",

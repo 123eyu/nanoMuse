@@ -58,7 +58,8 @@ def build(target: Path) -> Path:
     if not exe.exists():
         raise SystemExit(f"PyInstaller produced nothing at {exe}")
     shutil.rmtree(target, ignore_errors=True)
-    shutil.copytree(built, target)
+    # Keep PyInstaller's relative library aliases and macOS framework layout intact.
+    shutil.copytree(built, target, symlinks=True)
     size = sum(p.stat().st_size for p in target.rglob("*") if p.is_file()) // (1024 * 1024)
     print(f"runtime: {target} ({size} MB)")
     return target / exe.name
