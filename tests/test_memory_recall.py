@@ -400,6 +400,89 @@ async def test_agent_survives_a_recall_error(settings: Settings, monkeypatch: py
     memory.close()
 
 
+async def test_fact_stored_in_one_conversation_surfaces_unprompted_in_the_next(
+    settings: Settings, fake: FakeEmbeddings
+):
+    from nanomuse.prompts import MEMORY_OPENING_NOTE
+    from nanomuse.schema import Function, ToolCall
+    from nanomuse.tools.memory_tools import Remember
+
+    settings.memory.embedding_base_url = "http://127.0.0.1:11434/v1"
+    settings.memory.max_inject = 3
+    memory = MemoryStore(settings.memory_db)
+    seed(memory)
+    memory.index = MemoryIndex(memory, Embedder(settings.memory, settings.llm))
+
+    # Conversation 1: the user shares a durable fact with a time hook; the agent stores it.
+    ui1 = HeadlessUI()
+    audit1 = AuditLog(settings.audit_file)
+    llm1 = MockLLM(
+        [
+            LLMResponse(
+                tool_calls=[
+                    ToolCall(
+                        function=Function(
+                            name="remember",
+                            arguments=json.dumps(
+                                {
+                                    "content": "Flight to Tokyo on the 12th at 3pm from Haneda",
+                                    "category": "event",
+                                }
+                            ),
+                        )
+                    )
+                ]
+            ),
+            LLMResponse(content="Got it, I will remember your Haneda flight on the 12th at 3pm."),
+        ]
+    )
+    conv1 = MuseAgent(
+        settings,
+        llm1,
+        ToolCollection(Terminate(), Remember(store=memory), Recall(store=memory)),
+        Sentinel(settings.sentinel, audit1, ui1),
+        ui1,
+        audit1,
+        memory=memory,
+    )
+    await conv1.run("My flight to Tokyo is on the 12th at 3pm from Haneda.")
+
+    # Conversation 2: a new chat whose opening message shares no word or embedding axis
+    # with the stored flight fact.
+    ui2 = HeadlessUI()
+    audit2 = AuditLog(settings.audit_file)
+    llm2 = MockLLM(
+        [
+            LLMResponse(
+                content="Keep in mind your flight to Tokyo is on the 12th at 3pm from Haneda.",
+            ),
+            LLMResponse(content="All set."),
+        ]
+    )
+    conv2 = MuseAgent(
+        settings,
+        llm2,
+        ToolCollection(Terminate(), Remember(store=memory), Recall(store=memory)),
+        Sentinel(settings.sentinel, audit2, ui2),
+        ui2,
+        audit2,
+        memory=memory,
+    )
+    reply = await conv2.run("I'm heading out now, anything I should know?")
+    first_prompt = llm2.calls[0]["messages"][0].content
+    section = first_prompt.split("## What you remember about the user", 1)[1].split("\n##", 1)[0]
+    assert "Flight to Tokyo on the 12th at 3pm from Haneda" in section
+    assert MEMORY_OPENING_NOTE.strip() in section
+    assert "Haneda" in reply
+
+    # Later turns in the same conversation keep the memories without repeating the opening nudge.
+    await conv2.run("Thanks, anything else?")
+    second_prompt = llm2.calls[1]["messages"][0].content
+    assert "Flight to Tokyo on the 12th at 3pm from Haneda" in second_prompt
+    assert MEMORY_OPENING_NOTE.strip() not in second_prompt
+    memory.close()
+
+
 # ----------------------------------------------------------------------------- the app and the API
 def test_connections_embeddings(settings: Settings, fake: FakeEmbeddings):
     settings.server.token = "secret-token"

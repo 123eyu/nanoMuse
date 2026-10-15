@@ -10,6 +10,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Runtime
 
+- **Newly stored facts stay in the recalled set and surface on the opening turn of a later conversation.** `MemoryStore.relevant` and `MemoryStore.relevant_async` now backfill from `COALESCE(NULLIF(updated_at, ''), created_at) DESC, rowid DESC` so memories stored or updated within the same second keep their insertion order, and `MemoryStore._fill` reserves a slot for the newest memory when `limit >= 2` even if earlier memories filled the query matches. On the first turn of a conversation (`turns <= 1`), `build_system_prompt` appends `MEMORY_OPENING_NOTE` so the agent brings up in one sentence any remembered date, trip, deadline or promise that matters right now without repeating the nudge on later turns. For #477.
+
 ### Web
 
 - **Each Feed section showed its own load error and retry.** Posts, activity, Next up and calendar requests kept their last successful content when a refresh failed; retrying one section no longer refetched the others.

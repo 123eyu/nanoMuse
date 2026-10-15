@@ -16,7 +16,7 @@ Meta 的 Muse 定下了这类智能体的样子；下面是我们还落后于它
 
 - 模块：`nanomuse/memory/`（`store.py`、`consolidate.py`、`embeddings.py`）；手机的 `io.github.nanomuse.sysfiles`；桌面档案面板里的「记忆」。
 - 阅读：[desktop-muse.md](desktop-muse.md)（记忆页）、[android.md](android.md)。
-- 第一个任务：在 `tests/test_memory_recall.py` 里写一个测试：某条事实，智能体应该在之后的某次对话里不用人提就说出来；然后让它通过。
+- 已完成的第一个任务：`tests/test_memory_recall.py` 已覆盖在一次对话里记住某条事实、并在下一次对话首轮不用人提就主动说出来的流程（`MEMORY_OPENING_NOTE` 与 `MemoryStore.relevant` / `relevant_async` 最新记忆保底槽位）。下一个任务：看得见的遗忘，以及在多台设备间同步同一份记忆。
 
 ### 主动性 {#proactivity}
 

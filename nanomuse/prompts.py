@@ -178,6 +178,12 @@ MEMORY_SECTION = """
 {items}
 """
 
+MEMORY_OPENING_NOTE = (
+    "(On this first turn of the conversation, if anything here matters to right now, such as "
+    "a date, a trip, a deadline or a promise, bring it up in one sentence; otherwise leave it "
+    "until it is relevant.)\n"
+)
+
 GOALS_SECTION = """
 ## Active goals
 {items}
@@ -337,6 +343,7 @@ __all__ = [
     "LANGUAGE_FIXED",
     "LANGUAGE_UI",
     "MAX_STEPS_PROMPT",
+    "MEMORY_OPENING_NOTE",
     "MEMORY_SECTION",
     "QUIET_MARKER",
     "REMINDER_PROMPT",
