@@ -220,7 +220,10 @@ switch as it is. Nobody but the account's devices can read the store: the
 operator's admin page shows counts only (accounts with it on and off, how many
 conversations and messages, their size), never a text, never which account
 (`GET /v1/admin/sync`). The pulls are triggered by the hub's `sync` frame
-([hub.md](hub.md#frames)), at launch and once a minute.
+([hub.md](hub.md#frames)), at launch, when the hub socket reconnects or the
+desktop window comes back to the front, and once a minute; on the desktop a
+turn already received from another device stays above any prompt sent on this
+computer after it arrived, even if the two devices' clocks disagree.
 
 The API, all under the account's key (401 without one; 409 `sync_off` while the
 switch is off, for reads as well as writes):

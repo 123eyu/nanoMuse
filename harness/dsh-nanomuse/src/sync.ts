@@ -298,6 +298,8 @@ export interface RemoteLine {
   text: string
   /** Unix epoch milliseconds (the relay's `created_at`, in ms). */
   at: number
+  /** Local wall-clock milliseconds when this computer kept the row, so skewed device clocks still anchor subsequent local prompts. */
+  keptAt?: number
   device: string
   deviceName: string
 }
@@ -359,7 +361,7 @@ export class RemoteStore {
     this.load()
     const list = this.lines.get(sessionId) ?? []
     if (list.some((l) => l.mid === line.mid)) return
-    list.push(line)
+    list.push(line.keptAt !== undefined ? line : { ...line, keptAt: Date.now() })
     list.sort((a, b) => a.at - b.at)
     this.lines.set(sessionId, list)
     this.saveSoon()
@@ -574,6 +576,8 @@ export class SyncEngine {
   private readonly working = new Map<string, WorkingPresence>()
   private pulling: Promise<number> | undefined
   private pushing: Promise<void> | undefined
+  private frameCursor = 0
+  private frameNeedsPull = false
   private relayState: SyncRelayState | null = null
   private lastError = ''
   private rev = 0
@@ -902,15 +906,34 @@ export class SyncEngine {
     this.pushSoon(200)
   }
 
-  /** The relay's `sync` frame: another device pushed. Frames arriving together become one pull. */
+  /** The relay's `sync` frame: another device pushed. Frames arriving together become one pull, and a frame arriving during an in-flight pull runs a follow-up pull when needed. */
   onFrame(frame: { cursor?: number; from?: string }): void {
     if (frame.from && frame.from === this.options.deviceId()) return
-    if (typeof frame.cursor === 'number' && frame.cursor <= this.state.cursor) return
+    if (typeof frame.cursor === 'number') {
+      if (frame.cursor <= this.state.cursor) return
+      if (frame.cursor > this.frameCursor) this.frameCursor = frame.cursor
+    } else {
+      this.frameNeedsPull = true
+    }
     if (this.frameTimer) return
     this.frameTimer = setTimeout(() => {
       this.frameTimer = undefined
-      void this.pullQuietly()
+      this.drainFramePull()
     }, this.options.frameCoalesceMs ?? FRAME_COALESCE_MS)
+  }
+
+  private drainFramePull(): void {
+    if (this.pulling) {
+      void this.pulling.finally(() => {
+        if (this.frameNeedsPull || this.frameCursor > this.state.cursor) {
+          this.frameNeedsPull = false
+          void this.pull().catch(() => 0)
+        }
+      })
+      return
+    }
+    this.frameNeedsPull = false
+    void this.pullQuietly()
   }
 
   // ---- push ---------------------------------------------------------------------------------
