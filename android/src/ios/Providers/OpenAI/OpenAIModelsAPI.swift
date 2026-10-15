@@ -45,6 +45,51 @@ enum OpenAIModelsAPI {
         return enriched
     }
 
+    // nanoMuse: query https://chatgpt.com/backend-api/codex/models when an OAuth token is present (#475)
+    static func fetchModelsOAuth(accessToken: String?, accountId: String? = nil) async -> [LLMModel] {
+        let token = (accessToken ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !token.isEmpty,
+              let url = URL(string: "https://chatgpt.com/backend-api/codex/models?client_version=99.99.99") else {
+            return fetchModelsOAuth()
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("codex_cli_rs", forHTTPHeaderField: "Originator")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let accountId, !accountId.isEmpty {
+            request.setValue(accountId, forHTTPHeaderField: "Chatgpt-Account-Id")
+        }
+        do {
+            let (data, response) = try await NanoMuseProxy.session.data(for: request)
+            if let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
+               let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let rows = json["models"] as? [[String: Any]] {
+                var live: [LLMModel] = []
+                var seen = Set<String>()
+                for row in rows {
+                    let vis = (row["visibility"] as? String) ?? ""
+                    if vis == "hide" || vis == "none" { continue }
+                    let rawSlug = (row["slug"] as? String) ?? (row["id"] as? String) ?? ""
+                    let slug = rawSlug.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if slug.isEmpty || !seen.insert(slug).inserted { continue }
+                    let builtIn = LLMModel.allOpenAICodexOAuth.first { $0.id == slug }
+                    let rawName = (row["display_name"] as? String) ?? (row["title"] as? String) ?? ""
+                    let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let displayName = name.isEmpty ? (builtIn?.displayName ?? modelDisplayName(from: slug)) : name
+                    live.append(LLMModel(id: slug, displayName: displayName, provider: "OpenAI", supportsReasoning: true))
+                }
+                if !live.isEmpty {
+                    let merged = live + LLMModel.allOpenAICodexOAuth.filter { !seen.contains($0.id) }
+                    return ModelsDevAPI.enrichModels(merged)
+                }
+            }
+        } catch {
+            logger.info("Codex live models fetch failed, falling back to built-in list: \(error.localizedDescription)")
+        }
+        return fetchModelsOAuth()
+    }
+
     private static func performFetch(_ request: URLRequest, filterOpenAIOnly: Bool = true) async throws -> [LLMModel] {
         let (data, response) = try await NanoMuseProxy.session.data(for: request) // nanoMuse: Settings → Network
         let http = response as? HTTPURLResponse

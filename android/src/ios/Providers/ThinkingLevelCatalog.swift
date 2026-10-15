@@ -2,6 +2,7 @@ import Foundation
 
 enum ThinkingLevelCatalog {
     private static let rules: [(match: (String) -> Bool, max: ThinkingLevel)] = [
+        ({ $0.hasPrefix("gpt-6") }, .max), // nanoMuse: GPT-6 Sol/Luna/Astra reach .max (#475)
         // GPT-5.6 sol/terra/luna all reach .max. (.ultra is a client-side
         // "Max + orchestration" concept — the wire effort tops out at "max",
         // reasoningEffort(for:level:) maps both .max and .ultra to "max".)

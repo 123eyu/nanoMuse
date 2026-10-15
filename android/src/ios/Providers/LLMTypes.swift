@@ -254,6 +254,31 @@ struct LLMModel: Equatable, Hashable, Identifiable, Sendable, Codable {
 
     // MARK: - OpenAI Models
 
+    // nanoMuse: GPT-6 series models on ChatGPT / Codex OAuth (#475)
+    static let gpt61Sol = LLMModel(
+        id: "gpt-6.1-sol",
+        displayName: "GPT-6.1 Sol",
+        provider: "OpenAI"
+    )
+
+    static let gpt6Sol = LLMModel(
+        id: "gpt-6-sol",
+        displayName: "GPT-6 Sol",
+        provider: "OpenAI"
+    )
+
+    static let gpt6Luna = LLMModel(
+        id: "gpt-6-luna",
+        displayName: "GPT-6 Luna",
+        provider: "OpenAI"
+    )
+
+    static let gpt6Astra = LLMModel(
+        id: "gpt-6-astra",
+        displayName: "GPT-6 Astra",
+        provider: "OpenAI"
+    )
+
     static let gpt56Sol = LLMModel(
         id: "gpt-5.6-sol",
         displayName: "GPT-5.6 Sol",
@@ -434,6 +459,7 @@ struct LLMModel: Equatable, Hashable, Identifiable, Sendable, Codable {
     /// carry more. Re-probe before adding anything back; do not restore an id
     /// from documentation alone.
     static let allOpenAICodexOAuth: [LLMModel] = [
+        .gpt61Sol, .gpt6Sol, .gpt6Luna, .gpt6Astra, // nanoMuse: GPT-6 series (#475)
         .gpt56Sol, .gpt56Terra, .gpt56Luna,
         .gpt55, .gpt54, .gpt54Mini,
         // gptImage2 is kept: it is an image endpoint, not a Codex chat model,

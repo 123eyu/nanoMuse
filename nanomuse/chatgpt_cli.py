@@ -342,6 +342,7 @@ def proxy(
             raise typer.Exit(1)
         bound = next((s.getsockname() for s in server.servers[0].sockets), (host, port))
         url = f"http://{bound[0]}:{bound[1]}/v1"
+        models = await app.state.chatgpt_models.ids()
         _emit(
             as_json,
             {
@@ -349,7 +350,7 @@ def proxy(
                 "url": url,
                 "token": local_token,
                 "label": stored.label,
-                "models": list(BUILTIN_MODELS),
+                "models": models,
             },
             f"ChatGPT proxy at {url}\nAuthorization: Bearer {local_token}\n(Ctrl-C stops it)",
         )

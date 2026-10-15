@@ -17,6 +17,7 @@ object ThinkingLevelCatalog {
     private data class Rule(val match: (String) -> Boolean, val max: ThinkingLevel)
 
     private val rules: List<Rule> = listOf(
+        Rule({ it.startsWith("gpt-6") }, ThinkingLevel.MAX), // nanoMuse: GPT-6 Sol/Luna/Astra reach MAX (#475)
         // GPT-5.6 family: sol / terra / luna all reach MAX. ULTRA is a
         // client-side "Max + orchestration" concept, never a wire effort — the
         // effort layer maps both MAX and ULTRA to "max". Keep in lockstep with

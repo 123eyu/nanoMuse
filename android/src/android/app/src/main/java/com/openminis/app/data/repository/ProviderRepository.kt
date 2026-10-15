@@ -2190,11 +2190,13 @@ class ProviderRepository(private val context: Context) {
 
         android.util.Log.i("ProviderRepo", "refreshModels: id=${instance.id} type=${instance.providerType} credential=${instance.credentialType} hasKey=${apiKey != null} keyLen=${apiKey?.length ?: 0} baseURL=${instance.effectiveBaseURL}")
 
-        // OpenAI Codex OAuth: use static model list (OAuth tokens can't call /v1/models)
+        // OpenAI Codex OAuth: fetch live Codex models when signed in, with built-in fallback
         if (instance.providerType == ProviderType.openAI
             && instance.credentialType == ProviderCredential.oauth
         ) {
-            val models = OpenAIModelsApi.fetchModelsOAuth()
+            // nanoMuse: query live Codex OAuth models with accountId (#475)
+            val accountId = runCatching { com.openminis.app.auth.OpenAIOAuthManager(context, instance.id).accountId }.getOrNull()
+            val models = OpenAIModelsApi.fetchModelsOAuth(apiKey, accountId)
             if (models.isNotEmpty()) {
                 replaceEntries(instance.id, models)
                 return

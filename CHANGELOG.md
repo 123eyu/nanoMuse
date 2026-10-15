@@ -10,6 +10,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Runtime
 
+- **ChatGPT sign-in includes the GPT-6 series (`gpt-6.1-sol`, `gpt-6-sol`, `gpt-6-luna`, `gpt-6-astra`) and refreshes the live Codex model list across runtime, desktop, Android and iOS.** `BUILTIN_MODELS` and the desktop fallback now list `gpt-6.1-sol`, `gpt-6-sol`, `gpt-6-luna` and `gpt-6-astra` alongside `gpt-5.6-sol`, `gpt-5.4` and `gpt-5.4-mini`, `nanomuse chatgpt proxy` resolves `ModelList.ids()` from `https://chatgpt.com/backend-api/codex/models` before emitting its `ready` event, the desktop marks `gpt-6*` models as vision-capable for the hands, and Android (`OpenAIModelsApi.fetchModelsOAuth`) and iOS (`OpenAIModelsAPI.fetchModelsOAuth`) query the live Codex models endpoint on sign-in and manual refresh while falling back to the updated built-in list. For #475.
+
 - **Newly stored facts stay in the recalled set and surface on the opening turn of a later conversation.** `MemoryStore.relevant` and `MemoryStore.relevant_async` now backfill from `COALESCE(NULLIF(updated_at, ''), created_at) DESC, rowid DESC` so memories stored or updated within the same second keep their insertion order, and `MemoryStore._fill` reserves a slot for the newest memory when `limit >= 2` even if earlier memories filled the query matches. On the first turn of a conversation (`turns <= 1`), `build_system_prompt` appends `MEMORY_OPENING_NOTE` so the agent brings up in one sentence any remembered date, trip, deadline or promise that matters right now without repeating the nudge on later turns. For #477.
 
 ### Web

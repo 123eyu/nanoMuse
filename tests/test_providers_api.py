@@ -141,7 +141,15 @@ def test_chatgpt_status_and_logout_signed_out(server):
     client, service = server
     status = client.get("/api/chatgpt/status").json()
     assert status["signed_in"] is False and status["pending"] is False
-    assert status["models"] == ["gpt-5.6-sol", "gpt-5.4", "gpt-5.4-mini"]
+    assert status["models"] == [
+        "gpt-6.1-sol",
+        "gpt-6-sol",
+        "gpt-6-luna",
+        "gpt-6-astra",
+        "gpt-5.6-sol",
+        "gpt-5.4",
+        "gpt-5.4-mini",
+    ]
     assert "url" not in status and "error" not in status
     assert client.post("/api/chatgpt/logout").json() == {"ok": True, "was_signed_in": False}
     # a callback with nothing pending
