@@ -59,8 +59,10 @@ are pending, the app lists them and defaults to keeping them running. Only an
 explicit confirmation ends the work; installation waits until it has ended and
 blocks new work during handoff. A cancelled or failed handoff lets work continue.
 
-Quitting normally, closing to the tray and
-leaving the app idle do not install the package. Other platforms, older shells and
+On the next normal quit, an already verified update is installed with the same
+work protection, then the app stays closed. Without a ready update, quit follows
+the normal protected exit. Closing to the tray, leaving the app idle, a crash or
+system shutdown does not request installation. Other platforms, older shells and
 the standalone harness retain the external download flow. A version that has no
 in-app updater must first be upgraded with the downloaded installer. Development
 builds do not run an installer. This uses the existing installation behaviour;

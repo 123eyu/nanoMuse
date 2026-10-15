@@ -278,3 +278,22 @@ test("restart-update cancels after a stop deadline even when a later check would
   assert.deepEqual(gates, [false, true]);
   assert.equal(lines.includes("finish"), false);
 });
+
+test("quit with an installer cancels when a confirmed stop exceeds its deadline", async () => {
+  const gates = [];
+  const c = clock();
+  let stopping = false;
+  const guard = exitWork({ work: {
+    busy: async () => stopping ? [] : [REPLY],
+    setGate: async (open) => { gates.push(open); },
+    stopAll: () => { stopping = true; return new Promise(() => undefined); },
+  }, dialog: fakeDialog(true), c, lines: [] });
+  let installed = false;
+  const pending = guard.requestExit("quit", () => { installed = true; });
+  await new Promise((resolve) => setImmediate(resolve));
+  c.advance(15_000);
+  assert.equal(await pending, false);
+  assert.equal(installed, false);
+  assert.deepEqual(gates, [false, true]);
+  assert.equal(guard.approval, "none");
+});

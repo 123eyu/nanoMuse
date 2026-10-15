@@ -33,6 +33,7 @@ export async function updateFeed(t, { current = "1.0.3", version = "1.0.4", slow
   const states = [];
   const installs = [];
   const quits = [];
+  const questions = [];
   const lines = [];
   const cacheFiles = [];
   let gate = true;
@@ -65,7 +66,10 @@ export async function updateFeed(t, { current = "1.0.3", version = "1.0.4", slow
     setGate: async (open) => { gate = open; },
     stopAll: async () => { if (answers.stopError) throw new Error("work did not end"); on = []; },
   };
-  const guard = new ProtectedExit({ work, dialog: { confirm: async () => confirm }, finish: () => { throw new Error("plain quit bypassed install"); }, log: (line) => lines.push(line) });
+  const guard = new ProtectedExit({ work, dialog: { confirm: async (items, intent) => {
+    questions.push({ items: [...items], intent });
+    return typeof confirm === "function" ? confirm() : confirm;
+  } }, finish: () => quits.push({ gateOpen: gate, busy: [...on] }), log: (line) => lines.push(line) });
   const createUpdater = (canQuit = () => true) => {
     const app = { version: current, name: "nanomuse-update-flow", isPackaged: true, appUpdateConfigPath: join(root, "app-update.yml"),
       userDataPath: root, baseCachePath: root, whenReady: async () => undefined,
@@ -91,7 +95,7 @@ export async function updateFeed(t, { current = "1.0.3", version = "1.0.4", slow
   const flow = new WindowsUpdates({ currentVersion: current, supported: true, createUpdater,
     sources: { mirrorCheck: `${base}mirror/`, githubCheck: `${base}github/`,
       mirrorVersion: (v) => `${base}mirror/v${v}/`, githubVersion: (v) => `${base}github/v${v}/` },
-    restart: (install) => guard.requestExit("restart-update", install), cancelHandoff: () => guard.cancelHandoff() });
+    handoff: (intent, install) => guard.requestExit(intent, install), cancelHandoff: () => guard.cancelHandoff() });
   flow.subscribe((state) => states.push(state));
   t.after(async () => {
     flow.dispose();
@@ -99,5 +103,5 @@ export async function updateFeed(t, { current = "1.0.3", version = "1.0.4", slow
     await new Promise((resolve) => server.close(resolve));
     rmSync(root, { recursive: true, force: true });
   });
-  return { flow, answers, seen, states, installs, quits, lines, cacheFiles, bytes, root, gateOpen: () => gate };
+  return { flow, guard, work, questions, answers, seen, states, installs, quits, lines, cacheFiles, bytes, root, gateOpen: () => gate };
 }

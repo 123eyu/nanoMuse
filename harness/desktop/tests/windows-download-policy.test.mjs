@@ -23,7 +23,7 @@ function fixture(options = {}) {
       currentVersion: updater.currentVersion, setFeedURL: (...args) => updater.setFeedURL(...args),
       checkForUpdates: () => updater.checkForUpdates(), downloadUpdate: () => updater.downloadUpdate(),
     }),
-    restart: async () => false, cancelHandoff: async () => undefined,
+    handoff: async () => false, cancelHandoff: async () => undefined,
     networkCost: async () => network,
     setTimeout: (fn, ms) => { const timer = { fn, ms, cancelled: false, unref() {} }; timers.push(timer); return timer; },
     clearTimeout: (timer) => { timer.cancelled = true; }, ...options });

@@ -1,6 +1,7 @@
 import { NsisUpdater } from "electron-updater";
 import type { AppAdapter } from "electron-updater/out/AppAdapter";
 import type { UpdateInfo } from "builder-util-runtime";
+import type { ExitIntent } from "./protected-exit";
 
 /** Keep the library's updater and transport; only its queued quit is conditional. */
 export class RestartNsisUpdater extends NsisUpdater {
@@ -45,7 +46,7 @@ export interface WindowsUpdatesOptions {
   supported: boolean;
   createUpdater(canQuit: () => boolean): NsisUpdater;
   /** The protected exit invokes install only after its final quiet check. */
-  restart(install: () => void): Promise<boolean>;
+  handoff(intent: ExitIntent, install?: () => void): Promise<boolean>;
   cancelHandoff(): Promise<void>;
   autoDownload?: boolean;
   saveAutoDownload?(enabled: boolean): void;
@@ -64,6 +65,7 @@ export class WindowsUpdates {
   private readonly listeners = new Set<(state: WindowsUpdateState) => void>();
   private candidate: UpdateInfo | null = null;
   private operation: Promise<void> | null = null;
+  private exitOperation: Promise<void> | null = null;
   private timer: NodeJS.Timeout | null = null;
   private retryTimer: NodeJS.Timeout | null = null;
   private retries = 0;
@@ -192,32 +194,52 @@ export class WindowsUpdates {
   }
 
   restart(): Promise<void> {
-    if (this.state.phase !== "ready" || !this.candidate) return Promise.resolve();
-    return this.run(async () => {
-      try {
-        // A fresh library instance hashes the cache again before it may be installed.
-        const updater = await this.verifiedDownload();
-        this.publish({ phase: "installing", failure: null, progress: 100 });
-        let installError: Error | null = null;
-        let handedOver = false;
-        updater.on("error", (error) => {
-          installError = error;
-          if (handedOver) void this.options.cancelHandoff().then(() => {
-            this.publish({ phase: "failed", failure: "restart" });
-          });
+    return this.requestExit("restart-update");
+  }
+
+  quit(): Promise<void> {
+    return this.requestExit("quit");
+  }
+
+  private requestExit(intent: ExitIntent): Promise<void> {
+    if (!this.options.supported || this.disposed || this.state.phase === "installing") return Promise.resolve();
+    if (this.exitOperation) return this.exitOperation;
+    const ready = this.state.phase === "ready" && !!this.candidate;
+    if (!ready && intent === "restart-update") return Promise.resolve();
+    const pending = this.operation;
+    this.exitOperation = Promise.resolve().then(async () => {
+      if (ready) {
+        await pending;
+        await this.install(intent);
+      } else await this.options.handoff("quit");
+    }).finally(() => { this.exitOperation = null; });
+    return this.exitOperation;
+  }
+
+  private async install(intent: ExitIntent): Promise<void> {
+    try {
+      // A fresh library instance hashes the cache again before it may be installed.
+      const updater = await this.verifiedDownload();
+      this.publish({ phase: "installing", failure: null, progress: 100 });
+      let installError: Error | null = null;
+      let handedOver = false;
+      updater.on("error", (error) => {
+        installError = error;
+        if (handedOver) void this.options.cancelHandoff().then(() => {
+          this.publish({ phase: "failed", failure: "restart" });
         });
-        const accepted = await this.options.restart(() => {
-          updater.quitAndInstall(true, true);
-          if (installError) throw installError;
-        });
+      });
+      const accepted = await this.options.handoff(intent, () => {
+        updater.quitAndInstall(true, intent === "restart-update");
         if (installError) throw installError;
-        handedOver = accepted;
-        if (!accepted) this.publish({ phase: "ready", failure: "restart" });
-      } catch {
-        this.publish({ phase: "failed", failure: "restart", progress: null });
-        await this.options.cancelHandoff();
-      }
-    });
+      });
+      if (installError) throw installError;
+      handedOver = accepted;
+      if (!accepted) this.publish({ phase: "ready", failure: "restart" });
+    } catch {
+      this.publish({ phase: "failed", failure: "restart", progress: null });
+      await this.options.cancelHandoff();
+    }
   }
 
   private async verifiedDownload(): Promise<NsisUpdater> {
@@ -275,6 +297,7 @@ export class WindowsUpdates {
 
   private run(action: () => Promise<void>): Promise<void> {
     if (!this.options.supported || this.disposed || this.state.phase === "installing") return Promise.resolve();
+    if (this.exitOperation) return this.exitOperation;
     if (this.operation) return this.operation;
     this.operation = action().finally(() => { this.operation = null; });
     return this.operation;

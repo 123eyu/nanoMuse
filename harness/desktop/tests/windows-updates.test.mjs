@@ -17,7 +17,7 @@ function fixture(version = "1.0.4", options = {}) {
     quitAndInstall: (silent, reopen) => { assert.equal(silent, true); assert.equal(reopen, true); installs++; },
   });
   const flow = new WindowsUpdates({ currentVersion: "1.0.3", supported: true, createUpdater: () => updater,
-    restart: async (install) => { install(); return true; }, cancelHandoff: async () => undefined, ...options });
+    handoff: async (_intent, install) => { install?.(); return true; }, cancelHandoff: async () => undefined, ...options });
   return { flow, updater, counts: () => ({ installs, downloads }) };
 }
 
