@@ -1,8 +1,8 @@
 """Web search behind the ``web_search`` tool.
 
 DuckDuckGo needs no key and is the default, but it is scraped, not served: it rate-limits
-and breaks now and then. When that matters, pick a provider with an API — Brave or
-Tavily with a key, You.com with or without one (keyless, 100 searches a day), or a
+and breaks now and then. When that matters, pick a provider with an API — Brave, Tavily or
+Serply with a key, You.com with or without one (keyless, 100 searches a day), or a
 SearXNG instance you run yourself — in ``[connectors.search]`` or from *Connections →
 Web search*. Whatever is picked, a failed search falls back to DuckDuckGo once, with a
 note in the result, so a lapsed key does not stop a task.
@@ -34,6 +34,12 @@ PROVIDERS: dict[str, dict[str, Any]] = {
         "needs_key": True,
         "host": "api.tavily.com",
         "keys_url": "https://app.tavily.com/",
+    },
+    "serply": {
+        "label": "Serply",
+        "needs_key": True,
+        "host": "api.serply.io",
+        "keys_url": "https://serply.io/",
     },
     # Keyless: `api.you.com`, 100 searches a day per address. With a key: the keyed Search
     # API at `ydc-index.io`. `host` names whichever one a search goes to.
@@ -194,6 +200,8 @@ class WebSearchProvider:
             return await self._brave(query, max_results, region)
         if self.name == "tavily":
             return await self._tavily(query, max_results)
+        if self.name == "serply":
+            return await self._serply(query, max_results, region)
         if self.name == "you":
             return await self._you(query, max_results, region)
         if self.name == "searxng":
@@ -263,6 +271,33 @@ class WebSearchProvider:
                 title=r.get("title") or "",
                 url=r.get("url") or "",
                 snippet=(r.get("content") or "").strip()[:400],
+            )
+            for r in rows[:max_results]
+        ]
+
+    async def _serply(self, query: str, max_results: int, region: str) -> list[SearchResult]:
+        """Serply: Google web search results at ``api.serply.io`` with ``X-Api-Key``."""
+        country, _lang = _region(region)
+        params: dict[str, Any] = {"q": query, "num": min(max_results, 10)}
+        if country:
+            params["gl"] = country
+        async with _client() as client:
+            resp = await client.get(
+                "https://api.serply.io/v1/search",
+                params=params,
+                headers={
+                    "Accept": "application/json",
+                    "User-Agent": "nanoMuse",
+                    "X-Api-Key": self.api_key(),
+                },
+            )
+        _raise_for(resp)
+        rows = resp.json().get("results") or []
+        return [
+            SearchResult(
+                title=r.get("title") or "",
+                url=r.get("link") or "",
+                snippet=(r.get("description") or "").strip()[:400],
             )
             for r in rows[:max_results]
         ]

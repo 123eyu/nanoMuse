@@ -1052,7 +1052,7 @@ export interface ConnectionsData {
     status: string;
   };
   search: {
-    provider: "duckduckgo" | "brave" | "tavily" | "you" | "searxng";
+    provider: "duckduckgo" | "brave" | "tavily" | "serply" | "you" | "searxng";
     /** SearXNG instance */
     base_url: string;
     key_source: "none" | "vault" | "config" | "missing";

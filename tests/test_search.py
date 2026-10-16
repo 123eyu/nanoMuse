@@ -1,4 +1,4 @@
-"""Web search providers: DuckDuckGo by default, Brave / Tavily / You.com / SearXNG by
+"""Web search providers: DuckDuckGo by default, Brave / Tavily / Serply / You.com / SearXNG by
 settings, the fallback to DuckDuckGo with a note, keys from the vault, the tool, the API and
 the doctor."""
 
@@ -133,6 +133,42 @@ async def test_tavily(wire: Wire, ddg):
         "max_results": 5,
         "search_depth": "basic",
     }
+
+
+async def test_serply(wire: Wire, ddg):
+    wire.body = {
+        "results": [
+            {"title": "G", "link": "https://g.example", "description": "  " + ("s" * 500) + "  "},
+            {"title": "H", "link": "https://h.example", "description": "second"},
+        ]
+    }
+    p = WebSearchProvider(SearchSettings(provider="serply", api_key="srp-key"))
+    assert p.configured and p.host == "api.serply.io"
+    assert p.describe() == "Serply (key set)"
+    results, note = await p.search("nanomuse", 15, "cn-zh")
+    assert note == "" and ddg == []
+    assert len(results) == 2
+    assert results[0].title == "G" and results[0].url == "https://g.example"
+    assert results[0].snippet == "s" * 400
+    req = wire.requests[0]
+    assert req.method == "GET" and req.url.host == "api.serply.io"
+    assert req.url.path == "/v1/search"
+    assert req.headers["X-Api-Key"] == "srp-key"
+    assert req.headers["User-Agent"] == "nanoMuse"
+    assert req.url.params["q"] == "nanomuse" and req.url.params["num"] == "10"
+    assert req.url.params["gl"] == "CN"
+    # no region → no gl parameter; max_results trims the returned list
+    results, _ = await p.search("x", 1, "")
+    assert "gl" not in wire.requests[1].url.params and wire.requests[1].url.params["num"] == "1"
+    assert [r.title for r in results] == ["G"]
+    # a refused key or rate limit falls back to DuckDuckGo with the usual note
+    wire.status = 401
+    results, note = await p.search("nanomuse", 2, "")
+    assert note == "Serply failed (the key was refused (HTTP 401)); results from DuckDuckGo"
+    assert [r.title for r in results] == ["nanoMuse", "Muse"] and len(ddg) == 1
+    wire.status = 429
+    _, note = await p.search("nanomuse", 2, "")
+    assert note == "Serply failed (rate limited (HTTP 429)); results from DuckDuckGo"
 
 
 async def test_you_without_a_key(wire: Wire, ddg):
@@ -357,12 +393,15 @@ def test_connections_search(settings: Settings, wire: Wire, ddg):
             "duckduckgo",
             "brave",
             "tavily",
+            "serply",
             "you",
             "searxng",
         ]
         assert view["providers"][1]["needs_key"] and view["providers"][1]["keys_url"]
         assert not view["providers"][1]["optional_key"]
-        you = view["providers"][3]
+        serply = view["providers"][3]
+        assert serply["needs_key"] and not serply["optional_key"] and serply["keys_url"]
+        you = view["providers"][4]
         assert not you["needs_key"] and you["optional_key"] and you["keys_url"]
 
         # You.com without a key is configured: the picker needs nothing more

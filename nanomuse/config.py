@@ -340,14 +340,14 @@ class ContactsSettings(BaseModel):
 
 
 class SearchSettings(BaseModel):
-    """Who answers ``web_search``. DuckDuckGo needs nothing and is the default; Brave and
-    Tavily want a key, You.com takes one or goes without (100 searches a day), SearXNG
-    wants the URL of an instance. A failed search falls back to DuckDuckGo once, with a
-    note, so a lapsed key does not stop a task."""
+    """Who answers ``web_search``. DuckDuckGo needs nothing and is the default; Brave,
+    Tavily and Serply want a key, You.com takes one or goes without (100 searches a day),
+    SearXNG wants the URL of an instance. A failed search falls back to DuckDuckGo once,
+    with a note, so a lapsed key does not stop a task."""
 
-    provider: Literal["duckduckgo", "brave", "tavily", "you", "searxng"] = "duckduckgo"
-    # Brave / Tavily, You.com optionally. May be a vault placeholder — the app stores it as
-    # {{vault:SEARCH_API_KEY}}.
+    provider: Literal["duckduckgo", "brave", "tavily", "serply", "you", "searxng"] = "duckduckgo"
+    # Brave / Tavily / Serply, You.com optionally. May be a vault placeholder — the app
+    # stores it as {{vault:SEARCH_API_KEY}}.
     api_key: str = ""
     # SearXNG: your instance, e.g. "http://127.0.0.1:8080".
     base_url: str = ""
@@ -921,7 +921,14 @@ def apply_app_settings(settings: Settings, data: dict[str, Any]) -> None:
                 setattr(m, f"embedding_{key}", str(emb[key]).strip().rstrip("/"))
     if search := data.get("search"):
         web = settings.connectors.search
-        if search.get("provider") in ("duckduckgo", "brave", "tavily", "you", "searxng"):
+        if search.get("provider") in (
+            "duckduckgo",
+            "brave",
+            "tavily",
+            "serply",
+            "you",
+            "searxng",
+        ):
             web.provider = search["provider"]
         for key in ("api_key", "base_url"):
             if key in search and search[key] is not None:
