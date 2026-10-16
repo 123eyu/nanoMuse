@@ -179,11 +179,12 @@ enabled = true
 # url = "~/Downloads/contacts.vcf"     # or a link: "{{vault:CONTACTS_GOOGLE}}"
 
 [connectors.search]
-# Who answers web_search. DuckDuckGo needs nothing but rate-limits now and then; Brave and
-# Tavily take a key, SearXNG the URL of an instance you run (json among its formats). A
-# failed search falls back to DuckDuckGo once, with a note.
-provider = "duckduckgo"               # duckduckgo | brave | tavily | searxng
-# api_key = "{{vault:SEARCH_API_KEY}}"  # brave / tavily: nanomuse vault set SEARCH_API_KEY
+# Who answers web_search. DuckDuckGo needs nothing but rate-limits now and then; Brave,
+# Tavily and Serply take a key, You.com takes one or goes without (100 a day), SearXNG the
+# URL of an instance you run (json among its formats). A failed search falls back to
+# DuckDuckGo once, with a note.
+provider = "duckduckgo"               # duckduckgo | brave | tavily | serply | you | searxng
+# api_key = "{{vault:SEARCH_API_KEY}}"  # brave / tavily / serply / you: nanomuse vault set SEARCH_API_KEY
 # base_url = "http://127.0.0.1:8080"    # searxng
 # fallback = false                      # a failed search fails instead of going to DuckDuckGo
 

@@ -325,12 +325,12 @@ url  = "{{vault:CONTACTS_NEXTCLOUD}}"   # a link, kept in the vault: nanomuse va
 
 ### 网页搜索 {#web-search}
 
-谁来回答 `web_search`。DuckDuckGo 什么都不需要，是默认值，但它是抓网页而不是正规接口：会限流，时不时出问题。想要每次都能搜到，指定一家带 API 的服务商：带 key 的 [Brave Search](https://brave.com/search/api/) 或 [Tavily](https://app.tavily.com/)，有没有 key 都行的 [You.com](https://you.com/platform/api-keys)，或者你自己跑的一个 [SearXNG](https://docs.searxng.org/) 实例（`search.formats` 里要有 `json`）。手机上同样的选项在「连接 → 网页搜索」，key 以 `SEARCH_API_KEY` 存进保险库，「测试」跑一次搜索。
+谁来回答 `web_search`。DuckDuckGo 什么都不需要，是默认值，但它是抓网页而不是正规接口：会限流，时不时出问题。想要每次都能搜到，指定一家带 API 的服务商：带 key 的 [Brave Search](https://brave.com/search/api/)、[Tavily](https://app.tavily.com/) 或 [Serply](https://serply.io/)（Google 搜索结果），有没有 key 都行的 [You.com](https://you.com/platform/api-keys)，或者你自己跑的一个 [SearXNG](https://docs.searxng.org/) 实例（`search.formats` 里要有 `json`）。手机上同样的选项在「连接 → 网页搜索」，key 以 `SEARCH_API_KEY` 存进保险库，「测试」跑一次搜索。
 
 ```toml
 [connectors.search]
-provider = "duckduckgo"          # duckduckgo | brave | tavily | you | searxng
-api_key  = "{{vault:SEARCH_API_KEY}}"   # brave / tavily，以及有 key 的 you：nanomuse vault set SEARCH_API_KEY
+provider = "duckduckgo"          # duckduckgo | brave | tavily | serply | you | searxng
+api_key  = "{{vault:SEARCH_API_KEY}}"   # brave / tavily / serply，以及有 key 的 you：nanomuse vault set SEARCH_API_KEY
 base_url = ""                    # searxng: your instance, e.g. "http://127.0.0.1:8080"
 fallback = true                  # false：搜索失败就失败，不再转去 DuckDuckGo
 ```

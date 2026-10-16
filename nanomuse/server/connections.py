@@ -837,8 +837,8 @@ class Connections:
         return tool.provider if isinstance(tool, WebSearch) else None
 
     def set_search(self, body: dict[str, Any]) -> dict[str, Any]:
-        """Who answers web searches: DuckDuckGo (nothing to set), Brave or Tavily with a
-        key, You.com with or without one, or a SearXNG instance by URL."""
+        """Who answers web searches: DuckDuckGo (nothing to set), Brave, Tavily or Serply
+        with a key, You.com with or without one, or a SearXNG instance by URL."""
         from nanomuse.search import PROVIDERS as SEARCH_PROVIDERS
 
         web = dict(self.data.get("search") or {})

@@ -325,12 +325,12 @@ Besides the sources there is always *My contacts*, `<data_dir>/contacts.vcf`: th
 
 ### Web search
 
-Who answers `web_search`. DuckDuckGo needs nothing and is the default, but it is scraped rather than served: it rate-limits and breaks now and then. For searches that always work, name a provider with an API: [Brave Search](https://brave.com/search/api/) or [Tavily](https://app.tavily.com/) with a key, [You.com](https://you.com/platform/api-keys) with or without one, or a [SearXNG](https://docs.searxng.org/) instance you run yourself (with `json` among its `search.formats`). The same choice is on the phone under *Connections → Web search*, where the key goes to the vault as `SEARCH_API_KEY` and *Test* runs one search.
+Who answers `web_search`. DuckDuckGo needs nothing and is the default, but it is scraped rather than served: it rate-limits and breaks now and then. For searches that always work, name a provider with an API: [Brave Search](https://brave.com/search/api/), [Tavily](https://app.tavily.com/) or [Serply](https://serply.io/) (for Google results) with a key, [You.com](https://you.com/platform/api-keys) with or without one, or a [SearXNG](https://docs.searxng.org/) instance you run yourself (with `json` among its `search.formats`). The same choice is on the phone under *Connections → Web search*, where the key goes to the vault as `SEARCH_API_KEY` and *Test* runs one search.
 
 ```toml
 [connectors.search]
-provider = "duckduckgo"          # duckduckgo | brave | tavily | you | searxng
-api_key  = "{{vault:SEARCH_API_KEY}}"   # brave / tavily, and you if you have one: nanomuse vault set SEARCH_API_KEY
+provider = "duckduckgo"          # duckduckgo | brave | tavily | serply | you | searxng
+api_key  = "{{vault:SEARCH_API_KEY}}"   # brave / tavily / serply, and you if you have one: nanomuse vault set SEARCH_API_KEY
 base_url = ""                    # searxng: your instance, e.g. "http://127.0.0.1:8080"
 fallback = true                  # false: a failed search fails instead of going to DuckDuckGo
 ```
