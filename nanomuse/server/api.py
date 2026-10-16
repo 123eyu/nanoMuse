@@ -88,7 +88,7 @@ from nanomuse.fences import MAX_NAME
 from nanomuse.hub.client import HubError
 from nanomuse.llm.chatgpt import ChatGPTError
 from nanomuse.logger import logger
-from nanomuse.server import tickets
+from nanomuse.server import data_export, tickets
 from nanomuse.server.channels_api import install_channels
 from nanomuse.server.events import MAIN_THREAD
 from nanomuse.server.service import MuseService, goal_to_dict
@@ -1924,6 +1924,21 @@ def create_app(settings: Settings, service: MuseService | None = None) -> FastAP
             return svc.save_upload(name, b"".join(chunks)).model_dump()
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
+
+    @app.get("/api/data/export", dependencies=dep_or_signed)
+    async def export_data() -> Response:
+        """The agent's data as one zip (parity note 37): what the runtime keeps about the
+        person and about its own work, and never a credential. The reply is the file itself,
+        so a browser on another machine gets it and nothing is written to this disk."""
+        data = await asyncio.to_thread(data_export.agent_data_zip, svc.settings.data_dir)
+        return Response(
+            data,
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f'attachment; filename="{data_export.filename()}"',
+                "Cache-Control": "private, no-store",
+            },
+        )
 
     @app.get("/api/files/{path:path}", dependencies=dep_or_signed)
     async def get_file(path: str, download: bool = False) -> Response:
