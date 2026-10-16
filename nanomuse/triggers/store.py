@@ -13,6 +13,13 @@ Three kinds:
   is ``lead_minutes`` from starting.
 - ``hook`` — ``POST /api/hooks/<id>?key=<secret>``; the request body is the context.
 
+and a fourth, told apart only by who reports it:
+
+- ``device`` — a device of the account comes online (the hub's ``devices`` frame), its
+  name or kind containing every word of ``match`` (empty: any device). This computer
+  never announces itself, and the devices already online when the app starts are not
+  an arrival.
+
 Each firing becomes a background run in the chat the trigger was set from, like a routine,
 and shows in the Feed. A firing is recorded by a key (the mail's UID, the event's uid and
 start, the hook's delivery id) so the same thing never fires twice.
@@ -28,7 +35,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-KINDS = ("mail", "event", "hook")
+KINDS = ("mail", "event", "hook", "device")
 STATUSES = ("active", "cancelled")
 MAX_LEAD_MINUTES = 24 * 60
 
@@ -48,10 +55,37 @@ def matches(match: str, *haystacks: str) -> bool:
     return all(w in text for w in words(match))
 
 
+def arrivals(
+    previous: dict[str, bool] | None,
+    devices: list[dict[str, object]],
+    own_id: str,
+) -> tuple[dict[str, bool], list[dict[str, object]]]:
+    """For the ``device`` kind: which devices came online since ``previous`` (the online
+    state of the account's devices as the last hub frame had it), as ``(state to keep,
+    devices that arrived)``.
+
+    ``None`` is the first frame: it only records what is already online, so the devices
+    that were there when the app started are not an arrival. After that, an id that was
+    offline (or not in the account yet) and is online now arrived, and this computer
+    never announces itself.
+    """
+    now = {str(d.get("id") or ""): bool(d.get("online")) for d in devices if str(d.get("id") or "")}
+    if previous is None:
+        return now, []
+    came = [
+        d
+        for d in devices
+        if str(d.get("id") or "") != own_id
+        and now.get(str(d.get("id") or ""), False)
+        and not previous.get(str(d.get("id") or ""), False)
+    ]
+    return now, came
+
+
 @dataclass
 class Trigger:
     id: str
-    kind: str  # mail | event | hook
+    kind: str  # mail | event | hook | device
     match: str  # words to look for; for a hook, the name shown next to its URL
     text: str  # what to do when it fires
     thread: str
@@ -84,6 +118,9 @@ class Trigger:
         if self.kind == "event":
             what = f"events matching “{self.match}”" if self.match else "any event"
             return f"{self.lead_minutes} min before {what}"
+        if self.kind == "device":
+            who = f"device “{self.match}”" if self.match else "any device"
+            return f"{who} coming online"
         return f"webhook “{self.match}”" if self.match else "webhook"
 
     def render(self) -> str:
@@ -278,4 +315,13 @@ def _from_row(row: sqlite3.Row) -> Trigger:
     )
 
 
-__all__ = ["KINDS", "MAX_LEAD_MINUTES", "STATUSES", "Trigger", "TriggerStore", "matches", "words"]
+__all__ = [
+    "KINDS",
+    "MAX_LEAD_MINUTES",
+    "STATUSES",
+    "Trigger",
+    "TriggerStore",
+    "arrivals",
+    "matches",
+    "words",
+]

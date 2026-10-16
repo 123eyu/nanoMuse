@@ -73,10 +73,11 @@ nanomuse triggers list [--all]                                                  
 nanomuse triggers add mail  "Summarise it and draft a reply" --match "landlord"   # a new mail whose sender/subject has every word
 nanomuse triggers add event "Put together a one-page brief"  --match "review" --lead 30   # 30 min before a matching event
 nanomuse triggers add hook  "Check that the site is up"      --match "deploy"    # prints the URL to POST to
+nanomuse triggers add device "Say the phone is back"         --match "pixel"     # a device of the account comes online
 nanomuse triggers cancel t_1a2b3c
 ```
 
-A trigger fires when something happens rather than at a time: `mail` needs the email connector (the running server looks at the inbox every `triggers.mail_poll_minutes`, by IMAP UID, so nothing is replayed and nothing fires twice), `event` needs a calendar feed, `hook` is a URL with a key that any program can `POST` to; the body becomes the agent's context. Each firing is a background run in the chat the trigger was set from, shown in the Feed as *New mail: …*, *Coming up: …* or *Webhook: …*. The mail or the request is handed to the model as data, with the instruction that only your standing text says what to do.
+A trigger fires when something happens rather than at a time: `mail` needs the email connector (the running server looks at the inbox every `triggers.mail_poll_minutes`, by IMAP UID, so nothing is replayed and nothing fires twice), `event` needs a calendar feed, `hook` is a URL with a key that any program can `POST` to; the body becomes the agent's context, and `device` needs this computer on the hub and fires when a device of the account comes online (matched on the words in its name and kind; this computer never announces itself, and the devices already online when the app started are not an arrival). Each firing is a background run in the chat the trigger was set from, shown in the Feed as *New mail: …*, *Coming up: …*, *Webhook: …* or *Device online: …*. The mail or the request is handed to the model as data, with the instruction that only your standing text says what to do.
 
 ## Calendar
 

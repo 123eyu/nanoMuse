@@ -2240,6 +2240,7 @@ def test_triggers_start_work_from_mail_events_and_webhooks(
         "mail": False,
         "event": False,
         "hook": True,
+        "device": True,
     }
     assert client.get("/api/upcoming").json()["triggers"]["items"] == []
 
@@ -2594,3 +2595,77 @@ def test_data_export_does_not_follow_symlinks(tmp_path: Path):
 
     with zipfile.ZipFile(io.BytesIO(agent_data_zip(data))) as z:
         assert z.namelist() == ["README.txt"]
+
+
+# --------------------------------------------------------------------- the fourth kind (#486)
+def test_a_device_coming_online_reaches_the_feed(server):
+    """A device of the account coming online runs the standing instruction in the chat it
+    was set from, once per arrival, with one entry in the Feed."""
+    client, service, llm = server
+    trig = service.create_trigger("device", "tell me when the phone is back", match="pixel")
+    assert trig.kind == "device" and trig.thread == "main"
+    llm.script.append(LLMResponse(content="The phone is back online."))
+
+    fired = client.portal.call(
+        lambda: service.device_came_online({"id": "phone-1", "name": "Pixel", "kind": "phone"})
+    )
+    assert [t.id for t in fired] == [trig.id]
+    wait_idle(service, "main")
+    notice = [e for e in events_of(client, "main", "notice") if e.get("source") == "trigger"]
+    assert notice and notice[-1]["text"] == "Device online: Pixel"
+    said = events_of(client, "main", "assistant")[-1]
+    assert said["about"] == "Device online: Pixel" and "back online" in said["text"]
+    # who is around is private data, like the inbox: the thread is tainted for egress
+    assert service.app.sentinel.tainted_for("main")
+    assert service.app.triggers.get(trig.id).fired == 1  # type: ignore[union-attr]
+
+    # a device that does not match the words fires nothing at all
+    assert (
+        client.portal.call(
+            lambda: service.device_came_online({"id": "tab-1", "name": "Tab", "kind": "tablet"})
+        )
+        == []
+    )
+    wait_idle(service, "main")
+
+    # and without the hub there is nothing to watch: the kind is refused, by the API and
+    # by the tool the agent uses
+    service.settings.hub.enabled = False
+    assert service.app.trigger_kinds()["device"] is False
+    with pytest.raises(ValueError, match="hub"):
+        service.create_trigger("device", "tell me")
+
+
+def test_device_trigger_shows_in_the_triggers_view(server):
+    client, service, _ = server
+    service.create_trigger("device", "tell me", match="pixel")
+    view = client.get("/api/triggers").json()
+    assert view["available"]["device"] is True
+    item = view["items"][0]
+    assert item["kind"] == "device" and item["lead_minutes"] == 0 and item["secret"] == ""
+
+
+def test_the_hub_devices_frame_fires_them(server):
+    """The hub's `devices` frame, as the hub client hands it over: what was already online
+    when it arrived is not an arrival; the drop and the return are."""
+    client, service, llm = server
+    trig = service.create_trigger("device", "tell me when the phone is back", match="pixel")
+    me = {"id": service.hub.device_id, "name": "Desk", "kind": "computer", "online": True}
+    phone = {"id": "phone-1", "name": "Pixel", "kind": "phone", "online": True}
+
+    client.portal.call(lambda: service.hub._on_devices([me, phone]))  # the welcome frame
+    assert service.app.triggers.get(trig.id).fired == 0  # type: ignore[union-attr]
+
+    client.portal.call(lambda: service.hub._on_devices([me, {**phone, "online": False}]))
+    assert service.app.triggers.get(trig.id).fired == 0  # type: ignore[union-attr]
+
+    llm.script.append(LLMResponse(content="The phone is back online."))
+    client.portal.call(lambda: service.hub._on_devices([me, phone]))
+    wait_idle(service, "main")
+    assert service.app.triggers.get(trig.id).fired == 1  # type: ignore[union-attr]
+    notice = [e for e in events_of(client, "main", "notice") if e.get("source") == "trigger"]
+    assert notice and notice[-1]["text"] == "Device online: Pixel"
+    # an unchanged frame brings nothing
+    client.portal.call(lambda: service.hub._on_devices([me, phone]))
+    wait_idle(service, "main")
+    assert service.app.triggers.get(trig.id).fired == 1  # type: ignore[union-attr]

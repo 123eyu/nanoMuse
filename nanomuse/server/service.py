@@ -1712,7 +1712,11 @@ class MuseService:
         have = self.app.trigger_kinds()
         if not have.get(kind, True):
             raise ValueError(
-                "connect a mailbox first" if kind == "mail" else "add a calendar first"
+                {
+                    "mail": "connect a mailbox first",
+                    "event": "add a calendar first",
+                    "device": "join the hub first",
+                }.get(kind, "that trigger kind needs a connector")
             )
         item = self.app.triggers.create(
             kind, text, match=match, lead_minutes=lead_minutes, thread=thread or MAIN_THREAD
@@ -1742,7 +1746,12 @@ class MuseService:
             return None
         thread = item.thread if item.thread in self.threads else MAIN_THREAD
         now = datetime.now().astimezone().strftime("%A, %Y-%m-%d %H:%M")
-        prefix = {"mail": "New mail: ", "event": "Coming up: ", "hook": "Webhook: "}[item.kind]
+        prefix = {
+            "mail": "New mail: ",
+            "event": "Coming up: ",
+            "hook": "Webhook: ",
+            "device": "Device online: ",
+        }[item.kind]
         context = context.strip()[:6000]
         block = f"{_fence(context)}\n{context}\n{_fence(context)}\n\n" if context else ""
         if item.kind != "hook":
@@ -1759,6 +1768,27 @@ class MuseService:
         )
         self.bus.publish({"kind": "triggers"})
         return self.app.triggers.get(item.id) or item
+
+    def device_came_online(self, device: dict[str, Any]) -> list[Trigger]:
+        """A device of the account just came online (the hub's ``devices`` frame): every
+        ``device`` trigger whose words are in the device's name or kind runs in the chat it
+        was set from, once per arrival. Returns the triggers that fired."""
+        name = str(device.get("name") or "").strip()
+        kind = str(device.get("kind") or "").strip()
+        device_id = str(device.get("id") or "")
+        there = f"{name or 'A device'} ({kind})" if kind else (name or "A device")
+        fired: list[Trigger] = []
+        for trig in self.app.triggers.active("device"):
+            if not matches(trig.match, name, kind):
+                continue
+            if self.fire_trigger(
+                trig.id,
+                what=f"{there} just came online",
+                key=f"device:{device_id}:{new_id()}",
+                title=name or kind or device_id,
+            ):
+                fired.append(trig)
+        return fired
 
     def deliver_hook(self, trigger_id: str, key: str, body: str, content_type: str = "") -> Trigger:
         """A request to a trigger's webhook URL. Wrong id or key → KeyError (the caller

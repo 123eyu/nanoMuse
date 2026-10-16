@@ -921,19 +921,21 @@ def triggers_list(
 
 @triggers_app.command("add")
 def triggers_add(
-    kind: Annotated[str, typer.Argument(help="mail | event | hook")],
+    kind: Annotated[str, typer.Argument(help="mail | event | hook | device")],
     text: Annotated[str, typer.Argument(help="What to do each time it fires")],
     config: ConfigOpt = None,
     match: Annotated[
         str,
         typer.Option(
-            help="Words that must all appear in the sender/subject (mail) or title/place "
-            "(event); a name for a hook. Empty: anything."
+            help="Words that must all appear in the sender/subject (mail), title/place "
+            "(event) or the device's name and kind (device); a name for a hook. "
+            "Empty: anything."
         ),
     ] = "",
     lead: Annotated[int, typer.Option(help="event: minutes before the start")] = 30,
 ) -> None:
-    """Add a trigger. Mail triggers need the email connector, event triggers a calendar."""
+    """Add a trigger. Mail triggers need the email connector, event triggers a calendar,
+    device triggers the hub."""
     from nanomuse.triggers import TriggerStore
 
     s = _settings(config)
@@ -942,6 +944,9 @@ def triggers_add(
         raise typer.Exit(1)
     if kind == "event" and not (s.connectors.calendar.enabled and s.connectors.calendar.feeds):
         console.print("[red]no calendar feed is set up (connectors.calendar)[/red]")
+        raise typer.Exit(1)
+    if kind == "device" and not s.hub.enabled:
+        console.print("[red]the hub is turned off (hub.enabled)[/red]")
         raise typer.Exit(1)
     try:
         item = TriggerStore(s.triggers_db).create(kind, text, match=match, lead_minutes=lead)

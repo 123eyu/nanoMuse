@@ -16,6 +16,7 @@ import {
   Share2,
   ShieldCheck,
   ShieldOff,
+  Smartphone,
   Square,
   Webhook,
   X,
@@ -625,7 +626,7 @@ function ReminderForm({ onDone, onCancel }: { onDone: () => void; onCancel: () =
 }
 
 // ------------------------------------------------------------------ triggers
-const TRIGGER_ICON: Record<TriggerKind, typeof Mail> = { mail: Mail, event: CalendarClock, hook: Webhook };
+const TRIGGER_ICON: Record<TriggerKind, typeof Mail> = { mail: Mail, event: CalendarClock, hook: Webhook, device: Smartphone };
 
 /** The condition in words, for the list and the confirmation line of the form. */
 export function describeTrigger(tr: Pick<Trigger, "kind" | "match" | "lead_minutes">, t: (k: string, v?: Record<string, string | number>) => string): string {
@@ -634,6 +635,7 @@ export function describeTrigger(tr: Pick<Trigger, "kind" | "match" | "lead_minut
     const what = tr.match ? t("events matching “{match}”", { match: tr.match }) : t("any event");
     return t("{n} min before {what}", { n: tr.lead_minutes, what });
   }
+  if (tr.kind === "device") return tr.match ? t("device “{match}” coming online", { match: tr.match }) : t("any device coming online");
   return tr.match ? t("webhook “{match}”", { match: tr.match }) : t("webhook");
 }
 
@@ -770,7 +772,7 @@ function TriggersSection({ data, name, onChange }: { data: TriggersData; name: s
 function TriggerForm({ available, onDone, onCancel }: { available: Record<TriggerKind, boolean>; onDone: () => void; onCancel: () => void }) {
   const { toast } = useStore();
   const t = useT();
-  const firstKind = (["mail", "event", "hook"] as TriggerKind[]).find((k) => available[k]) ?? "hook";
+  const firstKind = (["mail", "event", "hook", "device"] as TriggerKind[]).find((k) => available[k]) ?? "hook";
   const [kind, setKind] = useState<TriggerKind>(firstKind);
   const [match, setMatch] = useState("");
   const [lead, setLead] = useState("30");
@@ -818,21 +820,30 @@ function TriggerForm({ available, onDone, onCancel }: { available: Record<Trigge
     ["mail", t("New mail")],
     ["event", t("Before an event")],
     ["hook", t("Webhook")],
+    ["device", t("Device online")],
   ];
+  const hint =
+    kind === "mail"
+      ? t("Words in the sender or subject (empty: any mail)")
+      : kind === "event"
+        ? t("Words in the title or place (empty: any event)")
+        : kind === "device"
+          ? t("Words in the device name or kind (empty: any device)")
+          : t("A name for this hook");
   return (
     <div className="mb-2 rounded-2xl border border-border p-3 space-y-2">
       <Segment options={kinds} value={kind} onChange={(v) => setKind(v as TriggerKind)} />
       {!available[kind] && (
         <div className="text-[12.5px] text-rose-600 dark:text-rose-300">
-          {kind === "mail" ? t("Connect a mailbox under Connections first.") : t("Add a calendar under Connections first.")}
+          {kind === "mail" ? t("Connect a mailbox under Connections first.") : kind === "event" ? t("Add a calendar under Connections first.") : t("Join the hub under Devices first.")}
         </div>
       )}
       <div className="flex gap-1.5">
         <input
           value={match}
           onChange={(e) => setMatch(e.target.value)}
-          placeholder={kind === "mail" ? t("Words in the sender or subject (empty: any mail)") : kind === "event" ? t("Words in the title or place (empty: any event)") : t("A name for this hook")}
-          aria-label={kind === "mail" ? t("Words in the sender or subject (empty: any mail)") : kind === "event" ? t("Words in the title or place (empty: any event)") : t("A name for this hook")}
+          placeholder={hint}
+          aria-label={hint}
           className={cx(field, "min-w-0 flex-1")}
         />
         {kind === "event" && (
