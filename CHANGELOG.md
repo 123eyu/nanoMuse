@@ -24,6 +24,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Desktop
 
+- **Going back no longer returns to the starting screen.** The window opened on the starting screen and then loaded the app, so a back press, a mouse's side button included, went back to that screen, which stayed on *Starting* until the app was restarted. The starting screen is now dropped from the window's history once the app has loaded.
+
 - **Synced turns from another computer stay above a newer local prompt and arrive without a reload.** On the desktop, a hub `sync` frame that arrived while a pull was already running was dropped until the next minute tick, and a remote bubble inserted before this computer's first prompt or from a device with a skewed clock stayed below the new local prompt until the window was reloaded. An in-flight pull now runs a follow-up pull when a newer `sync` frame arrives, reconnecting the hub socket or bringing the window back to the front pulls as well, and remote bubbles record when they were received locally and reposition inside the chat flow as new prompts mount. For #395.
 
 - **Windows installed ready updates on a normal user quit and stayed closed.** Quit reused the restart update's integrity check and work protection, while restart still reopened the app. Without a ready update, the normal protected exit was unchanged. Closing to the tray, idling, a crash or system shutdown did not request installation, and a failed installer launch kept the app running.
