@@ -2571,3 +2571,26 @@ def test_data_export_is_the_agent_data_as_a_zip(server):
 
     # the token is the credential for this as for everything else
     assert TestClient(client.app).get("/api/data/export").status_code == 401
+
+
+def test_data_export_does_not_follow_symlinks(tmp_path: Path):
+    """An allowed name cannot smuggle an excluded key or another directory into the zip."""
+    import io
+    import zipfile
+
+    from nanomuse.server.data_export import agent_data_zip
+
+    data = tmp_path / "data"
+    outside = tmp_path / "outside"
+    data.mkdir()
+    outside.mkdir()
+    secret = outside / "secret"
+    secret.write_text("not for export", "utf-8")
+    try:
+        (data / "memory.db").symlink_to(secret)
+        (data / "threads").symlink_to(outside, target_is_directory=True)
+    except OSError as exc:
+        pytest.skip(f"this platform cannot create symlinks: {exc}")
+
+    with zipfile.ZipFile(io.BytesIO(agent_data_zip(data))) as z:
+        assert z.namelist() == ["README.txt"]

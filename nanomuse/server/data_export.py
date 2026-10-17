@@ -80,9 +80,19 @@ def filename() -> str:
     return f"nanomuse-data-{stamp()}.zip"
 
 
+def _regular_file(path: Path) -> bool:
+    """A real file inside the data tree, never a symlink to something excluded."""
+    try:
+        return not path.is_symlink() and path.is_file()
+    except OSError:
+        return False
+
+
 def _add_tree(z: zipfile.ZipFile, root: Path, under: str) -> None:
+    if root.is_symlink():
+        return
     for path in sorted(root.rglob("*")):
-        if path.is_file() and path.stat().st_size <= MAX_FILE_BYTES:
+        if _regular_file(path) and path.stat().st_size <= MAX_FILE_BYTES:
             z.write(path, f"{under}/{path.relative_to(root).as_posix()}")
 
 
@@ -92,11 +102,11 @@ def agent_data_zip(data_dir: Path) -> bytes:
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         for name in FILES:
             path = data_dir / name
-            if path.is_file() and path.stat().st_size <= MAX_FILE_BYTES:
+            if _regular_file(path) and path.stat().st_size <= MAX_FILE_BYTES:
                 z.write(path, name)
         for folder in DIRS:
             root = data_dir / folder
-            if root.is_dir():
+            if not root.is_symlink() and root.is_dir():
                 _add_tree(z, root, folder)
         z.writestr(
             "README.txt", README.format(when=datetime.now(UTC).isoformat(timespec="seconds"))
