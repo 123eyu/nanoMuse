@@ -65,7 +65,9 @@ decorative, every surface a flat tone one step from its neighbour. It comes from
   workspace is needed.
 - The composer is one pill: *+* (attach), *Message*, the send disc (the stop square
   while a turn runs); the send disc and the harness's scroll-to-latest disc are the same
-  ink as your pills, with the glyph in the opposite colour. The harness's model picker, permission mode and plan toggle are
+  ink as your pills, with the glyph in the opposite colour. In an active chat it keeps
+  the same clear gap above the window edge that the harness dock normally provides,
+  even though the dock itself stays hidden. The harness's model picker, permission mode and plan toggle are
   hidden from it (the models live in Settings → Models, dsh's own Models page is under
   Advanced, and the default permission mode in General) and come back with
   *Show DeepSeek Harness controls* under General. The microphone appears when the harness's voice input is switched on in

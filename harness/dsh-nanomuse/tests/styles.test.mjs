@@ -115,6 +115,15 @@ test('a thread from other devices in the hero layout is bottom-aligned by an aut
   assert.doesNotMatch(css, /\.nm-remote:first-child \{ margin-top: 16px/)
 })
 
+test('an active chat keeps the hidden composer dock space without moving the hero composer (#494)', () => {
+  const active = 'html[data-nm-muse] [data-conversation-content][data-content-phase="active"] [data-composer-card]'
+  assert.match(rule(active), /margin-bottom:\s*26px !important/)
+  for (const line of css.split('\n').filter((l) => l.includes('margin-bottom: 26px'))) {
+    assert.ok(line.includes('[data-content-phase="active"]'), line)
+    assert.ok(!line.includes('[data-content-phase="hero"]'), line)
+  }
+})
+
 test('under prefers-reduced-motion every breathing light is steady', () => {
   const reduced = css.split('\n').filter((l) => l.startsWith('@media (prefers-reduced-motion: reduce)'))
   assert.ok(reduced.length >= 2)
