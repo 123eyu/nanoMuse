@@ -461,13 +461,13 @@ class NanoMuseApp:
 
     def trigger_kinds(self) -> dict[str, bool]:
         """Which trigger kinds have their connector: mail needs the mailbox, event the
-        calendar, device this computer being on the hub."""
+        calendar, device a Cloud account with this computer joining the hub."""
         s = self.settings
         return {
             "mail": bool(s.connectors.email.enabled and s.connectors.email.imap_host),
             "event": bool(s.connectors.calendar.enabled and s.connectors.calendar.feeds),
             "hook": True,
-            "device": bool(s.hub.enabled),
+            "device": bool(s.hub.enabled and self.cloud_signed_in()),
         }
 
     async def start(self) -> NanoMuseApp:

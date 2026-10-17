@@ -234,7 +234,7 @@ class HubService:
             kind="computer",
             on_call=self.on_call,
             on_devices=self._on_devices,
-            on_state=lambda _state, _detail: self.publish(),
+            on_state=self._hub_state_changed,
             on_profile=self.profile.on_frame,
             on_sync=self.svc.sync.on_frame,
         )
@@ -639,6 +639,12 @@ class HubService:
 
     def publish(self) -> None:
         self.svc.bus.publish({"kind": "hub", "hub": self.view()})
+
+    def _hub_state_changed(self, state: str, _detail: str) -> None:
+        """Publish connection state, and make each connection's welcome frame a baseline."""
+        if state == "connecting":
+            self._devices_seen = None
+        self.publish()
 
     def _on_devices(self, devices: list[dict[str, Any]]) -> None:
         """A `devices` frame: publish it as before, and fire the `device` triggers for the

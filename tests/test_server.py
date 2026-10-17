@@ -2601,7 +2601,14 @@ def test_data_export_does_not_follow_symlinks(tmp_path: Path):
 def test_a_device_coming_online_reaches_the_feed(server):
     """A device of the account coming online runs the standing instruction in the chat it
     was set from, once per arrival, with one entry in the Feed."""
+    from nanomuse.cloud import CLOUD_KEY
+
     client, service, llm = server
+    assert service.app.trigger_kinds()["device"] is False
+    with pytest.raises(ValueError, match="hub"):
+        service.create_trigger("device", "tell me")
+    service.app.vault.set(CLOUD_KEY, "cloud-key-for-the-test")
+    assert service.app.trigger_kinds()["device"] is True
     trig = service.create_trigger("device", "tell me when the phone is back", match="pixel")
     assert trig.kind == "device" and trig.thread == "main"
     llm.script.append(LLMResponse(content="The phone is back online."))
@@ -2637,7 +2644,10 @@ def test_a_device_coming_online_reaches_the_feed(server):
 
 
 def test_device_trigger_shows_in_the_triggers_view(server):
+    from nanomuse.cloud import CLOUD_KEY
+
     client, service, _ = server
+    service.app.vault.set(CLOUD_KEY, "cloud-key-for-the-test")
     service.create_trigger("device", "tell me", match="pixel")
     view = client.get("/api/triggers").json()
     assert view["available"]["device"] is True
@@ -2647,8 +2657,12 @@ def test_device_trigger_shows_in_the_triggers_view(server):
 
 def test_the_hub_devices_frame_fires_them(server):
     """The hub's `devices` frame, as the hub client hands it over: what was already online
-    when it arrived is not an arrival; the drop and the return are."""
+    when it arrived is not an arrival; the drop and the return are. A reconnect gets a new
+    baseline, so devices that came online while this runtime was away do not fire."""
+    from nanomuse.cloud import CLOUD_KEY
+
     client, service, llm = server
+    service.app.vault.set(CLOUD_KEY, "cloud-key-for-the-test")
     trig = service.create_trigger("device", "tell me when the phone is back", match="pixel")
     me = {"id": service.hub.device_id, "name": "Desk", "kind": "computer", "online": True}
     phone = {"id": "phone-1", "name": "Pixel", "kind": "phone", "online": True}
@@ -2660,6 +2674,14 @@ def test_the_hub_devices_frame_fires_them(server):
     assert service.app.triggers.get(trig.id).fired == 0  # type: ignore[union-attr]
 
     llm.script.append(LLMResponse(content="The phone is back online."))
+    client.portal.call(lambda: service.hub._on_devices([me, phone]))
+    wait_idle(service, "main")
+    assert service.app.triggers.get(trig.id).fired == 1  # type: ignore[union-attr]
+
+    # A connection drop loses the transitions while this runtime is away. Its next welcome
+    # frame is a baseline, not a claim that every currently-online device just arrived.
+    client.portal.call(lambda: service.hub._on_devices([me, {**phone, "online": False}]))
+    service.hub._hub_state_changed("connecting", "")
     client.portal.call(lambda: service.hub._on_devices([me, phone]))
     wait_idle(service, "main")
     assert service.app.triggers.get(trig.id).fired == 1  # type: ignore[union-attr]
