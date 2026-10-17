@@ -313,6 +313,9 @@ html[data-nm-muse] [data-composer-card] > [data-input-scroll] { flex: 1 1 120px;
 html[data-nm-muse] [data-composer-card] > [data-input-scroll] [contenteditable] { min-height: 34px !important; padding: 5px 6px 5px 8px !important; }
 html[data-nm-muse] [data-composer-card] [data-composer-placeholder] { inset: 5px 6px auto 8px !important; color: transparent !important; }
 html[data-nm-muse] [data-composer-card] [data-composer-placeholder]::before { content: var(--nm-placeholder, "Message"); position: absolute; inset: 0 auto auto 0; color: var(--dsw-alias-label-tertiary); white-space: nowrap; }
+/* The hidden harness dock normally gives an active chat 26px below the card; keep that
+   breathing room without adding it to the hero composer, which has its own 32px padding. */
+html[data-nm-muse] [data-conversation-content][data-content-phase="active"] [data-composer-card] { margin-bottom: 26px !important; }
 /* An empty chat: no greeting, the composer sits at the bottom like Muse's. */
 html[data-nm-muse] [data-conversation-scroll]:has([class*="_composerHero"]) { justify-content: flex-end; }
 html[data-nm-muse] [class*="_composerHero"] > [class*="_root"]:first-child { display: none; }
