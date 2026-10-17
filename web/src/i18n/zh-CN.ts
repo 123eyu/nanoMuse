@@ -1023,6 +1023,9 @@ const zhCN: Record<string, string> = {
   "Report a bug or ask for a feature": "反馈问题 / 提需求",
   // -- data controls (relay 0.9): the one switch over what the relay keeps --
   "Data controls": "数据控制",
+  "Download your agent data": "下载你的智能体数据",
+  "A zip of what this runtime keeps about you: the memory, the goals, the reminders, the triggers, the address book and the chats. It never contains the keys themselves.":
+    "这个运行时为你保存的内容打成一个 zip：记忆、目标、提醒、触发器、通讯录和聊天记录。里面绝不会有密钥本身。",
   "Help improve nanoMuse's AI models": "帮助改进 nanoMuse 的 AI 模型",
   "While this is on, the text of your chats with the nanoMuse Cloud models (what you wrote, what it answered and the tools it chose to call) is kept on the relay to train the community's own open model. Not your memory or SOUL (the system prompt), not what tools returned, not pictures, and never next to who you are. Your own API key never passes through the relay.":
     "开启后，你与 nanoMuse Cloud 模型对话的文字（你写的、它回答的，以及它选择调用的工具）会保存在中继上，用来训练社区自己的开源模型。不保存你的记忆和 SOUL（系统提示）、工具返回的内容和图片，也不和你的身份放在一起。用自己的 API key 时，对话不经过中继。",

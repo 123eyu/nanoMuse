@@ -107,7 +107,7 @@ Legend: **✓** done · **◐** partial (what is missing is in the note) · **�
 | Widgets | ✓ upstream | ✓ upstream | n/a | n/a |
 | Voice in: dictate into the composer | ✓ upstream | ✓ upstream | ◐ Web Speech where the shell has it; otherwise the Dictation page says what to use *(36)* | ◐ the browser's Web Speech *(36)* |
 | Voice out: the reply read aloud | ✓ upstream TTS, sentence by sentence | ✓ upstream | — *(36)* | — *(36)* |
-| Export: the chats and the agent's data as a file; the face card shared | ✓ `ChatExporter`, the share sheet | ✓ backup export, the share sheet | ✓ *Download your agent data* on the Memory page (a zip in Downloads) | ◐ the face card; no data export *(37)* |
+| Export: the chats and the agent's data as a file; the face card shared | ✓ `ChatExporter`, the share sheet | ✓ backup export, the share sheet | ✓ *Download your agent data* on the Memory page (a zip in Downloads) | ✓ the face card, and *Download your agent data* under Data controls, a zip from `GET /api/data/export` *(37)* |
 | UI language | ✓ follows the system, 17 locales | ✓ follows the system, 9 locales | ◐ en · zh, the harness's General → Language row *(38)* | ✓ auto · en · zh-CN under Settings *(38)* |
 
 ## Open for a decision (the "next-next" list)
@@ -327,7 +327,13 @@ notes above; a settled item keeps its number and says how it went.
 37. **Web · data export.** The desktop's rooms host writes a zip of the agent's data
     (`/data/export`) to Downloads; the web app shares the face card and has Data controls, but no
     file. *Proposal:* `GET /api/data/export` in the runtime writing the same zip, a *Download your
-    agent data* row under Data controls.
+    agent data* row under Data controls. *Settled:* `nanomuse/server/data_export.py` builds the
+    zip in memory (`profile.json`, the rooms, the address book, the approvals, `threads/`,
+    `sessions/`, and a README that names every part) and the route answers with the file itself,
+    `Cache-Control: private, no-store`, so a browser on another machine gets it and nothing is
+    written to the runtime's disk. `vault.enc`, `vault.key`, `server_token`, `push-vapid.json`,
+    the settings file, `logs/` and `workspace/` are never inside; a file over 64 MB is skipped,
+    as the desktop skips it. The row sits under *Settings → Data controls* in the web console.
 38. **UI language.** The phones follow the system (17 and 9 locales), the web has an in-app switch
     (auto · en · zh-CN), the desktop has English and Chinese through the harness's language row.
     *Proposal:* the desktop's `locales.ts` grows the phones' languages as people ask, de and ja

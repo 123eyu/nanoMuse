@@ -1,4 +1,4 @@
-import { Loader2, Trash2 } from "lucide-react";
+import { Download, Loader2, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { useT } from "../i18n";
@@ -25,6 +25,7 @@ export function DataControls({ me: given, onChanged, flush = false }: { me?: Clo
   const signedIn = !!state.hub?.account.signed_in;
   const [loaded, setLoaded] = useState<CloudMe | null>(null);
   const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const me = given ?? loaded;
 
   const load = async () => {
@@ -72,6 +73,24 @@ export function DataControls({ me: given, onChanged, flush = false }: { me?: Clo
     }
   };
 
+  /** *Download your agent data* (parity note 37): the runtime answers with the zip. */
+  const download = async () => {
+    setExporting(true);
+    try {
+      const { blob, name } = await api.exportData();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = name;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      toast((e as Error).message);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className={cx(flush && "-mx-4")}>
       <SyncControls signedIn={signedIn} />
@@ -97,6 +116,11 @@ export function DataControls({ me: given, onChanged, flush = false }: { me?: Clo
           <MuseCaption className="px-4 pb-2.5 pt-2">{t("Removes every turn kept from this account, whether the switch is on or off now. Turning the switch off keeps what was kept until you delete it here.")}</MuseCaption>
         </MuseCard>
       )}
+      <MuseCard className="mt-3">
+        <MuseRow icon={exporting ? <Loader2 size={22} className="animate-spin" /> : <Download size={22} />} label={t("Download your agent data")} onClick={() => void download()} chevron={false} />
+        <MuseDivider inset={16} />
+        <MuseCaption className="px-4 pb-2.5 pt-2">{t("A zip of what this runtime keeps about you: the memory, the goals, the reminders, the triggers, the address book and the chats. It never contains the keys themselves.")}</MuseCaption>
+      </MuseCard>
     </div>
   );
 }
