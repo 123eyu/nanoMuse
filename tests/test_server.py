@@ -2240,7 +2240,7 @@ def test_triggers_start_work_from_mail_events_and_webhooks(
         "mail": False,
         "event": False,
         "hook": True,
-        "device": True,
+        "device": False,
     }
     assert client.get("/api/upcoming").json()["triggers"]["items"] == []
 
