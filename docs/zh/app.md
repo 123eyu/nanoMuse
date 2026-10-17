@@ -70,7 +70,7 @@ nanomuse serve --port 9000 --no-qr
 
 **提醒和例程。** 在聊天里说一句（「六点提醒我给妈妈打电话」「每个工作日 07:30 给我一句话的天气」），或者在*日程*下面加一条。*提醒*是在你说的时间、在你设它的那个聊天里发一条短消息，别的什么都不做；*例程*是智能体在那个时间用它的工具做一件事（读收件箱、看一个页面、跑一个脚本），然后汇报。节奏用的是跟进那套写法：`daily 08:00`、`weekdays 07:30`、`weekly mon 09:00`、`monthly 1 09:00`。你说定的时间不受主动性档位和免打扰时段影响；聊天正忙时消息排在对话后面，不会被跳过。已触发的条目在*最近完成*下面留一周。终端里有同一张列表：`nanomuse reminders list | add | cancel`。
 
-<a id="triggers"></a>**触发器：当某事发生时。** 提醒的另一半：由外界而不是时钟启动的工作。在聊天里说一句（「房东回信了就帮我总结一下，起草一封回复」「标题里带 *review* 的会议开始前半小时，整理一页简报」「我的部署脚本调用你的时候，检查一下网站是不是正常」），或者在*日程 → 当某事发生时*下面加一条。三种：**新邮件**（到了一封发件人或主题包含你给的每一个词的邮件；只要有这样的触发器存在，收件箱每五分钟看一次，连接邮箱从不回放旧邮件），**日程开始前**（标题或地点匹配的日历事件还有 *N* 分钟开始），**webhook**（一个带 key 的 URL；任何能发 HTTP 请求的东西（CI 任务、家庭自动化规则、带 `curl` 的 cron 行）向它 `POST`，请求体就是上下文）。每次触发，智能体都在设它的那个聊天里做事，面前摆着那封邮件、那个事件或那个请求，结果以「新邮件：…」「即将开始：…」或「Webhook：…」的形式落到动态里。同一件事从不触发两次（邮件按 UID、事件按开始时间），webhook 拒绝间隔不到十秒的投递，错的 key 看起来和错的 URL 一模一样。邮件和事件是你的私人数据：从那以后这段对话就带上污点标记，再往不在白名单里的主机发任何东西都需要一次审批，模型也被告知，把收到的东西当数据，绝不当指令。「现在运行」用一个样例事件触发一次，看看它会做什么；列表显示每条触发过几次、收件箱上次什么时候读的。终端里：`nanomuse triggers list | add | cancel`。
+<a id="triggers"></a>**触发器：当某事发生时。** 提醒的另一半：由外界而不是时钟启动的工作。在聊天里说一句（「房东回信了就帮我总结一下，起草一封回复」「标题里带 *review* 的会议开始前半小时，整理一页简报」「我的部署脚本调用你的时候，检查一下网站是不是正常」），或者在*日程 → 当某事发生时*下面加一条。四种：**新邮件**（到了一封发件人或主题包含你给的每一个词的邮件；只要有这样的触发器存在，收件箱每五分钟看一次，连接邮箱从不回放旧邮件），**日程开始前**（标题或地点匹配的日历事件还有 *N* 分钟开始），**webhook**（一个带 key 的 URL；任何能发 HTTP 请求的东西（CI 任务、家庭自动化规则、带 `curl` 的 cron 行）向它 `POST`，请求体就是上下文），**设备上线**（账号的某台设备上线，它的名称或类型包含你给的每一个词；这台电脑不会宣告自己，App 启动时已经在线的设备也不算一次上线）。每次触发，智能体都在设它的那个聊天里做事，面前摆着那封邮件、那个事件、那次上线或那个请求，结果以「新邮件：…」「即将开始：…」「Webhook：…」或「设备上线：…」的形式落到动态里。同一件事从不触发两次（邮件按 UID、事件按开始时间），webhook 拒绝间隔不到十秒的投递，错的 key 看起来和错的 URL 一模一样。邮件、事件和谁在线是你的私人数据：从那以后这段对话就带上污点标记，再往不在白名单里的主机发任何东西都需要一次审批，模型也被告知，把收到的东西当数据，绝不当指令。「现在运行」用一个样例事件触发一次，看看它会做什么；列表显示每条触发过几次、收件箱上次什么时候读的。终端里：`nanomuse triggers list | add | cancel`。
 
 **资源库。** 智能体工作区里的每一个文件，最新的在前，可以按类型筛（页面、文档、图片、数据、代码），可以搜索。文件在应用里就能打开：页面实时渲染，Markdown 排好版，CSV 变成表格，图片和 PDF 内嵌显示。智能体写的页面跑在一个沙箱化的、来源不透明（opaque origin）的 iframe 里（它读不到访问令牌，也调不了 API）；出于同样的原因，服务器给每个 HTML 文件都带上 `Content-Security-Policy: sandbox`。
 
@@ -158,11 +158,11 @@ nanomuse serve --port 9000 --no-qr
 | PUT | `/api/feed/instructions` `{instructions?, daily?, time?}` | 短文该写些什么（≤ 2000 字符），以及每日例程：开或关，什么时候（`HH:MM`，初始 08:00） |
 | POST | `/api/feed/posts/refresh` | 现在就写几条新的；模型拒绝时 `error` 说明原因 |
 | DELETE | `/api/feed/posts/{id}` | 删掉一条短文 |
-| GET | `/api/upcoming` | `{proactivity, proactive, interval_minutes, effective_interval_minutes, quiet_hours, quiet_until, next_pass_at, next_wake_at, queue[{goal_id, title, category, due, overdue, next_step, progress}], check_ins[{goal_id, title, at, cadence}], reminders[], triggers{items[], available{mail, event, hook}, mail_checked_at, mail_error, mail_poll_minutes}, busy}`：`next_wake_at` 是任何已排定事项（一条提醒、一次跟进、下一轮）最早到期的那一刻，给能设闹钟的宿主用（[local-runtime.md](local-runtime.md#waking-up)） |
+| GET | `/api/upcoming` | `{proactivity, proactive, interval_minutes, effective_interval_minutes, quiet_hours, quiet_until, next_pass_at, next_wake_at, queue[{goal_id, title, category, due, overdue, next_step, progress}], check_ins[{goal_id, title, at, cadence}], reminders[], triggers{items[], available{mail, event, hook, device}, mail_checked_at, mail_error, mail_poll_minutes}, busy}`：`next_wake_at` 是任何已排定事项（一条提醒、一次跟进、下一轮）最早到期的那一刻，给能设闹钟的宿主用（[local-runtime.md](local-runtime.md#waking-up)） |
 | POST | `/api/tick` | 现在就唤醒调度器：它看看什么到期了就跑什么；`{ok, next_wake_at}`。Android 应用的闹钟响时会调它 |
 | GET / POST | `/api/reminders[?all=1]` | 活跃的（或者最近的全部）提醒 / 创建 `{text, at ("YYYY-MM-DD HH:MM") or repeat ("daily 08:00", …), kind (remind · task), thread}` |
 | POST / DELETE | `/api/reminders/{id}/fire`、`/api/reminders/{id}` | 现在就在它的聊天里送达 / 取消 |
-| GET / POST | `/api/triggers` | 触发器列表，并说明哪几种已经有了对应的连接器 / 创建 `{kind (mail · event · hook), text, match, lead_minutes, thread}`；hook 会连着它的 `url` 一起返回 |
+| GET / POST | `/api/triggers` | 触发器列表，并说明哪几种已经有了对应的连接器 / 创建 `{kind (mail · event · hook · device), text, match, lead_minutes, thread}`；hook 会连着它的 `url` 一起返回 |
 | POST / DELETE | `/api/triggers/{id}/fire`、`/api/triggers/{id}` | 用一个样例事件现在就跑一次 / 取消 |
 | POST | `/api/hooks/{id}?key=` | 触发器的 webhook：不要应用令牌，key 就是凭据（也接受 `X-Hook-Key` 头）；请求体（≤ 64 KB，JSON 会格式化）就是上下文。id 或 key 错了返回 404，已取消返回 409，投递太密返回 429 |
 | GET | `/api/files` · `/api/files/{path}?download=1` | 列出 / 读取工作区文件（HTML 和 SVG 带着 `Content-Security-Policy: sandbox` 返回） |

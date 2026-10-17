@@ -266,3 +266,90 @@ async def test_mail_watcher_reads_new_messages_by_uid(monkeypatch: pytest.Monkey
                 enabled=True, imap_host="x", address="{{vault:EMAIL_ADDRESS}}", password="pw"
             )
         ).look(0)
+
+
+# ------------------------------------------------------------------ the fourth kind (#486)
+def test_device_trigger_describes_and_fires_once_per_arrival(tmp_path: Path):
+    store = TriggerStore(tmp_path / "t.db")
+    with pytest.raises(ValueError):
+        store.create("device", "   ")
+
+    device = store.create(
+        "device", "tell me when the phone is back", match=" pixel  phone ", thread="t_1"
+    )
+    assert device.kind == "device" and device.match == "pixel phone"
+    assert device.lead_minutes == 0 and device.secret == ""  # like mail: no lead, no key
+    assert device.describe() == "device “pixel phone” coming online"
+    assert device.to_dict()["kind"] == "device"
+
+    # one arrival is one key: the same arrival never fires twice
+    assert store.mark_fired(device.id, "device:phone-1:a1")
+    assert not store.mark_fired(device.id, "device:phone-1:a1")
+    assert store.mark_fired(device.id, "device:phone-1:a2")
+    assert store.get(device.id).fired == 2  # type: ignore[union-attr]
+    assert [t.id for t in store.active("device")] == [device.id]
+    assert (
+        store.list("active", "device")[0]
+        .render()
+        .startswith(f"[{device.id}] when device “pixel phone” coming online")
+    )
+    assert store.create("device", "say hello").describe() == "any device coming online"
+    store.close()
+
+
+def test_device_trigger_needs_the_hub_and_says_so(tmp_path: Path):
+    store = TriggerStore(tmp_path / "t.db")
+    tool = Triggers(store=store)
+    tool.thread_of = lambda: "main"
+    run = asyncio.run
+
+    tool.available = lambda: {"mail": True, "event": True, "hook": True, "device": False}
+    refused = run(tool.execute(action="create", kind="device", text="tell me", match="pixel"))
+    assert refused.error and "hub" in (refused.error or "")
+    assert store.list(None) == []
+
+    tool.available = lambda: {"mail": True, "event": True, "hook": True, "device": True}
+    made = run(tool.execute(action="create", kind="device", text="tell me", match="pixel"))
+    assert not made.error and made.output.startswith("Trigger set.")
+    assert "device “pixel” coming online" in made.output
+    assert "arrival" in made.output  # the model is told how often it can fire
+    # it is standing work, so creating it is a change of state
+    assert (
+        tool.assess(
+            {"action": "create", "kind": "device", "match": "pixel", "text": "tell me"}
+        ).risk
+        == RiskLevel.MODERATE
+    )
+    store.close()
+
+
+def test_arrivals_seeds_the_first_frame_then_fires_on_the_transition():
+    """The hub's `devices` frame: what was already online when the app started is not an
+    arrival; a device that drops and comes back, or joins the account later, is."""
+    from nanomuse.triggers import arrivals
+
+    me = {"id": "desk-1", "name": "Desk", "kind": "computer", "online": True}
+    phone = {"id": "phone-1", "name": "Pixel", "kind": "phone", "online": True}
+
+    state, came = None, None  # type: ignore[assignment]
+    state, came = arrivals(state, [me, phone], "desk-1")  # the welcome frame: seeds only
+    assert came == []
+
+    state, came = arrivals(state, [me, {**phone, "online": False}], "desk-1")  # away
+    assert came == []
+    state, came = arrivals(state, [me, phone], "desk-1")  # back
+    assert [d["id"] for d in came] == ["phone-1"]
+
+    # this computer never announces itself
+    state, came = arrivals(state, [{**me, "online": False}, phone], "desk-1")
+    assert came == []
+    state, came = arrivals(state, [me, phone], "desk-1")
+    assert came == []
+
+    # a device that joins the account after the first frame counts as an arrival
+    tablet = {"id": "tab-1", "name": "Tab", "kind": "tablet", "online": True}
+    state, came = arrivals(state, [me, phone, tablet], "desk-1")
+    assert [d["id"] for d in came] == ["tab-1"]
+    # and an unchanged list brings nothing
+    state, came = arrivals(state, [me, phone, tablet], "desk-1")
+    assert came == []

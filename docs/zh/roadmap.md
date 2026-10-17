@@ -24,7 +24,7 @@ Meta 的 Muse 定下了这类智能体的样子；下面是我们还落后于它
 
 - 模块：`nanomuse/goals/`、`nanomuse/triggers/`、`nanomuse/nudges.py`；手机的 `io.github.nanomuse.feed` 和 `goals`。
 - 阅读：[every-device.md](every-device.md)，讲一声提醒怎么到达你手里拿着的那台设备。
-- 第一个任务：在 `nanomuse/triggers/store.py` 的三种之外加第四种触发器（账号下的一台设备上线，来自 hub 的 `devices` 帧），接口相同，连同它产出的那条动态。
+- 第一个任务已完成：在 `nanomuse/triggers/store.py` 的三种之外加了第四种触发器 `device`（账号下的一台设备上线，来自 hub 的 `devices` 帧，接口相同）：`arrivals()` 只在真正的下线到上线时算一次上线，`MuseService.device_came_online` 触发每条匹配的触发器并产出「设备上线：…」那条动态，这一种受 hub 开关约束（`tests/test_triggers.py`、`tests/test_server.py`）。下一个任务：智能体在两次计划之间自己注意到别的事情，然后判断注意到的事值不值得说一句。
 
 ### 对话 {#the-conversation}
 

@@ -29,7 +29,7 @@ const posts: FeedPostsData = {
 const upcoming: UpcomingData = {
   proactive: false, proactivity: "off", interval_minutes: 60, effective_interval_minutes: 60,
   quiet_hours: "", quiet_until: null, next_pass_at: null, queue: [], check_ins: [], reminders: [], busy: false,
-  triggers: { items: [], available: { mail: false, event: false, hook: true }, mail_checked_at: null, mail_error: "", mail_poll_minutes: 5 },
+  triggers: { items: [], available: { mail: false, event: false, hook: true, device: false }, mail_checked_at: null, mail_error: "", mail_poll_minutes: 5 },
 };
 const calendar: CalendarData = {
   enabled: true, configured: false, today: "2026-10-14", events: [], feeds: [], fetched_at: null, stale: false,

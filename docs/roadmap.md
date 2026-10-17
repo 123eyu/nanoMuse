@@ -24,7 +24,7 @@ Goals are checked on a schedule, routines run with the app closed, the feed is w
 
 - Module: `nanomuse/goals/`, `nanomuse/triggers/`, `nanomuse/nudges.py`; the phone's `io.github.nanomuse.feed` and `goals`.
 - Read: [every-device.md](every-device.md) for how a nudge reaches the device you are holding.
-- First task: a fourth trigger kind next to the three in `nanomuse/triggers/store.py` (a device of the account coming online, from the hub's `devices` frame) with the same interface, and the feed entry it produces.
+- Done first task: the fourth trigger kind, `device`, next to the three in `nanomuse/triggers/store.py` (a device of the account coming online, from the hub's `devices` frame, with the same interface): `arrivals()` seeds the first frame and fires only on a real offline to online transition, `MuseService.device_came_online` runs each matching trigger with the `Device online: …` feed entry, and the kind is gated on the hub (`tests/test_triggers.py`, `tests/test_server.py`). Next task: the agent noticing other things between schedules, and deciding whether what it noticed is worth a word.
 
 ### The conversation
 

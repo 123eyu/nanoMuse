@@ -36,6 +36,7 @@ from nanomuse.schema import RiskLevel
 from nanomuse.sentinel.grants import grant_key, normalize_scope
 from nanomuse.server.events import MAIN_THREAD, STOPPED_NOTICE, now_iso
 from nanomuse.server.webui import current_thread
+from nanomuse.triggers.store import arrivals
 from nanomuse.ui import ApprovalRequest
 
 if TYPE_CHECKING:
@@ -82,6 +83,9 @@ class HubService:
         self._relayed_approvals: dict[str, str] = {}
         self._tasks: set[asyncio.Task[Any]] = set()
         self._pending_code: str = ""
+        # the online state of the account's devices as the last `devices` frame had it,
+        # for the `device` trigger kind; None until the first frame arrives
+        self._devices_seen: dict[str, bool] | None = None
         # the agent's name and look, shared with the account's other devices
         self.profile = ProfileSync(self)
         self._ensure_identity()
@@ -229,8 +233,8 @@ class HubService:
             actions=[*actions.ACTIONS, *self._extra_actions()],
             kind="computer",
             on_call=self.on_call,
-            on_devices=lambda _devices: self.publish(),
-            on_state=lambda _state, _detail: self.publish(),
+            on_devices=self._on_devices,
+            on_state=self._hub_state_changed,
             on_profile=self.profile.on_frame,
             on_sync=self.svc.sync.on_frame,
         )
@@ -635,6 +639,24 @@ class HubService:
 
     def publish(self) -> None:
         self.svc.bus.publish({"kind": "hub", "hub": self.view()})
+
+    def _hub_state_changed(self, state: str, _detail: str) -> None:
+        """Publish connection state, and make each connection's welcome frame a baseline."""
+        if state == "connecting":
+            self._devices_seen = None
+        self.publish()
+
+    def _on_devices(self, devices: list[dict[str, Any]]) -> None:
+        """A `devices` frame: publish it as before, and fire the `device` triggers for the
+        devices that came online since the last one (#486)."""
+        state, came = arrivals(self._devices_seen, devices, self.device_id)
+        self._devices_seen = state
+        for device in came:
+            try:
+                self.svc.device_came_online(device)
+            except Exception:  # noqa: BLE001 — a trigger must not stop the hub
+                logger.exception("device trigger")
+        self.publish()
 
     def others(self) -> list[dict[str, Any]]:
         return self.client.others() if self.client else []
