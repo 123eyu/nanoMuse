@@ -835,7 +835,7 @@ function writePrefs(next: Prefs = prefs, strict = false): void {
 function showWindow(): BrowserWindow | null {
   if (!mainWindow && hostUrl) {
     mainWindow = createWindow();
-    void mainWindow.loadURL(hostUrl);
+    void loadHost(mainWindow, hostUrl);
   }
   if (!mainWindow) return null;
   if (mainWindow.isMinimized()) mainWindow.restore();
@@ -1855,6 +1855,15 @@ function createWindow(): BrowserWindow {
   return win;
 }
 
+/**
+ * Show the Host's web app in `win`, then drop the splash from the window's history: a back
+ * press (a mouse's side button too) would otherwise land on loading.html, which never moves on.
+ */
+async function loadHost(win: BrowserWindow, url: string): Promise<void> {
+  await win.loadURL(url);
+  if (!win.isDestroyed()) win.webContents.navigationHistory.clear();
+}
+
 async function boot(): Promise<void> {
   if (!mainWindow) mainWindow = createWindow();
   try {
@@ -1867,7 +1876,7 @@ async function boot(): Promise<void> {
   log(`ready: ${hostUrl.replace(/token=\S+/, "token=…")}`);
   // the work routes the protected exit asks at quit time (an old plugin answers nothing usable)
   hostWork = new HostWork(hostUrl, { log });
-  await mainWindow?.loadURL(hostUrl);
+  if (mainWindow) await loadHost(mainWindow, hostUrl);
   if (screenshotFlag && mainWindow) {
     // the web app loads its plugins after the document; give it a moment
     await new Promise((r) => setTimeout(r, 8000));
