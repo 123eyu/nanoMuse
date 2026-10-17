@@ -1,5 +1,5 @@
 name: Bug report / 问题报告
-description: Something in the runtime, the web console, the desktop app, the iPhone app, the relay or the showcase does not work the way the docs say it does. (The Android app has its own form.) / 运行时、网页控制台、桌面版、iPhone 应用、中继或展示站的某处和文档说的不一样。（Android 应用用另一张表单。）
+description: The runtime, web console, desktop app, iPhone app, relay or showcase does not work as the docs say. (The Android app has its own form.) / 运行时、网页控制台、桌面版、iPhone、中继或展示站与文档说的不符。（Android 另有表单。）
 labels: ["bug"]
 body:
   - type: markdown
