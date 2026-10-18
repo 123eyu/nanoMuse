@@ -156,7 +156,9 @@ step (`agent.inject`; the note is context, never a row, never pushed back). A si
 conversation pulled from the relay gets its dsh session at once (listed in
 *Side chats* though no turn ran here yet); the main chat is the session the
 account's main conversation lives in, and the first conversation starts in it
-when the account already has one. The harness has no delete and a log forgets
+when the account already has one. Its saved conversation mapping remains enough
+to accept a final reply if the cached conversation row has been cleared, before
+the pull cursor moves past that reply. The harness has no delete and a log forgets
 nothing: a message deleted elsewhere is hidden here, a chat deleted elsewhere
 is archived here. Since 0.1.38 the plugin keeps *Also sync side chats* with its
 own state (off by default; off, a side chat here is neither listed nor read for

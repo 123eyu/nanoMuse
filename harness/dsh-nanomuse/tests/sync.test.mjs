@@ -558,6 +558,31 @@ test('C9: side chats stay local by default — only the main conversation goes u
   e.stop()
 })
 
+test('C9: a mapped main chat keeps a final reply when its conversation metadata was cleared', async () => {
+  const relay = fakeRelay()
+  relay.add('c-main', 'main', 'Main chat')
+  const cursor = relay.seq
+  const sessions = fakeSessions()
+  sessions.add('s-main', 'Main here')
+  const state = {
+    ...emptyState(),
+    accountId: 'acct-1',
+    cursor,
+    mainSession: 's-main',
+    sideChats: false,
+    cids: { 's-main': 'c-main' },
+    owners: { 's-main': 'acct-1' },
+  }
+  const { engine: e } = engine(relay, sessions, { state })
+
+  const mid = relay.say('c-main', 'assistant', 'final answer from the phone')
+  await e.pull()
+
+  assert.deepEqual(sessions.remote('s-main').map((line) => line.text), ['final answer from the phone'])
+  assert.equal(e.state.pulled[mid], 's-main')
+  e.stop()
+})
+
 test('C9: the first pull takes the newest 300 messages and their conversations, the cursor is the account’s latest; later pulls continue from it', async () => {
   const relay = fakeRelay()
   relay.add('their-main', 'main', 'Main chat')
