@@ -1218,11 +1218,14 @@ export class SyncEngine {
     // once is enough: a row kept here already, or our own words coming back
     if (this.state.pulled[m.mid]) return
     if (m.device === this.options.deviceId()) return
-    // side chats off (C9): a side chat's rows stay where they were written
-    if (!this.state.sideChats && this.state.conversations[m.cid]?.kind !== 'main') return
+    const sessionId = this.sessionOf(m.cid)
+    // side chats off (C9): an explicitly side conversation stays where it was written. If
+    // its cached metadata was cleared, the existing mapping still proves that this is the
+    // main conversation; do not advance the cursor past its final reply.
+    const kind = this.state.conversations[m.cid]?.kind
+    if (!this.state.sideChats && (kind === 'side' || (kind !== 'main' && sessionId !== this.state.mainSession))) return
     // the reply arrived: the other device is not working on it any more
     if (m.role === 'assistant') this.working.delete(m.cid)
-    const sessionId = this.sessionOf(m.cid)
     if (!sessionId) return
     const line: RemoteLine = { mid: m.mid, role: m.role, text: m.text, at: m.created_at * 1000, device: m.device, deviceName: m.device_name }
     try {
