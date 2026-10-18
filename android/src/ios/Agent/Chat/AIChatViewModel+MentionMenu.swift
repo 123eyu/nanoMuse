@@ -14,7 +14,7 @@ extension AIChatViewModel {
     /// extra plumbing.
     var filteredMentionEntries: [FileMentionEntry] {
         let f = mentionFilter
-        let result = FileMentionIndex.shared.matches(for: f)
+        let result = NanoMuseDeviceMention.menuEntries(text: inputText, anchor: mentionAnchor, filter: f) + FileMentionIndex.shared.matches(for: f) // nanoMuse: the account's online devices first, so "@" can address one (C7)
         #if DEBUG
         let basenames = result.prefix(6).map { $0.basename }.joined(separator: ",")
         print("[MentionRead] filteredMentionEntries ACCESS filter=\"\(f)\" count=\(result.count) first6=[\(basenames)]")
