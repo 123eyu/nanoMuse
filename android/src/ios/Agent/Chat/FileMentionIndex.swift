@@ -61,15 +61,19 @@ struct FileMentionEntry: Identifiable, Equatable, Hashable {
     let modifiedAt: Date
     /// True for directories; we still surface them (useful as context references).
     let isDirectory: Bool
+    /// nanoMuse: set on an account's device the menu offers (`NanoMuseDeviceMention.menuEntries`); `linuxPath` is then its name.
+    var nmDevice: NanoMuseMentionDevice? = nil // nanoMuse:
 
     var id: String { linuxPath }
 
     var basename: String {
-        (linuxPath as NSString).lastPathComponent
+        if nmDevice != nil { return linuxPath } // nanoMuse: a device name, not a path
+        return (linuxPath as NSString).lastPathComponent // nanoMuse: was the bare expression
     }
 
     /// Path shown in the menu (strips the `/var/minis/` prefix for density).
     var displayPath: String {
+        if let nmDevice { return nmDevice.detail } // nanoMuse: "Darwin 25.5.0 · online" under a device
         let prefix = "/var/minis/"
         if linuxPath.hasPrefix(prefix) {
             return String(linuxPath.dropFirst(prefix.count))
