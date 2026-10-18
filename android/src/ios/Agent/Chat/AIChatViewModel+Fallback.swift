@@ -96,6 +96,7 @@ extension AIChatViewModel {
         provider initialProvider: any AgentProvider,
         messages: [AgentMessage],
         baseSystemPrompt: String,
+        volatileSystemPromptSuffix: NanoMusePromptCacheLayout.VolatileSuffix,
         systemPrompt initialSystemPrompt: String?,
         tools: [AgentToolDefinition],
         model: LLMModel,
@@ -211,14 +212,15 @@ extension AIChatViewModel {
                 currentEntryId = nextEntryId
                 currentProvider = await makeAgentProvider(for: nextEntry)
                 // Rebuild system prompt for the new model's capabilities
-                var rebuiltPrompt = baseSystemPrompt
-                if let capFragment = nextEntry.model.capabilityPromptFragment {
-                    rebuiltPrompt += "\n\n" + capFragment
-                }
-                if let behaviorFragment = nextEntry.model.agentBehaviorPromptFragment {
-                    rebuiltPrompt += "\n\n" + behaviorFragment
-                }
-                currentSystemPrompt = rebuiltPrompt
+                // nanoMuse: model metadata and session state remain after the cache-stable base.
+                currentSystemPrompt = NanoMusePromptCacheLayout.buildWithSuffix(
+                    stableSections: [baseSystemPrompt],
+                    leadingVolatileSections: [
+                        nextEntry.model.capabilityPromptFragment,
+                        nextEntry.model.agentBehaviorPromptFragment,
+                    ],
+                    suffix: volatileSystemPromptSuffix
+                ).prompt
                 // continue loop — will try next entry immediately
             } catch {
                 // Check if group uses "always" fallback strategy — if so, treat all
@@ -264,14 +266,15 @@ extension AIChatViewModel {
                     triedEntries.insert(nextEntryId)
                     currentEntryId = nextEntryId
                     currentProvider = await makeAgentProvider(for: nextEntry)
-                    var rebuiltPrompt = baseSystemPrompt
-                    if let capFragment = nextEntry.model.capabilityPromptFragment {
-                        rebuiltPrompt += "\n\n" + capFragment
-                    }
-                    if let behaviorFragment = nextEntry.model.agentBehaviorPromptFragment {
-                        rebuiltPrompt += "\n\n" + behaviorFragment
-                    }
-                    currentSystemPrompt = rebuiltPrompt
+                    // nanoMuse: preserve the stable-prefix / volatile-suffix boundary on fallback.
+                    currentSystemPrompt = NanoMusePromptCacheLayout.buildWithSuffix(
+                        stableSections: [baseSystemPrompt],
+                        leadingVolatileSections: [
+                            nextEntry.model.capabilityPromptFragment,
+                            nextEntry.model.agentBehaviorPromptFragment,
+                        ],
+                        suffix: volatileSystemPromptSuffix
+                    ).prompt
                     continue
                 }
 
@@ -346,14 +349,15 @@ extension AIChatViewModel {
                     triedEntries.insert(nextEntryId)
                     currentEntryId = nextEntryId
                     currentProvider = await makeAgentProvider(for: nextEntry)
-                    var rebuiltPrompt = baseSystemPrompt
-                    if let capFragment = nextEntry.model.capabilityPromptFragment {
-                        rebuiltPrompt += "\n\n" + capFragment
-                    }
-                    if let behaviorFragment = nextEntry.model.agentBehaviorPromptFragment {
-                        rebuiltPrompt += "\n\n" + behaviorFragment
-                    }
-                    currentSystemPrompt = rebuiltPrompt
+                    // nanoMuse: preserve the stable-prefix / volatile-suffix boundary on fallback.
+                    currentSystemPrompt = NanoMusePromptCacheLayout.buildWithSuffix(
+                        stableSections: [baseSystemPrompt],
+                        leadingVolatileSections: [
+                            nextEntry.model.capabilityPromptFragment,
+                            nextEntry.model.agentBehaviorPromptFragment,
+                        ],
+                        suffix: volatileSystemPromptSuffix
+                    ).prompt
                     // continue loop — will try next entry
                 }
             }
@@ -371,6 +375,7 @@ extension AIChatViewModel {
         provider: any AgentProvider,
         messages: [AgentMessage],
         baseSystemPrompt: String,
+        volatileSystemPromptSuffix: NanoMusePromptCacheLayout.VolatileSuffix,
         systemPrompt: String?,
         tools: [AgentToolDefinition],
         model: LLMModel,
@@ -388,6 +393,7 @@ extension AIChatViewModel {
                 provider: provider,
                 messages: messages,
                 baseSystemPrompt: baseSystemPrompt,
+                volatileSystemPromptSuffix: volatileSystemPromptSuffix,
                 systemPrompt: systemPrompt,
                 tools: tools,
                 model: model,

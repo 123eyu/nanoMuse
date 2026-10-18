@@ -1819,6 +1819,14 @@ final class AIChatViewModel: ObservableObject, SpeechControlling {
         return _cachedTimeString
     }
 
+    // nanoMuse: all request-varying runtime values belong in the deterministic suffix, never
+    // inside baseSystemPrompt, so a time/language/model-count change preserves the static prefix.
+    private var runtimeContextFragment: String {
+        "Current time (approximate): \(approximateTimeString) (\(TimeZone.current.identifier)). "
+            + "Device languages: \((UserDefaults.standard.object(forKey: "AppleLanguages") as? [String] ?? Locale.preferredLanguages).joined(separator: ", ")).\n\n"
+            + "You have \(ProviderConfigStore.shared.resolvedAgentLoopEntries.count) model(s) available. "
+    }
+
     private var baseSystemPrompt: String {
         // [T-soul-md] Layer 1 is rendered by SystemPromptBuilder, which
         // owns the "You are <name>, a capable AI assistant running on an
@@ -1858,8 +1866,6 @@ final class AIChatViewModel: ObservableObject, SpeechControlling {
             + "Starts with a desktop Safari user agent. Use screenshot to see the page.\n"
             + "- memory_write: Save a memory entry to today's daily log (YYYY-MM-DD.md). Use proactively to note user preferences, project patterns, and important context.\n"
             + "- memory_get: Recall memories with keyword search. Check memory at the start of new topics to leverage past knowledge.\n\n"
-            + "Current time (approximate): \(approximateTimeString) (\(TimeZone.current.identifier)). "
-            + "Device languages: \((UserDefaults.standard.object(forKey: "AppleLanguages") as? [String] ?? Locale.preferredLanguages).joined(separator: ", ")).\n\n"
             + "Shared directory /var/minis/ (bidirectional read/write between shell and app):\n"
             + "  /var/minis/attachments/ — Media files (images, audio, video). Display inline with ![desc](minis://attachments/filename).\n"
             + "  /var/minis/workspace/   — Working files (scripts, data, configs). Link with [name](minis://workspace/filename).\n"
@@ -1936,7 +1942,6 @@ final class AIChatViewModel: ObservableObject, SpeechControlling {
             + "minis-open <url-or-path>: Opens a resource inside nanoMuse without leaving the chat. Accepts http/https URLs (→ built-in WebKit preview) and chat-resource file paths under /var/minis/** (→ built-in file preview, routed by extension: images to the image viewer, .md to markdown preview, .html to HTML preview, .pdf/office docs to QuickLook, audio/video to the media player, else share sheet). Examples: `minis-open https://example.com`, `minis-open /var/minis/workspace/report.md`, `minis-open /var/minis/attachments/chart.png`. Prefer this over `apple-open` for anything that can be previewed in-app so the user doesn't lose conversation context. Use `apple-open` for non-web schemes (tel:, mailto:, maps://, settings, etc.) or when the user explicitly wants the system handler.\n"
             + "minis-sessions-cli: Manage chat sessions. `list` recent or by date range, `search --keywords` cross-session, `messages --id` to read, `send` to create/continue a session, `retry` to re-run, `status` to check, `open` to navigate the app UI. Run --help for full options.\n"
             + "minis-model-use: Invoke other LLM models pre-configured by the user. "
-            + "You have \(ProviderConfigStore.shared.resolvedAgentLoopEntries.count) model(s) available. "
             + "Use `minis-model-use list` to see them (includes each model's modality capabilities like image_output, audio_output, etc.), "
             + "`search <query>` to filter by name/provider. "
             + "`run --model <id_or_name>` sends an OpenAI Chat Completions request; pass input via --input <json_file> or stdin, "
@@ -4788,49 +4793,44 @@ final class AIChatViewModel: ObservableObject, SpeechControlling {
         }
         let tools = makeAgentTools()
 
-        var userSystemPrompt = baseSystemPrompt
         let activeModel = ProviderConfigStore.shared.entry(for: entry.id)?.model ?? selectedModel
-        if let capFragment = activeModel.capabilityPromptFragment {
-            userSystemPrompt += "\n\n" + capFragment
-        }
-        if let behaviorFragment = activeModel.agentBehaviorPromptFragment {
-            userSystemPrompt += "\n\n" + behaviorFragment
-        }
-
-        // Inject enabled skill metadata into system prompt
-        if let sid = sessionId,
-           let skillFragment = SkillStore.shared.skillPromptFragment(for: sid) {
-            userSystemPrompt += "\n\n" + skillFragment
-        }
-
-        // [T-mcp-integration-ios] Inject Top-20 enabled MCP server metadata.
-        if let sid = sessionId,
-           let mcpFragment = MCPStore.shared.systemPromptSnippet(for: sid) {
-            userSystemPrompt += "\n\n" + mcpFragment
-        }
-
-        // [T-memory-toggle-gates-injection-and-tools-ios] Memory injection
-        // (GLOBAL.md + recent daily logs) is gated by the per-session
-        // memoryEnabled toggle. SOUL.md (identity / persona) is rendered
-        // by SystemPromptBuilder.identitySection() above and is NOT
-        // affected by this toggle.
+        let skillFragment = sessionId.flatMap { SkillStore.shared.skillPromptFragment(for: $0) }
+        // nanoMuse: keep MCP, memory, USER.md/session addenda, and runtime data together in the
+        // volatile suffix. Model capability/behavior fragments lead that suffix on both builds.
+        let mcpFragment = sessionId.flatMap { MCPStore.shared.systemPromptSnippet(for: $0) }
+        var globalMemoryFragment: String?
+        var dailyMemoryFragment: String?
+        // [T-memory-toggle-gates-injection-and-tools-ios] Memory injection is gated by the
+        // per-session memoryEnabled toggle. SOUL.md remains part of identity above.
         // [T-memory-enabled-new-session-bug DIAG] vm.memoryEnabled is the
         // value the injection actually keys off. Trace it against the
         // session so a repro shows whether loadSession seeded it from the
         // global default.
         AppLogger(category: "MemDiag").info("[MemDiag] inject-decision sid=\(self.sessionId?.prefix(8) ?? "nil") vm.memoryEnabled=\(self.memoryEnabled)")
         if memoryEnabled {
-            if let memoryFragment = Self.loadGlobalMemoryFragment() {
-                userSystemPrompt += "\n\n" + memoryFragment
-            }
-            if let dailyFragment = Self.loadRecentDailyMemoryFragment() {
-                userSystemPrompt += "\n\n" + dailyFragment
-            }
+            globalMemoryFragment = Self.loadGlobalMemoryFragment()
+            dailyMemoryFragment = Self.loadRecentDailyMemoryFragment()
         }
-        // Authoritative memory-status footer (overrides any earlier
-        // baseSystemPrompt mentions when memory is disabled).
-        userSystemPrompt += memoryStatusFragment
-        userSystemPrompt += nmSystemPromptAddenda() // nanoMuse: USER.md, goal/feed steering, per-session addenda
+        let commonVolatileSections: [String?] = [
+            skillFragment,
+            mcpFragment,
+            globalMemoryFragment,
+            dailyMemoryFragment,
+            memoryStatusFragment,
+            nmSystemPromptAddenda(),
+        ]
+        let commonVolatileSuffix = NanoMusePromptCacheLayout.makeVolatileSuffix(
+            volatileSections: commonVolatileSections,
+            runtimeContext: runtimeContextFragment
+        )
+        var userSystemPrompt = NanoMusePromptCacheLayout.buildWithSuffix(
+            stableSections: [baseSystemPrompt],
+            leadingVolatileSections: [
+                activeModel.capabilityPromptFragment,
+                activeModel.agentBehaviorPromptFragment,
+            ],
+            suffix: commonVolatileSuffix
+        ).prompt
 
         let promptBuildMs = (CFAbsoluteTimeGetCurrent() - loopSetupStart) * 1000
         logger.info("⏱️ [runAgentLoop] prompt build elapsed=\(String(format: "%.1f", promptBuildMs))ms history=\(self.agentHistory.count)")
@@ -5243,6 +5243,7 @@ final class AIChatViewModel: ObservableObject, SpeechControlling {
                 provider: provider,
                 messages: contextHistory,
                 baseSystemPrompt: baseSystemPrompt,
+                volatileSystemPromptSuffix: commonVolatileSuffix,
                 systemPrompt: userSystemPrompt,
                 tools: tools,
                 model: activeModel,
@@ -5269,36 +5270,16 @@ final class AIChatViewModel: ObservableObject, SpeechControlling {
                 }
                 logger.info("🔀AGENT_LOOP provider updated after fallback: \(prevEntryId ?? "nil") → \(newEntryId)")
                 provider = await makeAgentProvider(for: newEntry)
-                userSystemPrompt = baseSystemPrompt
-                if let capFragment = newEntry.model.capabilityPromptFragment {
-                    userSystemPrompt += "\n\n" + capFragment
-                }
-                if let behaviorFragment = newEntry.model.agentBehaviorPromptFragment {
-                    userSystemPrompt += "\n\n" + behaviorFragment
-                }
-                if let sid = sessionId,
-                   let skillFragment = SkillStore.shared.skillPromptFragment(for: sid) {
-                    userSystemPrompt += "\n\n" + skillFragment
-                }
-                // [T-mcp-integration-ios] Inject Top-20 enabled MCP metadata.
-                if let sid = sessionId,
-                   let mcpFragment = MCPStore.shared.systemPromptSnippet(for: sid) {
-                    userSystemPrompt += "\n\n" + mcpFragment
-                }
-                // [T-memory-toggle-gates-injection-and-tools-ios] Mirror
-                // the gate from the first injection site — fallback to a
-                // new provider must respect the per-session memoryEnabled
-                // toggle the same way the initial system prompt did.
-                if memoryEnabled {
-                    if let memoryFragment = Self.loadGlobalMemoryFragment() {
-                        userSystemPrompt += "\n\n" + memoryFragment
-                    }
-                    if let dailyFragment = Self.loadRecentDailyMemoryFragment() {
-                        userSystemPrompt += "\n\n" + dailyFragment
-                    }
-                }
-                userSystemPrompt += memoryStatusFragment
-                userSystemPrompt += nmSystemPromptAddenda() // nanoMuse: same addenda on the fallback rebuild
+                // nanoMuse: fallback changes only the model-specific head of the volatile suffix;
+                // the cache-stable base and deterministic session suffix keep the same boundary.
+                userSystemPrompt = NanoMusePromptCacheLayout.buildWithSuffix(
+                    stableSections: [baseSystemPrompt],
+                    leadingVolatileSections: [
+                        newEntry.model.capabilityPromptFragment,
+                        newEntry.model.agentBehaviorPromptFragment,
+                    ],
+                    suffix: commonVolatileSuffix
+                ).prompt
                 fallbackTrigger += 1
                 if !fallbackReasons.isEmpty {
                     // Resync the assistant message index by its stable id before
@@ -5476,6 +5457,7 @@ final class AIChatViewModel: ObservableObject, SpeechControlling {
                         provider: provider,
                         messages: applyRequestImageBudget(effectiveAgentHistory()),
                         baseSystemPrompt: baseSystemPrompt,
+                        volatileSystemPromptSuffix: commonVolatileSuffix,
                         systemPrompt: userSystemPrompt,
                         tools: tools,
                         model: activeModel,
@@ -5550,6 +5532,7 @@ final class AIChatViewModel: ObservableObject, SpeechControlling {
                             provider: provider,
                             messages: applyRequestImageBudget(effectiveAgentHistory()),
                             baseSystemPrompt: baseSystemPrompt,
+                            volatileSystemPromptSuffix: commonVolatileSuffix,
                             systemPrompt: userSystemPrompt,
                             tools: tools,
                             model: activeModel,

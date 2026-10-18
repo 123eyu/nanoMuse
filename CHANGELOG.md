@@ -54,6 +54,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 - **Responses API requests no longer failed on repeated tool-call ids in accumulated or restored history.** Later copies receive deterministic request-unique suffixes while every tool output remains paired with its call. For [#501](https://github.com/nano-muse/nanoMuse/issues/501).
 
+- **Memory and date changes no longer invalidate the agent's static prompt prefix.** Safety and phone-operation instructions now stay ahead of a deterministic suffix containing skills, MCP metadata, model/device state, conversation addenda, memory and `USER.md`, with runtime context last, preserving provider prefix-cache hits across memory writes and day changes. For #502.
+
 - **Per-mood avatar clips.** The avatar studio now accepts an optional local video for each of the five moods. Moods without a video keep the existing single-video or built-in animation.
 
 - **Continuous system dictation kept its next segment's audio.** A delayed write failure from a retired recognition pipe previously cleared the replacement pipe, leaving the new recognizer without audio. Failed writes now retire only the stream they used.
@@ -73,6 +75,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 ### iOS
 
 - **Responses API requests no longer failed on repeated tool-call ids in accumulated or restored history.** Later copies receive deterministic request-unique suffixes while every tool output remains paired with its call. For [#501](https://github.com/nano-muse/nanoMuse/issues/501).
+
+- **Memory, time and model-count changes no longer invalidate the agent's static prompt prefix.** The base instructions now precede a deterministic suffix containing model capabilities, skills, MCP metadata, memory, `USER.md`, session steering and runtime context, and fallback models rebuild that same order. For #502.
 
 - **A picked avatar clip keeps its preview open.** The photo picker finishes closing before the clip preview opens, and the preview no longer deletes the pending video when SwiftUI briefly removes the sheet. Use and Cancel remain the explicit ways to finish the choice.
 
