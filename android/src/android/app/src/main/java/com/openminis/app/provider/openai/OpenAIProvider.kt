@@ -3289,6 +3289,41 @@ class OpenAIProvider private constructor(
                 })
             }
         }
+        // nanoMuse: Responses rejects duplicate function_call call_id values across the
+        // whole input. Rename later calls deterministically and queue each rewritten id so
+        // parallel/repeated function_call_output items keep the same pairing. Deliberately
+        // inspect call_id only: reasoning item ids and function_call item ids are untouched.
+        val responseCallIdCounts = HashMap<String, Int>()
+        val usedResponseCallIds = HashSet<String>()
+        val pendingResponseOutputs = HashMap<String, java.util.ArrayDeque<String>>()
+        for (i in 0 until input.length()) {
+            val item = input.optJSONObject(i) ?: continue
+            val rawId = item.optString("call_id", "")
+            if (rawId.isEmpty()) continue
+            when (item.optString("type")) {
+                "function_call" -> {
+                    var occurrence = (responseCallIdCounts[rawId] ?: 0) + 1
+                    var rewritten: String
+                    while (true) {
+                        val suffix = if (occurrence == 1) "" else "-$occurrence"
+                        rewritten = rawId.take(64 - suffix.length) + suffix
+                        if (rewritten !in usedResponseCallIds) break
+                        occurrence += 1
+                    }
+                    responseCallIdCounts[rawId] = occurrence
+                    usedResponseCallIds.add(rewritten)
+                    pendingResponseOutputs
+                        .getOrPut(rawId) { java.util.ArrayDeque() }
+                        .addLast(rewritten)
+                    item.put("call_id", rewritten)
+                }
+                "function_call_output" -> {
+                    pendingResponseOutputs[rawId]?.pollFirst()?.let {
+                        item.put("call_id", it)
+                    }
+                }
+            }
+        }
         body.put("input", input)
 
         // [T-android-model-use-passthrough-mode GH#72] Same verbatim merge as the
