@@ -49,6 +49,10 @@ sequenceDiagram
 | Terminal | `nanomuse/console.py`, `nanomuse/cli.py` | Rich console UI with inline approvals; Typer commands |
 | Config, schema | `nanomuse/config.py`, `nanomuse/schema.py` | Pydantic settings, message and tool-call models |
 
+Before sending a Responses API request, the runtime, Android and iOS serializers make
+`function_call.call_id` values unique within that request and apply the same request-local
+rewrite to each paired `function_call_output`; reasoning item ids are left unchanged.
+
 ## The `UI` protocol
 
 Anything that can show the agent to a person implements `nanomuse/ui.py::UI`: text deltas, assistant messages, tool calls and results, Sentinel notices, `ask_approval()` and `ask_user()`. `ConsoleUI` is the terminal; `WebUI` turns the same callbacks into timeline events and WebSocket messages and parks approvals in futures until the app answers. A Telegram or desktop front-end would be another implementation of the same protocol, or a client of the HTTP API.

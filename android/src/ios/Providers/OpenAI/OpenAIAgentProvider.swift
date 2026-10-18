@@ -1764,6 +1764,41 @@ final class OpenAIAgentProvider: AgentProvider {
                 }
             }
         }
+        return Self.dedupeResponsesCallIds(result)
+    }
+
+    // nanoMuse: Responses rejects duplicate function_call call_id values across the
+    // whole input. Rename later calls deterministically and queue each rewritten id so
+    // parallel/repeated function_call_output items keep the same pairing. Deliberately
+    // inspect call_id only: reasoning item ids and function_call item ids are untouched.
+    internal static func dedupeResponsesCallIds(_ input: [[String: Any]]) -> [[String: Any]] {
+        var result = input
+        var callIdCounts: [String: Int] = [:]
+        var usedCallIds = Set<String>()
+        var pendingOutputs: [String: [String]] = [:]
+        for index in result.indices {
+            guard let type = result[index]["type"] as? String,
+                  let rawId = result[index]["call_id"] as? String else { continue }
+            if type == "function_call" {
+                var occurrence = (callIdCounts[rawId] ?? 0) + 1
+                var rewritten: String
+                while true {
+                    let suffix = occurrence == 1 ? "" : "-\(occurrence)"
+                    rewritten = String(rawId.prefix(maxResponsesAPIIdLength - suffix.count)) + suffix
+                    if !usedCallIds.contains(rewritten) { break }
+                    occurrence += 1
+                }
+                callIdCounts[rawId] = occurrence
+                usedCallIds.insert(rewritten)
+                pendingOutputs[rawId, default: []].append(rewritten)
+                result[index]["call_id"] = rewritten
+            } else if type == "function_call_output",
+                      var queued = pendingOutputs[rawId],
+                      !queued.isEmpty {
+                result[index]["call_id"] = queued.removeFirst()
+                pendingOutputs[rawId] = queued
+            }
+        }
         return result
     }
 

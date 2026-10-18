@@ -30,7 +30,7 @@ from nanomuse.llm.vision import (
     says_no_images,
     without_images,
 )
-from nanomuse.schema import Attachment, LLMResponse, Message
+from nanomuse.schema import Attachment, Function, LLMResponse, Message, ToolCall
 from nanomuse.sentinel import AuditLog, Sentinel
 from nanomuse.server.api import create_app
 from nanomuse.server.service import MuseService
@@ -277,6 +277,39 @@ def test_responses_items_carry_pictures(tmp_path: Path):
     assert items[0]["content"][1]["type"] == "input_image"
     _, items = _to_input_items([Message.user("look", images=[str(pic)])], with_images=False)
     assert items[0]["content"] == "look"
+
+
+def test_responses_items_dedupe_call_ids_and_keep_outputs_paired():
+    def call(call_id: str) -> ToolCall:
+        return ToolCall(id=call_id, function=Function(name="echo", arguments="{}"))
+
+    long_id = "x" * 64
+    messages = [
+        Message.assistant(tool_calls=[call("call_same"), call("call_same"), call("call_same-2")]),
+        Message.tool("first", "call_same"),
+        Message.tool("second", "call_same"),
+        Message.tool("natural suffix", "call_same-2"),
+        Message.assistant(tool_calls=[call("call_same"), call(long_id), call(long_id)]),
+        Message.tool("third", "call_same"),
+        Message.tool("long first", long_id),
+        Message.tool("long second", long_id),
+    ]
+
+    _, items = _to_input_items(messages)
+
+    calls = [item["call_id"] for item in items if item["type"] == "function_call"]
+    outputs = [item["call_id"] for item in items if item["type"] == "function_call_output"]
+    assert calls == [
+        "call_same",
+        "call_same-2",
+        "call_same-2-2",
+        "call_same-3",
+        long_id,
+        f"{'x' * 62}-2",
+    ]
+    assert outputs == calls
+    assert len(calls) == len(set(calls))
+    assert all(len(call_id) <= 64 for call_id in calls)
 
 
 # ----------------------------------------------------------------------------- the provider

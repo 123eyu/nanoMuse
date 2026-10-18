@@ -10,6 +10,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Runtime
 
+- **Responses API requests kept repeated tool calls paired in accumulated or restored request history.** When history contains the same provider `call_id` more than once, the first call keeps it and later calls use deterministic suffixes that remain unique across the request; each tool output follows its call's rewritten id instead of the provider rejecting the next turn with `400 Duplicate call_id`. For [#501](https://github.com/nano-muse/nanoMuse/issues/501).
+
 - **Serply is a keyed web search provider for Google results.** `provider = "serply"` under `[connectors.search]`, or the Serply chip under *Connections → Web search*, queries `https://api.serply.io/v1/search` with `X-Api-Key` (`SEARCH_API_KEY`), passes the country from `region` as `gl`, caps `num` at 10 and falls back to DuckDuckGo with a note on error. Proposed by @googio ([#483](https://github.com/nano-muse/nanoMuse/issues/483)).
 
 - **Standard Compute is in the own-key catalogue.** An OpenAI-compatible gateway at `https://api.stdcmpt.com/v1`, a key from [standardcompute.com/dashboard/api-keys](https://standardcompute.com/dashboard/api-keys), on a fixed monthly plan whose compute budget stops requests with 402 once it is used. The default `standardcompute` is a router that picks a model per request from the ones the account enabled; any id from its public `/v1/models` list can be set instead. Chat only: the router declares no picture input there, so the hands are not claimed. `providers.json` lists twenty-one providers now, and the desktop, the phones, the relay and the web console carry the same file.
@@ -50,6 +52,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Android
 
+- **Responses API requests no longer failed on repeated tool-call ids in accumulated or restored history.** Later copies receive deterministic request-unique suffixes while every tool output remains paired with its call. For [#501](https://github.com/nano-muse/nanoMuse/issues/501).
+
 - **Per-mood avatar clips.** The avatar studio now accepts an optional local video for each of the five moods. Moods without a video keep the existing single-video or built-in animation.
 
 - **Continuous system dictation kept its next segment's audio.** A delayed write failure from a retired recognition pipe previously cleared the replacement pipe, leaving the new recognizer without audio. Failed writes now retire only the stream they used.
@@ -67,6 +71,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 - **A single assistant markdown turn stays in one bubble, and the stop button matches the send disc.** A reply turn containing lists, headings, paragraphs and code blocks now stays inside one assistant bubble on Android as it does on iOS instead of splitting into separate sibling bubbles per markdown block, while text before and after a tool call and separate messages remain distinct bubbles. While a reply is streaming, the stop button in the composer uses the monochrome ink disc (`ChatColors.sendButton` with the inner square in `ChatColors.background`, black with a white square in light and inverted in dark) instead of a red circle.
 
 ### iOS
+
+- **Responses API requests no longer failed on repeated tool-call ids in accumulated or restored history.** Later copies receive deterministic request-unique suffixes while every tool output remains paired with its call. For [#501](https://github.com/nano-muse/nanoMuse/issues/501).
 
 - **A picked avatar clip keeps its preview open.** The photo picker finishes closing before the clip preview opens, and the preview no longer deletes the pending video when SwiftUI briefly removes the sheet. Use and Cancel remain the explicit ways to finish the choice.
 
