@@ -110,6 +110,13 @@ usage, the model menu) goes to that address.
 
 Shell progress updates preserve text beyond a shorter rewrite. Terminal color and title codes are removed before those updates, so they cannot leave escape fragments in the output.
 
+The agent's system prompt keeps its safety, tool and phone-operation instructions in a stable
+prefix. Session-dependent material—skills and MCP metadata, model/device state,
+conversation-specific steering, memory and `USER.md`—is appended in a deterministic suffix, with
+the date, language and available-model count in its final runtime-context section. Updating memory
+or crossing into a new day therefore leaves the static prefix available to providers that support
+prefix caching.
+
 | | |
 | --- | --- |
 | **The agent, on the phone** | A sandboxed Alpine Linux, a real shell, files, a browser, MCP servers, skills in the Agent Skills format, memory, scheduled tasks; approvals before deleting, sending or paying. The model is the account's or your own; nothing you say passes through the project's relay when you use your own key. |

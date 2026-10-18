@@ -10756,6 +10756,10 @@ Memory system (currently DISABLED):
 - If the user asks why earlier memories aren't visible, or asks you to save something, tell them memory is currently disabled and point them at the /memory slash command or [Settings → Memory](minis://settings/memory) to re-enable it.
 - SOUL.md (personality / identity) is unaffected by this toggle; the persona section above still applies."""
         }
+        // nanoMuse: these former interpolation points stay empty; their unchanged text is emitted
+        // in the deterministic volatile suffix after RiskPolicy and Hands.
+        val memoryToolListInStablePrefix = ""
+        val memoryGuidanceInStablePrefix = ""
         val base = identitySection + """You should proactively use shell commands to accomplish the user's tasks — installing packages (apk add), writing and running scripts, managing files, networking, and any other operations a Linux terminal can perform.
 
 Available tools:
@@ -10764,7 +10768,7 @@ Available tools:
 - file_write: Create new files or overwrite existing files (faster than echo/tee).
 - file_edit: Edit existing files with exact string replacement (old_string → new_string). Preferred over file_write for modifications — always file_read first.
 - browser_use: Web browsing (navigate, screenshot, click, type, get_text, scroll, scroll_and_collect, get_readable, get_backbone, fetch, etc.). Starts with a desktop Chrome user agent. Use screenshot to see the page.
-  当 browser_use 触达 Google 登录 / OAuth 页（accounts.google.com、signin.google.com、myaccount.google.com、oauth2.googleapis.com 等）或网页返回 "disallowed_useragent" / 403 包含 "browser is not secure" 字样时，**不要重试或尝试登录** — Google 永久禁止 in-app WebView 完成登录，重试只会浪费 turn。改为告诉用户："此页面需要在系统 Chrome 完成登录" 并给出可点击的 Markdown link [在 Chrome 中打开](https://accounts.google.com/...)。点该 link 时 app 会跳出 Custom Tab；用户在 Chrome 完成操作后，请他**把所需结果（邮件正文 / 文档摘要 / 表格数据）粘贴回 chat**，你再继续帮他处理。这是 Android 平台限制，不是 bug。${toolListMemoryBullets}
+  当 browser_use 触达 Google 登录 / OAuth 页（accounts.google.com、signin.google.com、myaccount.google.com、oauth2.googleapis.com 等）或网页返回 "disallowed_useragent" / 403 包含 "browser is not secure" 字样时，**不要重试或尝试登录** — Google 永久禁止 in-app WebView 完成登录，重试只会浪费 turn。改为告诉用户："此页面需要在系统 Chrome 完成登录" 并给出可点击的 Markdown link [在 Chrome 中打开](https://accounts.google.com/...)。点该 link 时 app 会跳出 Custom Tab；用户在 Chrome 完成操作后，请他**把所需结果（邮件正文 / 文档摘要 / 表格数据）粘贴回 chat**，你再继续帮他处理。这是 Android 平台限制，不是 bug。${memoryToolListInStablePrefix}
 
 Shared directory /var/minis/ (bidirectional read/write between shell and app):
   /var/minis/attachments/ — Media files (images, audio, video). Display inline with ![desc](minis://attachments/filename).
@@ -10844,13 +10848,12 @@ Environment variables:
 - Shell environment variables may contain sensitive API keys, tokens, or passwords. NEVER echo, print, cat, or otherwise output their values to stdout/stderr. Always reference them by variable name (e.g. ${'$'}API_KEY) inside scripts or commands — never inline the literal value.
 - When a skill or task requires an environment variable that is not set, tell the user which variable is missing and provide a tappable deep link to create it: [Set ENV_NAME](minis://settings/environments?create_key=ENV_NAME&create_value=) — the user can tap it to open the Environment Variables page with the key pre-filled.
 - Settings deep links: when you tell the user "go to Settings → X" or want to point them at a specific setting, prefer a Markdown link `[Label](minis://settings/<path>)` over plain prose. Available paths: providers (list), providers/<instanceId> (one provider), model-groups (incl. Agent Loop), model-groups/<groupId>, usage (token usage), skills, memory, storage, shared-folders (Shared Folders: /var/minis/{shared,skills,memory}), mount-external (Mount External Folders), logs, appearance, background, about, permissions, environments[?create_key=K&create_value=V[&create_note=N]], rootfs (also reachable as mirrors). Unknown paths fall back to Settings home, but prefer the exact path so users land where they want. These settings/action links are app deep links — render them as Markdown links in chat (same action-vs-resource rule as the minis:// section above: only /var/minis resource URLs may go to browser_use).
-- To check if a variable is set, use `[ -n "${'$'}VAR" ] && echo 'set' || echo 'not set'`. NEVER use echo ${'$'}VAR, printenv VAR, or any command that would output the actual value into the conversation context.${memorySystemSection}
+- To check if a variable is set, use `[ -n "${'$'}VAR" ] && echo 'set' || echo 'not set'`. NEVER use echo ${'$'}VAR, printenv VAR, or any command that would output the actual value into the conversation context.${memoryGuidanceInStablePrefix}
 
 Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended, so in-app scheduled scripts may not run as expected. For recurring tasks that must fire while the app is backgrounded, use the native alarm tool (AlarmManager) or tell the user to set up a system-level schedule (Google Calendar event, Tasker automation, etc.). (Waiting or polling WITHIN the current turn is different — that is what shell_execute `delay` chains are for, per the shell_execute notes above.)"""
 
-        // Match iOS order exactly: skills → global memory → recent daily memory.
-        // See ios/Agent/Chat/AIChatViewModel.swift:4375-4387. Each fragment is
-        // appended only when non-null; absent fragments leave no separator.
+        // nanoMuse: match iOS suffix groups: model/tool/session state, then memory and USER.md;
+        // PromptCacheLayout appends runtime context last by contract.
         // T-skillscan: rescan disk before reading the fragment so a skill
         // that an earlier turn dropped via shell `git clone` (which bypasses
         // the file_write hook below) becomes visible on the very next user
@@ -10886,56 +10889,43 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
                 "dailyChars=${dailyMemoryFragment?.length ?: 0}",
         )
 
-        return buildString {
-            append(base)
-            if (skillFragment != null) {
-                append("\n\n")
-                append(skillFragment)
-            }
-            if (mcpFragment != null) {
-                append("\n\n")
-                append(mcpFragment)
-            }
-            if (globalMemoryFragment != null) {
-                append("\n\n")
-                append(globalMemoryFragment)
-            }
-            if (dailyMemoryFragment != null) {
-                append("\n\n")
-                append(dailyMemoryFragment)
-            }
-            // nanoMuse: USER.md — what the agent knows about the person, kept as a file they can edit.
-            io.github.nanomuse.sysfiles.UserFile.promptFragment(context)?.let { append("\n\n").append(it) }
-            // Runtime context goes last so the prefix above stays byte-stable
-            // across requests within the same day. Keep ordering deterministic
-            // (date → tz → lang → model count) — any reorder defeats the cache.
-            append("\n\nRuntime context:\n")
-            append("- Current date: ").append(dateStr).append(" (").append(tzId).append(")\n")
-            append("- Device language: ").append(lang).append("\n")
-            append("- minis-model-use models available: ").append(modelUseCount)
-            // nanoMuse: the first-conversation addendum — a few lines for two
-            // turns, then null. Last so the cacheable prefix stays untouched.
-            if (nmFirstConversation.isBoundTo(realSessionId.ifEmpty { sessionId })) {
-                nmFirstConversation.promptAddendum()?.let { append("\n\n").append(it) }
-            }
-            // nanoMuse: how approvals work here.
-            append("\n\n").append(io.github.nanomuse.guard.RiskPolicy.promptParagraph())
-            // nanoMuse: the three models (chat / image / video) and what is not set.
-            append("\n\n").append(io.github.nanomuse.media.MediaModels.promptParagraph(context))
-            // nanoMuse: the ladder for apps without an API, and the screen as the last rung.
-            append("\n\n").append(io.github.nanomuse.hands.Hands.promptParagraph(context))
-            // nanoMuse: the paired computers and nanomuse-pc.
-            append("\n\n").append(io.github.nanomuse.reach.Computers.promptParagraph(context))
-            // nanoMuse: turn-limited addenda for this session (goal creation).
-            io.github.nanomuse.chat.SessionAddenda.forPrompt(realSessionId.ifEmpty { sessionId })
-                ?.let { append("\n\n").append(it) }
-            // nanoMuse: a goal's conversation carries the goal's context and reporting protocol.
-            io.github.nanomuse.goals.GoalFlow.systemAddendum(context, realSessionId.ifEmpty { sessionId })
-                ?.let { append("\n\n").append(it) }
-            // nanoMuse: the feed's conversation carries the user's feed preferences and the post protocol.
-            io.github.nanomuse.feed.FeedFlow.systemAddendum(context, realSessionId.ifEmpty { sessionId })
-                ?.let { append("\n\n").append(it) }
+        // nanoMuse: cache providers match a byte prefix. Keep the safety policy and Hands ladder
+        // ahead of every memory/runtime/session fragment, then append volatile data deterministically.
+        val sessionKey = realSessionId.ifEmpty { sessionId }
+        val runtimeContext = """
+            Runtime context:
+            - Current date: $dateStr ($tzId)
+            - Device language: $lang
+            - minis-model-use models available: $modelUseCount
+        """.trimIndent()
+        val namingAddendum = if (nmFirstConversation.isBoundTo(sessionKey)) {
+            nmFirstConversation.promptAddendum()
+        } else {
+            null
         }
+        return io.github.nanomuse.chat.PromptCacheLayout.build(
+            stableSections = listOf(
+                base,
+                io.github.nanomuse.guard.RiskPolicy.promptParagraph(),
+                io.github.nanomuse.hands.Hands.promptParagraph(context),
+            ),
+            volatileSections = listOf(
+                skillFragment,
+                mcpFragment,
+                namingAddendum,
+                io.github.nanomuse.media.MediaModels.promptParagraph(context),
+                io.github.nanomuse.reach.Computers.promptParagraph(context),
+                io.github.nanomuse.chat.SessionAddenda.forPrompt(sessionKey),
+                io.github.nanomuse.goals.GoalFlow.systemAddendum(context, sessionKey),
+                io.github.nanomuse.feed.FeedFlow.systemAddendum(context, sessionKey),
+                toolListMemoryBullets,
+                memorySystemSection,
+                globalMemoryFragment,
+                dailyMemoryFragment,
+                io.github.nanomuse.sysfiles.UserFile.promptFragment(context),
+            ),
+            runtimeContext = runtimeContext,
+        ).prompt
     }
 
     // ─── Legacy tool execution methods (kept for compatibility) ───────────

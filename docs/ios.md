@@ -70,6 +70,12 @@ Applied by `python scripts/rebrand.py` (idempotent; run after every upstream pul
 
 Ours, in `NanoMuse/`:
 
+- **Cache-stable agent instructions.** The system prompt keeps its fixed tool and safety guidance
+  in a stable prefix, then appends model capabilities, skills and MCP metadata, memory,
+  `USER.md` and conversation steering, and finally the current time, language and available-model
+  count as a deterministic volatile suffix. A memory write or hourly time refresh no longer
+  invalidates the static instructions for providers that support prefix caching; fallback models
+  rebuild the same layout.
 - **nanoMuse Cloud.** *Providers* opens with a "nanoMuse Cloud" row: a phone number or an
   e-mail address, a code, and the relay ([cloud.md](cloud.md)) is an ordinary OpenAI-compatible
   provider in the app, with a model group of its own that becomes the default when there is none.
