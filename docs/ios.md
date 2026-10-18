@@ -220,7 +220,8 @@ Ours, in `NanoMuse/`:
   privacy page, deletion with a confirmation. **Reach** (`NanoMuseReach.swift`): a sheet per device
   of the account (open a link, send a note, a shell line, a screenshot) over the hub.
   **A task for another device** (`NanoMuseDeviceMention.swift`, `NanoMuseRemoteApproval.swift`):
-  a message that starts with `@〈device〉` goes to that device's Muse as a hub `task`; when a step
+  a message that starts with `@〈device〉` goes to that device's Muse as a hub `task` (the `@` menu
+  lists the online devices above the files when the `@` opens the message); when a step
   there needs a yes, the `approval` event is answered here, where the task was typed
   ([hub.md](hub.md)), on a card with the Android phone's four answers: *Allow once*, *Allow for
   this chat* (held in memory for that chat), *Always allow this on 〈device〉* (the same step on

@@ -185,7 +185,8 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   删除。**Reach**（`NanoMuseReach.swift`）：账号下每台设备一个面板（打开链接、发一条便条、
   跑一行 shell、截一张图），都通过 hub。
   **交给另一台设备的任务**（`NanoMuseDeviceMention.swift`、`NanoMuseRemoteApproval.swift`）：
-  以 `@〈设备〉` 开头的消息作为 hub 的 `task` 发给那台设备的 Muse；那边有一步需要点头时，
+  以 `@〈设备〉` 开头的消息作为 hub 的 `task` 发给那台设备的 Muse（消息开头打 `@` 时，菜单在文件
+  上方列出在线的设备）；那边有一步需要点头时，
   `approval` 事件在这里、在输入任务的地方回答（[hub.md](hub.md)），卡片上是 Android 手机的
   四个答案：*允许一次*、*在这个聊天里允许*（为那个聊天记在内存里）、*在 〈设备〉 上始终允许
   这一步*（同一步在同一台设备上，按设备 id 存在这台手机上，智能体页面的*审批*里列出并可
