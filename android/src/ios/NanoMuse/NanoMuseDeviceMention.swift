@@ -44,6 +44,37 @@ enum NanoMuseDeviceMention {
         return nil
     }
 
+    /// The online devices the `@` menu offers, above the files: only when the `@` opens the
+    /// message (that is the only place `parse` looks), name starting with what was typed after it,
+    /// or containing it. Picking one writes "@<name> ", which `parse` then reads at send.
+    @MainActor
+    static func menuEntries(text: String, anchor: Int, filter: String) -> [FileMentionEntry] {
+        let nsText = text as NSString
+        guard anchor >= 0, anchor <= nsText.length,
+              nsText.substring(to: anchor).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else { return [] }
+        let query = filter.lowercased()
+        let devices = NanoMuseHub.shared.others.filter { d in
+            let name = d.name.trimmingCharacters(in: .whitespaces)
+            return d.online && !name.isEmpty && (query.isEmpty || name.lowercased().contains(query))
+        }
+        let ranked = devices.sorted { a, b in
+            let pa = a.name.lowercased().hasPrefix(query), pb = b.name.lowercased().hasPrefix(query)
+            if pa != pb { return pa }
+            return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
+        }
+        return ranked.map { d in
+            FileMentionEntry(
+                linuxPath: d.name, scope: .mount, mountName: AppLocalized("device"),
+                modifiedAt: d.lastSeen ?? Date(), isDirectory: false,
+                nmDevice: NanoMuseMentionDevice(
+                    symbol: d.isPhone ? "iphone" : "desktopcomputer",
+                    detail: [d.os, AppLocalized("online")].filter { !$0.isEmpty }.joined(separator: " · ")
+                )
+            )
+        }
+    }
+
     /// Runs the mention when there is one: the person's line goes into the chat, the device's
     /// answer follows when it comes. Returns false when the text does not address a device.
     @MainActor
@@ -114,4 +145,12 @@ enum NanoMuseDeviceMention {
         var declined = 0
         var standing = 0
     }
+}
+
+/// What a row of the `@` menu needs to show a device instead of a file (`FileMentionEntry.nmDevice`).
+struct NanoMuseMentionDevice: Hashable {
+    /// The SF Symbol: a phone or a computer.
+    let symbol: String
+    /// "Darwin 25.5.0 · online", the line under the name.
+    let detail: String
 }

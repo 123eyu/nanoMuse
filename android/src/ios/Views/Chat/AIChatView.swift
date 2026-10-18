@@ -4527,6 +4527,7 @@ struct AIChatView: View {
         }
 
         private var iconName: String {
+            if let device = entry.nmDevice { return device.symbol } // nanoMuse: a phone or a computer of the account
             if entry.isDirectory { return "folder" }
             switch entry.scope {
             case .workspace:   return "doc.text"

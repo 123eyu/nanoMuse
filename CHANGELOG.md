@@ -74,6 +74,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### iOS
 
+- **The `@` menu offers your other devices.** Typing `@` at the start of a message lists the account's online phones and computers above the files, filtered by what follows; picking one writes `@〈name〉 ` so the message goes to that device. Before, a device could only be addressed by typing its name in full or from *Settings → Devices*. For [#505](https://github.com/nano-muse/nanoMuse/issues/505).
+
 - **Responses API requests no longer failed on repeated tool-call ids in accumulated or restored history.** Later copies receive deterministic request-unique suffixes while every tool output remains paired with its call. For [#501](https://github.com/nano-muse/nanoMuse/issues/501).
 
 - **Memory, time and model-count changes no longer invalidate the agent's static prompt prefix.** The base instructions now precede a deterministic suffix containing model capabilities, skills, MCP metadata, memory, `USER.md`, session steering and runtime context, and fallback models rebuild that same order. For #502.
