@@ -30,6 +30,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Desktop
 
+- **A task from the phone streams its text back while the model writes it.** When the asking device sends `stream: true` with a `task`, the desktop follows the live model stream and sends the text of the message being written as `text {partial: true}` events, at most every 250 ms, then the finished message as before. Callers that do not ask, such as Android's `nanomuse-pc task`, get each message once as before. For [#514](https://github.com/nano-muse/nanoMuse/issues/514).
+
 - **A final reply from another device no longer disappears after desktop sync state is partly cleared.** When the main chat still had its saved conversation mapping but its cached conversation metadata was empty, the desktop treated the reply as a side-chat row, skipped it and advanced the cursor. The existing main-chat mapping now identifies the row before that filter runs. For [#499](https://github.com/nano-muse/nanoMuse/issues/499).
 
 - **Going back no longer returns to the starting screen.** The window opened on the starting screen and then loaded the app, so a back press, a mouse's side button included, went back to that screen, which stayed on *Starting* until the app was restarted. The starting screen is now dropped from the window's history once the app has loaded. For #491.
