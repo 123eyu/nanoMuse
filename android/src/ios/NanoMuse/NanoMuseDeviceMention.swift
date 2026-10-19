@@ -75,8 +75,9 @@ enum NanoMuseDeviceMention {
         }
     }
 
-    /// Runs the mention when there is one: the person's line goes into the chat, the device's
-    /// answer follows when it comes. Returns false when the text does not address a device.
+    /// Runs the mention when there is one: the person's line goes into the chat, then the device's
+    /// reply, drawn while that device works (NanoMuseDeviceReply). Returns false when the text
+    /// does not address a device.
     @MainActor
     static func handle(_ text: String, in vm: AIChatViewModel) -> Bool {
         guard let hit = parse(text) else { return false }
@@ -89,6 +90,7 @@ enum NanoMuseDeviceMention {
         }
         let notes = Notes()
         let sessionId = vm.sessionId ?? vm.draftId ?? "draft"
+        let live = NanoMuseDeviceReply(device: device, vm: vm)
         Task { @MainActor in
             do {
                 let reply = try await NanoMuseHub.shared.call(
@@ -97,14 +99,15 @@ enum NanoMuseDeviceMention {
                     // `language` (runtime 1.0.0, docs/hub.md): the Muse over there answers in
                     // this phone's language instead of guessing from the text; older runtimes ignore it.
                     args: ["text": task, "from": NanoMuseHub.shared.name, "language": NanoMuseLocale.tag],
-                    timeout: 600
+                    timeout: 600,
+                    id: live.callId
                 ) { body in
-                    guard let stage = body["stage"] as? String, let id = body["approval_id"] as? String else { return }
+                    guard let stage = body["stage"] as? String else { return }
                     switch stage {
                     case "approval":
                         // That Muse asks whether it may do something risky. The question is answered
                         // here, where the task was typed (docs/hub.md): the card, or a remembered answer.
-                        guard let question = NanoMuseRemoteQuestion(body: body) else { return }
+                        guard let id = body["approval_id"] as? String, let question = NanoMuseRemoteQuestion(body: body) else { return }
                         Task { @MainActor in
                             let outcome = await NanoMuseRemoteApprovals.shared.decide(question, from: device, sessionId: sessionId)
                             switch outcome {
@@ -117,9 +120,11 @@ enum NanoMuseDeviceMention {
                         }
                     case "approval_result":
                         // Decided at the other device, or expired there: the card here goes.
+                        guard let id = body["approval_id"] as? String else { return }
                         Task { @MainActor in NanoMuseRemoteApprovals.shared.settled(id) }
                     default:
-                        break
+                        // A step starting or done, what that Muse says along the way: drawn as it comes.
+                        Task { @MainActor in live.apply(body) }
                     }
                 }
                 var answer = (reply["text"] as? String) ?? (reply["answer"] as? String) ?? ""
@@ -130,10 +135,14 @@ enum NanoMuseDeviceMention {
                 if notes.standing > 0 {
                     answer += "\n\n" + AppLocalized("A step ran on a standing approval given on this phone; Approvals on the agent's page lists it.")
                 }
-                vm.nmLocalTurn(assistant: String(format: AppLocalized("%@ answered:"), device.name) + "\n\n" + answer)
+                await live.finish(header: String(format: AppLocalized("%@ answered:"), device.name), answer: answer, replacing: true)
             } catch {
-                let reason = NanoMuseHubErrors.describe(error)
-                vm.nmLocalTurn(assistant: String(format: AppLocalized("%@ did not answer: %@"), device.name, reason))
+                if live.stopped {
+                    await live.finish(header: nil, answer: AppLocalized("Stopped."), replacing: false)
+                } else {
+                    let reason = NanoMuseHubErrors.describe(error)
+                    await live.finish(header: nil, answer: String(format: AppLocalized("%@ did not answer: %@"), device.name, reason), replacing: false)
+                }
             }
         }
         return true
