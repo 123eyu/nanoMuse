@@ -1,4 +1,4 @@
-"""Run: python -m unittest discover -s experiments/goal_eval -p test_prototype.py -v.
+"""Run: python tests/test_goal_evaluation.py.
 
 These evaluator tests require the standard library only.
 """

@@ -1,7 +1,9 @@
 """Evidence-based goal evaluation core, opt-in by explicit library invocation.
 
-Evidence inputs belong to a trusted harness, not an agent-facing JSON interface.
-Hashes detect changed snapshots; they do not authenticate a producer or prove truth.
+This module does not change ``GoalStore`` status or run from the agent loop. Runtime
+integration must define the trusted harness that supplies observations and applies any
+later decision. Hashes detect changed snapshots; they do not authenticate a producer
+or prove truth.
 """
 
 from __future__ import annotations
