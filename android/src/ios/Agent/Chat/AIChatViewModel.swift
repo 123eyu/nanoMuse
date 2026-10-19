@@ -3930,6 +3930,7 @@ final class AIChatViewModel: ObservableObject, SpeechControlling {
             self?.dumpQueueSnapshot("stop-AFTER+500ms")
         }
         isSuspended = false
+        NanoMuseDeviceReply.stop(in: self) // nanoMuse: a task this chat gave another device (@device) ends there too
         if let sid = sessionId {
             SessionConcurrencyManager.shared.cancelWait(sessionId: sid)
         }
