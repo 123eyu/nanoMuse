@@ -365,6 +365,13 @@ final class NanoMuseHub: ObservableObject {
         }
     }
 
+    /// Stops waiting on a call out: it fails with `cancelled` now, whatever the other device
+    /// answers later (its `result` then finds nobody and is dropped).
+    func abandon(_ id: String) {
+        eventHandlers.removeValue(forKey: id)
+        pending.removeValue(forKey: id)?(.failure(HubError(code: "cancelled", message: "stopped here")))
+    }
+
     private func failAll(_ error: HubError) {
         let waiting = pending
         pending = [:]
