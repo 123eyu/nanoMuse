@@ -98,7 +98,9 @@ enum NanoMuseDeviceMention {
                     action: "task",
                     // `language` (runtime 1.0.0, docs/hub.md): the Muse over there answers in
                     // this phone's language instead of guessing from the text; older runtimes ignore it.
-                    args: ["text": task, "from": NanoMuseHub.shared.name, "language": NanoMuseLocale.tag],
+                    // `stream`: the reply draws a `text` in place (NanoMuseDeviceReply), so the
+                    // computer may send a message's text while its model writes it; others ignore it.
+                    args: ["text": task, "from": NanoMuseHub.shared.name, "language": NanoMuseLocale.tag, "stream": true],
                     timeout: 600,
                     id: live.callId
                 ) { body in
