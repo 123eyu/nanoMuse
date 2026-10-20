@@ -47,7 +47,7 @@ Two kinds of request travel over the hub:
   phone's ShellGuard, the desktop's `guard.py`): reads and builds go quietly,
   deleting / sending / paying / system commands wait for the approval card on
   the device that asked.
-- **Tasks.** `task {text, conversation?, language?}`: a whole job in words for the target device's own
+- **Tasks.** `task {text, conversation?, language?, stream?}`: a whole job in words for the target device's own
   Muse, in a conversation of its own (`conversation` names it; the sender's id
   when absent). `language` (runtime 1.0.0, optional) is the BCP-47 tag of the
   asking device's screens; the target answers in it instead of guessing from
@@ -63,6 +63,11 @@ Two kinds of request travel over the hub:
   itself then fails with `cancelled`. `{stopped: false}` means there was
   nothing of the caller's to stop; a device never stops another device's
   task. The runtime, the desktop app and the phone all do this.
+  `stream: true` says the caller draws each `text` in place of the text since the last `tool`;
+  nanoMuse Desktop then also sends `text {text, interim, partial: true}` with the text of the
+  message the model is writing, at most every 250 ms, and the finished message as before. A
+  caller that does not ask gets each message once (Android's `nanomuse-pc task` lists every
+  `text` as a step); the runtime ignores `stream` for now.
 
   While a task runs the target sends `event` frames whose `body.stage` tells
   the caller what to draw, so the run reads the same in the caller's chat as in

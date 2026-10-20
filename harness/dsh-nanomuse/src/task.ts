@@ -7,13 +7,17 @@
  * for the next task from the same place. The call streams the run back as
  * `event` frames in the runtime's vocabulary — `tool`, `tool_result`, `text`
  * (interim), `approval`, `approval_result` — and resolves with the final answer.
+ * An asker that sends `stream: true` draws a `text` in place of the text since the
+ * last `tool`, so it also gets the text of a message while the model writes it
+ * (`partial: true`, from the live `agent/assistant-stream`), at most every
+ * STREAM_INTERVAL_MS; the finished message follows as before.
  *
  * Approvals the run asks for go to the asker: the person is at the other device,
  * so its card shows there and its `approve {approval_id, allow}` decides; the
  * local card is not raised for these sessions. `stop {call}` cancels the run.
  */
 import type { Context } from '@deepseek-ai/cordis'
-import type { Agent } from '@deepseek-ai/dsh-agent'
+import type { Agent, AssistantStreamFrame } from '@deepseek-ai/dsh-agent'
 import type { ApprovalOutcome, ApprovalRequestEvent } from '@deepseek-ai/dsh-user-approval/types'
 import { createUserMessage, type ContentBlock } from '@deepseek-ai/dsh-llm'
 import type { Session, SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
@@ -24,6 +28,8 @@ import { HubError, type Caller, type IncomingCall } from './hub.ts'
 export const TASK_TIMEOUT_MS = 15 * 60_000
 /** How long an approval relayed to the asker may stay unanswered. */
 export const APPROVAL_TIMEOUT_S = 180
+/** At most this often a message's text so far goes to an asker that wants it streamed. */
+export const STREAM_INTERVAL_MS = 250
 
 type ApprovalStatus = 'approved' | 'denied' | 'expired' | 'cancelled'
 
@@ -36,6 +42,11 @@ interface Run {
   readonly tools: Map<string, { name: string; args: string }>
   /** Approvals waiting on the asker, cancelled with the run. */
   readonly approvals: Set<string>
+  /** The asker draws `text` in place (`task {stream: true}`): send a message's text as it grows. */
+  readonly stream: boolean
+  /** The text of the model attempt being written, and the timer that sends it. */
+  streamed: string
+  streamTimer?: ReturnType<typeof setTimeout> | undefined
   final: string
   resolve(text: string): void
   reject(error: HubError): void
@@ -109,9 +120,11 @@ export class TaskRunner {
   attach(): () => void {
     const offEvents = this.ctx.on('session/event', (session: Session, event: SessionEvent) => this.onEvent(session, event))
     const offApproval = this.ctx.on('approval/request', (req: ApprovalRequestEvent, next: () => Promise<ApprovalOutcome>) => this.onApproval(req, next), true)
+    const offStream = this.ctx.on('agent/assistant-stream', ({ agent, frame }: { agent: Agent; frame: AssistantStreamFrame }) => this.onStream(agent.id, frame))
     return () => {
       offEvents()
       offApproval()
+      offStream()
       for (const run of [...this.byCall.values()]) run.reject(new HubError('failed', 'this computer stopped taking tasks'))
     }
   }
@@ -125,7 +138,7 @@ export class TaskRunner {
     return [...this.byCall.values()].map((run) => ({ sessionId: String(run.sessionId), from: run.call.from.name || run.call.from.id }))
   }
 
-  /** `task {text, from?, conversation?}` → `{text, conversation, thread, device}`. */
+  /** `task {text, from?, conversation?, stream?}` → `{text, conversation, thread, device}`. */
   async task(args: Record<string, unknown>, call: IncomingCall): Promise<Record<string, unknown>> {
     if (this.options.closed?.()) throw new HubError('busy', 'this computer is ending its work; ask again in a moment')
     const text = String(args.text ?? '').trim()
@@ -144,7 +157,8 @@ export class TaskRunner {
       resolve = res
       reject = rej
     })
-    const run: Run = { callId: call.id, call, sessionId, agent, tools: new Map(), approvals: new Set(), final: '', resolve, reject }
+    const stream = args.stream === true || args.stream === 'true'
+    const run: Run = { callId: call.id, call, sessionId, agent, tools: new Map(), approvals: new Set(), stream, streamed: '', final: '', resolve, reject }
     this.bySession.set(sessionId, run)
     this.byCall.set(call.id, run)
     const timer = setTimeout(() => {
@@ -159,6 +173,7 @@ export class TaskRunner {
       return { text: final, conversation, thread: sessionId, device: this.options.deviceName() }
     } finally {
       clearTimeout(timer)
+      cutStream(run)
       this.bySession.delete(sessionId)
       this.byCall.delete(call.id)
       for (const id of run.approvals) this.pendingApprovals.get(id)?.('cancelled')
@@ -205,6 +220,9 @@ export class TaskRunner {
   private onEvent(session: Session, event: SessionEvent): void {
     const run = this.bySession.get(session.id)
     if (!run) return
+    // The stored message, a tool call or the turn's end overtakes the live text: nothing
+    // partial may land after it. Other events (a retry notice, a header) leave it running.
+    if (STREAM_CUTTERS.has(event.type)) cutStream(run)
     switch (event.type) {
       case 'tool/call': {
         const { callId, name, arguments: args } = event.data
@@ -249,6 +267,22 @@ export class TaskRunner {
     }
   }
 
+  /** A live model-stream frame: an attempt starts its text afresh, a text delta extends it. */
+  private onStream(sessionId: SessionId, frame: AssistantStreamFrame): void {
+    const run = this.bySession.get(sessionId)
+    if (!run?.stream) return
+    if (frame.type !== 'chunk') {
+      cutStream(run)
+      return
+    }
+    if (frame.chunk.type !== 'text-delta' || !frame.chunk.text) return
+    run.streamed += frame.chunk.text
+    run.streamTimer ??= setTimeout(() => {
+      run.streamTimer = undefined
+      if (run.streamed.trim()) run.call.event({ stage: 'text', text: run.streamed, interim: true, partial: true })
+    }, STREAM_INTERVAL_MS)
+  }
+
   private async onApproval(req: ApprovalRequestEvent, next: () => Promise<ApprovalOutcome>): Promise<ApprovalOutcome> {
     const run = req.agent ? this.bySession.get(req.agent.id) : undefined
     if (!run) return next()
@@ -282,6 +316,16 @@ export class TaskRunner {
     this.options.log('info', `nanomuse task: ${run.call.from.name || run.call.from.id} ${status} ${req.toolName}`)
     return status === 'approved' ? 'allowed-once' : status === 'cancelled' ? 'cancelled' : 'rejected'
   }
+}
+
+/** The stored events after which the text of the attempt being written is finished business. */
+const STREAM_CUTTERS: ReadonlySet<string> = new Set(['assistant/message', 'assistant/attempt', 'tool/call', 'turn/end'])
+
+/** Drop the text being streamed and its pending send: a new attempt, a stored event, the end of the run. */
+function cutStream(run: Run): void {
+  clearTimeout(run.streamTimer)
+  run.streamTimer = undefined
+  run.streamed = ''
 }
 
 function key(deviceId: string, conversation: string): string {

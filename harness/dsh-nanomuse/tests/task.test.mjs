@@ -1,14 +1,15 @@
 // A task from another device run in a dsh session: the runner against a fake
 // context — session creation and naming, the event frames it streams back in the
 // runtime's vocabulary, approvals relayed to the asker and decided by `approve`,
-// `stop {call}` cancelling the run, busy and timeout handling.
+// `stop {call}` cancelling the run, busy and timeout handling, the text of a message
+// streamed while the model writes it when the asker asked for that.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { TaskRunner, frame, preview, textOf } from '../lib/task.js'
+import { STREAM_INTERVAL_MS, TaskRunner, frame, preview, textOf } from '../lib/task.js'
 
 /** The slice of a dsh Context the runner touches. */
 function fakeContext() {
-  const listeners = { 'session/event': [], 'approval/request': [] }
+  const listeners = { 'session/event': [], 'approval/request': [], 'agent/assistant-stream': [] }
   const sessions = new Map()
   const agents = new Map()
   const log = []
@@ -61,13 +62,17 @@ function fakeContext() {
   const emit = (sessionId, type, data) => {
     for (const fn of [...listeners['session/event']]) fn(sessions.get(sessionId), { type, seq: 1, time: Date.now(), data })
   }
+  /** Publish one live model-stream frame, as the agent loop would. */
+  const stream = (sessionId, frame) => {
+    for (const fn of [...listeners['agent/assistant-stream']]) fn({ agent: agents.get(sessionId), frame })
+  }
   /** Ask the answerer chain, as the approval service would. */
   const ask = (sessionId, req) => {
     const chain = [...listeners['approval/request']]
     const run = (i) => (i < chain.length ? chain[i](Object.assign({ agent: agents.get(sessionId) }, req), () => run(i + 1)) : Promise.resolve('unavailable'))
     return run(0)
   }
-  return { ctx, emit, ask, agents, log }
+  return { ctx, emit, ask, stream, agents, log }
 }
 
 function fakeCall(id, from = { id: 'phone-1', name: 'Phone', kind: 'phone' }) {
@@ -83,6 +88,10 @@ function runner(h) {
 }
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0))
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/** One text delta of attempt `a1`, as the agent loop publishes it. */
+const delta = (index, text) => ({ type: 'chunk', attemptId: 'a1', revision: 1, index, time: Date.now(), chunk: { type: 'text-delta', index: 0, text } })
 
 test('frame, textOf and preview', () => {
   assert.ok(frame('Phone', 'Desk', 'tidy up').startsWith('[Asked from Phone'))
@@ -240,5 +249,65 @@ test('a closed gate refuses a task with the usual busy error, and opens again', 
   assert.equal(r.running, 1, 'the gate is open, the task runs')
   h.emit('session-1', 'turn/end', { turn: 1, reason: { kind: 'completed' } })
   await p
+  off()
+})
+
+test('with stream asked, the text of a message goes out as it grows, then the message as before', async () => {
+  const h = fakeContext()
+  const { r, off } = runner(h)
+  const call = fakeCall('c1')
+  const p = r.task({ text: 'explain the project', stream: true }, call)
+  await tick()
+  h.stream('session-1', { type: 'start', attemptId: 'a1', revision: 1, turn: 1, step: 1 })
+  h.stream('session-1', delta(0, 'It is '))
+  // a stored event that does not end the message leaves its text running
+  h.emit('session-1', 'llm/retry-started', { turn: 1, step: 1 })
+  h.stream('session-1', delta(1, 'a todo '))
+  // a burst within one interval goes out once, as the text so far
+  assert.deepEqual(call.events, [])
+  await wait(STREAM_INTERVAL_MS + 20)
+  assert.deepEqual(call.events, [{ stage: 'text', text: 'It is a todo ', interim: true, partial: true }])
+  // a reasoning delta is not the Muse's words
+  h.stream('session-1', { type: 'chunk', attemptId: 'a1', revision: 1, index: 2, time: Date.now(), chunk: { type: 'reasoning-delta', index: 1, text: 'hmm' } })
+  h.stream('session-1', delta(3, 'app.'))
+  // the finished message overtakes the pending text: nothing partial lands after it
+  h.emit('session-1', 'assistant/message', { turn: 1, step: 1, message: { role: 'assistant', content: [{ type: 'text', text: 'It is a todo app.' }] }, stream: [] })
+  h.stream('session-1', { type: 'end', attemptId: 'a1', revision: 1, index: 4, outcome: { kind: 'committed', eventType: 'assistant/message', seq: 3 } })
+  await wait(STREAM_INTERVAL_MS + 20)
+  h.emit('session-1', 'turn/end', { turn: 1, reason: { kind: 'completed' } })
+  assert.equal((await p).text, 'It is a todo app.')
+  assert.deepEqual(call.events, [
+    { stage: 'text', text: 'It is a todo ', interim: true, partial: true },
+    { stage: 'text', text: 'It is a todo app.', interim: true },
+  ])
+  off()
+})
+
+test('a new attempt starts its text afresh, and a caller that did not ask gets no partial text', async () => {
+  const h = fakeContext()
+  const { r, off } = runner(h)
+  const asked = fakeCall('c1')
+  const p = r.task({ text: 'go', stream: true }, asked)
+  await tick()
+  h.stream('session-1', { type: 'start', attemptId: 'a1', revision: 1, turn: 1, step: 1 })
+  h.stream('session-1', delta(0, 'first try'))
+  h.stream('session-1', { type: 'end', attemptId: 'a1', revision: 1, index: 1, outcome: { kind: 'abandoned' } })
+  h.stream('session-1', { type: 'start', attemptId: 'a2', revision: 2, turn: 1, step: 1 })
+  h.stream('session-1', { ...delta(0, 'second'), attemptId: 'a2', revision: 2 })
+  await wait(STREAM_INTERVAL_MS + 20)
+  assert.deepEqual(asked.events, [{ stage: 'text', text: 'second', interim: true, partial: true }])
+  h.emit('session-1', 'turn/end', { turn: 1, reason: { kind: 'completed' } })
+  await p
+
+  h.agents.get('session-1').status = 'idle'
+  const plain = fakeCall('c2')
+  const p2 = r.task({ text: 'again' }, plain)
+  await tick()
+  h.stream('session-1', { type: 'start', attemptId: 'a3', revision: 3, turn: 2, step: 1 })
+  h.stream('session-1', { ...delta(0, 'words'), attemptId: 'a3', revision: 3 })
+  await wait(STREAM_INTERVAL_MS + 20)
+  assert.deepEqual(plain.events, [])
+  h.emit('session-1', 'turn/end', { turn: 2, reason: { kind: 'completed' } })
+  await p2
   off()
 })
