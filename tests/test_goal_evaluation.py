@@ -22,6 +22,7 @@ from nanomuse.goals.evaluation import (
     Evidence,
     Ledger,
     Run,
+    Scalar,
     collect_file,
     contract_from_dict,
     decide,
@@ -46,10 +47,10 @@ class GoalEvaluationTests(unittest.TestCase):
             max_age=60,
         )
         self.contract = Contract("g_1", 1, (self.criterion,))
-        self.run = Run("r_1")
+        self.goal_run = Run("r_1")
 
-    def evidence(self, value: bool = True, **overrides: Any) -> Evidence:
-        fields = dict(
+    def evidence(self, value: Scalar = True, **overrides: Any) -> Evidence:
+        fields: dict[str, Any] = dict(
             id="e_1",
             goal_id="g_1",
             revision=1,
@@ -68,8 +69,8 @@ class GoalEvaluationTests(unittest.TestCase):
         return observation(**fields)
 
     def test_task_completed_with_real_progress(self) -> None:
-        before = evaluate(self.contract, self.run, [self.evidence(False)], now=NOW)
-        after = evaluate(self.contract, self.run, [self.evidence()], now=NOW, previous=before)
+        before = evaluate(self.contract, self.goal_run, [self.evidence(False)], now=NOW)
+        after = evaluate(self.contract, self.goal_run, [self.evidence()], now=NOW, previous=before)
         self.assertEqual((after["status"], after["delta"]), ("verified", 1))
         self.assertEqual(after["evidence"], {"accepted": ["e_1"]})
         self.assertEqual(decide(after), ("escalate", "review_completion"))
@@ -77,7 +78,7 @@ class GoalEvaluationTests(unittest.TestCase):
         self.assertNotEqual(decide(after, approved_result_id="another-result")[0], "stop")
 
     def test_task_succeeded_without_goal_progress(self) -> None:
-        before = evaluate(self.contract, self.run, [self.evidence(False)], now=NOW)
+        before = evaluate(self.contract, self.goal_run, [self.evidence(False)], now=NOW)
         after = evaluate(
             self.contract,
             Run("r_2"),
@@ -91,7 +92,7 @@ class GoalEvaluationTests(unittest.TestCase):
 
     def test_model_claim_without_evidence(self) -> None:
         claim = self.evidence(collector="llm.self_report")
-        result = evaluate(self.contract, self.run, [claim], now=NOW)
+        result = evaluate(self.contract, self.goal_run, [claim], now=NOW)
         self.assertEqual((result["status"], result["delta"]), ("unknown", None))
         self.assertEqual(decide(result), ("continue", "collect_evidence"))
         self.assertEqual(decide(result, unknown_runs=3)[0], "escalate")
@@ -102,7 +103,7 @@ class GoalEvaluationTests(unittest.TestCase):
             criteria=(self.criterion, replace(self.criterion, id="window", invariant=True)),
         )
         result = evaluate(
-            contract, self.run, [self.evidence(False, criterion_id="window")], now=NOW
+            contract, self.goal_run, [self.evidence(False, criterion_id="window")], now=NOW
         )
         self.assertEqual(result["status"], "contradicted")
         self.assertEqual(result["violated"], ["window"])
@@ -113,7 +114,7 @@ class GoalEvaluationTests(unittest.TestCase):
             path = Path(tmp) / "eval.db"
             ledger = Ledger(path)
             before = ledger.record(
-                self.contract, replace(self.run, state="interrupted"), [], now=NOW
+                self.contract, replace(self.goal_run, state="interrupted"), [], now=NOW
             )
             self.assertEqual(before["status"], "unknown")
             self.assertEqual(decide(before)[1], "reconcile_before_retry")
@@ -121,7 +122,7 @@ class GoalEvaluationTests(unittest.TestCase):
             ledger = Ledger(path)
             recovered = ledger.record(
                 self.contract,
-                replace(self.run, attempt=2),
+                replace(self.goal_run, attempt=2),
                 [self.evidence(attempt=2)],
                 now=NOW,
                 previous=before,
@@ -129,7 +130,7 @@ class GoalEvaluationTests(unittest.TestCase):
             self.assertEqual(recovered["status"], "verified")
             replay = ledger.record(
                 self.contract,
-                replace(self.run, attempt=2),
+                replace(self.goal_run, attempt=2),
                 [self.evidence(attempt=2)],
                 now=NOW,
                 previous=before,
@@ -139,7 +140,7 @@ class GoalEvaluationTests(unittest.TestCase):
                 ledger.conn.execute("SELECT count(*) FROM evaluations").fetchone()[0], 2
             )
             with self.assertRaises(ValueError):
-                ledger.record(self.contract, replace(self.run, attempt=2), [], now=NOW)
+                ledger.record(self.contract, replace(self.goal_run, attempt=2), [], now=NOW)
             ledger.close()
 
     def test_real_artifact_recheck_detects_tampering(self) -> None:
@@ -158,16 +159,16 @@ class GoalEvaluationTests(unittest.TestCase):
             contract = Contract("g_1", 1, (criterion,))
             before = evaluate(
                 contract,
-                self.run,
-                [collect_file(contract, self.run, criterion, path, NOW)],
+                self.goal_run,
+                [collect_file(contract, self.goal_run, criterion, path, NOW)],
                 now=NOW,
             )
             self.assertEqual(before["status"], "verified")
             path.write_text("different report\n")
             after = evaluate(
                 contract,
-                self.run,
-                [collect_file(contract, self.run, criterion, path, NOW + 1)],
+                self.goal_run,
+                [collect_file(contract, self.goal_run, criterion, path, NOW + 1)],
                 now=NOW + 1,
                 previous=before,
             )
@@ -191,60 +192,66 @@ class GoalEvaluationTests(unittest.TestCase):
             {"value": "true"},
         ):
             with self.subTest(fields=fields):
-                result = evaluate(self.contract, self.run, [self.evidence(**fields)], now=NOW)
+                result = evaluate(self.contract, self.goal_run, [self.evidence(**fields)], now=NOW)
                 self.assertEqual(result["status"], "unknown")
                 self.assertEqual(result["met"], [])
 
     def test_digest_mismatch_is_unknown(self) -> None:
         e = replace(self.evidence(), value=False)
-        self.assertEqual(evaluate(self.contract, self.run, [e], now=NOW)["status"], "unknown")
+        self.assertEqual(evaluate(self.contract, self.goal_run, [e], now=NOW)["status"], "unknown")
 
     def test_duplicate_and_conflicting_ids(self) -> None:
         e = self.evidence()
-        self.assertEqual(evaluate(self.contract, self.run, [e, e], now=NOW)["met"], ["accepted"])
-        result = evaluate(self.contract, self.run, [e, self.evidence(False)], now=NOW)
+        self.assertEqual(
+            evaluate(self.contract, self.goal_run, [e, e], now=NOW)["met"], ["accepted"]
+        )
+        result = evaluate(self.contract, self.goal_run, [e, self.evidence(False)], now=NOW)
         self.assertEqual(result["status"], "unknown")
 
     def test_conflicting_independent_observations_require_review(self) -> None:
         result = evaluate(
-            self.contract, self.run, [self.evidence(), self.evidence(False, id="e_2")], now=NOW
+            self.contract, self.goal_run, [self.evidence(), self.evidence(False, id="e_2")], now=NOW
         )
         self.assertEqual(result["status"], "contradicted")
         self.assertEqual(result["criteria"]["accepted"], "conflict")
 
     def test_latest_valid_observation_wins(self) -> None:
         old = self.evidence(False, id="old", observed_at=NOW - 1)
-        result = evaluate(self.contract, self.run, [old, self.evidence()], now=NOW)
+        result = evaluate(self.contract, self.goal_run, [old, self.evidence()], now=NOW)
         self.assertEqual(result["status"], "verified")
-        self.assertEqual(result, evaluate(self.contract, self.run, [self.evidence(), old], now=NOW))
+        self.assertEqual(
+            result, evaluate(self.contract, self.goal_run, [self.evidence(), old], now=NOW)
+        )
 
     def test_partial_coverage_and_no_vacuous_success(self) -> None:
         contract = replace(
             self.contract, criteria=(self.criterion, replace(self.criterion, id="second"))
         )
-        result = evaluate(contract, self.run, [self.evidence()], now=NOW)
+        result = evaluate(contract, self.goal_run, [self.evidence()], now=NOW)
         self.assertEqual((result["status"], result["required"]), ("partial", 2))
         self.assertIsNone(result["delta"])
         with self.assertRaises(ValueError):
-            evaluate(replace(contract, criteria=()), self.run, [], now=NOW)
+            evaluate(replace(contract, criteria=()), self.goal_run, [], now=NOW)
         with self.assertRaises(ValueError):
             evaluate(
                 replace(contract, criteria=(replace(self.criterion, invariant=True),)),
-                self.run,
+                self.goal_run,
                 [],
                 now=NOW,
             )
 
     def test_revision_baseline_and_nan_are_rejected(self) -> None:
-        before = evaluate(self.contract, self.run, [], now=NOW)
+        before = evaluate(self.contract, self.goal_run, [], now=NOW)
         with self.assertRaises(ValueError):
-            evaluate(replace(self.contract, revision=2), self.run, [], now=NOW, previous=before)
+            evaluate(
+                replace(self.contract, revision=2), self.goal_run, [], now=NOW, previous=before
+            )
         with self.assertRaises(ValueError):
-            evaluate(self.contract, self.run, [], now=NOW - 1, previous=before)
+            evaluate(self.contract, self.goal_run, [], now=NOW - 1, previous=before)
         with self.assertRaises(ValueError):
             evaluate(
                 replace(self.contract, criteria=(replace(self.criterion, target=float("nan")),)),
-                self.run,
+                self.goal_run,
                 [],
                 now=NOW,
             )
@@ -265,47 +272,48 @@ class GoalEvaluationTests(unittest.TestCase):
         contract = replace(self.contract, criteria=(criterion,))
         for value, expected in ((2, "partial"), (3, "verified"), (True, "unknown")):
             e = self.evidence(value=value, metric="count", unit="items")
-            self.assertEqual(evaluate(contract, self.run, [e], now=NOW)["status"], expected)
+            self.assertEqual(evaluate(contract, self.goal_run, [e], now=NOW)["status"], expected)
 
     def test_retry_requires_evidence_from_the_current_attempt(self) -> None:
-        run = replace(self.run, attempt=2)
+        run = replace(self.goal_run, attempt=2)
         old = evaluate(self.contract, run, [self.evidence()], now=NOW)
         fresh = evaluate(self.contract, run, [self.evidence(attempt=2)], now=NOW)
         self.assertEqual((old["status"], fresh["status"]), ("unknown", "verified"))
 
     def test_json_flags_and_integer_fields_are_strict(self) -> None:
-        for overrides in (
+        invalid_overrides: tuple[dict[str, Any], ...] = (
             {"ok": "false"},
             {"allowed": "false"},
             {"revision": True},
             {"attempt": True},
             {"observed_at": True},
             {"id": []},
-        ):
+        )
+        for overrides in invalid_overrides:
             with self.subTest(overrides=overrides):
                 self.assertEqual(
-                    evaluate(self.contract, self.run, [self.evidence(**overrides)], now=NOW)[
+                    evaluate(self.contract, self.goal_run, [self.evidence(**overrides)], now=NOW)[
                         "status"
                     ],
                     "unknown",
                 )
 
     def test_modified_result_cannot_reuse_completion_approval(self) -> None:
-        result = evaluate(self.contract, self.run, [], now=NOW)
+        result = evaluate(self.contract, self.goal_run, [], now=NOW)
         altered = {**result, "status": "verified"}
         with self.assertRaises(ValueError):
             decide(altered, approved_result_id=result["id"])
 
     def test_baseline_integrity_and_evaluator_version_are_checked(self) -> None:
-        result = evaluate(self.contract, self.run, [self.evidence()], now=NOW)
+        result = evaluate(self.contract, self.goal_run, [self.evidence()], now=NOW)
         for field, value in (("met", []), ("evaluator_version", "other.v1")):
             altered = {**result, field: value}
             with self.assertRaises(ValueError):
-                evaluate(self.contract, self.run, [], now=NOW, previous=altered)
+                evaluate(self.contract, self.goal_run, [], now=NOW, previous=altered)
         altered = {**result, "evaluator_version": "other.v1"}
         altered["id"] = fingerprint({k: v for k, v in altered.items() if k != "id"})
         with self.assertRaises(ValueError):
-            evaluate(self.contract, self.run, [], now=NOW, previous=altered)
+            evaluate(self.contract, self.goal_run, [], now=NOW, previous=altered)
 
     def test_equivalent_numeric_observations_do_not_conflict(self) -> None:
         criterion = replace(self.criterion, metric="count", op="gte", target=1, unit="items")
@@ -313,9 +321,9 @@ class GoalEvaluationTests(unittest.TestCase):
         observations = [
             self.evidence(value=v, metric="count", unit="items", id=str(v)) for v in (1, 1.0)
         ]
-        result = evaluate(contract, self.run, observations, now=NOW)
+        result = evaluate(contract, self.goal_run, observations, now=NOW)
         self.assertEqual(result["status"], "verified")
-        self.assertEqual(result, evaluate(contract, self.run, observations[::-1], now=NOW))
+        self.assertEqual(result, evaluate(contract, self.goal_run, observations[::-1], now=NOW))
 
     def test_constraint_recovery_is_not_outcome_progress(self) -> None:
         contract = replace(
@@ -324,13 +332,13 @@ class GoalEvaluationTests(unittest.TestCase):
         )
         before = evaluate(
             contract,
-            self.run,
+            self.goal_run,
             [self.evidence(False), self.evidence(False, id="w", criterion_id="window")],
             now=NOW,
         )
         after = evaluate(
             contract,
-            self.run,
+            self.goal_run,
             [self.evidence(False), self.evidence(True, id="w", criterion_id="window")],
             now=NOW,
             previous=before,
@@ -345,7 +353,7 @@ class GoalEvaluationTests(unittest.TestCase):
         previous = None
         for count in (0, 3, 6, 9):
             evidence = self.evidence(value=count, metric="count", unit="items")
-            result = evaluate(contract, self.run, [evidence], now=NOW, previous=previous)
+            result = evaluate(contract, self.goal_run, [evidence], now=NOW, previous=previous)
             if previous is not None:
                 self.assertEqual(result["delta"], 0)  # Milestone coverage is unchanged.
                 self.assertEqual(result["progress"], "advanced")
@@ -361,7 +369,7 @@ class GoalEvaluationTests(unittest.TestCase):
         previous = None
         for round_number in range(1, 6):
             result = evaluate(
-                contract, self.run, [self.evidence(False)], now=NOW, previous=previous
+                contract, self.goal_run, [self.evidence(False)], now=NOW, previous=previous
             )
             self.assertEqual(result["status"], "partial")
             self.assertIsNone(result["delta"])
@@ -377,11 +385,11 @@ class GoalEvaluationTests(unittest.TestCase):
             self.contract, criteria=(counter, replace(self.criterion, id="unavailable"))
         )
         before = evaluate(
-            contract, self.run, [self.evidence(value=2, metric="count", unit="items")], now=NOW
+            contract, self.goal_run, [self.evidence(value=2, metric="count", unit="items")], now=NOW
         )
         result = evaluate(
             contract,
-            self.run,
+            self.goal_run,
             [self.evidence(value=5, metric="count", unit="items")],
             now=NOW,
             previous=before,
@@ -393,11 +401,11 @@ class GoalEvaluationTests(unittest.TestCase):
         counter = replace(self.criterion, metric="count", op="gte", target=10, unit="items")
         contract = replace(self.contract, criteria=(counter,))
         before = evaluate(
-            contract, self.run, [self.evidence(value=9, metric="count", unit="items")], now=NOW
+            contract, self.goal_run, [self.evidence(value=9, metric="count", unit="items")], now=NOW
         )
         result = evaluate(
             contract,
-            self.run,
+            self.goal_run,
             [self.evidence(value=6, metric="count", unit="items")],
             now=NOW,
             previous=before,
@@ -414,7 +422,7 @@ class GoalEvaluationTests(unittest.TestCase):
         for count in (10, 20, 11):
             result = evaluate(
                 contract,
-                self.run,
+                self.goal_run,
                 [
                     self.evidence(False),
                     self.evidence(
@@ -438,7 +446,7 @@ class GoalEvaluationTests(unittest.TestCase):
         ):
             for records in ([valid, invalid], [invalid, valid]):
                 self.assertEqual(
-                    evaluate(self.contract, self.run, records, now=NOW)["status"], "verified"
+                    evaluate(self.contract, self.goal_run, records, now=NOW)["status"], "verified"
                 )
 
     def test_file_collection_ids_identify_observation_events(self) -> None:
@@ -454,8 +462,8 @@ class GoalEvaluationTests(unittest.TestCase):
                 collectors=("file.sha256.v1",),
             )
             contract = replace(self.contract, criteria=(criterion,))
-            old = collect_file(contract, self.run, criterion, path, NOW)
-            run = replace(self.run, attempt=2)
+            old = collect_file(contract, self.goal_run, criterion, path, NOW)
+            run = replace(self.goal_run, attempt=2)
             current = collect_file(contract, run, criterion, path, NOW + 1)
             newer = collect_file(contract, run, criterion, path, NOW + 2)
             self.assertEqual(len({old.id, current.id, newer.id}), 3)
@@ -466,10 +474,10 @@ class GoalEvaluationTests(unittest.TestCase):
     def test_freshness_boundary_is_inclusive(self) -> None:
         evidence = self.evidence(observed_at=NOW - 60)
         self.assertEqual(
-            evaluate(self.contract, self.run, [evidence], now=NOW)["status"], "verified"
+            evaluate(self.contract, self.goal_run, [evidence], now=NOW)["status"], "verified"
         )
         self.assertEqual(
-            evaluate(self.contract, self.run, [evidence], now=NOW + 1)["status"], "unknown"
+            evaluate(self.contract, self.goal_run, [evidence], now=NOW + 1)["status"], "unknown"
         )
 
     def test_contract_json_boundary_rejects_coercion_and_extra_fields(self) -> None:
@@ -480,8 +488,8 @@ class GoalEvaluationTests(unittest.TestCase):
                 contract_from_dict(altered)
 
     def test_result_schema_is_checked_even_when_digest_is_recomputed(self) -> None:
-        result = evaluate(self.contract, self.run, [self.evidence()], now=NOW)
-        for fields in (
+        result = evaluate(self.contract, self.goal_run, [self.evidence()], now=NOW)
+        invalid_result_fields: tuple[dict[str, Any], ...] = (
             {"run_state": "invalid"},
             {"outcome_required": False},
             {"constraint_required": 999},
@@ -490,19 +498,20 @@ class GoalEvaluationTests(unittest.TestCase):
             {"observed_values": {"accepted": []}},
             {"observed_values": {}},
             {"delta": "zero"},
-        ):
+        )
+        for fields in invalid_result_fields:
             altered = {**result, **fields}
             altered["id"] = fingerprint({k: v for k, v in altered.items() if k != "id"})
             with self.subTest(fields=fields), self.assertRaises(ValueError):
                 decide(altered, approved_result_id=altered["id"])
 
     def test_baseline_observed_values_must_match_the_contract(self) -> None:
-        previous = evaluate(self.contract, self.run, [self.evidence()], now=NOW)
+        previous = evaluate(self.contract, self.goal_run, [self.evidence()], now=NOW)
         for value in (False, "true", 1):
             altered = {**previous, "observed_values": {"accepted": value}}
             altered["id"] = fingerprint({k: v for k, v in altered.items() if k != "id"})
             with self.subTest(value=value), self.assertRaises(ValueError):
-                evaluate(self.contract, self.run, [], now=NOW, previous=altered)
+                evaluate(self.contract, self.goal_run, [], now=NOW, previous=altered)
 
     def test_baseline_partition_cannot_reclassify_constraints_as_outcomes(self) -> None:
         contract = replace(
@@ -510,7 +519,7 @@ class GoalEvaluationTests(unittest.TestCase):
             criteria=(self.criterion, replace(self.criterion, id="guard", invariant=True)),
         )
         evidence = [self.evidence(), self.evidence(id="guard", criterion_id="guard")]
-        previous = evaluate(contract, self.run, evidence, now=NOW)
+        previous = evaluate(contract, self.goal_run, evidence, now=NOW)
         previous.update(
             outcome_required=2,
             constraint_required=0,
@@ -519,10 +528,10 @@ class GoalEvaluationTests(unittest.TestCase):
         )
         previous["id"] = fingerprint({k: v for k, v in previous.items() if k != "id"})
         with self.assertRaises(ValueError):
-            evaluate(contract, self.run, evidence, now=NOW, previous=previous)
+            evaluate(contract, self.goal_run, evidence, now=NOW, previous=previous)
 
     def test_continuity_counters_reject_boolean_and_negative_inputs(self) -> None:
-        result = evaluate(self.contract, self.run, [], now=NOW)
+        result = evaluate(self.contract, self.goal_run, [], now=NOW)
         for counters in ({"stalled_runs": True}, {"unknown_runs": -1}):
             with self.subTest(counters=counters), self.assertRaises(ValueError):
                 decide(result, **counters)
