@@ -76,6 +76,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### iOS
 
+- **Interrupted remote task steps no longer claimed success.** Timeout and disconnect marked unfinished steps failed, Stop cancelled them, and a final answer did not invent successful results for unfinished steps. For #512.
+
 - **A task sent to another device with `@〈device〉` shows its progress.** The reply appears at once with "〈device〉 is working…", then each step that device takes as a capsule, running and then done or failed, and what its Muse says as it arrives; the answer lands in place at the end. The composer's stop button ends the task on that device too, and a message queued meanwhile goes when it ends. Before, the chat showed nothing until the whole task was done. For [#512](https://github.com/nano-muse/nanoMuse/issues/512).
 
 - **The `@` menu offers your other devices.** Typing `@` at the start of a message lists the account's online phones and computers above the files, filtered by what follows; picking one writes `@〈name〉 ` so the message goes to that device. Before, a device could only be addressed by typing its name in full or from *Settings → Devices*. For [#505](https://github.com/nano-muse/nanoMuse/issues/505).

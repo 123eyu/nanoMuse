@@ -15,6 +15,12 @@ import Foundation
 
 @MainActor
 final class NanoMuseDeviceReply {
+    enum Completion {
+        case answered
+        case failed(String)
+        case stopped
+    }
+
     let device: HubDevice
     /// The `task` call's frame id: what `stop {call}` names.
     let callId = NanoMuseHub.newCallId()
@@ -82,13 +88,11 @@ final class NanoMuseDeviceReply {
 
     /// The task is over. `header` nil drops the header line (a failure, a stop); `replacing` puts
     /// `answer` over the text since the last step (that text is the answer as it was coming in).
-    func finish(header title: String?, answer: String, replacing: Bool) async {
+    func finish(header title: String?, answer: String, replacing: Bool, completion: Completion) async {
         guard !finished else { return }
         finished = true
         if Self.running[ObjectIdentifier(vm)] === self { Self.running[ObjectIdentifier(vm)] = nil }
-        for block in message.blocks where block.toolStatus == .running {
-            block.toolStatus = stopped ? .cancelled : .success
-        }
+        Self.finishSteps(message.blocks, completion: stopped ? .stopped : completion)
         message.isAwaitingModelResponse = false
         if let title {
             setText(header, title, final: true)
@@ -109,6 +113,18 @@ final class NanoMuseDeviceReply {
         guard !stopped else { return }
         vm.isProcessing = false
         sendQueued()
+    }
+
+    static func finishSteps(_ blocks: [AssistantBlock], completion: Completion) {
+        for block in blocks where block.toolStatus == .running {
+            switch completion {
+            case .failed(let reason):
+                block.toolStatus = .failed(message: reason)
+            case .answered, .stopped:
+                block.toolStatus = .cancelled
+            }
+            if let start = block.toolStartTime { block.toolDuration = Date().timeIntervalSince(start) }
+        }
     }
 
     /// What was queued while that device worked goes now, as if sent: an `@device` line is a task

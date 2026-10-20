@@ -137,13 +137,13 @@ enum NanoMuseDeviceMention {
                 if notes.standing > 0 {
                     answer += "\n\n" + AppLocalized("A step ran on a standing approval given on this phone; Approvals on the agent's page lists it.")
                 }
-                await live.finish(header: String(format: AppLocalized("%@ answered:"), device.name), answer: answer, replacing: true)
+                await live.finish(header: String(format: AppLocalized("%@ answered:"), device.name), answer: answer, replacing: true, completion: .answered)
             } catch {
                 if live.stopped {
-                    await live.finish(header: nil, answer: AppLocalized("Stopped."), replacing: false)
+                    await live.finish(header: nil, answer: AppLocalized("Stopped."), replacing: false, completion: .stopped)
                 } else {
                     let reason = NanoMuseHubErrors.describe(error)
-                    await live.finish(header: nil, answer: String(format: AppLocalized("%@ did not answer: %@"), device.name, reason), replacing: false)
+                    await live.finish(header: nil, answer: String(format: AppLocalized("%@ did not answer: %@"), device.name, reason), replacing: false, completion: .failed(reason))
                 }
             }
         }
