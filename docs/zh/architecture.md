@@ -49,9 +49,9 @@ sequenceDiagram
 | 终端 | `nanomuse/console.py`、`nanomuse/cli.py` | 基于 Rich 的控制台界面，审批就在行内；Typer 命令 |
 | 配置、结构 | `nanomuse/config.py`、`nanomuse/schema.py` | Pydantic 设置、消息和工具调用的模型 |
 
-发送 Responses API 请求之前，运行时、Android 和 iOS 的序列化器会让本次请求内的
-`function_call.call_id` 保持唯一，并把同一个仅用于本次请求的改写应用到配对的
-`function_call_output`；reasoning item 的 id 保持不变。
+发送 Responses API 请求之前，运行时（`openai_responses` 与 `codex.py` 中的 Codex Responses
+转换）、Android 和 iOS 的序列化器会让本次请求内的 `function_call.call_id` 保持唯一，并把同一个
+仅用于本次请求的改写应用到配对的 `function_call_output`；reasoning item 的 id 保持不变。
 
 ## `UI` 协议 {#the-ui-protocol}
 
