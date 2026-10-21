@@ -212,7 +212,10 @@ CLI 自己的 `~/.dsh` 不会被碰。主目录下的 `nanomuse/hands.json`（�
 起初只显示八个模型，目录里这一行的默认模型和你当前选的排在最前，组尾是「还有 {n} 个」；所有组加起来
 超过八个模型时，面板顶部出现「搜索模型」输入框，边打字边按模型 id 或名称过滤每一组（都不匹配时显示
 「没有匹配的模型」）。按 Esc 或点面板外面关闭；「设置 → 图像与视频」用的是同一个选择器。折叠和搜索
-的逻辑在 `harness/dsh-nanomuse/src/client/model-list.ts`，由 `tests/model-list.test.mjs` 检查。
+的逻辑在 `harness/dsh-nanomuse/src/client/model-list.ts`，由 `tests/model-list.test.mjs` 检查。如果你在
+`llm-pi-ai` 设置的「模型目录」里删减了某个服务商的对话模型列表（或在 `POST /nanomuse/cloud/providers/save`
+中传入 `catalogOnly: true`），桌面版会在 `cloud.json`、各个模型选择器、重启后以及后续更新 key 时保留这份
+精简后的模型列表，不再把网关 `/models` 返回的完整列表重新合并回来。
 
 没选的时候一行用什么：新对话用的那个服务商，前提是它是你自己的、而且对这件事有模型（目录里的默认
 模型）；否则登录时用 nanoMuse Cloud；再否则用你第一个能做这件事的服务商。按这个顺序走的三行，选择器

@@ -197,6 +197,12 @@ export interface OwnProvider {
    * vendor wants and speaks each model's own shape, so the row names no `api` and no base URL.
    */
   catalogRoute?: boolean
+  /**
+   * The chat model list was trimmed or edited in the model adapter's settings (`llm-pi-ai`
+   * `providers.<id>.models`) or saved with `catalogOnly`: a later save without new `models`
+   * keeps these chat models instead of merging the endpoint's full `/models` list back in.
+   */
+  customModels?: boolean
 }
 
 export interface OwnModel {
