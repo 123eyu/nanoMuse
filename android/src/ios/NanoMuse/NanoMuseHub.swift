@@ -365,6 +365,13 @@ final class NanoMuseHub: ObservableObject {
         }
     }
 
+    /// Stops waiting on a call out: it fails with `cancelled` now, whatever the other device
+    /// answers later (its `result` then finds nobody and is dropped).
+    func abandon(_ id: String) {
+        eventHandlers.removeValue(forKey: id)
+        pending.removeValue(forKey: id)?(.failure(HubError(code: "cancelled", message: "stopped here")))
+    }
+
     private func failAll(_ error: HubError) {
         let waiting = pending
         pending = [:]
@@ -374,10 +381,14 @@ final class NanoMuseHub: ObservableObject {
 
     // Calls out --------------------------------------------------------------------------
 
+    /// A frame id for a call out.
+    static func newCallId() -> String { String(UUID().uuidString.lowercased().prefix(12)) }
+
     /// Asks another device for something; resolves with its `result` body. Progress arrives on `onEvent`.
-    func call(to: String, action: String, args: [String: Any] = [:], timeout: TimeInterval = 120, onEvent: (([String: Any]) -> Void)? = nil) async throws -> [String: Any] {
+    /// `id` is the call's frame id when the caller needs it later (`stop {call}`); a fresh one otherwise.
+    func call(to: String, action: String, args: [String: Any] = [:], timeout: TimeInterval = 120, id given: String? = nil, onEvent: (([String: Any]) -> Void)? = nil) async throws -> [String: Any] {
         guard connected else { throw HubError(code: "disconnected", message: "this iPhone is not on the hub; sign in to nanoMuse Cloud and turn on Devices") }
-        let id = String(UUID().uuidString.lowercased().prefix(12))
+        let id = given ?? Self.newCallId()
         return try await withCheckedThrowingContinuation { cont in
             var finished = false
             var timer: Task<Void, Never>?

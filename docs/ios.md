@@ -221,7 +221,12 @@ Ours, in `NanoMuse/`:
   of the account (open a link, send a note, a shell line, a screenshot) over the hub.
   **A task for another device** (`NanoMuseDeviceMention.swift`, `NanoMuseRemoteApproval.swift`):
   a message that starts with `@〈device〉` goes to that device's Muse as a hub `task` (the `@` menu
-  lists the online devices above the files when the `@` opens the message); when a step
+  lists the online devices above the files when the `@` opens the message). While it runs, the
+  reply is drawn in the chat (`NanoMuseDeviceReply.swift`): "〈device〉 is working…", each step as
+  a capsule, what that Muse says as it comes, the answer in place at the end; the chat is busy
+  meanwhile, its stop ends the task there too, and a line queued meanwhile goes when it ends.
+  A timeout or disconnect marks unfinished steps failed; Stop cancels them. A final answer
+  does not mark a step successful unless its result arrived. When a step
   there needs a yes, the `approval` event is answered here, where the task was typed
   ([hub.md](hub.md)), on a card with the Android phone's four answers: *Allow once*, *Allow for
   this chat* (held in memory for that chat), *Always allow this on 〈device〉* (the same step on

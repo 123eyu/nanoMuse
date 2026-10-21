@@ -78,6 +78,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### iOS
 
+- **A task sent to another device with `@〈device〉` shows its progress.** The reply appears at once with "〈device〉 is working…", then each step that device takes as a capsule, running and then done or failed, and what its Muse says as it arrives; a step whose result never came shows as failed after a timeout or a lost connection, as cancelled after Stop, and never as done; the answer lands in place at the end. The composer's stop button ends the task on that device too, and a message queued meanwhile goes when it ends. Before, the chat showed nothing until the whole task was done. For [#512](https://github.com/nano-muse/nanoMuse/issues/512).
+
 - **The `@` menu offers your other devices.** Typing `@` at the start of a message lists the account's online phones and computers above the files, filtered by what follows; picking one writes `@〈name〉 ` so the message goes to that device. Before, a device could only be addressed by typing its name in full or from *Settings → Devices*. For [#505](https://github.com/nano-muse/nanoMuse/issues/505).
 
 - **Responses API requests no longer failed on repeated tool-call ids in accumulated or restored history.** Later copies receive deterministic request-unique suffixes while every tool output remains paired with its call. For [#501](https://github.com/nano-muse/nanoMuse/issues/501).

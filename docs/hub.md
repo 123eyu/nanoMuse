@@ -76,7 +76,9 @@ Two kinds of request travel over the hub:
   {approval_id, preview, risk, reason, device, timeout}` and, once decided on
   either side, `approval_result {approval_id, status}`, `text {text, interim}`
   for what the Muse says along the way, `image` and `file` for things it made,
-  `error`. The `result` frame carries the final answer.
+  `error`. The `result` frame carries the final answer. A caller draws a `text` in place of the
+  text since the last `tool`, so a target may send the growing text of one message more than
+  once and the caller shows it as it grows; a target that sends each message once is shown the same.
 
 - **Coding agents.** `coding.agents`, `coding.sessions`, `coding.session`,
   `coding.send`, `coding.stop`, `coding.runs`: the Cursor / Codex / Claude Code
@@ -291,7 +293,9 @@ computer's own hands) is in [every-device.md](every-device.md).
   [`NanoMuseDeviceMention.swift`](../android/src/ios/NanoMuse/NanoMuseDeviceMention.swift))
   has its `approval` events answered on the phone's card
   ([`NanoMuseRemoteApproval.swift`](../android/src/ios/NanoMuse/NanoMuseRemoteApproval.swift))
-  and `approve` sent back; `approval_result` closes the card.
+  and `approve` sent back; `approval_result` closes the card. The reply is drawn while that
+  device works ([`NanoMuseDeviceReply.swift`](../android/src/ios/NanoMuse/NanoMuseDeviceReply.swift)):
+  `tool`/`tool_result` as step capsules, `text` as it comes; the chat's stop sends `stop {call}`.
 - Runtime (`nanomuse serve`): [`nanomuse/cloud.py`](../nanomuse/cloud.py)
   (the account), [`nanomuse/hub/client.py`](../nanomuse/hub/client.py) (the
   socket, reconnect), [`nanomuse/hub/actions.py`](../nanomuse/hub/actions.py)
