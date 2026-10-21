@@ -12,6 +12,27 @@ import { join } from 'node:path'
 const SW_HIDE = 0
 const DONOR_READY = 'nanomuse-console-ready'
 const DONOR_TIMEOUT_MS = 10_000
+const WINDOWS_ACL_MANIFEST = import.meta.resolve(
+  '@deepseek-ai/dsh-sandbox-windows-acl/package.json',
+)
+
+interface KoffiLibrary {
+  func: {
+    (declaration: string): (...args: unknown[]) => unknown
+    (
+      name: string,
+      result: string,
+      args: readonly unknown[],
+    ): (...args: unknown[]) => unknown
+  }
+}
+
+interface KoffiApi {
+  load: (name: string) => KoffiLibrary
+  struct: (fields: Readonly<Record<string, string>>) => unknown
+  pointer: (type: unknown) => unknown
+  out: (type: unknown) => unknown
+}
 
 export interface WindowsConsoleHostApi {
   hasConsole: () => boolean
@@ -33,24 +54,37 @@ export interface WindowsConsoleDonor {
 export type WindowsConsoleDonorLauncher = () => Promise<WindowsConsoleDonor>
 
 export function loadWindowsConsoleHostApi(): WindowsConsoleHostApi {
-  const koffi = createRequire(import.meta.url)('koffi') as typeof import('koffi').default
+  // Resolve the native binding through the ACL backend that owns and versions it.
+  // Keeping it out of this plugin's direct dependencies also lets `dsh plugin add`
+  // retain its fail-closed policy for packages with unapproved install scripts.
+  const koffi = createRequire(WINDOWS_ACL_MANIFEST)('koffi') as KoffiApi
   const kernel32 = koffi.load('kernel32.dll')
   const user32 = koffi.load('user32.dll')
-  const getConsoleCodePage = kernel32.func('uint32 __stdcall GetConsoleCP()')
+  const getConsoleCodePage = kernel32.func(
+    'uint32 __stdcall GetConsoleCP()',
+  ) as () => number
   return {
     hasConsole: () => getConsoleCodePage() !== 0,
     allocWindowlessConsole: loadWindowlessAllocation(koffi, kernel32),
-    attachConsole: kernel32.func('int __stdcall AttachConsole(uint32)'),
-    getConsoleWindow: kernel32.func('void * __stdcall GetConsoleWindow()'),
-    allocConsole: kernel32.func('int __stdcall AllocConsole()'),
-    getLastError: kernel32.func('uint32 __stdcall GetLastError()'),
-    showWindow: user32.func('int __stdcall ShowWindow(void *, int)'),
+    attachConsole: kernel32.func(
+      'int __stdcall AttachConsole(uint32)',
+    ) as (processId: number) => number,
+    getConsoleWindow: kernel32.func(
+      'void * __stdcall GetConsoleWindow()',
+    ) as () => unknown,
+    allocConsole: kernel32.func('int __stdcall AllocConsole()') as () => number,
+    getLastError: kernel32.func(
+      'uint32 __stdcall GetLastError()',
+    ) as () => number,
+    showWindow: user32.func(
+      'int __stdcall ShowWindow(void *, int)',
+    ) as (window: unknown, command: number) => number,
   }
 }
 
 function loadWindowlessAllocation(
-  koffi: typeof import('koffi').default,
-  kernel32: ReturnType<typeof import('koffi').default.load>,
+  koffi: KoffiApi,
+  kernel32: KoffiLibrary,
 ): (() => boolean) | undefined {
   const ALLOC_CONSOLE_MODE_NO_WINDOW = 2
   const ALLOC_CONSOLE_RESULT_NO_CONSOLE = 0
