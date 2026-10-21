@@ -326,6 +326,14 @@ over it (`EEXIST: file already exists, symlink …` in `desktop.log`). Since 0.1
 link is removed as a link and remade; should that still fail, the message names the path to
 remove by hand.
 
+On Windows, read-only and workspace-write PowerShell commands run through DSH's restricted-token
+ACL sandbox. Because the Electron-hosted process has no console of its own, nanoMuse puts a
+short-lived Node-mode trampoline in front of that exact runner and gives it a windowless (or
+hidden fallback) console before the token is restricted. The PowerShell child inherits the
+console instead of failing during DLL initialization with `0xC0000142`, including after a
+temporary sandbox directory has been cleaned and recreated. The trampoline does not weaken the
+ACL policy and is not used for full-access commands.
+
 A first start can be slow, on Windows in particular. The Host prints its address only once
 every plugin of the profile has been loaded, and a fresh install has some 20 000 files under
 `resources/dsh/node_modules` that the system reads for the first time; Windows Defender's

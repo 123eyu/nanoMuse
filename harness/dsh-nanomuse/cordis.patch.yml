@@ -48,7 +48,18 @@
 - id: ui-settings-general
   disabled: true
 
+# The stock Windows PowerShell sandbox assumes its host owns a console. Electron's
+# Node-mode Host does not, so the nanoMuse provider below inserts a short-lived
+# console trampoline before the restricted ACL child starts (#526). Both rows
+# remain off on macOS and Linux, where the base profile uses bash.
+- id: pwsh-sandbox
+  disabled: true
+
 - insert:
+    - id: nanomuse-windows-pwsh-sandbox
+      name: dsh-nanomuse/windows-pwsh-sandbox
+      disabled: !!js process.platform !== 'win32'
+
     # The browser half rides on this row (sidebar mark and name, hero mark,
     # the Cloud settings section); the host side serves the face's stills.
     - id: nanomuse
