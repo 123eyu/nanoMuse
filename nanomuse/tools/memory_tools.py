@@ -139,15 +139,31 @@ class Forget(BaseTool):
     async def execute(
         self, memory_id: str | None = None, query: str | None = None, **_: Any
     ) -> ToolResult:
+        # Name what was forgotten: the result is what the person sees in the chat,
+        # and the deletion is in the memory changes, where it can be undone.
         if memory_id:
-            ok = self.store.forget(memory_id)
+            item = self.store.get(memory_id)
+            if item is None:
+                return ToolResult(output=f"No memory with id {memory_id}.")
+            self.store.forget(memory_id)
             return ToolResult(
-                output=f"Forgot {memory_id}." if ok else f"No memory with id {memory_id}."
+                output=(
+                    f"Forgot {item.id}: {item.content}. "
+                    "The deletion is in the memory changes and can be undone."
+                )
             )
         if query:
-            n = self.store.forget_matching(query)
+            items = self.store.matching(query)
+            if not items:
+                return ToolResult(output=f"No memories matched '{query}'.")
+            self.store.forget_matching(query)
+            lines = "\n".join(i.render() for i in items)
             return ToolResult(
-                output=f"Forgot {n} memor{'y' if n == 1 else 'ies'} matching '{query}'."
+                output=(
+                    f"Forgot {len(items)} memor{'y' if len(items) == 1 else 'ies'} "
+                    f"matching '{query}':\n{lines}\n"
+                    "The deletion is in the memory changes and can be undone."
+                )
             )
         return ToolResult.fail("provide memory_id or query")
 

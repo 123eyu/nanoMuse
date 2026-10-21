@@ -10,6 +10,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Runtime
 
+- **Forgetting a memory is now a change you can see and undo.** `MemoryStore.forget` writes the deletion to the memory change log (action `forget`), so a forget from the chat, the app or `nanomuse memory forget` appears in *Recent changes* with the line it removed and can be restored, where before it left no trace. The `forget` tool names the lines it removed in its result, the line itself for an id and every matched line for a phrase, and the new `MemoryStore.matching` lists what a phrase would forget before anything is deleted. For #532.
+
 - **Responses API requests kept repeated tool calls paired in accumulated or restored request history.** When history contains the same provider `call_id` more than once, the first call keeps it and later calls use deterministic suffixes that remain unique across the request; each tool output follows its call's rewritten id instead of the provider rejecting the next turn with `400 Duplicate call_id`. For [#501](https://github.com/nano-muse/nanoMuse/issues/501).
 
 - **Serply is a keyed web search provider for Google results.** `provider = "serply"` under `[connectors.search]`, or the Serply chip under *Connections → Web search*, queries `https://api.serply.io/v1/search` with `X-Api-Key` (`SEARCH_API_KEY`), passes the country from `region` as `gl`, caps `num` at 10 and falls back to DuckDuckGo with a note on error. Proposed by @googio ([#483](https://github.com/nano-muse/nanoMuse/issues/483)).
