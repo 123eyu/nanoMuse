@@ -86,13 +86,7 @@ export function markMatches(root: HTMLElement, query: string): HTMLElement[] {
     if (!splitAround(node.textContent ?? '', query).some((part) => part.hit)) continue
     const parent = node.parentElement
     if (parent === null) continue
-    let target: HTMLElement = parent
-    // a long block of words is marked on the smallest element that still holds them
-    while (target !== root && (target.textContent ?? '').length > 240) {
-      const up: HTMLElement | null = target.parentElement
-      if (up === null) break
-      target = up
-    }
+    const target: HTMLElement = parent
     if (seen.has(target)) continue
     seen.add(target)
     target.classList.add(HIT_CLASS)
