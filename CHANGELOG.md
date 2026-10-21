@@ -30,6 +30,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Desktop
 
+- **Restricted PowerShell commands start inside nanoMuse Desktop on Windows after the sandbox is recreated.** The Electron-hosted DSH process now places the exact Windows ACL runner behind a short-lived Node-mode trampoline that establishes a hidden console before the child token is restricted, instead of letting the child fail during DLL initialization with `0xC0000142`. Workspace-write and read-only confinement stay in place, and full-access PowerShell is unchanged. For [#526](https://github.com/nano-muse/nanoMuse/issues/526).
+
 - **Trimming an own-key provider's model catalog stays trimmed in the model pickers and across restarts.** Editing a provider's `models` list in the `llm-pi-ai` settings (`cordis.patch.yml`), or saving with `catalogOnly: true`, now reconciles the row's chat models in `cloud.json` and the chat/hands pickers (`chatOptions`, `handsOptions`, `handsChoice`, `providersView`, `slotOffer`), moves the default chat selection onto a remaining model when its previous model was removed, and keeps the trimmed catalog when the host restarts or the provider key is updated instead of merging the full gateway `/models` list back in. For [#525](https://github.com/nano-muse/nanoMuse/issues/525).
 
 - **A search box in the settings dialog.** The desktop's settings dialog has a search field under the title of its nav. Typing highlights the words that match on the page you are on and lists them under the box, pages whose title matches are highlighted in the list, *Enter* opens the first matching page and *Escape* clears the box. For [#522](https://github.com/nano-muse/nanoMuse/issues/522).

@@ -248,6 +248,12 @@ profile 里的 `node_modules/dsh-nanomuse` 是一个链接（Windows 上是 junc
 0.1.39 跨不过它，起不来（`desktop.log` 里是 `EEXIST: file already exists, symlink …`）。从 0.1.40
 起，失效的链接按链接删掉再重建；万一还是失败，提示信息会写明要手动删除的路径。
 
+Windows 上的只读和工作区可写 PowerShell 命令会经过 DSH 的受限令牌 ACL 沙箱。Electron 托管的
+进程本身没有控制台，因此 nanoMuse 只在这条 ACL runner 前加一个短命的 Node 模式跳板，在令牌
+受限之前为它建立无窗口控制台（不支持时退到隐藏控制台）。PowerShell 子进程继承这个控制台，
+不会再在 DLL 初始化阶段以 `0xC0000142` 退出；临时沙箱目录被清理并重建后也是如此。这个跳板
+不会放宽 ACL 策略，也不会介入完全访问模式的命令。
+
 第一次启动可能很慢，Windows 上尤其如此。Host 要等 profile 里的每个插件都加载完才打印地址，而刚装好的
 应用在 `resources/dsh/node_modules` 下有两万来个文件，系统是第一次读它们；Windows Defender 的实时
 防护会在第一次读取时逐个检查，磁盘慢或者装在移动硬盘上就更久，所以第一次启动可能要好几分钟。0.1.41
