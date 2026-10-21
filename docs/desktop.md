@@ -78,7 +78,8 @@ over the harness's approvals, the trajectory of a hands run in the chat (each st
 screenshot with the action drawn on it and the agent's words, to look back at during
 and after the run), the profile panel with memory,
 the Settings pages (Connectors, Computer use, File system access, Dictation,
-Permissions, Data controls with export and reset), the full-window first run. The agent
+Permissions, Data controls with export and reset), a search box in the nav to
+find a setting by the words on it, the full-window first run. The agent
 is dsh's (its agent loop, tools, skills, goals, plan mode, compaction, sub-agents, MCP),
 speaking as nanoMuse through the `nanomuse` preset, with:
 

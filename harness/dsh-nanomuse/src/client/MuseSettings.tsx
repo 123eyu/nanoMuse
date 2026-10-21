@@ -19,12 +19,13 @@ import { call, type CloudStatus, type Translate, failureText } from './api.ts'
 import { Avatar } from './Avatar.tsx'
 import { openLink } from './bridge.ts'
 import { settingsBus } from './bus.ts'
-import { IconArchive, IconChevronLeft, IconChevronRight, IconClose, IconCpu, IconDatabase, IconDevices, IconFolder, IconHand, IconHelp, IconImage, IconKey, IconLink, IconLogOut, IconMessage, IconMic, IconPuzzle, IconScale, IconSettings, IconShield, IconSliders, IconSparkle, IconUser, IconVideo, IconWallet } from './icons.tsx'
+import { IconArchive, IconChevronLeft, IconChevronRight, IconClose, IconCpu, IconDatabase, IconDevices, IconFolder, IconHand, IconHelp, IconImage, IconKey, IconLink, IconLogOut, IconMessage, IconMic, IconPuzzle, IconScale, IconSearch, IconSettings, IconShield, IconSliders, IconSparkle, IconUser, IconVideo, IconWallet } from './icons.tsx'
 import { openShortcutsReference } from './keys.ts'
 import { useLive } from './live.ts'
 import type { RenderSlot } from './MuseSidebar.tsx'
 import { REPO_URL } from './panels.ts'
 import { AppBehaviorRows, ConversationRows, DeveloperRows, HotkeyField } from './Sections.tsx'
+import { clearMarks, filterPages, hitLabel, markMatches, queryWords } from './settings-search.ts'
 
 /** The pages that make up the everyday group, in Muse's order; the rest are Advanced. */
 export const COMPUTER_SECTION = 'nanomuse-computer'
@@ -110,13 +111,48 @@ interface PanelProps {
 function SettingsPanel({ t, rows, renderSlot, activeId, from, onSelect, onBack, onClose }: PanelProps): ReactNode {
   const live = useLive()
   const [signingOut, setSigningOut] = useState(false)
+  const [query, setQuery] = useState('')
+  const [hits, setHits] = useState<{ element: HTMLElement; label: string }[]>([])
   const titleId = useId()
   const panel = useRef<HTMLDivElement>(null)
+  const body = useRef<HTMLDivElement>(null)
+  const nav = useRef<HTMLElement>(null)
   useModalLayer(panel, true, onClose)
 
   const active = rows.find((r) => r.id === activeId)?.id ?? rows[0]?.id
   const primary = PRIMARY.map((id) => rows.find((r) => r.id === id)).filter((r): r is SectionRow => r !== undefined)
   const advanced = rows.filter((r) => !PRIMARY.includes(r.id))
+  const searching = queryWords(query).length > 0
+  // the pages whose title answers the query, in the order the nav lists them
+  const pageHits = filterPages([...primary, ...advanced], query)
+  const matching = new Set(pageHits.map((row) => row.id))
+
+  // the query on the page that is open: the words that match are marked where they
+  // stand and listed under the field, so a setting is found by its own words
+  const asked = useRef('')
+  useEffect(() => {
+    const root = body.current
+    if (root === null) {
+      setHits([])
+      return
+    }
+    const marked = markMatches(root, query)
+    // a row's title and the line under it are one hit, not two
+    const grouped = new Map<HTMLElement, { element: HTMLElement; label: string }>()
+    for (const element of marked) {
+      const key = element.parentElement ?? element
+      if (!grouped.has(key)) grouped.set(key, { element, label: hitLabel(element) })
+    }
+    setHits([...grouped.values()])
+    const first = marked[0]
+    if (first !== undefined) first.scrollIntoView({ block: 'center' })
+    // the hits are listed at the top of the nav, so the nav goes back to the top
+    // when the query starts, or they would be out of sight
+    if (query.trim() !== '' && asked.current.trim() === '') nav.current?.scrollTo({ top: 0 })
+    asked.current = query
+    return () => { clearMarks(root) }
+  }, [query, active])
+
   // the page a link brought us from, named so the way back is one click (a jump into
   // Advanced from Models or General otherwise leaves the person to find the page again)
   const fromRow = from !== undefined && from !== active ? rows.find((r) => r.id === from) : undefined
@@ -124,11 +160,31 @@ function SettingsPanel({ t, rows, renderSlot, activeId, from, onSelect, onBack, 
   const cell = (row: SectionRow) => h('button', {
     key: row.id,
     type: 'button',
-    className: `nm-settings-cell${row.id === active ? ' nm-active' : ''}`,
+    // a page whose title answers the query is marked, the words that matched on
+    // the page that is open are marked the same way
+    className: `nm-settings-cell${row.id === active ? ' nm-active' : ''}${matching.has(row.id) ? ' nm-match' : ''}`,
     'aria-current': row.id === active ? 'true' : undefined,
     'data-modal-autofocus': row.id === active ? '' : undefined,
     onClick: () => onSelect(row.id),
   }, navIcon(row.id), h('span', { className: 'nm-settings-cell-label' }, row.label))
+
+  const onSearchKey = (event: React.KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      // the field clears first; an empty field leaves Escape to the dialog
+      if (query.trim() === '') return
+      event.preventDefault()
+      setQuery('')
+      return
+    }
+    if (event.key !== 'Enter') return
+    event.preventDefault()
+    const page = pageHits[0]
+    if (page !== undefined) {
+      onSelect(page.id)
+      return
+    }
+    hits[0]?.element.scrollIntoView({ block: 'center' })
+  }
 
   const [signOutError, setSignOutError] = useState<string | undefined>()
   const signOut = () => {
@@ -144,8 +200,38 @@ function SettingsPanel({ t, rows, renderSlot, activeId, from, onSelect, onBack, 
     h('div', { className: 'nm-settings-overlay', role: 'presentation' },
       h('div', { className: 'nm-settings-mask', 'aria-hidden': true, onClick: onClose }),
       h('div', { ref: panel, tabIndex: -1, className: 'nm-settings', role: 'dialog', 'aria-modal': true, 'aria-labelledby': titleId, 'data-shortcut-modal': 'settings' },
-        h('nav', { className: 'nm-settings-nav' },
+        h('nav', { ref: nav, className: 'nm-settings-nav' },
           h('div', { className: 'nm-settings-title', id: titleId, tabIndex: -1 }, renderSlot('settings.header', {}, { fallback: t('menuSettings') })),
+          // the search: the pages by their title, and the words of the page that is open
+          h('div', { className: 'nm-settings-search' },
+            h('div', { className: 'nm-settings-search-box' },
+              h(IconSearch, { size: 14 }),
+              h('input', {
+                type: 'text',
+                className: 'nm-settings-search-input',
+                placeholder: t('settingsSearch'),
+                'aria-label': t('settingsSearch'),
+                value: query,
+                'data-modal-autofocus': '',
+                onChange: (e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.currentTarget.value),
+                onKeyDown: onSearchKey,
+              }))),
+          searching
+            ? h('div', { className: 'nm-settings-results' },
+                hits.length > 0
+                  ? h(Fragment, null,
+                      h('div', { className: 'nm-settings-group' }, t('settingsSearchOnPage')),
+                      hits.map((hit, index) => h('button', {
+                        key: `${index}-${hit.label}`,
+                        type: 'button',
+                        className: 'nm-settings-cell',
+                        onClick: () => hit.element.scrollIntoView({ block: 'center' }),
+                      }, h('span', { className: 'nm-settings-cell-label' }, hit.label))))
+                  : null,
+                hits.length === 0 && pageHits.length === 0
+                  ? h('div', { className: 'nm-settings-empty' }, t('searchNone'))
+                  : null)
+            : null,
           primary.map(cell),
           advanced.length > 0 ? h('div', { className: 'nm-settings-group' }, t('navAdvanced')) : null,
           advanced.map(cell),
@@ -164,7 +250,7 @@ function SettingsPanel({ t, rows, renderSlot, activeId, from, onSelect, onBack, 
             h('button', { type: 'button', className: 'nm-close', onClick: onClose },
               h(IconClose, { size: 14 }),
               h('span', { className: 'nm-hidden' }, renderSlot('settings.close', {}, { fallback: t('close') })))),
-          h('div', { className: 'nm-settings-body', key: active },
+          h('div', { ref: body, className: 'nm-settings-body', key: active },
             active !== undefined ? renderSlot('settings.section', { close: onClose }, { only: active }) : null)))),
     document.body)
 }

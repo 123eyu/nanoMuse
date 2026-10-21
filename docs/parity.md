@@ -100,6 +100,7 @@ Legend: **✓** done · **◐** partial (what is missing is in the note) · **�
 | Ideas prefilled with the curated list (`ideas.{en,zh}.json`, byte for byte, with a test) | ✓ | ✓ | ✓ 0.1.34; empty-when-bundled bug fixed 0.1.35 | ✓ 0.1.35 |
 | Splash: wordmark and the person's own face, never the dragon | ✓ | ✓ system launch screen | ✓ 0.1.35 | n/a |
 | Settings as cards in one order (Models since 0.1.41 · Avatar · Computers · Appearance · … · Version; *Image & video models* kept as a shortcut) | ✓ | ✓ 0.1.35, Models first 0.1.41 | ✓ sections, Models right after General 0.1.41 | ✓ sections |
+| A search in the settings, by a setting's own words | — | — | ✓ the field in the nav | — |
 | Memory as a room | — settings page *(14)* | — | ✓ | ✓ |
 | Stage / browser viewer while the hands work | ✓ stage | n/a *(10)* | ✓ the glow and the capsule while the hands work, the run's trajectory in the chat 0.1.40 (a live stage from 0.1.33 to 0.1.39); Allow/Deny, holds 0.1.34 | ✓ browser viewer you can drive 0.1.34 |
 | Every working light breathes (2.4 s in, 2.4 s out), none runs; steady under reduce-motion | ✓ round 9: the stage's comet and scan line gone, the capsule's ring and bars breathe | n/a *(10)* | ✓ 0.1.40 | ✓ 0.1.40 |
