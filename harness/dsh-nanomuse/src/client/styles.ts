@@ -620,13 +620,22 @@ html[data-nm-platform='darwin']:not([data-nm-fullscreen]) .nm-pf-top { padding-t
 .nm-settings-overlay { position: fixed; inset: 0; z-index: 70; display: flex; align-items: center; justify-content: center; }
 .nm-settings-mask { position: absolute; inset: 0; background: var(--dsw-alias-bg-mask-1, rgba(0,0,0,0.3)); }
 .nm-settings { position: relative; width: min(900px, calc(100vw - 48px)); height: min(620px, calc(100vh - 48px)); display: flex; border-radius: 18px; overflow: hidden; background: var(--nm-base); color: var(--dsw-alias-label-primary); box-shadow: 0 24px 80px rgba(0,0,0,0.35), 0 0 0 1px var(--nm-divider); outline: none; }
-.nm-settings-nav { width: 212px; flex: none; display: flex; flex-direction: column; background: var(--nm-base); border-right: 1px solid var(--nm-divider); padding: 18px 10px 12px; box-sizing: border-box; overflow: auto; }
-.nm-settings-title { font-size: 16px; font-weight: 600; padding: 0 10px 12px; outline: none; }
+.nm-settings-nav { width: 212px; flex: none; display: flex; flex-direction: column; background: var(--nm-base); border-right: 1px solid var(--nm-divider); padding: 0 10px 12px; box-sizing: border-box; overflow: auto; }
+.nm-settings-title { font-size: 16px; font-weight: 600; padding: 18px 10px 12px; outline: none; }
+.nm-settings-search { position: sticky; top: 0; z-index: 2; padding: 0 0 8px; background: var(--nm-base); }
+.nm-settings-search-box { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 10px; background: var(--dsw-alias-bg-layer-2); color: var(--dsw-alias-label-tertiary); }
+.nm-settings-search-box:focus-within { background: var(--nm-card); box-shadow: 0 0 0 1px var(--nm-field-border); }
+.nm-settings-search-input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--dsw-alias-label-primary); font: inherit; font-size: 13px; outline: none; }
+.nm-settings-search-input::placeholder { color: var(--dsw-alias-label-tertiary); }
+.nm-settings-results { display: flex; flex-direction: column; }
+.nm-settings-empty { padding: 10px; font-size: 13px; color: var(--dsw-alias-label-tertiary); }
+.nm-settings-hit { background: color-mix(in srgb, var(--nm-accent) 26%, transparent); border-radius: 3px; }
 .nm-settings-group { font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--dsw-alias-label-tertiary); padding: 12px 10px 6px; }
 .nm-settings-cell { display: flex; align-items: center; gap: 10px; width: 100%; border: 0; text-align: left; padding: 8px 10px; border-radius: 10px; background: transparent; color: var(--dsw-alias-label-secondary); font: inherit; font-size: 14px; cursor: pointer; }
 .nm-settings-cell:hover { background: var(--nm-hover); color: var(--dsw-alias-label-primary); }
 .nm-settings-cell.nm-active { background: var(--dsw-alias-bg-layer-3); color: var(--dsw-alias-label-primary); }
 .nm-settings-cell.nm-danger { color: var(--dsw-alias-state-error-primary, #d2453d); }
+.nm-settings-cell.nm-match { background: color-mix(in srgb, var(--nm-accent) 18%, transparent); color: var(--dsw-alias-label-primary); }
 .nm-settings-cell svg { flex: none; }
 .nm-settings-cell-label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nm-settings-foot { margin-top: auto; padding-top: 10px; }
