@@ -105,6 +105,9 @@ def to_codex(body: dict[str, Any]) -> dict[str, Any]:
     """A Chat Completions request body → the Codex Responses body (always streaming)."""
     instructions: list[str] = []
     items: list[dict[str, Any]] = []
+    call_id_counts: dict[str, int] = {}
+    used_call_ids: set[str] = set()
+    pending_outputs: dict[str, list[str]] = {}
     for m in body.get("messages") or []:
         if not isinstance(m, dict):
             continue
@@ -128,21 +131,36 @@ def to_codex(body: dict[str, Any]) -> dict[str, Any]:
                 if not isinstance(call, dict):
                     continue
                 fn = _obj(call.get("function"))
+                raw_id = str(call.get("id") or "")
+                wire_id = raw_id[:64]
+                occurrence = call_id_counts.get(wire_id, 0) + 1
+                while True:
+                    suffix = "" if occurrence == 1 else f"-{occurrence}"
+                    call_id = f"{wire_id[: 64 - len(suffix)]}{suffix}"
+                    if call_id not in used_call_ids:
+                        break
+                    occurrence += 1
+                call_id_counts[wire_id] = occurrence
+                used_call_ids.add(call_id)
+                pending_outputs.setdefault(raw_id, []).append(call_id)
                 items.append(
                     {
                         "type": "function_call",
-                        "call_id": str(call.get("id") or ""),
+                        "call_id": call_id,
                         "name": str(fn.get("name") or call.get("name") or ""),
                         "arguments": _arguments(fn.get("arguments")),
                     }
                 )
         elif role == "tool":
+            raw_id = str(m.get("tool_call_id") or "")
+            queued = pending_outputs.get(raw_id)
+            call_id = queued.pop(0) if queued else raw_id[:64]
             content = m.get("content")
             output = content if isinstance(content, str) else _arguments(content)
             items.append(
                 {
                     "type": "function_call_output",
-                    "call_id": str(m.get("tool_call_id") or ""),
+                    "call_id": call_id,
                     "output": output,
                 }
             )
