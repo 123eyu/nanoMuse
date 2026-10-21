@@ -58,7 +58,7 @@ import { OwnClip, isOwnClipMood, type OwnClipMood, type OwnClipView } from './ow
 import { DEFAULT_VIDEO_MODEL, hostOf, KNOWN_DASHSCOPE_MODELS, looksLikeVideoModel, probe as probeVideoModel, speaksDashScope, type VideoEndpoint } from './video.ts'
 import { editImage as ownEditImage, generateImage as ownGenerateImage, imageShapeOf, type ImageEndpoint } from './images.ts'
 import { checkMove, checkScreenshot, displayInfo, isBlack, runtimeInfo, screenHead, type MoveCheck, type RuntimeInfo, type ScreenshotCheck } from './hands-check.ts'
-import { apiOf, baseUrlFor, CAPABILITIES, capabilitiesForAuth, capabilitiesOf, CHATGPT_KEY_REF, CHATGPT_PROVIDER, ChatGptDesk, hasUserinfo, keyRefFor, listModelRows, listModels, loadCatalogue, modelsOf, ownProviderRow, parseModelReasoning, regionOf, typedModelIds, USERINFO_TEXT, type Capability, type ChatGptState, type LoginView, type OwnModel, type OwnProvider, type ProviderEntry, type Region } from './providers.ts'
+import { apiOf, baseUrlFor, CAPABILITIES, capabilitiesForAuth, capabilitiesOf, CHATGPT_KEY_REF, CHATGPT_PROVIDER, ChatGptDesk, hasUserinfo, keyRefFor, kindOf, listModelRows, listModels, loadCatalogue, modelsOf, ownProviderRow, parseModelReasoning, regionOf, sighted, typedModelIds, USERINFO_TEXT, type Capability, type ChatGptState, type LoginView, type OwnModel, type OwnProvider, type ProviderEntry, type Region } from './providers.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -507,6 +507,7 @@ function ownProvidersOf(raw: Record<string, unknown>): Record<string, OwnProvide
       at: Number(p.at) || 0,
       // kept, or the next start's refresh would write the row as a hand-declared route
       ...(p.catalogRoute === true ? { catalogRoute: true } : {}),
+      ...(p.customModels === true ? { customModels: true } : {}),
     }
   }
   return out
@@ -705,6 +706,20 @@ export default class NanomuseCloud extends Service {
     if (!this.catalogue.length) this.ctx.logger.warn('nanomuse: assets/providers.json missing or empty; the own-key step lists nothing')
     // Keys saved before the catalogue learned a vendor's thinking levels get them on this start.
     this.refreshOwnRows()
+    this.ctx.effect(
+      () =>
+        this.ctx.on('settings/document-updated', (ns) => {
+          if (String(ns) === LLM_ROW && this.reconcileOwnRows()) this.broadcast()
+        }),
+      'nanomuse cloud: own-key catalog edits',
+    )
+    this.ctx.effect(
+      () =>
+        this.ctx.on('llm/adapters-updated', () => {
+          if (this.reconcileOwnRows()) this.broadcast()
+        }),
+      'nanomuse cloud: adapter catalog edits',
+    )
     await this.profile.load()
     this.profile.onChange(() => this.broadcast())
     // The face's clips follow the face (C3): a face drawn here or pulled from the account drops the
@@ -1274,6 +1289,7 @@ export default class NanomuseCloud extends Service {
    * native-Gemini row never drives the hands.
    */
   handsChoice(opts: { auto?: boolean } = {}): { provider: string; model: string } {
+    this.reconcileOwnRows()
     // `auto`: the order as if nothing were chosen (what the *Automatic* entry would give)
     const chosen = opts.auto ? undefined : this.state.handsModel
     const own = this.state.providers ?? {}
@@ -1332,6 +1348,7 @@ export default class NanomuseCloud extends Service {
 
   /** The sighted models the hands may use, the account's first (the recommended one marked), then each own row's (C11). */
   handsOptions(): ModelOption[] {
+    this.reconcileOwnRows()
     const out: ModelOption[] = []
     if (this.cloudModels()) {
       const models = this.state.models ?? []
@@ -1353,6 +1370,7 @@ export default class NanomuseCloud extends Service {
 
   /** The chat models new chats may answer through: the account's (the recommended one first and marked), then each own row's (C11). */
   chatOptions(): ModelOption[] {
+    this.reconcileOwnRows()
     const out: ModelOption[] = []
     if (this.cloudModels()) {
       const models = this.state.models ?? []
@@ -1542,6 +1560,7 @@ export default class NanomuseCloud extends Service {
 
   /** `GET /providers`: the catalogue, the rows, the capabilities, the sign-in — for the "ways on" and the pickers. */
   async providersView(lang: string): Promise<ProvidersView> {
+    this.reconcileOwnRows()
     const runtime = await runtimeInfo().catch(() => undefined)
     return {
       region: this.region(lang),
@@ -1571,7 +1590,8 @@ export default class NanomuseCloud extends Service {
    * joins under the lowest free id (`custom`, `custom-2`, ...); with `row`, that row is the one
    * changed, and an empty key keeps the key it has.
    */
-  async saveProvider(input: { id: string; row?: string; apiKey?: string; baseURL?: string; label?: string; capabilities?: string[]; models?: string[]; lang?: string }): Promise<OwnProvider> {
+  async saveProvider(input: { id: string; row?: string; apiKey?: string; baseURL?: string; label?: string; capabilities?: string[]; models?: string[]; catalogOnly?: boolean; lang?: string }): Promise<OwnProvider> {
+    this.reconcileOwnRows()
     const id = input.id.trim().toLowerCase()
     if (id === CHATGPT_PROVIDER || id === PROVIDER_ID) throw new RelayError(400, 'bad_provider', 'That row is written by a sign-in, not a key')
     const entry = this.catalogue.find((p) => p.id === id)
@@ -1606,10 +1626,17 @@ export default class NanomuseCloud extends Service {
     // The ids the person typed (a gateway that does not answer `GET /models`, or one model
     // wanted out of hundreds): first in the list, the endpoint's own after them; a typed id the
     // list also has keeps what the list said about it (OpenRouter's thinking levels). A row
-    // changed without new ids keeps the ones it had.
-    const typedInput = input.models ?? (wantedRow ? existing?.models.map((m) => m.id) : undefined)
+    // changed without new ids keeps the ones it had; when the person trimmed the row's model
+    // catalog (or asked for `catalogOnly`), only the kept chat models stay (#525).
+    const keepCatalogOnly = input.catalogOnly === true || (input.models === undefined && existing?.customModels === true)
+    const existingChatIds = existing?.models.filter((m) => m.kind === 'chat').map((m) => m.id)
+    const typedInput = input.models ?? (wantedRow || existing?.customModels ? existingChatIds : undefined)
     const typed = typedModelIds(typedInput).filter((m) => !catalogRoute || served.includes(m))
-    let models = modelsOf({ ...entry, capabilities }, [...typed.map((id) => listed.find((m) => m.id === id) ?? { id }), ...listed.filter((m) => !typed.includes(m.id))])
+    const typedRows = typed.map((mId) => listed.find((m) => m.id === mId) ?? existing?.models.find((m) => m.id === mId) ?? { id: mId })
+    const restRows = keepCatalogOnly && typed.length
+      ? listed.filter((m) => !typed.includes(m.id) && kindOf(m.id) !== 'chat' && m.id !== entry.defaults.chat)
+      : listed.filter((m) => !typed.includes(m.id))
+    let models = modelsOf({ ...entry, capabilities }, [...typedRows, ...restRows])
     if (entry.user_capabilities) models = models.map((m) => ({ ...m, vision: capabilities.includes('vision') }))
     // A row with no chat model cannot be served (the model adapter refuses a route that resolves
     // no models) and nothing could pick from it: a plain sentence, before anything is written.
@@ -1619,11 +1646,24 @@ export default class NanomuseCloud extends Service {
     // a hand-made endpoint reads as its host unless named, so several are told apart
     const fallbackLabel = entry.id === 'custom' ? hostNameOf(baseURL) : input.lang?.toLowerCase().startsWith('zh') ? entry.name_zh : entry.name
     const label = (input.label ?? '').trim() || (wantedRow ? existing?.label : undefined) || fallbackLabel
-    const row: OwnProvider = { id: rowId, provider: id, label, protocol: entry.protocol, baseURL, keyRef, capabilities, models, at: Date.now(), ...(catalogRoute ? { catalogRoute } : {}) }
+    const row: OwnProvider = {
+      id: rowId,
+      provider: id,
+      label,
+      protocol: entry.protocol,
+      baseURL,
+      keyRef,
+      capabilities,
+      models,
+      at: Date.now(),
+      ...(catalogRoute ? { catalogRoute } : {}),
+      ...(keepCatalogOnly && typed.length ? { customModels: true } : {}),
+    }
     await this.ctx.settings.update(LLM_ROW, { providers: { [rowId]: ownProviderRow(row, entry.reasoning) } })
     this.state = { ...this.state, providers: { ...this.state.providers, [rowId]: row } }
     await this.writeState()
     await this.adoptOwnDefault(rowId, row)
+    await this.alignTrimmedChatSelection(this.state.providers ?? {})
     await this.writeHands()
     this.broadcast()
     return row
@@ -1641,6 +1681,7 @@ export default class NanomuseCloud extends Service {
    * alike; empty goes back to the row's host (a hand-made endpoint) or the catalogue's name.
    */
   async renameProvider(id: string, label: string, lang = ''): Promise<OwnProvider> {
+    this.reconcileOwnRows()
     const row = this.state.providers?.[id]
     if (!row || id === CHATGPT_PROVIDER) throw new RelayError(404, 'not_found', 'No such row')
     const entry = this.catalogue.find((p) => p.id === row.provider)
@@ -1654,12 +1695,96 @@ export default class NanomuseCloud extends Service {
   }
 
   /**
+   * Keep each own-key row's chat models in `state.providers` aligned with what the model
+   * adapter's settings row (`llm-pi-ai` `providers.<id>.models`) currently lists, when the
+   * person trimmed or edited the catalog there (#525). Non-chat (`image`, `video`) models
+   * stay on the row; a model's learned `reasoning` levels and `vision` capability are kept.
+   */
+  private reconcileOwnRows(): boolean {
+    const providers = this.state.providers
+    if (!providers) return false
+    let written: Record<string, unknown> | undefined
+    try {
+      const current = this.ctx.settings.describe().find((d) => d.ns === LLM_ROW)
+      written = (current?.value as { providers?: Record<string, unknown> } | undefined)?.providers
+    } catch {
+      written = undefined
+    }
+    if (!written) return false
+    let nextProviders: Record<string, OwnProvider> | undefined
+    for (const [id, row] of Object.entries(providers)) {
+      if (id === CHATGPT_PROVIDER || id === PROVIDER_ID) continue
+      const raw = written[id]
+      if (!raw || typeof raw !== 'object') continue
+      const rawModels = (raw as { models?: unknown }).models
+      if (!Array.isArray(rawModels)) continue
+      const entry = this.catalogue.find((p) => p.id === row.provider)
+      const chatNow = row.models.filter((m) => m.kind === 'chat')
+      const seen = new Set<string>()
+      const nextChat: OwnModel[] = []
+      for (const item of rawModels) {
+        const m = typeof item === 'string' ? { id: item } : item && typeof item === 'object' ? (item as { id?: unknown; displayName?: unknown; input?: unknown }) : undefined
+        const modelId = typeof m?.id === 'string' ? m.id.trim() : ''
+        if (!modelId || seen.has(modelId)) continue
+        seen.add(modelId)
+        const prev = chatNow.find((x) => x.id === modelId)
+        const displayName = typeof m?.displayName === 'string' ? m.displayName.trim() : ''
+        const input = Array.isArray(m?.input) ? m.input : undefined
+        const vision = row.capabilities.includes('vision') && (
+          (input ? input.includes('image') : false) ||
+          (prev ? prev.vision : entry?.user_capabilities ? true : entry ? sighted({ ...entry, capabilities: row.capabilities }, modelId) : false)
+        )
+        nextChat.push({
+          id: modelId,
+          name: displayName || prev?.name || modelId,
+          vision,
+          kind: 'chat',
+          ...(prev?.reasoning ? { reasoning: prev.reasoning } : {}),
+        })
+      }
+      if (!nextChat.length) continue
+      const sameChat = nextChat.length === chatNow.length && nextChat.every((m, i) => m.id === chatNow[i]?.id && m.name === chatNow[i]?.name && m.vision === chatNow[i]?.vision)
+      if (sameChat) continue
+      nextProviders ??= { ...providers }
+      nextProviders[id] = {
+        ...row,
+        models: [...nextChat, ...row.models.filter((m) => m.kind !== 'chat')],
+        customModels: true,
+      }
+    }
+    if (!nextProviders) return false
+    this.state = { ...this.state, providers: nextProviders }
+    void this.alignTrimmedChatSelection(nextProviders)
+    void this.writeState().catch((error: unknown) => this.ctx.logger.warn('nanomuse: state write failed: %s', message(error)))
+    void this.writeHands().catch((error: unknown) => this.ctx.logger.warn('nanomuse: hands model not written: %s', message(error)))
+    return true
+  }
+
+  /** Move the chat slot onto a remaining model of the row when its previous model was trimmed out of the catalog. */
+  private async alignTrimmedChatSelection(providers: Record<string, OwnProvider>): Promise<void> {
+    const svc = this.defaultModelService()
+    if (!svc) return
+    try {
+      const current = svc.currentSelection()
+      const row = providers[current.provider]
+      if (!row || row.models.some((m) => m.kind === 'chat' && m.id === current.model)) return
+      const nextModel = this.ownModelFor(row, 'chat')
+      if (!nextModel) return
+      await svc.saveSelection({ provider: current.provider, model: nextModel })
+      await this.mainChatFollows(current.provider, nextModel)
+    } catch {
+      // best-effort alignment
+    }
+  }
+
+  /**
    * The saved own-key rows written to the model adapter again, where the row it has differs from
    * what the catalogue now says (a vendor's thinking levels learned after the key was saved).
    * The adapter's settings entry may not be registered yet while the host starts: a few quiet
    * retries, then the next start.
    */
   private refreshOwnRows(attempt = 0): void {
+    this.reconcileOwnRows()
     const rows = Object.entries(this.state.providers ?? {}).filter(([id]) => id !== CHATGPT_PROVIDER && id !== PROVIDER_ID)
     if (!rows.length) return
     let current: { value?: unknown } | undefined
@@ -1689,6 +1814,7 @@ export default class NanomuseCloud extends Service {
    * the capability. A slot the row has no model for is left out, so the card shows no toggle for it.
    */
   slotOffer(id: string): SlotOffer {
+    this.reconcileOwnRows()
     const row = this.state.providers?.[id]
     if (!row) return {}
     const offer: SlotOffer = {}
@@ -3604,6 +3730,7 @@ export default class NanomuseCloud extends Service {
         if (typeof body.lang === 'string') input.lang = body.lang
         if (Array.isArray(body.capabilities)) input.capabilities = body.capabilities.map(String)
         if (Array.isArray(body.models) || typeof body.models === 'string') input.models = typedModelIds(body.models)
+        if (typeof body.catalogOnly === 'boolean') input.catalogOnly = body.catalogOnly
         const row = await this.serialize(() => this.saveProvider(input))
         // the "Use it for" card: the slots this row could take and the model each would get
         return send(res, 200, { ...row, offer: this.slotOffer(row.id) })

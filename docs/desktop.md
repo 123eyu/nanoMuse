@@ -275,7 +275,10 @@ the lists hold more than eight models in all, a *Search models* field at the top
 every group by model id or name as you type (*No model matches* when nothing does). Esc
 or a click outside closes the panel; the same picker serves Settings → Media. The folding
 and the search live in `harness/dsh-nanomuse/src/client/model-list.ts`, checked by
-`tests/model-list.test.mjs`.
+`tests/model-list.test.mjs`. If you trim a provider's `models` catalog in the `llm-pi-ai`
+settings (or pass `catalogOnly: true` to `POST /nanomuse/cloud/providers/save`), the
+desktop keeps that trimmed chat model list in `cloud.json`, the model pickers, across
+restarts and across later key updates instead of merging the full `/models` list back in.
 
 What a row uses when you have not chosen: the provider new chats answer through, when it
 is one of your own and has a model for the job (its catalogue default); else nanoMuse

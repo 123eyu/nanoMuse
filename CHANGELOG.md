@@ -30,6 +30,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Desktop
 
+- **Trimming an own-key provider's model catalog stays trimmed in the model pickers and across restarts.** Editing a provider's `models` list in the `llm-pi-ai` settings (`cordis.patch.yml`), or saving with `catalogOnly: true`, now reconciles the row's chat models in `cloud.json` and the chat/hands pickers (`chatOptions`, `handsOptions`, `handsChoice`, `providersView`, `slotOffer`), moves the default chat selection onto a remaining model when its previous model was removed, and keeps the trimmed catalog when the host restarts or the provider key is updated instead of merging the full gateway `/models` list back in. For [#525](https://github.com/nano-muse/nanoMuse/issues/525).
+
 - **A search box in the settings dialog.** The desktop's settings dialog has a search field under the title of its nav. Typing highlights the words that match on the page you are on and lists them under the box, pages whose title matches are highlighted in the list, *Enter* opens the first matching page and *Escape* clears the box. For [#522](https://github.com/nano-muse/nanoMuse/issues/522).
 
 - **A task from the phone streams its text back while the model writes it.** When the asking device sends `stream: true` with a `task`, the desktop follows the live model stream and sends the text of the message being written as `text {partial: true}` events, at most every 250 ms, then the finished message as before. Callers that do not ask, such as Android's `nanomuse-pc task`, get each message once as before. For [#514](https://github.com/nano-muse/nanoMuse/issues/514).
