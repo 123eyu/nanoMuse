@@ -20,6 +20,7 @@ import {
   Palette,
   Plug,
   Puzzle,
+  Search,
   Shield,
   ShieldAlert,
   ShieldCheck,
@@ -28,13 +29,14 @@ import {
   TerminalSquare,
   Zap,
 } from "lucide-react";
-import { useCallback, useEffect, useId, useState, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { androidApp, keepRunningStatus, type KeepRunningStatus } from "../android";
 import { api, setToken } from "../api";
 import { DRAGON } from "../avatars";
 import { desktopBridge, isDesktopApp } from "../desktop";
 import { setDeveloperTools, useDeveloperTools } from "../devtools";
 import { setShowSteps, useShowSteps } from "../steps";
+import { clearMarks, filterPages, hitLabel, markMatches, queryWords } from "../settings-search";
 import { openOwnKeySetup } from "../components/AllowanceWays";
 import { AVATAR_COLORS } from "../components/AvatarPicker";
 import { IdentityForm, identityBody, identityOf, type Identity } from "../components/IdentityForm";
@@ -138,6 +140,12 @@ export function SettingsScreen() {
   // read); on the phone the list of rows the Android app draws, each opening its own page.
   const wide = useWide() && !state.lite;
   const [page, setPage] = useState<SectionId | null>(null);
+  // the settings search: the sections by their title, and the words in the sections
+  // themselves, the rule the desktop app's settings search states (../settings-search)
+  const [query, setQuery] = useState("");
+  const [hits, setHits] = useState<Array<{ element: HTMLElement; label: string }>>([]);
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+  const navRef = useRef<HTMLElement | null>(null);
   const sections: Array<{ id: SectionId; title: string }> = [
     { id: "who", title: name },
     { id: "sentinel", title: t("Safety · Sentinel") },
@@ -152,6 +160,62 @@ export function SettingsScreen() {
     { id: "about", title: t("About") },
   ];
   const show = (id: SectionId) => wide || page === id;
+  const searching = queryWords(query).length > 0;
+  const pageHits = filterPages(
+    sections.map((sec) => ({ id: sec.id, label: sec.title })),
+    query,
+  );
+  const matching = new Set(pageHits.map((p) => p.id));
+
+  // The query on the sections in view: the words that match are marked where they
+  // stand and listed under the field, so a setting is found by its own words. The
+  // first hit is scrolled to when the query changes; a settings save re-marks
+  // without moving the page.
+  const asked = useRef("");
+  useEffect(() => {
+    const root = bodyRef.current;
+    if (root === null) {
+      setHits([]);
+      return;
+    }
+    const marked = markMatches(root, query);
+    // a row's title and the line under it are one hit, not two
+    const grouped = new Map<HTMLElement, { element: HTMLElement; label: string }>();
+    for (const element of marked) {
+      const key = element.parentElement ?? element;
+      if (!grouped.has(key)) grouped.set(key, { element, label: hitLabel(element) });
+    }
+    setHits([...grouped.values()]);
+    const queryChanged = asked.current !== query;
+    if (queryChanged && queryWords(query).length > 0) {
+      marked[0]?.scrollIntoView({ block: "center" });
+      // the hits are listed at the top of the nav, so the nav goes back to the top
+      // when the query starts, or they would be out of sight
+      if (asked.current.trim() === "") navRef.current?.scrollTo({ top: 0 });
+    }
+    asked.current = query;
+    return () => {
+      clearMarks(root);
+    };
+  }, [query, s, wide]);
+
+  const onSearchKey = (event: React.KeyboardEvent) => {
+    if (event.key === "Escape") {
+      // the field clears first; an empty field leaves Escape to the page
+      if (query.trim() === "") return;
+      event.preventDefault();
+      setQuery("");
+      return;
+    }
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    const firstPage = pageHits[0];
+    if (firstPage !== undefined) {
+      document.getElementById(firstPage.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    hits[0]?.element.scrollIntoView({ block: "center" });
+  };
 
   // `#developer` (the sidebar's menu), `#who` (the agent page's Edit) and the other section
   // ids land on that section — once the settings are in, so the sections above it have
@@ -172,7 +236,7 @@ export function SettingsScreen() {
   }, [wanted, s, wide]);
 
   if (!wide && page === null) {
-    return <SettingsHome release={release} onOpen={setPage} />;
+    return <SettingsHome release={release} onOpen={setPage} sections={sections} query={query} onQuery={setQuery} />;
   }
   const current = sections.find((x) => x.id === page);
 
@@ -187,20 +251,58 @@ export function SettingsScreen() {
       <div className="flex min-h-0 flex-1">
         {/* on a wide window, the sections down the left — the shape of Muse's settings */}
         {wide && (
-          <nav className="flex w-[188px] shrink-0 flex-col gap-0.5 self-start pl-4 pr-2 pt-1" aria-label={t("Settings")}>
+          <nav ref={navRef} className="flex max-h-full w-[188px] shrink-0 flex-col gap-0.5 self-start overflow-y-auto pl-4 pr-2 pt-1" aria-label={t("Settings")}>
+            {/* the search: the sections by their title, and the words in the sections themselves */}
+            <div className="px-1 pb-1">
+              <div className="flex items-center gap-2 rounded-xl bg-surface-2 px-2.5 py-1.5">
+                <Search size={14} className="shrink-0 text-muted" />
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.currentTarget.value)}
+                  onKeyDown={onSearchKey}
+                  placeholder={t("Search settings")}
+                  aria-label={t("Search settings")}
+                  className="w-full bg-transparent text-[13px] outline-none placeholder:text-muted"
+                />
+              </div>
+            </div>
+            {searching && (
+              <div className="pb-1">
+                {hits.length > 0 && (
+                  <>
+                    <div className="px-3 pb-0.5 pt-1 text-[11px] font-semibold uppercase tracking-wide text-muted">{t("On this page")}</div>
+                    {hits.map((hit, index) => (
+                      <button
+                        key={`${index}-${hit.label}`}
+                        type="button"
+                        onClick={() => hit.element.scrollIntoView({ block: "center" })}
+                        className="block w-full truncate rounded-xl px-3 py-1.5 text-left text-[13px] text-fg/75 hover:bg-surface-2 hover:text-fg"
+                      >
+                        {hit.label}
+                      </button>
+                    ))}
+                  </>
+                )}
+                {hits.length === 0 && pageHits.length === 0 && <div className="px-3 py-1.5 text-[13px] text-muted">{t("Nothing matches")}</div>}
+              </div>
+            )}
             {sections.map((sec) => (
               <button
                 key={sec.id}
                 type="button"
                 onClick={() => document.getElementById(sec.id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                className="truncate rounded-xl px-3 py-1.5 text-left text-[13px] font-medium text-fg/75 hover:bg-surface-2 hover:text-fg"
+                className={cx(
+                  "truncate rounded-xl px-3 py-1.5 text-left text-[13px] font-medium text-fg/75 hover:bg-surface-2 hover:text-fg",
+                  searching && matching.has(sec.id) && "bg-accent/10 text-fg",
+                )}
               >
                 {sec.title}
               </button>
             ))}
           </nav>
         )}
-      <div className="flex-1 overflow-y-auto px-4 pb-8 space-y-5">
+      <div ref={bodyRef} className="flex-1 overflow-y-auto px-4 pb-8 space-y-5">
         {/* who it is */}
         {show("who") && (
         <Section title={name} id="who" plain={!wide}>
@@ -545,7 +647,19 @@ function VersionRows({ installed, release, checking, onCheck }: { installed: str
  * canvas, grouped the way the Android app groups them — the model, the agent, how it
  * behaves, the app, about — each row opening its own page or screen.
  */
-function SettingsHome({ release, onOpen }: { release: UpdateView | null; onOpen: (id: SectionId) => void }) {
+function SettingsHome({
+  release,
+  onOpen,
+  sections,
+  query,
+  onQuery,
+}: {
+  release: UpdateView | null;
+  onOpen: (id: SectionId) => void;
+  sections: Array<{ id: SectionId; title: string }>;
+  query: string;
+  onQuery: (value: string) => void;
+}) {
   const { state, setTab } = useStore();
   const t = useT();
   const s = state.settings;
@@ -563,9 +677,68 @@ function SettingsHome({ release, onOpen }: { release: UpdateView | null; onOpen:
   const levelLabel = level === "off" ? t("Off") : level === "low" ? t("Low") : level === "high" ? t("High") : t("Default");
   const themeLabel = themeSetting === "dark" ? t("Dark") : themeSetting === "light" ? t("Light") : t("Follow the system");
   const none = t("none");
+  // The settings search on the phone: the sections by their title. Their words are
+  // not rendered on this screen, so the title is all a query can answer here; the
+  // query stands when a section opens, and its words are marked on that page.
+  const homeSearching = queryWords(query).length > 0;
+  const sectionHits = filterPages(
+    sections.map((sec) => ({ id: sec.id, label: sec.title })),
+    query,
+  );
+  const onHomeSearchKey = (event: React.KeyboardEvent) => {
+    if (event.key === "Escape") {
+      if (query.trim() === "") return;
+      event.preventDefault();
+      onQuery("");
+      return;
+    }
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    const first = sectionHits[0];
+    if (first !== undefined) onOpen(first.id);
+  };
+  const searchBox = (
+    <div className="px-4 pb-1 pt-1">
+      <div className="flex items-center gap-2 rounded-xl bg-surface-2 px-2.5 py-2">
+        <Search size={15} className="shrink-0 text-muted" />
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => onQuery(e.currentTarget.value)}
+          onKeyDown={onHomeSearchKey}
+          placeholder={t("Search settings")}
+          aria-label={t("Search settings")}
+          className="w-full bg-transparent text-[13.5px] outline-none placeholder:text-muted"
+        />
+      </div>
+    </div>
+  );
+  if (homeSearching) {
+    return (
+      <div className="flex h-full flex-col">
+        <PageBar title={t("Settings")} />
+        {searchBox}
+        <div className="flex-1 overflow-y-auto px-4 pb-8 pt-2">
+          {sectionHits.length > 0 ? (
+            <MuseCard>
+              {sectionHits.map((sec, index) => (
+                <Fragment key={sec.id}>
+                  {index > 0 && <MuseDivider />}
+                  <MuseRow label={sec.label} onClick={() => onOpen(sec.id)} />
+                </Fragment>
+              ))}
+            </MuseCard>
+          ) : (
+            <div className="px-1 pt-2 text-[13.5px] text-muted">{t("Nothing matches")}</div>
+          )}
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="flex h-full flex-col">
       <PageBar title={t("Settings")} />
+      {searchBox}
       <div className="flex-1 overflow-y-auto pb-8 pt-2">
         {/* the model: where Muse's plan card stands */}
         <MuseCard className="mb-3">

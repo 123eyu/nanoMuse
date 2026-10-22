@@ -26,6 +26,7 @@ enum NanoMuseImageGen {
     enum Route: Equatable {
         case ownKey(OwnKey)
         case relay
+        case unavailable
     }
 
     struct Failure: LocalizedError {
@@ -133,14 +134,16 @@ extension NanoMuseImageGen {
     /// first; without one, the chat provider's own image model when the chat runs on a key of
     /// their own that draws, then nanoMuse Cloud when signed in, then the first key on the
     /// phone that draws. Cloud no longer loses to a Bailian key the person did not pick, and a
-    /// Bailian key the person did pick is never passed over for Cloud. `.relay` when nothing
-    /// can draw: the relay call then says *Sign in to nanoMuse Cloud first*.
+    /// Bailian key the person did pick is never passed over for Cloud.
     @MainActor
     static func route() -> Route {
         let candidates = bailianInstances()
-        guard let resolved = NanoMuseModelSlots.imageValue() else { return .relay }
+        guard let resolved = NanoMuseModelSlots.imageValue() else { return .unavailable }
+        if resolved.providerId == NanoMuseCloud.instance?.id {
+            return NanoMuseCloud.modelsOn ? .relay : .unavailable
+        }
         guard let inst = candidates.first(where: { $0.id == resolved.providerId }),
-              let key = ProviderKeychainHelper.loadAPIKey(instanceId: inst.id), !key.isEmpty else { return .relay }
+              let key = ProviderKeychainHelper.loadAPIKey(instanceId: inst.id), !key.isEmpty else { return .unavailable }
         let model = resolved.model.isEmpty ? suggestedModel(for: inst) : resolved.model
         return .ownKey(OwnKey(instanceId: inst.id, label: inst.label, baseURL: inst.customBaseURL ?? "", apiKey: key, model: model))
     }
@@ -191,6 +194,7 @@ extension NanoMuseImageGen {
         switch route() {
         case .relay: return String(format: AppLocalized("Drawn by %@"), NanoMuseCloud.label)
         case .ownKey(let k): return String(format: AppLocalized("Drawn by %@ · %@"), k.label, k.model)
+        case .unavailable: return AppLocalized("No image model found on this provider. Type one below, or check again once the key is in.")
         }
     }
 
@@ -206,6 +210,8 @@ extension NanoMuseImageGen {
             var parameters: [String: Any] = ["size": "1024*1024", "watermark": false]
             if k.model.hasPrefix("qwen-image") { parameters["prompt_extend"] = false }
             return try await callDashScope(k, model: k.model, content: [["text": prompt]], parameters: parameters, what: "generation")
+        case .unavailable:
+            throw Failure(message: AppLocalized("No image model found on this provider. Type one below, or check again once the key is in."))
         }
     }
 
@@ -231,6 +237,8 @@ extension NanoMuseImageGen {
                 ["text": prompt],
             ]
             return try await callDashScope(k, model: model, content: content, parameters: parameters, what: "edit")
+        case .unavailable:
+            throw Failure(message: AppLocalized("No image model found on this provider. Type one below, or check again once the key is in."))
         }
     }
 

@@ -334,6 +334,16 @@
     <string name="nm_avatar_retry">Erneut versuchen</string>
     <string name="nm_avatar_describe_title">Ein neues Gesicht beschreiben</string>
     <string name="nm_avatar_describe_body">Ein Satz genügt: was es ist, was es trägt, wie es sich anfühlt. Wähle einen Stil, und dein Bildmodell zeichnet vier zur Auswahl.</string>
+    <string name="nm_avatar_preset_moss_name">Mooskurier</string>
+    <string name="nm_avatar_preset_moss_description">ein kleiner, mit weichem Moos bedeckter Kurier mit Blattohren und einer schlichten Segeltuchtasche</string>
+    <string name="nm_avatar_preset_tide_name">Gezeiten-Tüftler</string>
+    <string name="nm_avatar_preset_tide_description">ein meeresschaumgrüner Axolotl-Tüftler mit korallenfarbenen Kiemen und schlichter Werkzeugtasche</string>
+    <string name="nm_avatar_preset_dusk_name">Dämmerfalter</string>
+    <string name="nm_avatar_preset_dusk_description">ein nachdenklicher indigoblauer Nachtfalter mit pfirsichfarbenen Flügelflecken, cremefarbenem Kragen und runder Brille</string>
+    <string name="nm_avatar_preset_copper_name">Kupfereichel</string>
+    <string name="nm_avatar_preset_copper_description">ein kleiner eichelförmiger Automat aus Kupfer mit salbeigrünen Feldern und gedeckt blauem Schal</string>
+    <string name="nm_avatar_preset_a11y">Option %1$d: %2$s, %3$s</string>
+    <string name="nm_avatar_preset_ai">KI-generierte Inspiration</string>
     <string name="nm_avatar_default_description">Ein pummeliger blassgelber Babydrache mit winzigen orangefarbenen Hörnern und kleinen gefalteten Flügeln</string>
     <string name="nm_avatar_style_flat">Flach</string>
     <string name="nm_avatar_style_clay">3D-Knete</string>

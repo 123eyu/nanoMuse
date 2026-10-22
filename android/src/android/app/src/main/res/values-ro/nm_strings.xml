@@ -337,6 +337,16 @@
     <string name="nm_avatar_retry">Reîncearcă</string>
     <string name="nm_avatar_describe_title">Descrie o față nouă</string>
     <string name="nm_avatar_describe_body">O propoziție e de ajuns: ce este, ce poartă, ce stare transmite. Alege un stil, iar modelul tău de imagine desenează patru variante din care să alegi.</string>
+    <string name="nm_avatar_preset_moss_name">Curierul de mușchi</string>
+    <string name="nm_avatar_preset_moss_description">un curier mic acoperit cu mușchi, cu urechi ca frunzele și o geantă simplă din pânză</string>
+    <string name="nm_avatar_preset_tide_name">Meșterul mareelor</string>
+    <string name="nm_avatar_preset_tide_description">un axolotl meșter verde-spumă, cu branhii coral și o borsetă simplă pentru unelte</string>
+    <string name="nm_avatar_preset_dusk_name">Molia amurgului</string>
+    <string name="nm_avatar_preset_dusk_description">o molie indigo gânditoare, cu pete piersicii pe aripi, guler crem și ochelari rotunzi</string>
+    <string name="nm_avatar_preset_copper_name">Ghinda de cupru</string>
+    <string name="nm_avatar_preset_copper_description">un automat mic din cupru în formă de ghindă, cu panouri verde salvie și fular albastru estompat</string>
+    <string name="nm_avatar_preset_a11y">Opțiunea %1$d: %2$s, %3$s</string>
+    <string name="nm_avatar_preset_ai">Inspirație generată de AI</string>
     <string name="nm_avatar_default_description">Un pui de dragon dolofan, galben-pal, cu coarne mici portocalii și aripi mici strânse</string>
     <string name="nm_avatar_style_flat">Plat</string>
     <string name="nm_avatar_style_clay">Lut 3D</string>

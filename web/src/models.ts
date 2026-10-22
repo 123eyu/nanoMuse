@@ -162,8 +162,8 @@ export interface MediaChoice {
 }
 
 /**
- * What the picker of one slot offers, in order: nanoMuse Cloud when signed in; the chat
- * model's provider when it is an own provider with the capability; the endpoints of the
+ * What the picker of one slot offers, in order: the chat model's provider when it is an
+ * own provider with the capability; the endpoints of the
  * list (their own keys serve); then every catalogue provider with the capability for the
  * region (the chat provider not twice), and a host of one's own last. A provider without
  * the capability is not offered at all.
@@ -183,7 +183,6 @@ export function mediaChoices(
 ): MediaChoice[] {
   const list = opts.list ?? CATALOGUE;
   const out: MediaChoice[] = [];
-  if (opts.signedIn) out.push({ value: CLOUD_ID, label: "nanoMuse Cloud", group: "cloud", needsKey: false, entry: null });
   const chat = opts.chat.cloud ? null : entryFor(opts.chat.provider, opts.chat.base_url, list);
   if (chat && chat.capabilities.includes(cap)) {
     out.push({ value: chat.id, label: providerName(chat, opts.locale), group: "chat", needsKey: false, entry: chat });

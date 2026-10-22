@@ -237,99 +237,21 @@ def _max_side(size: str) -> int:
     return max(parts) if parts else 0
 
 
-# The menu a fresh account gets. Checked against the provider's own /models
-# list: deepseek-v4.1-flash (0.17) is the chat model — it reads pictures (checked: it
-# answers about one; v4-flash and v4-pro do not) and returns `reasoning_content` —
-# qwen3.8-27b is the hands model (the GUI model that reads screenshots and drives a
-# phone or a computer; usable for chat too), qwen-image-3.0 draws, Wan 2.2 makes clips
-# through the video API (which the provider does not list; the app probes it). Prices
-# are the provider's Beijing list prices (help.aliyun.com/zh/model-studio/model-pricing
-# and /context-cache, read 2026-10-07): DeepSeek V4.1 Flash ¥2 / ¥8 per million tokens
-# from 8:00 to 22:00 Beijing time and ¥1 / ¥4 the rest of the night, cached input at 10 %;
-# 27B ¥3 / ¥12 and Flash ¥0.8 / ¥2.7, cached input at 20 % (the usual Model Studio rate;
-# the page says Flash's exact figure is in the console); qwen-image-3.0 ¥0.18 a picture
-# out at 1k and 2k alike and ¥0.02 a picture in (the Pro tier is ¥0.25 / ¥0.5);
-# wan2.2-i2v-flash ¥0.10 a second at 480P (¥0.20 at 720P, ¥0.48 at 1080P) for a fixed
-# five seconds (MiniMax-H3, the 0.3 default, was ¥0.5 a second: a new face cost ¥8 in
-# clips, now ¥2). wan2.2-t2v-plus is the sibling the app asks for when a clip starts
-# from words: ¥0.14 a second at 480P, ¥0.70 at 1080P.
+# The hosted menu is deliberately chat-only. The one Qwen model reads image input and
+# serves both the conversation and GUI lanes; image/video generation belongs to providers
+# and API keys configured by the person on their device.
 DEFAULT_MODELS: tuple[ModelSpec, ...] = (
     ModelSpec(
-        id="deepseek-v4.1-flash",
-        name="DeepSeek V4.1 Flash",
-        upstream="deepseek-v4.1-flash",
+        id="Qwen/Qwen3.6-27B-FP8",
+        name="Qwen 3.6 27B FP8",
+        upstream="Qwen/Qwen3.6-27B-FP8",
         input_modalities=("text", "image"),
-        for_=("chat",),
+        for_=("chat", "gui"),
         recommended=True,
-        recommended_for=("chat",),
-        in_mult=0.7,
-        out_mult=0.7,
-        price_in=2.0,
-        price_out=8.0,
-        price_in_idle=1.0,
-        price_out_idle=4.0,
-        idle_hours=(22, 8),
-        cached_in_rate=0.1,
-    ),
-    ModelSpec(
-        id="qwen3.8-27b",
-        name="Qwen 3.8 27B",
-        upstream="qwen3.8-27b",
-        input_modalities=("text", "image"),
-        for_=("gui", "chat"),
-        recommended=True,
-        recommended_for=("gui",),
+        recommended_for=("chat", "gui"),
         price_in=3.0,
         price_out=12.0,
         cached_in_rate=0.2,
-    ),
-    ModelSpec(
-        id="qwen3.8-flash",
-        name="Qwen 3.8 Flash",
-        upstream="qwen3.8-flash",
-        input_modalities=("text", "image"),
-        in_mult=0.3,
-        out_mult=0.3,
-        price_in=0.8,
-        price_out=2.7,
-        cached_in_rate=0.2,
-    ),
-    ModelSpec(
-        id="qwen-image-3.0",
-        name="Qwen Image 3.0",
-        upstream="qwen-image-3.0",
-        kind="image",
-        output_modalities=("image",),
-        per_image=30_000,
-        recommended=True,
-        price_image=0.18,
-        price_image_2k=0.18,
-        price_image_in=0.02,
-    ),
-    ModelSpec(
-        id="wan2.2-i2v-flash",
-        name="Wan 2.2 Flash (video)",
-        upstream="wan2.2-i2v-flash",
-        kind="video",
-        input_modalities=("text", "image"),
-        output_modalities=("video",),
-        per_clip=200_000,
-        recommended=True,
-        price_second=0.10,
-        price_second_res=(("720P", 0.20), ("1080P", 0.48)),
-        clip_seconds=5.0,
-    ),
-    ModelSpec(
-        id="wan2.2-t2v-plus",
-        name="Wan 2.2 Plus (video from words)",
-        upstream="wan2.2-t2v-plus",
-        kind="video",
-        input_modalities=("text",),
-        output_modalities=("video",),
-        per_clip=200_000,
-        price_second=0.14,
-        price_second_res=(("1080P", 0.70),),
-        clip_seconds=5.0,
     ),
 )
 
@@ -474,6 +396,16 @@ def _models_from_env() -> tuple[ModelSpec, ...]:
     return tuple(out)
 
 
+def _model_aliases_from_env() -> dict[str, str]:
+    raw = _env("CLOUD_MODEL_ALIASES")
+    if not raw:
+        return dict(LEGACY_MODEL_IDS)
+    aliases = json.loads(raw)
+    if not isinstance(aliases, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in aliases.items()):
+        raise ValueError("CLOUD_MODEL_ALIASES must be a JSON object of model ids")
+    return {**LEGACY_MODEL_IDS, **aliases}
+
+
 def menu_warnings(models: tuple[ModelSpec, ...]) -> list[str]:
     """What is odd about a menu — for the log at start, not an error: the clients pick the
     recommended model of each lane as a default, so there should be exactly one."""
@@ -499,9 +431,16 @@ class Settings:
     upstream_base: str = field(default_factory=lambda: _env("UPSTREAM_BASE", "https://dashscope.aliyuncs.com/compatible-mode/v1"))
     upstream_key: str = field(default_factory=lambda: _env("UPSTREAM_KEY"))
     # DashScope's native host, for drawing (its OpenAI-compatible host has no
-    # images endpoint). Same key.
+    # images endpoint). Empty keeps using UPSTREAM_KEY for backwards compatibility.
     dashscope_base: str = field(default_factory=lambda: _env("DASHSCOPE_BASE", "https://dashscope.aliyuncs.com/api/v1"))
+    dashscope_key: str = field(default_factory=lambda: _env("DASHSCOPE_KEY"))
     upstream_timeout_s: float = field(default_factory=lambda: float(_env("UPSTREAM_TIMEOUT_S", "180")))
+    # Chat requests share one provider account. Keep a bounded number at the provider and
+    # queue the rest in the relay; retry only a refusal received before any answer starts.
+    # Zero disables either guard for an operator whose upstream already queues for itself.
+    chat_concurrency: int = field(default_factory=lambda: _int("CHAT_CONCURRENCY", 12))
+    chat_retries: int = field(default_factory=lambda: _int("CHAT_RETRIES", 2))
+    chat_retry_base_s: float = field(default_factory=lambda: float(_env("CHAT_RETRY_BASE_S", "0.5")))
     # Pictures: DashScope allows an account only a couple of image tasks at a time and
     # answers 429 past that, so the relay draws at most IMAGE_CONCURRENCY pictures at once
     # for everyone together (the rest queue) and, on a 429 or 5xx, tries again up to
@@ -646,6 +585,13 @@ class Settings:
     aliyun_sms_api: str = field(default_factory=lambda: _env("ALIYUN_SMS_API", "dypns"))
 
     models: tuple[ModelSpec, ...] = field(default_factory=_models_from_env)
+    # Self-hosted relays may deliberately keep the historical native media proxy. The
+    # project-hosted default is off; with it off every media route returns an actionable
+    # retirement error before an upstream request or charge.
+    media_enabled: bool = field(default_factory=lambda: _env("CLOUD_MEDIA_ENABLED", "0") in ("1", "true", "yes"))
+    # Old clients can keep a saved model id while an operator changes provider.
+    # This JSON object is merged over the aliases built into the relay.
+    model_aliases: dict[str, str] = field(default_factory=_model_aliases_from_env)
     # Members (the operator's list, or flagged on the account) may ask for any model the
     # provider has under the operator's key, by its id, as long as it is used for what it
     # is — a chat model for chat, an image model for pictures, a video model for clips.
@@ -747,10 +693,10 @@ class Settings:
             if m.id == model_id:
                 return m
         # Phones from before 0.4 still ask for the model the menu used to carry;
-        # same API shape, so the cheaper sibling answers in its place.
-        alias = LEGACY_MODEL_IDS.get(model_id)
+        # operators may also keep saved ids working after changing provider.
+        alias = self.model_aliases.get(model_id)
         if alias and alias != model_id:
-            return self.model(alias)
+            return next((m for m in self.models if m.id == alias), None)
         return None
 
     def unlisted_model(self, model_id: str, kind: str) -> ModelSpec | None:

@@ -1070,11 +1070,15 @@ html[data-nm-platform='darwin']:not([data-nm-fullscreen]) .nm-lib-col-top { heig
 
 /* ---- the avatar studio ---- */
 .nm-st-label { font-size: 12.5px; font-weight: 600; color: var(--dsw-alias-label-secondary); margin: 12px 0 6px; }
+.nm-st-preset-ai { margin: 4px 0 8px; color: var(--dsw-alias-label-secondary); font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
 .nm-st-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.nm-st-cell { position: relative; aspect-ratio: 1; border-radius: 16px; overflow: hidden; border: 0; padding: 0; background: var(--nm-card); box-shadow: inset 0 0 0 1px var(--nm-field-border); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.nm-st-cell { position: relative; border-radius: 16px; overflow: hidden; border: 0; padding: 0 0 8px; background: var(--nm-card); box-shadow: inset 0 0 0 1px var(--nm-field-border); cursor: pointer; display: flex; flex-direction: column; align-items: stretch; text-align: left; }
 .nm-st-cell:disabled { cursor: default; }
-.nm-st-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.nm-st-cell img, .nm-st-cell video { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
 .nm-st-cell.nm-active { box-shadow: 0 0 0 3px var(--nm-accent); }
+.nm-st-preset-name, .nm-st-preset-style { overflow: hidden; padding: 0 10px; text-overflow: ellipsis; white-space: nowrap; }
+.nm-st-preset-name { margin-top: 7px; color: var(--dsw-alias-label-primary); font-size: 12px; font-weight: 600; }
+.nm-st-preset-style { margin-top: 2px; color: var(--dsw-alias-label-secondary); font-size: 11px; }
 .nm-st-tag { position: absolute; left: 10px; bottom: 10px; padding: 2px 8px; border-radius: 999px; background: rgba(0,0,0,0.55); color: #fff; font-size: 11.5px; }
 .nm-st-wait { font-size: 28px; color: var(--dsw-alias-label-tertiary); }
 .nm-st-moods { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 6px 0 14px; }

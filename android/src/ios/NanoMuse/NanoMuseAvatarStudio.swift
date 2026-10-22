@@ -45,6 +45,23 @@ enum NanoMuseAvatarStyle: String, CaseIterable, Identifiable {
     }
 }
 
+private struct NanoMuseAvatarPreset: Identifiable {
+    let id: String
+    let nameKey: String.LocalizationValue
+    let descriptionKey: String.LocalizationValue
+    let style: NanoMuseAvatarStyle
+
+    var name: String { AppLocalized(nameKey) }
+    var description: String { AppLocalized(descriptionKey) }
+
+    static let all = [
+        NanoMuseAvatarPreset(id: "moss-courier", nameKey: "Moss Courier", descriptionKey: "a tiny moss-covered courier with leaf ears and an unmarked canvas satchel", style: .muse),
+        NanoMuseAvatarPreset(id: "tide-tinker", nameKey: "Tide Tinker", descriptionKey: "a seafoam axolotl tinkerer with coral frills and a plain tool pouch", style: .clay),
+        NanoMuseAvatarPreset(id: "dusk-moth", nameKey: "Dusk Moth", descriptionKey: "a thoughtful indigo moth with peach wing spots, a cream collar and round glasses", style: .watercolor),
+        NanoMuseAvatarPreset(id: "copper-acorn", nameKey: "Copper Acorn", descriptionKey: "a small acorn-shaped copper automaton with sage panels and a muted-blue scarf", style: .line),
+    ]
+}
+
 enum NanoMuseAvatarPrompts {
     static let candidates = 4
     static let posedMoods: [NanoMuseMood] = [.working, .waiting, .happy, .error]
@@ -163,8 +180,10 @@ final class NanoMuseAvatarStudioModel: ObservableObject {
 
     /// Whether a picture can be drawn at all right now; the reason when not.
     var cannotDrawReason: String? {
-        if usesOwnKey || NanoMuseCloud.modelsOn { return nil }
-        return AppLocalized("Sign in to nanoMuse Cloud, or add an Alibaba Cloud Bailian key under Providers; the pictures are drawn with one of the two.")
+        if case .unavailable = NanoMuseImageGen.route() {
+            return AppLocalized("No image model found on this provider. Type one below, or check again once the key is in.")
+        }
+        return nil
     }
 
     /// Files of the candidates on screen, in order ("" where one failed).
@@ -200,7 +219,7 @@ final class NanoMuseAvatarStudioModel: ObservableObject {
     // MARK: Cost
 
     func refreshEstimate() {
-        guard NanoMuseCloud.modelsOn, !usesOwnKey else { return }
+        guard case .relay = NanoMuseImageGen.route() else { return }
         estimating = true
         estimateError = nil
         Task { @MainActor [self] in
@@ -547,6 +566,42 @@ struct NanoMuseAvatarStudioView: View {
 
     private var describeSection: some View {
         Section {
+            Text(AppLocalized("AI-generated inspiration"))
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(NanoMuseAvatarPreset.all) { preset in
+                        Button {
+                            studio.description = preset.description
+                            studio.style = preset.style
+                        } label: {
+                            VStack(alignment: .leading, spacing: 3) {
+                                if let image = UIImage(named: "preset-\(preset.id)") {
+                                    Image(uiImage: image)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 112, height: 112)
+                                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                                        .overlay {
+                                            if studio.description == preset.description {
+                                                RoundedRectangle(cornerRadius: 18)
+                                                    .stroke(NanoMuseTones.action, lineWidth: 3)
+                                            }
+                                        }
+                                }
+                                Text(preset.name).font(.caption.weight(.semibold)).lineLimit(1)
+                                Text(preset.style.label).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                            }
+                            .frame(width: 112, alignment: .leading)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("\(preset.name), \(preset.style.label)")
+                    }
+                }
+                .padding(.vertical, 2)
+            }
             TextField(AppLocalized("Describe a new face"), text: $studio.description, axis: .vertical)
                 .lineLimit(2...5)
             ScrollView(.horizontal, showsIndicators: false) {

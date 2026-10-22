@@ -335,6 +335,16 @@
     <string name="nm_avatar_retry">Tentar de novo</string>
     <string name="nm_avatar_describe_title">Descreva um rosto novo</string>
     <string name="nm_avatar_describe_body">Uma frase basta: o que é, o que veste, que sensação passa. Escolha um estilo, e seu modelo de imagem desenha quatro opções.</string>
+    <string name="nm_avatar_preset_moss_name">Mensageiro de musgo</string>
+    <string name="nm_avatar_preset_moss_description">um pequeno mensageiro coberto de musgo, com orelhas de folha e bolsa de lona sem marcas</string>
+    <string name="nm_avatar_preset_tide_name">Inventor das marés</string>
+    <string name="nm_avatar_preset_tide_description">um axolote inventor verde-espuma com guelras coral e bolsa de ferramentas lisa</string>
+    <string name="nm_avatar_preset_dusk_name">Mariposa do crepúsculo</string>
+    <string name="nm_avatar_preset_dusk_description">uma mariposa índigo pensativa com manchas pêssego nas asas, gola creme e óculos redondos</string>
+    <string name="nm_avatar_preset_copper_name">Bolota de cobre</string>
+    <string name="nm_avatar_preset_copper_description">um pequeno autômato de cobre em forma de bolota, com painéis verde-sálvia e cachecol azul discreto</string>
+    <string name="nm_avatar_preset_a11y">Opção %1$d: %2$s, %3$s</string>
+    <string name="nm_avatar_preset_ai">Inspiração gerada por IA</string>
     <string name="nm_avatar_default_description">Um dragãozinho bebê rechonchudo, amarelo-claro, com chifrinhos laranja e asas pequenas dobradas</string>
     <string name="nm_avatar_style_flat">Flat</string>
     <string name="nm_avatar_style_clay">Argila 3D</string>

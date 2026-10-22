@@ -1444,7 +1444,7 @@ class Cloud:
                 "bonus_available": False,
                 "bonus_at": caller.contribute_bonus_at,
             },
-            "models": [m.to_public() for m in self.s.models],
+            "models": [m.to_public() for m in self.offered_models()],
             "base_url": self.s.public_base,
             "recent": [self._ledger_row(r) for r in self.db.recent_ledger(caller.account_id)],
             # 0.18: when the app may ask for a star (the same object as GET /v1/nudges), so a
@@ -1522,6 +1522,15 @@ class Cloud:
         """The model a request names, checked for `kind` (a chat model answers chat, an
         image model draws, a video model films — never across). The menu for everyone;
         for a member, with any_model_members on, any id shaped like one besides."""
+        if kind in ("image", "video") and not self.s.media_enabled:
+            noun = "pictures" if kind == "image" else "clips"
+            raise CloudError(
+                410,
+                "hosted_media_retired",
+                f"nanoMuse Cloud no longer generates {noun}. Add your own image or video "
+                "provider and API key in Settings → Models, then try again.",
+                {"kind": kind, "action": "configure_own_provider"},
+            )
         m = self.s.model(model_id)
         if m is not None and m.kind == kind:
             return m
@@ -1535,11 +1544,15 @@ class Cloud:
         more = ", or any model of the provider's by its id" if self.any_model(caller) else ""
         raise CloudError(404, "model_not_offered", f"nanoMuse Cloud does not offer {model_id!r}; choose one of: {offered}{more}")
 
+    def offered_models(self) -> tuple[ModelSpec, ...]:
+        """The configured menu after operator feature switches are applied."""
+        return self.s.models if self.s.media_enabled else tuple(m for m in self.s.models if m.kind == "chat")
+
     def models_for(self, caller: Caller) -> dict:
         """The menu, and whether this account may name a model beyond it."""
         return {
             "object": "list",
-            "data": [m.to_public() for m in self.s.models],
+            "data": [m.to_public() for m in self.offered_models()],
             "nanomuse": {"any_model": self.any_model(caller)},
         }
 
@@ -2151,6 +2164,16 @@ class Cloud:
         the number next to what they have left today. Nothing is charged."""
         images = max(0, min(images, 50))
         clips = max(0, min(clips, 20))
+        if (images or clips) and not self.s.media_enabled:
+            kind = "image" if images else "video"
+            noun = "pictures" if images else "clips"
+            raise CloudError(
+                410,
+                "hosted_media_retired",
+                f"nanoMuse Cloud no longer generates {noun}. Add your own {kind} provider "
+                "and API key in Settings → Models to use this feature.",
+                {"kind": kind, "action": "configure_own_provider"},
+            )
         parts = []
         cost = 0
         if images:

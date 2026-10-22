@@ -153092,61 +153092,61 @@
         }
       }
     },
-    "DeepSeek for chat, with pictures and clips too, and a free allowance per account paid by the developer. Nothing to configure." : {
+    "Qwen/Qwen3.6-27B-FP8 handles chat, image input and screen operation with an account allowance. Drawing pictures and making clips requires a provider and API key of your own." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "DeepSeek for chat, with pictures and clips too, and a free allowance per account paid by the developer. Nothing to configure."
+            "value" : "Qwen/Qwen3.6-27B-FP8 handles chat, image input and screen operation with an account allowance. Drawing pictures and making clips requires a provider and API key of your own."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "对话用 DeepSeek，也能生成图片和视频；每个账号都有一份由开发者承担的免费额度，不用配置。"
+            "value" : "Qwen/Qwen3.6-27B-FP8 通过账号额度处理对话、图片输入和屏幕操作。生成图片和视频需要接入你自己的供应商和 API key。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "對話用 DeepSeek，也能生成圖片和影片；每個帳號都有一份由開發者承擔的免費額度，不用配置。"
+            "value" : "Qwen/Qwen3.6-27B-FP8 透過帳號額度處理對話、圖片輸入和螢幕操作。生成圖片和影片需要接入你自己的供應商和 API key。"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "チャットは DeepSeek、画像と動画も作れます。開発者が負担する無料枠がアカウントごとに付きます。設定は不要です。"
+            "value" : "Qwen/Qwen3.6-27B-FP8 はアカウント枠でチャット、画像入力、画面操作を処理します。画像や動画の生成には、自分のプロバイダーと API キーが必要です。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "채팅은 DeepSeek, 그림과 영상도 만듭니다. 개발자가 부담하는 계정당 무료 사용량이 있습니다. 설정할 것이 없습니다."
+            "value" : "Qwen/Qwen3.6-27B-FP8은 계정 사용량으로 채팅, 이미지 입력, 화면 조작을 처리합니다. 이미지와 영상을 생성하려면 본인의 공급자와 API 키가 필요합니다."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "DeepSeek für den Chat, dazu Bilder und Clips, mit einem kostenlosen Guthaben pro Konto, bezahlt vom Entwickler. Nichts einzurichten."
+            "value" : "Qwen/Qwen3.6-27B-FP8 verarbeitet Chat, Bildeingaben und Bildschirmbedienung über das Kontoguthaben. Zum Erzeugen von Bildern und Clips brauchst du einen eigenen Anbieter und API-Schlüssel."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "DeepSeek pour le chat, avec aussi les images et les clips, et un crédit gratuit par compte payé par le développeur. Rien à configurer."
+            "value" : "Qwen/Qwen3.6-27B-FP8 gère le chat, les images reçues et l’écran avec le crédit du compte. Pour créer des images et des clips, ajoutez votre propre fournisseur et sa clé API."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "DeepSeek para el chat, también con imágenes y clips, y un saldo gratuito por cuenta que paga el desarrollador. Nada que configurar."
+            "value" : "Qwen/Qwen3.6-27B-FP8 gestiona el chat, las imágenes recibidas y la pantalla con el saldo de la cuenta. Para crear imágenes y clips necesitas tu propio proveedor y clave API."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "DeepSeek для чата, а также картинки и клипы, с бесплатным лимитом на аккаунт, который оплачивает разработчик. Настраивать нечего."
+            "value" : "Qwen/Qwen3.6-27B-FP8 работает с чатом, входными изображениями и экраном за счёт лимита аккаунта. Для создания изображений и видео нужен свой провайдер и API-ключ."
           }
         }
       }
@@ -153855,6 +153855,537 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "先新增一個自己的服務商；關掉 nanoMuse Cloud 後沒有別的模型能回答。"
+          }
+        }
+      }
+    },
+    "Moss Courier" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mooskurier"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moss Courier"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mensajero de musgo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Messager mousse"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "苔の配達人"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이끼 배달부"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Моховой курьер"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "苔邮使"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "苔郵使"
+          }
+        }
+      }
+    },
+    "a tiny moss-covered courier with leaf ears and an unmarked canvas satchel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ein kleiner, mit weichem Moos bedeckter Kurier mit Blattohren und einer schlichten Segeltuchtasche"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "a tiny moss-covered courier with leaf ears and an unmarked canvas satchel"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "un pequeño mensajero cubierto de musgo, con orejas de hoja y una bolsa de lona sin marcas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "un petit messager couvert de mousse, aux oreilles en feuilles et à la sacoche de toile sans marque"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "柔らかな苔に覆われ、葉の耳と無地の帆布かばんを持つ小さな配達人"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "부드러운 이끼로 덮여 있고 잎사귀 귀와 무늬 없는 캔버스 가방을 멘 작은 배달부"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "маленький курьер, покрытый мягким мхом, с ушами-листьями и простой холщовой сумкой"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一只覆着柔软苔藓、长着叶片耳朵、背着素面帆布包的小邮使"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一隻覆著柔軟苔蘚、長著葉片耳朵、背著素面帆布包的小郵使"
+          }
+        }
+      }
+    },
+    "Tide Tinker" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gezeiten-Tüftler"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tide Tinker"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inventor de las mareas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bricoleur des marées"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "潮の細工師"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "파도 기술자"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приливный мастер"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "潮汐巧匠"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "潮汐巧匠"
+          }
+        }
+      }
+    },
+    "a seafoam axolotl tinkerer with coral frills and a plain tool pouch" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ein meeresschaumgrüner Axolotl-Tüftler mit korallenfarbenen Kiemen und schlichter Werkzeugtasche"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "a seafoam axolotl tinkerer with coral frills and a plain tool pouch"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "un ajolote inventor verde espuma con branquias coral y una bolsa de herramientas sencilla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "un axolotl bricoleur vert écume, aux branchies corail et à la pochette à outils unie"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "珊瑚色の外鰓と無地の道具袋を持つ、海泡色のウーパールーパーの細工師"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "산호색 아가미와 무늬 없는 공구 주머니를 지닌 바다거품색 우파루파 기술자"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "аксолотль-мастер цвета морской пены с коралловыми жабрами и простым поясом для инструментов"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一只海沫绿色、长着珊瑚色外鳃、系着素面工具袋的蝾螈巧匠"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一隻海沫綠色、長著珊瑚色外鰓、繫著素面工具袋的蠑螈巧匠"
+          }
+        }
+      }
+    },
+    "Dusk Moth" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dämmerfalter"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dusk Moth"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polilla del ocaso"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Papillon du crépuscule"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "黄昏の蛾"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "황혼 나방"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сумеречный мотылёк"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暮光蛾"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暮光蛾"
+          }
+        }
+      }
+    },
+    "a thoughtful indigo moth with peach wing spots, a cream collar and round glasses" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ein nachdenklicher indigoblauer Nachtfalter mit pfirsichfarbenen Flügelflecken, cremefarbenem Kragen und runder Brille"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "a thoughtful indigo moth with peach wing spots, a cream collar and round glasses"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "una polilla índigo pensativa con manchas melocotón en las alas, cuello crema y gafas redondas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "un papillon indigo pensif, aux taches pêche sur les ailes, avec un col crème et des lunettes rondes"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "桃色の翅模様、クリーム色の襟、丸眼鏡を身につけた物静かな藍色の蛾"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복숭아색 날개 무늬와 크림색 깃, 둥근 안경을 지닌 차분한 남색 나방"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "задумчивый мотылёк цвета индиго с персиковыми пятнами на крыльях, кремовым воротником и круглыми очками"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一只沉静的靛蓝色飞蛾，翅上有桃色斑点，戴米白围领和圆眼镜"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一隻沉靜的靛藍色飛蛾，翅上有桃色斑點，戴米白圍領和圓眼鏡"
+          }
+        }
+      }
+    },
+    "Copper Acorn" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kupfereichel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copper Acorn"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bellota de cobre"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gland de cuivre"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "銅のどんぐり"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "구리 도토리"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Медный жёлудь"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "铜果"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "銅果"
+          }
+        }
+      }
+    },
+    "a small acorn-shaped copper automaton with sage panels and a muted-blue scarf" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ein kleiner eichelförmiger Automat aus Kupfer mit salbeigrünen Feldern und gedeckt blauem Schal"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "a small acorn-shaped copper automaton with sage panels and a muted-blue scarf"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "un pequeño autómata de cobre con forma de bellota, paneles verde salvia y bufanda azul apagado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "un petit automate en cuivre en forme de gland, avec des panneaux vert sauge et une écharpe bleu sourd"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "セージ色のパネルとくすんだ青のスカーフを備えた、どんぐり形の小さな銅製自動人形"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "세이지색 패널과 차분한 파란색 목도리를 두른 작은 도토리 모양 구리 자동인형"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "маленький медный автомат в форме жёлудя с шалфейными панелями и приглушённо-синим шарфом"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一个橡果形的小铜制自动机，配鼠尾草绿面板和灰蓝色围巾"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一個橡果形的小銅製自動機，配鼠尾草綠面板和灰藍色圍巾"
+          }
+        }
+      }
+    },
+    "AI-generated inspiration" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KI-generierte Inspiration"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI-generated inspiration"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inspiración generada por IA"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inspiration générée par IA"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 生成の参考例"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 생성 영감 예시"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пример, созданный ИИ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 生成的灵感示例"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 生成的靈感範例"
           }
         }
       }

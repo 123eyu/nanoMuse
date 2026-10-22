@@ -181,7 +181,8 @@ object ImageGen {
      * The image model: the one chosen (Settings → Models, or → Image & video models); with
      * nothing chosen, in the Models page's order (0.1.41, [io.github.nanomuse.models.SlotOrder]):
      * the chat provider's own image model when the chat provider is the person's own and
-     * draws, else nanoMuse Cloud's when signed in, else the first own provider that draws.
+     * draws, else nanoMuse Cloud's when its menu actually has one, else the first own provider
+     * that draws.
      * [automatic] leaves the choice aside and answers what that order gives now (the picker's
      * *Automatic* row says so).
      */
@@ -189,9 +190,11 @@ object ImageGen {
         val app = context.applicationContext as? MinisApp ?: return null
         val repo = app.providerRepositoryOrNull ?: return null
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val eligible = eligibleInstances(context)
-        val savedId = if (automatic) null else prefs.getString(KEY_INSTANCE, null)
         val cloudId = io.github.nanomuse.cloud.NanoMuseCloud.instance(context)?.id
+        val eligible = eligibleInstances(context).filter { inst ->
+            inst.id != cloudId || availableModels(context, inst).isNotEmpty()
+        }
+        val savedId = if (automatic) null else prefs.getString(KEY_INSTANCE, null)
         val inst = eligible.firstOrNull { it.id == savedId }
             ?: io.github.nanomuse.models.SlotOrder.resolve(
                 chosen = null,

@@ -41,11 +41,10 @@ describe("the model slots (the Models contract)", () => {
     expect(providerLabel("nope", "en")).toBe("nope");
   });
 
-  it("offers only providers with the capability: the account, the chat provider, then the rest", () => {
+  it("offers only own-key providers with the capability", () => {
     const chat = { provider: "openai", base_url: BAILIAN, cloud: false };
     const video = mediaChoices("video", { signedIn: true, chat, region: "cn", locale: "en" });
     expect(video.map((c) => [c.value, c.group, c.needsKey])).toEqual([
-      [CLOUD_ID, "cloud", false],
       ["bailian", "chat", false],
       ["custom", "add", false],
     ]);
@@ -59,7 +58,7 @@ describe("the model slots (the Models contract)", () => {
     expect(image.every((c) => c.value !== "deepseek")).toBe(true);
     // the relay as the chat model is not an own provider; nothing in the chat group
     const cloud = mediaChoices("video", { signedIn: true, chat: { provider: "openai", base_url: "https://relay.example/v1", cloud: true }, region: "global", locale: "en" });
-    expect(cloud.map((c) => c.value)).toEqual([CLOUD_ID, "custom"]);
+    expect(cloud.map((c) => c.value)).toEqual(["custom"]);
   });
 
   it("writes the hands row's value from the effective fields, so Automatic shows what it resolves to", () => {

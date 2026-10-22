@@ -334,6 +334,16 @@
     <string name="nm_avatar_retry">Subukan ulit</string>
     <string name="nm_avatar_describe_title">Ilarawan ang bagong mukha</string>
     <string name="nm_avatar_describe_body">Sapat na ang isang pangungusap: kung ano ito, ano ang suot nito, ano ang dating nito. Pumili ng istilo, at gumuguhit ang image model mo ng apat na mapagpipilian.</string>
+    <string name="nm_avatar_preset_moss_name">Tagahatid na Lumot</string>
+    <string name="nm_avatar_preset_moss_description">isang munting tagahatid na nababalutan ng lumot, may taingang dahon at payak na bag na kanbas</string>
+    <string name="nm_avatar_preset_tide_name">Imbentor ng Daluyong</string>
+    <string name="nm_avatar_preset_tide_description">isang axolotl na kulay seafoam na imbentor, may coral na hasang at payak na lagayan ng gamit</string>
+    <string name="nm_avatar_preset_dusk_name">Gamu-gamo ng Takipsilim</string>
+    <string name="nm_avatar_preset_dusk_description">isang mapagmuning indigo na gamu-gamo na may peach na batik sa pakpak, kremang kuwelyo at bilog na salamin</string>
+    <string name="nm_avatar_preset_copper_name">Tansong Bunga</string>
+    <string name="nm_avatar_preset_copper_description">isang maliit na tansong awtomaton na hugis bunga ng oak, may sage na panel at mapusyaw na asul na bandana</string>
+    <string name="nm_avatar_preset_a11y">Opsyon %1$d: %2$s, %3$s</string>
+    <string name="nm_avatar_preset_ai">Inspirasyong ginawa ng AI</string>
     <string name="nm_avatar_default_description">Isang mataba at maputlang-dilaw na baby dragon na may maliliit na kahel na sungay at maliliit na nakatuping pakpak</string>
     <string name="nm_avatar_style_flat">Flat</string>
     <string name="nm_avatar_style_clay">3D clay</string>

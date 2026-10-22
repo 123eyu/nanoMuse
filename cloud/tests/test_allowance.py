@@ -16,7 +16,7 @@ from fastapi.responses import StreamingResponse
 from test_cloud import PNG_1PX, fake_upstream, sign_up
 
 from nanomuse_cloud.api import create_app
-from nanomuse_cloud.config import DEFAULT_MODELS, ModelSpec, Settings
+from nanomuse_cloud.config import ModelSpec, Settings
 from nanomuse_cloud.db import Database
 from nanomuse_cloud.senders import LogSender
 from nanomuse_cloud.service import Cloud, Usage, estimate_tokens, usage_from_json
@@ -59,7 +59,7 @@ def replace_chat(up, handler) -> None:
 
 
 def by_id(model_id: str) -> ModelSpec:
-    return next(m for m in DEFAULT_MODELS if m.id == model_id)
+    return next(m for m in Settings(database=":memory:").models if m.id == model_id)
 
 
 def test_price_table_is_the_providers():

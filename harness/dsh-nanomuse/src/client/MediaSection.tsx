@@ -214,8 +214,9 @@ export function makeMediaSection(t: Translate) {
         progress && !progress.running && progress.failed.length
           ? h('div', { className: 'nm-row' },
               h('span', { className: 'nm-row-sub nm-wrap nm-md-failed' }, t('mdClipsFailed', { moods: progress.failed.map(moodName).join(', ') }), progress.error ? ` ${t('mdClipsError', { error: progress.error })}` : ''),
-              // an own provider's run failed and the account could draw them: this once, the slot untouched
-              progress.source && progress.source !== 'nanomuse' && live.cloud.signedIn
+              // Offer a relay retry only when that relay actually lists a video model.
+              // Signing in to the hosted service alone must not recreate a media fallback.
+              progress.source && progress.source !== 'nanomuse' && live.cloud.signedIn && providers.view?.cloud.capabilities.includes('video')
                 ? h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', 'data-testid': 'nm-md-cloud-once', disabled: busy !== null || !face, onClick: () => animate(true, true) }, t('rfUseCloudOnce'))
                 : null)
           : null,

@@ -100,15 +100,12 @@ def test_cloud_urls() -> None:
     assert model_url("https://cloud.nanomuse.cn") == "https://cloud.nanomuse.cn/v1"
     # contract C4: the chat default when offered, else the first chat model; the hands
     # default is a separate pick (the relay's `for` field, else what the id says it sees)
-    assert (
-        CloudClient.recommended_model([{"id": "x"}, {"id": "deepseek-v4.1-flash"}])
-        == "deepseek-v4.1-flash"
-    )
+    assert CloudClient.recommended_model([{"id": "x"}, {"id": "deepseek-v4.1-flash"}]) == "x"
     assert CloudClient.recommended_model([{"id": "only"}]) == "only"
     assert (
         CloudClient.recommended_model([{"id": "x"}, {"id": "qwen3.8-27b"}], "gui") == "qwen3.8-27b"
     )
-    assert CloudClient.recommended_model([{"id": "x"}], "gui") == "qwen3.8-27b"
+    assert CloudClient.recommended_model([{"id": "x"}], "gui") == "Qwen/Qwen3.6-27B-FP8"
     labelled = [
         {"id": "deepseek-v4.1-flash", "for": ["chat"]},
         {"id": "qwen3.8-27b", "for": ["gui"]},
