@@ -32,6 +32,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 - **Each Feed section showed its own load error and retry.** Posts, activity, Next up and calendar requests kept their last successful content when a refresh failed; retrying one section no longer refetched the others.
 
+- **The settings have a search now, by a setting's own words.** The field sits above the sections on wide windows and at the top of the settings home on narrow ones. A query answers two ways: the section titles that hold its words are marked in the nav, and the words themselves are marked where they stand in the sections, with the hits listed under the field; Enter goes to the first match, Escape clears. On narrow windows the sections are not rendered, so the search there filters the sections by title, and the query stands when a section opens, its words marked on that page. The rule is a port of the desktop app's settings search (#523), stated in `web/src/settings-search.ts` with tests; 简体中文 strings included. For #540.
+
 ### Desktop
 
 - **Restricted PowerShell commands start inside nanoMuse Desktop on Windows after the sandbox is recreated.** The Electron-hosted DSH process now places the exact Windows ACL runner behind a short-lived Node-mode trampoline that establishes a hidden console before the child token is restricted, instead of letting the child fail during DLL initialization with `0xC0000142`. Workspace-write and read-only confinement stay in place, and full-access PowerShell is unchanged. For [#526](https://github.com/nano-muse/nanoMuse/issues/526).
