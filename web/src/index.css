@@ -119,6 +119,13 @@ body {
   overscroll-behavior-y: none;
 }
 
+/* The words a settings search matched (web/src/settings-search.ts): the desktop
+   app's class and accent wash, on the web console's accent. */
+.nm-settings-hit {
+  background: color-mix(in srgb, var(--om-accent) 26%, transparent);
+  border-radius: 3px;
+}
+
 .safe-top {
   padding-top: env(safe-area-inset-top);
 }

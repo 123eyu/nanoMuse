@@ -209,7 +209,7 @@ export function MemoryScreen() {
                   <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0 text-[13.5px] leading-snug">
                       <div className="text-muted">
-                        {c.action === "merge" ? t("Merged") : c.action === "drop" ? t("Dropped") : t("Updated")}
+                        {c.action === "merge" ? t("Merged") : c.action === "drop" ? t("Dropped") : c.action === "forget" ? t("Forgot") : t("Updated")}
                         {c.reason ? ` · ${c.reason}` : ""} · {relativeTime(c.at)}
                         {c.restored ? ` · ${t("restored")}` : ""}
                       </div>

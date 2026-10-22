@@ -369,6 +369,7 @@ const zhCN: Record<string, string> = {
   "Recent changes": "最近的改动",
   Merged: "已合并",
   Dropped: "已去掉",
+  Forgot: "已忘记",
   Updated: "已更新",
   restored: "已恢复",
   Undo: "撤销",
@@ -1604,6 +1605,9 @@ const zhCN: Record<string, string> = {
   // ── The desktop's sidebar: the rail, the chats column, the menu ───────────────────
   Search: "搜索",
   "Search chats": "搜索对话",
+  "Search settings": "搜索设置",
+  "On this page": "本页",
+  "Nothing matches": "没有匹配的内容",
   "Side chats": "旁聊",
   "Start a side chat": "发起旁聊",
   "Side chats are an optional way to keep conversations organised by topic.": "旁聊是按主题整理对话的可选方式。",
