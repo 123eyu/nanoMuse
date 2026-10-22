@@ -104,7 +104,7 @@ def _to_input_items(
         elif m.role == Role.TOOL:
             raw_id = m.tool_call_id or ""
             queued = pending_outputs.get(raw_id)
-            call_id = queued.pop(0) if queued else raw_id
+            call_id = queued.pop(0) if queued else raw_id[:64]
             items.append(
                 {
                     "type": "function_call_output",

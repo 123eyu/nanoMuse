@@ -303,6 +303,52 @@ def test_chat_completions_to_the_codex_responses_body():
     assert "tools" not in out2 and out2["model"] == "gpt-5.6-sol"
 
 
+def test_to_codex_dedupes_call_ids_and_keeps_outputs_paired():
+    def call(call_id: str) -> dict[str, Any]:
+        return {
+            "id": call_id,
+            "type": "function",
+            "function": {"name": "echo", "arguments": "{}"},
+        }
+
+    long_id = "x" * 70
+    out = to_codex(
+        {
+            "messages": [
+                {
+                    "role": "assistant",
+                    "tool_calls": [call("call_same"), call("call_same"), call("call_same-2")],
+                },
+                {"role": "tool", "tool_call_id": "call_same", "content": "first"},
+                {"role": "tool", "tool_call_id": "call_same", "content": "second"},
+                {"role": "tool", "tool_call_id": "call_same-2", "content": "natural suffix"},
+                {
+                    "role": "assistant",
+                    "tool_calls": [call("call_same"), call(long_id), call(long_id)],
+                },
+                {"role": "tool", "tool_call_id": "call_same", "content": "third"},
+                {"role": "tool", "tool_call_id": long_id, "content": "long first"},
+                {"role": "tool", "tool_call_id": long_id, "content": "long second"},
+            ]
+        }
+    )
+
+    items = out["input"]
+    calls = [item["call_id"] for item in items if item.get("type") == "function_call"]
+    outputs = [item["call_id"] for item in items if item.get("type") == "function_call_output"]
+    assert calls == [
+        "call_same",
+        "call_same-2",
+        "call_same-2-2",
+        "call_same-3",
+        "x" * 64,
+        f"{'x' * 62}-2",
+    ]
+    assert outputs == calls
+    assert len(calls) == len(set(calls))
+    assert all(len(call_id) <= 64 for call_id in calls)
+
+
 @pytest.mark.asyncio
 async def test_the_responses_stream_becomes_chat_completions_chunks():
     events = [

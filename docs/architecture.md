@@ -49,7 +49,8 @@ sequenceDiagram
 | Terminal | `nanomuse/console.py`, `nanomuse/cli.py` | Rich console UI with inline approvals; Typer commands |
 | Config, schema | `nanomuse/config.py`, `nanomuse/schema.py` | Pydantic settings, message and tool-call models |
 
-Before sending a Responses API request, the runtime, Android and iOS serializers make
+Before sending a Responses API request, the runtime (`openai_responses` and the Codex
+Responses translation in `codex.py`), Android and iOS serializers make
 `function_call.call_id` values unique within that request and apply the same request-local
 rewrite to each paired `function_call_output`; reasoning item ids are left unchanged.
 

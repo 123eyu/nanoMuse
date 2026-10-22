@@ -564,3 +564,64 @@ test('OpenCode Go is written as the adapter’s catalog route (no api, no base U
     await out.done()
   }
 })
+
+test('a trimmed model catalog (#525): editing llm-pi-ai models or saving with catalogOnly keeps only the kept chat models across pickers, restarts and key updates', async () => {
+  const out = await cloud()
+  const bulk = Array.from({ length: 158 }, (_, i) => `extra-model-${String(i + 1).padStart(3, '0')}`)
+  const server = await modelsServer(['glm-5.1', 'gpt-5.4', 'kimi-k2.5', 'qwen-image-3.0', ...bulk])
+  try {
+    // 1. Save a provider whose gateway lists 161 chat models + 1 image model
+    const saved = await out.api('POST', '/providers/save', { id: 'bailian', apiKey: 'sk-first', baseURL: server.url })
+    assert.equal(saved.status, 200)
+    assert.equal(out.svc.chatOptions().length, 161)
+    assert.deepEqual(out.selection.current, { provider: 'bailian', model: 'extra-model-001' })
+
+    // 2. Trim the model catalog in llm-pi-ai settings down to 3 models
+    out.settings[LLM_ROW].providers.bailian.models = [
+      { id: 'glm-5.1', displayName: 'glm-5.1', input: ['text'] },
+      { id: 'gpt-5.4', displayName: 'gpt-5.4', input: ['text', 'image'] },
+      { id: 'kimi-k2.5', displayName: 'kimi-k2.5', input: ['text', 'image'] },
+    ]
+    assert.deepEqual(out.svc.chatOptions().map((o) => o.id), ['glm-5.1', 'gpt-5.4', 'kimi-k2.5'])
+    assert.deepEqual(out.svc.handsOptions().map((o) => o.id), ['gpt-5.4', 'kimi-k2.5'])
+    assert.deepEqual(out.svc.imageOptions().map((o) => o.id), ['qwen-image-3.0'])
+    const view = await out.svc.providersView('en')
+    assert.deepEqual(view.configured[0].models.filter((m) => m.kind === 'chat').map((m) => m.id), ['glm-5.1', 'gpt-5.4', 'kimi-k2.5'])
+    await new Promise((r) => setTimeout(r, 20))
+    assert.deepEqual(out.selection.current, { provider: 'bailian', model: 'glm-5.1' }, 'default chat selection moves off a trimmed-out model')
+
+    // 3. Restart the host: refreshOwnRows keeps the 3 trimmed models instead of restoring all 161
+    const fake = fakeContext({ defaultModel: out.selection.current })
+    fake.settings[LLM_ROW].providers = JSON.parse(JSON.stringify(out.settings[LLM_ROW].providers))
+    const again = new NanomuseCloud(fake.ctx, { baseURL: 'https://relay.invalid', deviceName: 'test-desktop', statePath: out.statePath })
+    again.hub.start = () => undefined
+    again.refresh = async () => again.status()
+    await again[Service.init]()
+    await new Promise((r) => setTimeout(r, 20))
+    assert.deepEqual(fake.settings[LLM_ROW].providers.bailian.models.map((m) => m.id), ['glm-5.1', 'gpt-5.4', 'kimi-k2.5'])
+    assert.deepEqual(again.chatOptions().map((o) => o.id), ['glm-5.1', 'gpt-5.4', 'kimi-k2.5'])
+
+    // 4. Re-saving the provider key without new models keeps the trimmed catalog
+    const rekeyed = await out.api('POST', '/providers/save', { id: 'bailian', apiKey: 'sk-second', baseURL: server.url })
+    assert.equal(rekeyed.status, 200)
+    assert.deepEqual(rekeyed.body.models.filter((m) => m.kind === 'chat').map((m) => m.id), ['glm-5.1', 'gpt-5.4', 'kimi-k2.5'])
+    assert.deepEqual(out.settings[LLM_ROW].providers.bailian.models.map((m) => m.id), ['glm-5.1', 'gpt-5.4', 'kimi-k2.5'])
+
+    // 5. Explicit catalogOnly on POST /providers/save saves only the typed chat models
+    const customOnly = await out.api('POST', '/providers/save', {
+      id: 'custom',
+      apiKey: 'sk-custom',
+      baseURL: server.url,
+      label: 'Trimmed Gateway',
+      capabilities: ['chat', 'vision'],
+      models: 'glm-5.1, kimi-k2.5',
+      catalogOnly: true,
+    })
+    assert.equal(customOnly.status, 200)
+    assert.deepEqual(customOnly.body.models.map((m) => m.id), ['glm-5.1', 'kimi-k2.5'])
+    assert.deepEqual(out.settings[LLM_ROW].providers.custom.models.map((m) => m.id), ['glm-5.1', 'kimi-k2.5'])
+  } finally {
+    await server.close()
+    await out.done()
+  }
+})

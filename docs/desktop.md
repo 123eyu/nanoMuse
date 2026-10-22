@@ -275,7 +275,10 @@ the lists hold more than eight models in all, a *Search models* field at the top
 every group by model id or name as you type (*No model matches* when nothing does). Esc
 or a click outside closes the panel; the same picker serves Settings → Media. The folding
 and the search live in `harness/dsh-nanomuse/src/client/model-list.ts`, checked by
-`tests/model-list.test.mjs`.
+`tests/model-list.test.mjs`. If you trim a provider's `models` catalog in the `llm-pi-ai`
+settings (or pass `catalogOnly: true` to `POST /nanomuse/cloud/providers/save`), the
+desktop keeps that trimmed chat model list in `cloud.json`, the model pickers, across
+restarts and across later key updates instead of merging the full `/models` list back in.
 
 What a row uses when you have not chosen: the provider new chats answer through, when it
 is one of your own and has a model for the job (its catalogue default); else nanoMuse
@@ -322,6 +325,14 @@ to `Programs\nanomuse-desktop`, leaves a link pointing nowhere, and 0.1.39 could
 over it (`EEXIST: file already exists, symlink …` in `desktop.log`). Since 0.1.40 the stale
 link is removed as a link and remade; should that still fail, the message names the path to
 remove by hand.
+
+On Windows, read-only and workspace-write PowerShell commands run through DSH's restricted-token
+ACL sandbox. Because the Electron-hosted process has no console of its own, nanoMuse puts a
+short-lived Node-mode trampoline in front of that exact runner and gives it a windowless (or
+hidden fallback) console before the token is restricted. The PowerShell child inherits the
+console instead of failing during DLL initialization with `0xC0000142`, including after a
+temporary sandbox directory has been cleaned and recreated. The trampoline does not weaken the
+ACL policy and is not used for full-access commands.
 
 A first start can be slow, on Windows in particular. The Host prints its address only once
 every plugin of the profile has been loaded, and a fresh install has some 20 000 files under
