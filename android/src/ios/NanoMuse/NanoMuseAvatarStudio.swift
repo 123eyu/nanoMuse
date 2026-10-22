@@ -47,8 +47,8 @@ enum NanoMuseAvatarStyle: String, CaseIterable, Identifiable {
 
 private struct NanoMuseAvatarPreset: Identifiable {
     let id: String
-    let nameKey: String
-    let descriptionKey: String
+    let nameKey: String.LocalizationValue
+    let descriptionKey: String.LocalizationValue
     let style: NanoMuseAvatarStyle
 
     var name: String { AppLocalized(nameKey) }
