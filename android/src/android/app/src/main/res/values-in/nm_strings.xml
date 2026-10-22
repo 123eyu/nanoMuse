@@ -331,6 +331,16 @@
     <string name="nm_avatar_retry">Coba lagi</string>
     <string name="nm_avatar_describe_title">Gambarkan wajah baru</string>
     <string name="nm_avatar_describe_body">Satu kalimat sudah cukup: apa wujudnya, apa yang dipakainya, bagaimana kesannya. Pilih gaya, dan model gambarmu menggambar empat pilihan.</string>
+    <string name="nm_avatar_preset_moss_name">Kurir Lumut</string>
+    <string name="nm_avatar_preset_moss_description">kurir kecil berlapis lumut dengan telinga daun dan tas kanvas polos</string>
+    <string name="nm_avatar_preset_tide_name">Perakit Pasang</string>
+    <string name="nm_avatar_preset_tide_description">axolotl perakit hijau busa laut dengan insang koral dan kantong alat polos</string>
+    <string name="nm_avatar_preset_dusk_name">Ngengat Senja</string>
+    <string name="nm_avatar_preset_dusk_description">ngengat nila yang tenang dengan bintik persik pada sayap, kerah krem, dan kacamata bulat</string>
+    <string name="nm_avatar_preset_copper_name">Biji Ek Tembaga</string>
+    <string name="nm_avatar_preset_copper_description">robot kecil berbentuk biji ek dari tembaga dengan panel hijau sage dan syal biru redup</string>
+    <string name="nm_avatar_preset_a11y">Pilihan %1$d: %2$s, %3$s</string>
+    <string name="nm_avatar_preset_ai">Inspirasi buatan AI</string>
     <string name="nm_avatar_default_description">Bayi naga gempal berwarna kuning pucat dengan tanduk oranye kecil dan sayap kecil terlipat</string>
     <string name="nm_avatar_style_flat">Datar</string>
     <string name="nm_avatar_style_clay">Tanah liat 3D</string>

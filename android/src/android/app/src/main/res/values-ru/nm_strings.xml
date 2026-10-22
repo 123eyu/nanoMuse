@@ -340,6 +340,16 @@
     <string name="nm_avatar_retry">Повторить</string>
     <string name="nm_avatar_describe_title">Опишите новый образ</string>
     <string name="nm_avatar_describe_body">Достаточно одной фразы: кто это, во что одет, какое настроение. Выберите стиль, и ваша модель изображений нарисует четыре варианта на выбор.</string>
+    <string name="nm_avatar_preset_moss_name">Моховой курьер</string>
+    <string name="nm_avatar_preset_moss_description">маленький курьер, покрытый мягким мхом, с ушами-листьями и простой холщовой сумкой</string>
+    <string name="nm_avatar_preset_tide_name">Приливный мастер</string>
+    <string name="nm_avatar_preset_tide_description">аксолотль-мастер цвета морской пены с коралловыми жабрами и простым поясом для инструментов</string>
+    <string name="nm_avatar_preset_dusk_name">Сумеречный мотылёк</string>
+    <string name="nm_avatar_preset_dusk_description">задумчивый мотылёк цвета индиго с персиковыми пятнами на крыльях, кремовым воротником и круглыми очками</string>
+    <string name="nm_avatar_preset_copper_name">Медный жёлудь</string>
+    <string name="nm_avatar_preset_copper_description">маленький медный автомат в форме жёлудя с шалфейными панелями и приглушённо-синим шарфом</string>
+    <string name="nm_avatar_preset_a11y">Вариант %1$d: %2$s, %3$s</string>
+    <string name="nm_avatar_preset_ai">Пример, созданный ИИ</string>
     <string name="nm_avatar_default_description">Пухлый бледно-жёлтый дракончик с крошечными оранжевыми рожками и маленькими сложенными крыльями</string>
     <string name="nm_avatar_style_flat">Плоский</string>
     <string name="nm_avatar_style_clay">3D-пластилин</string>

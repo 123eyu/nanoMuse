@@ -331,6 +331,16 @@
     <string name="nm_avatar_retry">再試行</string>
     <string name="nm_avatar_describe_title">新しい顔を描写する</string>
     <string name="nm_avatar_describe_body">一文で十分です: 何なのか、何を着ているか、どんな雰囲気か。スタイルを選ぶと、画像モデルが候補を 4 枚描きます。</string>
+    <string name="nm_avatar_preset_moss_name">苔の配達人</string>
+    <string name="nm_avatar_preset_moss_description">柔らかな苔に覆われ、葉の耳と無地の帆布かばんを持つ小さな配達人</string>
+    <string name="nm_avatar_preset_tide_name">潮の細工師</string>
+    <string name="nm_avatar_preset_tide_description">珊瑚色の外鰓と無地の道具袋を持つ、海泡色のウーパールーパーの細工師</string>
+    <string name="nm_avatar_preset_dusk_name">黄昏の蛾</string>
+    <string name="nm_avatar_preset_dusk_description">桃色の翅模様、クリーム色の襟、丸眼鏡を身につけた物静かな藍色の蛾</string>
+    <string name="nm_avatar_preset_copper_name">銅のどんぐり</string>
+    <string name="nm_avatar_preset_copper_description">セージ色のパネルとくすんだ青のスカーフを備えた、どんぐり形の小さな銅製自動人形</string>
+    <string name="nm_avatar_preset_a11y">候補 %1$d：%2$s、%3$s</string>
+    <string name="nm_avatar_preset_ai">AI 生成の参考例</string>
     <string name="nm_avatar_default_description">小さなオレンジ色の角と小さく畳んだ翼を持つ、ぽっちゃりした薄黄色の赤ちゃんドラゴン</string>
     <string name="nm_avatar_style_flat">フラット</string>
     <string name="nm_avatar_style_clay">3D クレイ</string>

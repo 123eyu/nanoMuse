@@ -334,6 +334,16 @@
     <string name="nm_avatar_retry">Yeniden dene</string>
     <string name="nm_avatar_describe_title">Yeni bir yüz tarif et</string>
     <string name="nm_avatar_describe_body">Tek cümle yeter: ne olduğu, ne giydiği, nasıl hissettirdiği. Bir tarz seç; görsel modelin seçmen için dört tane çizer.</string>
+    <string name="nm_avatar_preset_moss_name">Yosunlu Kurye</string>
+    <string name="nm_avatar_preset_moss_description">yaprak kulaklı ve işaretsiz kanvas çantalı, yumuşak yosunlarla kaplı küçük bir kurye</string>
+    <string name="nm_avatar_preset_tide_name">Gelgit Ustası</string>
+    <string name="nm_avatar_preset_tide_description">mercan renkli solungaçları ve sade alet çantası olan deniz köpüğü renginde bir aksolotl ustası</string>
+    <string name="nm_avatar_preset_dusk_name">Alacakaranlık Güvesi</string>
+    <string name="nm_avatar_preset_dusk_description">kanatlarında şeftali rengi benekler, krem yakası ve yuvarlak gözlükleri olan düşünceli çivit mavisi bir güve</string>
+    <string name="nm_avatar_preset_copper_name">Bakır Palamut</string>
+    <string name="nm_avatar_preset_copper_description">adaçayı yeşili panelleri ve mat mavi atkısı olan, palamut biçimli küçük bir bakır otomat</string>
+    <string name="nm_avatar_preset_a11y">Seçenek %1$d: %2$s, %3$s</string>
+    <string name="nm_avatar_preset_ai">Yapay zekâ üretimi ilham örneği</string>
     <string name="nm_avatar_default_description">Küçük turuncu boynuzları ve küçük katlı kanatları olan tombul, açık sarı bir bebek ejderha</string>
     <string name="nm_avatar_style_flat">Düz</string>
     <string name="nm_avatar_style_clay">3D kil</string>

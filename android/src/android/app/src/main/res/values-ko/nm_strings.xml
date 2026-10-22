@@ -331,6 +331,16 @@
     <string name="nm_avatar_retry">다시 시도</string>
     <string name="nm_avatar_describe_title">새 얼굴 설명하기</string>
     <string name="nm_avatar_describe_body">한 문장이면 충분해요. 무엇인지, 무엇을 입었는지, 어떤 느낌인지. 스타일을 고르면 이미지 모델이 고를 수 있게 네 장을 그립니다.</string>
+    <string name="nm_avatar_preset_moss_name">이끼 배달부</string>
+    <string name="nm_avatar_preset_moss_description">부드러운 이끼로 덮여 있고 잎사귀 귀와 무늬 없는 캔버스 가방을 멘 작은 배달부</string>
+    <string name="nm_avatar_preset_tide_name">파도 기술자</string>
+    <string name="nm_avatar_preset_tide_description">산호색 아가미와 무늬 없는 공구 주머니를 지닌 바다거품색 우파루파 기술자</string>
+    <string name="nm_avatar_preset_dusk_name">황혼 나방</string>
+    <string name="nm_avatar_preset_dusk_description">복숭아색 날개 무늬와 크림색 깃, 둥근 안경을 지닌 차분한 남색 나방</string>
+    <string name="nm_avatar_preset_copper_name">구리 도토리</string>
+    <string name="nm_avatar_preset_copper_description">세이지색 패널과 차분한 파란색 목도리를 두른 작은 도토리 모양 구리 자동인형</string>
+    <string name="nm_avatar_preset_a11y">옵션 %1$d: %2$s, %3$s</string>
+    <string name="nm_avatar_preset_ai">AI 생성 영감 예시</string>
     <string name="nm_avatar_default_description">작은 주황색 뿔과 접힌 작은 날개가 있는 통통한 연노랑 아기 용</string>
     <string name="nm_avatar_style_flat">플랫</string>
     <string name="nm_avatar_style_clay">3D 클레이</string>

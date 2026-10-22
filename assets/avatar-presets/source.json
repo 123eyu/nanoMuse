@@ -1,0 +1,108 @@
+{
+  "schema": 3,
+  "generated": "2026-10-22",
+  "ai_generated": true,
+  "generation_channel": {
+    "product": "Alibaba Cloud Model Studio (Bailian) metered model inference API",
+    "authenticated_paid_api": true,
+    "console_experience": false,
+    "authentication": "Bearer authentication with the server-local DASHSCOPE_KEY; the credential and private base URL were not retained",
+    "base_url_source": "server-local DASHSCOPE_BASE; value not retained",
+    "image_call": {
+      "protocol": "DashScope native synchronous HTTP API",
+      "method": "POST",
+      "endpoint_path": "/api/v1/services/aigc/multimodal-generation/generation",
+      "model": "qwen-image-3.0-pro",
+      "requests": 20,
+      "results": 20,
+      "response_evidence": "Each successful response contained output.choices[0].message.content[0].image; the expiring signed result URL was downloaded server-side and discarded"
+    },
+    "execution": "A short script ran on the production host, read only the two named environment variables, called the image API there, returned only generated images, and removed its temporary directory",
+    "maintainer_attestation": "No non-sensitive request id was retained. The maintainer attests that all 20 successful image responses came from this authenticated API call; this is not independent third-party proof.",
+    "errors": []
+  },
+  "image_model": "qwen-image-3.0-pro",
+  "rights": {
+    "originality": "The prompts and character concepts were authored for nanoMuse; no existing IP, trademark, logo, celebrity or real person was requested.",
+    "ai_label": "These files are AI-generated examples. This manifest is the durable AI-generation label shipped beside the canonical assets.",
+    "contribution": "The API caller contributes under GPL-3.0-or-later every copyright or related right they may hold in the prompts, selection, edits and outputs. No claim is made that copyright subsists in model output where applicable law says otherwise.",
+    "service_basis": "The model card names Alibaba Cloud Model Studio as the inference provider. Bailian Service Agreement section 7.5 says qualifying rights in output from Alibaba or affiliate models remain with the customer, subject to law and other agreements.",
+    "experience_exclusion": "The images were made through the authenticated model-inference API, not Model Studio experience. The Experience Feature Special Notice separately restricts experience output and does not describe this call path.",
+    "release_review": "A maintainer must confirm the linked terms are still current before release; this provenance is factual project documentation, not legal advice."
+  },
+  "official_references": {
+    "image_api": "https://help.aliyun.com/zh/model-studio/qwen-image-generation-and-editing-api-reference",
+    "image_model": "https://help.aliyun.com/zh/model-studio/qwen-image-3-0-pro",
+    "bailian_service_agreement": "https://terms.alicdn.com/legal-agreement/terms/common_platform_service/20230728213935489/20230728213935489.html",
+    "bailian_experience_notice": "https://terms.alicdn.com/legal-agreement/terms/common_platform_service/20260716114753386/20260716114753386.html"
+  },
+  "characters": [
+    {
+      "id": "moss-courier",
+      "style": "muse",
+      "prompt_en": "An original tiny moss courier creature: a round pear-shaped body covered in soft sage-green moss, two short dark teal leaf-like ears, warm amber eyes, a cream canvas cross-body satchel with no marks, stubby feet, friendly and attentive. Cute 3D collectible toy render, matte rounded forms, subtle felt and moss texture, pastel colours. Full body, standing, facing the viewer, centred, whole figure visible with margin on every side, big head and small body, friendly expression, pure white background, soft ground shadow only, square composition. One character only. No text, letters, numbers, logo, emblem, watermark, border, famous character, copyrighted character, brand, celebrity, real person, or extra objects.",
+      "mood_prompts_en": {
+        "working": "Keep this exact character: same face, colours, clothes, accessories, art style, proportions, framing, camera angle and pure white background. Change only the pose and props. The character now wears plain over-ear headphones and works at a small open laptop, focused and content. The laptop has no logo, text or symbols.",
+        "waiting": "Keep this exact character: same face, colours, clothes, accessories, art style, proportions, framing, camera angle and pure white background. Change only the pose and props. The character holds a small glowing translucent amber orb in both hands at chest height and watches it with patient curiosity. No writing or symbols.",
+        "happy": "Keep this exact character: same face, colours, clothes, accessories, art style, proportions, framing, camera angle and pure white background. Change only the pose and props. The character celebrates while hugging a simple softly glowing golden five-pointed star, eyes closed with a warm smile. No confetti or extra decoration.",
+        "error": "Keep this exact character: same face, colours, clothes, accessories, art style, proportions, framing, camera angle and pure white background. Change only the pose. The character looks sheepish and apologetic, with one small sweat drop, one hand behind its head and shoulders slightly raised. No props or text."
+      }
+    },
+    {
+      "id": "tide-tinker",
+      "style": "clay",
+      "prompt_en": "An original small axolotl tinkerer character: a plump seafoam-green body, six soft coral-pink external gill fronds, dark navy eyes, a plain tan utility pouch with two simple wooden pegs and no marks, short rounded limbs, curious and capable. Hand-shaped 3D clay render, matte clay texture, gentle imperfect fingerprints, warm pastel palette. Full body, standing, facing the viewer, centred, whole figure visible with margin on every side, big head and small body, friendly expression, pure white background, soft ground shadow only, square composition. One character only. No text, letters, numbers, logo, emblem, watermark, border, famous character, copyrighted character, brand, celebrity, real person, or extra objects.",
+      "mood_prompts_en": {
+        "working": "Keep this exact character: same face, colours, clothes, accessories, art style, proportions, framing, camera angle and pure white background. Change only the pose and props. The character now wears plain over-ear headphones and works at a small open laptop, focused and content. The laptop has no logo, text or symbols.",
+        "waiting": "Keep this exact character: same face, colours, clothes, accessories, art style, proportions, framing, camera angle and pure white background. Change only the pose and props. The character holds a small glowing translucent amber orb in both hands at chest height and watches it with patient curiosity. No writing or symbols.",
+        "happy": "Keep this exact character: same face, colours, clothes, accessories, art style, proportions, framing, camera angle and pure white background. Change only the pose and props. The character celebrates while hugging a simple softly glowing golden five-pointed star, eyes closed with a warm smile. No confetti or extra decoration.",
+        "error": "Keep this exact character: same face, colours, clothes, accessories, art style, proportions, framing, camera angle and pure white background. Change only the pose. The character looks sheepish and apologetic, with one small sweat drop, one hand behind its head and shoulders slightly raised. No props or text."
+      }
+    },
+    {
+      "id": "dusk-moth",
+      "style": "watercolor",
+      "prompt_en": "An original thoughtful moth companion: a small indigo fuzzy body, four rounded wings with simple peach and dusty-lilac oval spots that form no symbol, warm brown eyes behind plain round glasses, a soft cream ruff collar, tiny charcoal feet, calm and observant. Gentle watercolour illustration, soft edges, light paper texture, translucent layered washes. Full body, standing, facing the viewer, centred, whole figure visible with margin on every side, big head and small body, friendly expression, pure white background, soft ground shadow only, square composition. One character only. No text, letters, numbers, logo, emblem, watermark, border, famous character, copyrighted character, brand, celebrity, real person, or extra objects.",
+      "mood_prompts_en": {
+        "working": "Keep this exact character: same face, colours, clothes, accessories, art style, proportions, framing, camera angle and pure white background. Change only the pose and props. The character now wears plain over-ear headphones and works at a small open laptop, focused and content. The laptop has no logo, text or symbols.",
+        "waiting": "Keep this exact character: same face, colours, clothes, accessories, art style, proportions, framing, camera angle and pure white background. Change only the pose and props. The character holds a small glowing translucent amber orb in both hands at chest height and watches it with patient curiosity. No writing or symbols.",
+        "happy": "Keep this exact character: same face, colours, clothes, accessories, art style, proportions, framing, camera angle and pure white background. Change only the pose and props. The character celebrates while hugging a simple softly glowing golden five-pointed star, eyes closed with a warm smile. No confetti or extra decoration.",
+        "error": "Keep this exact character: same face, colours, clothes, accessories, art style, proportions, framing, camera angle and pure white background. Change only the pose. The character looks sheepish and apologetic, with one small sweat drop, one hand behind its head and shoulders slightly raised. No props or text."
+      }
+    },
+    {
+      "id": "copper-acorn",
+      "style": "line",
+      "prompt_en": "An original acorn-shaped helper automaton: a small rounded copper body with a darker textured cap, two sage-green enamel side panels, two warm white circular eyes, slim simple arms and feet, a short muted-blue scarf with no pattern, friendly and practical, no visible writing or insignia. Minimal line illustration with confident dark-brown strokes, cream and copper fills, two muted accent colours, very light shading. Full body, standing, facing the viewer, centred, whole figure visible with margin on every side, big head and small body, friendly expression, pure white background, soft ground shadow only, square composition. One character only. No text, letters, numbers, logo, emblem, watermark, border, famous character, copyrighted character, brand, celebrity, real person, or extra objects.",
+      "mood_prompts_en": {
+        "working": "Keep this exact character: same face, colours, clothes, accessories, art style, proportions, framing, camera angle and pure white background. Change only the pose and props. The character now wears plain over-ear headphones and works at a small open laptop, focused and content. The laptop has no logo, text or symbols.",
+        "waiting": "Keep this exact character: same face, colours, clothes, accessories, art style, proportions, framing, camera angle and pure white background. Change only the pose and props. The character holds a small glowing translucent amber orb in both hands at chest height and watches it with patient curiosity. No writing or symbols.",
+        "happy": "Keep this exact character: same face, colours, clothes, accessories, art style, proportions, framing, camera angle and pure white background. Change only the pose and props. The character celebrates while hugging a simple softly glowing golden five-pointed star, eyes closed with a warm smile. No confetti or extra decoration.",
+        "error": "Keep this exact character: same face, colours, clothes, accessories, art style, proportions, framing, camera angle and pure white background. Change only the pose. The character looks sheepish and apologetic, with one small sweat drop, one hand behind its head and shoulders slightly raised. No props or text."
+      }
+    }
+  ],
+  "sha256": {
+    "copper-acorn/error.webp": "bb20ebf8a39e5b3f80be37f153739e3b0f51c099a0ed90e59c71311ccb1517a3",
+    "copper-acorn/happy.webp": "8f371b2a5e9152653cfcce0782258a7780cfa7745436066e92dfe0215f45ee63",
+    "copper-acorn/idle.webp": "bdbb2551d67b78a7219e89113ed78d86a13baac2269841ad1259dc00c0ad1f20",
+    "copper-acorn/waiting.webp": "b9d4a77d629acc87aaf0f43a3ca077dfdaf6f623184a56334ce743f1c86bef60",
+    "copper-acorn/working.webp": "a7102acf9d0a7c221192c7f43cec7182a5dca84b2833169ba82fdb0ded01ed31",
+    "dusk-moth/error.webp": "d4fcdacb333e3c79b00019401736b092a855390ee5b8898644b05a100a081ebb",
+    "dusk-moth/happy.webp": "fb6a765521548c0bfe511aba54719634c0c747058d7c5c6593fd301ccb21f058",
+    "dusk-moth/idle.webp": "128b0c09359997e32bf1973a6fe2050199dcb73b343dd03866c27ef060063075",
+    "dusk-moth/waiting.webp": "2e21c861c53511d312fdd443de3d75450423e783cfc5fc1e56feace3ada991bf",
+    "dusk-moth/working.webp": "f2bca422b05eadc999f65d7076ea7d55c298d289bdd987165226cb78f82c09c1",
+    "moss-courier/error.webp": "74025a6100e3b7e876449387c3bcc252740d9ae02b9fa5231106a8a8f5c05d74",
+    "moss-courier/happy.webp": "fd0ccb08f3038120b923e4609426d18030e8128866562dac15e39f1cecf796e9",
+    "moss-courier/idle.webp": "ff02357b87ec118efacf06ef89c6032c2eb969f1f1e606c579481cc98c29df10",
+    "moss-courier/waiting.webp": "695ea091282c133a1dee746efbdd36e4e96abd5728bc00d8ace2a5c75b224787",
+    "moss-courier/working.webp": "7703d761db56ffe275dae325307c6633971e6f1a3d49b764d4c1d3d9854c8bd7",
+    "tide-tinker/error.webp": "39b118f9f4f80b5eb2a284e976927ff6c90fc549088e7f3422385dbd1f480c5c",
+    "tide-tinker/happy.webp": "c1f4d938b749f52961d00aa72f9c2ca87fd4d4015766575da21d992d1234660a",
+    "tide-tinker/idle.webp": "217fd0b460758b7b2b9f1a41d2157427079cd9d9257db86f30fffd87eadbef1e",
+    "tide-tinker/waiting.webp": "48c872af0489b1dc7b71b3e7b4e6cc3d217022b22f92046a805f65cdcc9827bf",
+    "tide-tinker/working.webp": "7c7d308fe976f4a111dda296835c5ec8225b035a119b912673f0c44d02da43d4"
+  },
+  "errors": []
+}

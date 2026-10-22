@@ -346,8 +346,11 @@ enum NanoMuseModelSlots {
             models[.video] = entries.filter { NanoMuseVideoGen.looksLikeVideoModel($0.model.id) }.map(\.model.id)
             names = displayNames(entries)
         }
-        // the relay chats, sees, draws and makes clips for every account; the menu only names the models
-        let capabilities = Set(NanoMuseSlot.allCases.map(\.capability))
+        // The hosted relay advertises only what its menu actually carries. In particular,
+        // signing in must not recreate retired image/video generation as an implicit fallback.
+        let capabilities = Set(NanoMuseSlot.allCases.compactMap { slot in
+            (models[slot] ?? []).isEmpty ? nil : slot.capability
+        })
         return NanoMuseSlotProvider(id: inst.id, label: NanoMuseCloud.label, isCloud: true, capabilities: capabilities, defaults: defaults, models: models, names: names)
     }
 

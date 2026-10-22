@@ -32,9 +32,9 @@
     GET  /v1/models                                             → OpenAI list, with modalities; for a member, the usable models under the operator's key after the menu (catalog: true)
     GET  /v1/models/{id}      ?kind=chat                        → one model, or a member's typed id checked (listed, priced_as)
     POST /v1/chat/completions                                   → forwarded; stream or not
-    POST /v1/images/generations                                 → DashScope native, returned as b64_json
-    POST /v1/images/edits     multipart                         → same, with the picture
-    POST /api/v1/services/aigc/video-generation/video-synthesis → DashScope's async video API, relayed
+    POST /v1/images/generations                                 → 410 unless self-host media is enabled
+    POST /v1/images/edits     multipart                         → 410 unless self-host media is enabled
+    POST /api/v1/services/aigc/video-generation/video-synthesis → 410 unless self-host media is enabled
     GET  /api/v1/tasks/{id}                                     → its task poll (own tasks only)
     GET  /api/v1/uploads?action=getPolicy&model=…               → its temporary-storage policy
     WS   /v1/hub                                                → the devices of one account meet (hub.py)
@@ -742,7 +742,9 @@ def create_app(
         menu = {m["id"] for m in out["data"]}
         added = 0
         for e in entries:
-            if e.id in menu:
+            # Hosted media is retired even for members: the provider catalogue may still
+            # contain image models, but exposing one here would restore a billing bypass.
+            if e.id in menu or (e.kind != "chat" and not settings.media_enabled):
                 continue
             spec = settings.unlisted_model(e.id, e.kind)
             if spec is None:
@@ -764,6 +766,8 @@ def create_app(
         """One model: the menu's by id; for a member, also one the menu does not carry,
         given the `kind` it is for (`?kind=chat`) — how an app checks a typed id."""
         m = settings.model(model_id)
+        if m is not None and m.kind != "chat" and not settings.media_enabled:
+            cloud.model_for(model_id, m.kind, caller)
         if m is None and kind:
             m = cloud.model_for(model_id, kind, caller)
         if m is None:
@@ -1138,6 +1142,10 @@ def create_app(
 
     @app.get("/api/v1/tasks/{task_id}")
     async def video_task(task_id: str, caller: Caller = Depends(caller_dep)) -> Response:
+        # Polling is a media route too: after hosted media is retired it must not reach the
+        # provider or settle a pending charge left by an older client.
+        if not settings.media_enabled:
+            cloud.model_for("", "video", caller)
         task = cloud.db.video_task(task_id)
         if task is None or task["account_id"] != caller.account_id:
             raise CloudError(404, "no_task", "No such task")
@@ -1164,7 +1172,7 @@ def create_app(
         the row is purged. A SUCCEEDED answer charges the clip exactly once (the same path
         as a poll); FAILED or CANCELED lets the hold go; a task the provider no longer knows
         is marked UNKNOWN. A handful per call. Returns how many tasks were asked about."""
-        if not (settings.dashscope_key or settings.upstream_key):
+        if not settings.media_enabled or not (settings.dashscope_key or settings.upstream_key):
             return 0
         done = 0
         for task in cloud.db.video_tasks_to_settle(limit):
