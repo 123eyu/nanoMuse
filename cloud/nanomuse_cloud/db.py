@@ -1150,14 +1150,22 @@ class Database:
         """The inviters with at least `at_least` invitees of whom `active_share` or fewer ever
         made a request (``id``, ``hint``, ``n``, ``active``), the most invitees first."""
         with self._lock:
+            # Probe ledger_account_ts once per invitee. Grouping the whole ledger here made
+            # the ten-minute health check block the relay once the statement grew large.
             return self._conn.execute(
-                f"""SELECT a.id, a.hint, x.n, x.active FROM (
+                """SELECT a.id, a.hint, x.n, x.active FROM (
                         SELECT i.invited_by, COUNT(*) AS n,
-                               SUM(CASE WHEN COALESCE(l.requests, 0) > 0 THEN 1 ELSE 0 END) AS active
-                        FROM accounts i LEFT JOIN {USAGE_BY_ACCOUNT} l ON l.account_id=i.id
+                               SUM(CASE WHEN EXISTS (
+                                   SELECT 1 FROM ledger l
+                                   WHERE l.account_id=i.id
+                                     AND l.kind IN ('chat','image','video','realtime')
+                                   LIMIT 1
+                               ) THEN 1 ELSE 0 END) AS active
+                        FROM accounts i
                         WHERE i.invited_by<>'' GROUP BY i.invited_by
-                        HAVING COUNT(*)>=? AND SUM(CASE WHEN COALESCE(l.requests, 0) > 0 THEN 1 ELSE 0 END) <= COUNT(*) * ?
-                    ) x JOIN accounts a ON a.id=x.invited_by ORDER BY x.n DESC""",
+                    ) x JOIN accounts a ON a.id=x.invited_by
+                    WHERE x.n>=? AND x.active <= x.n * ?
+                    ORDER BY x.n DESC""",
                 (int(at_least), float(active_share)),
             ).fetchall()
 
