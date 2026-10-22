@@ -190,6 +190,9 @@ for the full list. The ones that matter:
 | `PER_MINUTE_REQUESTS` | 30 | per account — what stops a runaway loop |
 | `MAX_IN_FLIGHT` | 4 | requests of one account under way at the same time (0 = off); each holds a reservation against the allowance while it runs — see *Money* |
 | `UPSTREAM_TIMEOUT_S` | 180 | how long one call to the provider may take (connecting has 20 s of its own); a reservation that outlives it by two minutes is dropped |
+| `CHAT_CONCURRENCY` | 12 | chat requests at the provider at once across all accounts (0 = off); the rest wait at the relay, so a burst does not overload one shared deployment |
+| `CHAT_RETRIES` | 2 | retries after an upstream 429 or 5xx received before any chat output starts (0 = off; capped at 5) |
+| `CHAT_RETRY_BASE_S` | 0.5 | first retry pause in seconds; each later pause doubles |
 | `TRUSTED_PROXIES` | empty | whose `X-Forwarded-For` to believe, comma-separated addresses or networks (`*` for every peer); empty = every loopback, private, link-local and shared address (Caddy on this box or the compose network, a tailnet). Set, it is the whole list: a non-global peer not on it is not believed either |
 | `PASSWORD_MIN_LEN` | 8 | the shortest password the relay accepts (`400 password_short` below it) |
 | `PASSWORD_MAX_ATTEMPTS`, `LOCKOUT_S` | 5, 900 | wrong passwords before an account is locked for that long (a code still works) |

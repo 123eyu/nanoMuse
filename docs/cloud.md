@@ -121,8 +121,11 @@ The relay is the code in [`cloud/`](../cloud/README.md). It stores:
 
 Images and tool results are never stored, and message content only as the
 *Data controls* and *Conversation sync* sections below say; with both switches off, nothing: the request
-is forwarded to the upstream model (Alibaba Cloud Model Studio) and the reply
-is streamed back. Every response carries an `X-Nanomuse-Request` id so a problem report
+is forwarded to the operator-configured upstream model and the reply is streamed
+back. The relay admits at most `CHAT_CONCURRENCY` chat requests to that shared
+deployment at once and retries a 429 or 5xx only before output starts; the
+remaining requests wait without duplicating a turn. Every response carries an
+`X-Nanomuse-Request` id so a problem report
 can be matched to a ledger row without any content being logged. Deleting the
 account (`POST /v1/auth/delete` with the account's key) removes all of it: the
 account, keys, devices, profile, ledger, events, kept conversations, video
