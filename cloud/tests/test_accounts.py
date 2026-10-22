@@ -791,6 +791,27 @@ async def test_health_raises_invite_velocity_and_unused_invitees():
     assert len(health["problems"]) == 2 and all("Invites view" in p for p in health["problems"])
     assert a["account"]["id"][:8] in health["problems"][0] and "more than 10 accounts in the last 24 hours" in health["problems"][0]
     assert "20 or more invitees" in health["problems"][1] and "5% or fewer" in health["problems"][1]
+    # The health timer must not regroup the whole statement to decide whether these invitees
+    # were active. A large, unrelated statement for the inviter stays outside the indexed
+    # EXISTS probes for its invitees.
+    cloud.db._conn.executemany(
+        "INSERT INTO ledger(account_id,ts,kind,charged) VALUES (?,?,?,?)",
+        ((a["account"]["id"], 1, "grant", 0) for _ in range(20_000)),
+    )
+    progress_calls = 0
+
+    def stop_a_full_ledger_scan() -> int:
+        nonlocal progress_calls
+        progress_calls += 1
+        return int(progress_calls >= 100)
+
+    cloud.db._conn.set_progress_handler(stop_a_full_ledger_scan, 1_000)
+    try:
+        indexed_idle = cloud.db.invite_unused(cloud.INVITE_UNUSED_MIN, cloud.INVITE_UNUSED_SHARE)
+    finally:
+        cloud.db._conn.set_progress_handler(None, 0)
+    assert [(row["id"], row["n"], row["active"]) for row in indexed_idle] == [(a["account"]["id"], 21, 1)]
+    assert progress_calls < 100
     # an inviter whose people use the relay: many sign-ups still trip the velocity alert for the day, nothing else
     b = await sign_up(client, sender, "dev-b@example.com", "pixel")
     code_b = (await client.get("/v1/me/invite", headers=auth(b["api_key"]))).json()["code"]
