@@ -344,6 +344,30 @@ async def test_hosted_default_is_one_multimodal_chat_model_and_retires_media(mon
         assert (await client.get("/v1/me", headers=headers)).json()["usage"] == usage_before
 
 
+async def test_retired_media_is_hidden_when_an_old_environment_still_lists_it():
+    settings = Settings(
+        database=":memory:",
+        secret="test-secret",
+        upstream_base="http://upstream/compat/v1",
+        upstream_key="sk-upstream",
+        public_base="http://cloud.test",
+        media_enabled=False,
+    )
+    expected = [m.id for m in settings.models if m.kind == "chat"]
+    assert expected and any(m.kind != "chat" for m in settings.models)
+    up = fake_upstream()
+    sender = LogSender()
+    cloud = Cloud(settings, Database(":memory:"), sender)
+    app = create_app(settings, cloud, upstream_transport=httpx.ASGITransport(app=up))
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://cloud.test") as client:
+        assert (await client.get("/healthz")).json()["models"] == expected
+        signed_in = await sign_up(client, sender)
+        headers = {"Authorization": f"Bearer {signed_in['api_key']}"}
+        assert [m["id"] for m in signed_in["models"]] == expected
+        assert [m["id"] for m in (await client.get("/v1/me", headers=headers)).json()["models"]] == expected
+        assert [m["id"] for m in (await client.get("/v1/models", headers=headers)).json()["data"]] == expected
+
+
 async def test_signup_grants_and_lists_models(stack):
     app, client, sender, up, cloud = stack
     data = await sign_up(client, sender)
