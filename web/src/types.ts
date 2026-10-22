@@ -785,11 +785,11 @@ export interface MemoryItem {
   updated_at?: string;
 }
 
-/** One entry of the memory log: a tidy-up merge or drop, or an update the agent made. Undoable. */
+/** One entry of the memory log: a tidy-up merge or drop, a forget, or an update the agent made. Undoable. */
 export interface MemoryChange {
   id: string;
   at: string;
-  action: "merge" | "rewrite" | "drop";
+  action: "merge" | "rewrite" | "drop" | "forget";
   before: MemoryItem[];
   after: MemoryItem | null;
   reason: string;

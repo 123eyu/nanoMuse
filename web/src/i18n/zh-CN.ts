@@ -369,6 +369,7 @@ const zhCN: Record<string, string> = {
   "Recent changes": "最近的改动",
   Merged: "已合并",
   Dropped: "已去掉",
+  Forgot: "已忘记",
   Updated: "已更新",
   restored: "已恢复",
   Undo: "撤销",
