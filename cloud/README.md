@@ -91,7 +91,7 @@ Errors carry a stable `code` the app can turn into a sentence:
 | 400 | `content_rejected` | the provider's content check declined the words (a chat request or an image prompt); the provider's own line rides along under `upstream` |
 | 400 | `upstream_400` | any other refusal of the request itself; the provider's message passed through |
 | 502 | `upstream` / `upstream_auth` / `upstream_model` / `upstream_busy` / `upstream_<status>` | the provider failed; a plain sentence, the provider's line under `upstream` |
-| 503 | `upstream_unconfigured` | `UPSTREAM_KEY` missing |
+| 503 | `upstream_unconfigured` | the key for the requested chat or media provider is missing |
 | 403 | `signup_closed` | the operator closed sign-ups (0.22, *Controls*); an identifier without an account gets this before any code is sent, existing accounts sign in as before |
 | 429 | `allowance_exhausted` + `paused: true`, `reason: "allowance_paused"` | the *Free allowance* switch is off (0.22): the same body as a spent pool, with a message that says paused rather than spent; members are unaffected |
 | 503 | `service_paused` | the *Cloud service* switch is off (0.22): every call but `/healthz`, `/v1/config`, `/app` and `/v1/admin/*`; `paused: true` in the body |
@@ -163,7 +163,7 @@ for the full list. The ones that matter:
 | variable | default | |
 |---|---|---|
 | `UPSTREAM_BASE` / `UPSTREAM_KEY` | Model Studio compatible-mode | where chat goes |
-| `DASHSCOPE_BASE` | Model Studio native | where pictures go (same key) |
+| `DASHSCOPE_BASE` / `DASHSCOPE_KEY` | Model Studio native / empty | where pictures and clips go; an empty key falls back to `UPSTREAM_KEY` |
 | `IMAGE_CONCURRENCY` / `IMAGE_RETRIES` | 2 / 4 | pictures drawn at once for everyone together (the provider allows an account only a couple), and how often a 429 or 5xx is retried with growing pauses before `429 provider_busy` |
 | `CHAT_DEFAULTS` | `{"enable_thinking": false}` | merged into chat requests for fields the app did not set |
 | `SIGNUP_OPEN` | `1` | anyone may sign in; `0` = members only (a private relay). *Runtime setting* — see below |
@@ -201,6 +201,7 @@ for the full list. The ones that matter:
 | `CODE_SENDER` | `log` | `log`, `smtp`, `aliyun` or `both` (SMS for phones, mail for addresses) |
 | `ALIYUN_SMS_API` | `dypns` | `dypns` (号码认证服务 `SendSmsVerifyCode`) or `dysms` (短信服务 `SendSms`) |
 | `CLOUD_MODELS` | DeepSeek + Qwen chat, Qwen image, Wan video | JSON list to replace the menu, prices and lanes (`for`, `recommended_for`) included — see below |
+| `CLOUD_MODEL_ALIASES` | built-in aliases only | JSON object mapping old or saved model ids to ids in `CLOUD_MODELS`, useful when changing provider |
 | `CLOUD_ANY_MODEL_MEMBERS` | `1` | members may name any model of the provider's for its kind (chat, image, video) — see below; `0` = the menu only |
 | `CLOUD_CATALOG` | `1` | list the usable models under the operator's key after the menu in a member's `/v1/models`, read from the provider's own `/models` (0.10) — see below; `0` = the menu only, a member types an id |
 | `CLOUD_CATALOG_TTL_S` | `3600` | how long that list is kept before the provider is asked again |

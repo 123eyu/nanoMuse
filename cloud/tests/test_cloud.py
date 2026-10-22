@@ -227,6 +227,7 @@ def stack():
         upstream_base="http://upstream/compat/v1",
         upstream_key="sk-upstream",
         dashscope_base="http://upstream/ds/api/v1",
+        dashscope_key="sk-dashscope",
         signup_tokens=1000,
         daily_cap_tokens=100_000,
         per_minute_requests=100,
@@ -568,6 +569,7 @@ async def test_images_go_through_dashscope_native(stack):
     assert base64.b64decode(r.json()["data"][0]["b64_json"]) == PNG_1PX
     kind, up_headers, up_body = up.state.requests[-1]
     assert kind == "image" and up_body["model"] == "qwen-image-3.0"
+    assert up_headers["authorization"] == "Bearer sk-dashscope"
     assert up_body["parameters"] == {"size": "1024*1024", "watermark": False, "prompt_extend": False}
     assert up_body["input"]["messages"][0]["content"] == [{"text": "a small dragon"}]
     assert r.headers["x-nanomuse-charged"] == "30000"
@@ -603,6 +605,7 @@ async def test_unconfigured_upstream_holds_nothing(stack):
     # account was refused with too_many_in_flight until the holds timed out.
     app, client, sender, up, cloud = stack
     object.__setattr__(app.state.settings, "upstream_key", "")
+    object.__setattr__(app.state.settings, "dashscope_key", "")
     data = await sign_up(client, sender)
     headers = {"Authorization": f"Bearer {data['api_key']}"}
     account_id = cloud.authenticate(data["api_key"]).account_id
@@ -825,6 +828,9 @@ def test_prices_and_day_boundary():
     img = s.model("qwen-image-3.0")
     assert s.model("qwen-image-3.0-pro") is img  # what 0.1.21 phones still ask for
     assert s.model("MiniMax/MiniMax-H3") is None and s.model("nope") is None
+    replacement = type(s.models[0])(id="replacement", name="Replacement", upstream="provider-model")
+    switched = Settings(models=(replacement,), model_aliases={"old-provider-model": "replacement"})
+    assert switched.model("old-provider-model") is replacement
     assert img.image_cost_uy("1024*1024") == 180_000 and img.image_cost_uy("2048x2048") == 180_000 and img.image_cost_uy(None) == 180_000
     vid = s.model("wan2.2-i2v-flash")
     assert vid.video_cost_uy(5) == 500_000 and vid.video_cost_uy(vid.clip_seconds) == 500_000 and vid.video_cost_uy(0) == 0
@@ -861,7 +867,7 @@ async def test_video_is_relayed_under_dashscope_paths(stack):
     r = await client.get("/api/v1/uploads", params={"action": "getPolicy", "model": "wan2.2-i2v-flash"}, headers=headers)
     assert r.status_code == 200 and r.json()["data"]["upload_dir"] == "tmp/x"
     kind, up_headers, q = up.state.requests[-1]
-    assert kind == "uploads" and up_headers["authorization"] == "Bearer sk-upstream" and q["model"] == "wan2.2-i2v-flash"
+    assert kind == "uploads" and up_headers["authorization"] == "Bearer sk-dashscope" and q["model"] == "wan2.2-i2v-flash"
     r = await client.post(
         "/api/v1/services/aigc/video-generation/video-synthesis",
         headers={**headers, "X-DashScope-OssResourceResolve": "enable"},
@@ -870,7 +876,7 @@ async def test_video_is_relayed_under_dashscope_paths(stack):
     assert r.status_code == 200 and r.json()["output"]["task_id"] == "task-42"
     kind, up_headers, up_body = up.state.requests[-1]
     assert kind == "video" and up_headers["x-dashscope-async"] == "enable" and up_headers["x-dashscope-ossresourceresolve"] == "enable"
-    assert up_headers["authorization"] == "Bearer sk-upstream" and up_body["model"] == "wan2.2-i2v-flash"
+    assert up_headers["authorization"] == "Bearer sk-dashscope" and up_body["model"] == "wan2.2-i2v-flash"
     assert (await client.get("/v1/me", headers=headers)).json()["tokens"]["used"] == 0  # nothing until the clip exists
 
     # Polling: still running, then done — charged once, however often it is asked again.

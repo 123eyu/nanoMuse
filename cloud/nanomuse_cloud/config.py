@@ -474,6 +474,16 @@ def _models_from_env() -> tuple[ModelSpec, ...]:
     return tuple(out)
 
 
+def _model_aliases_from_env() -> dict[str, str]:
+    raw = _env("CLOUD_MODEL_ALIASES")
+    if not raw:
+        return dict(LEGACY_MODEL_IDS)
+    aliases = json.loads(raw)
+    if not isinstance(aliases, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in aliases.items()):
+        raise ValueError("CLOUD_MODEL_ALIASES must be a JSON object of model ids")
+    return {**LEGACY_MODEL_IDS, **aliases}
+
+
 def menu_warnings(models: tuple[ModelSpec, ...]) -> list[str]:
     """What is odd about a menu — for the log at start, not an error: the clients pick the
     recommended model of each lane as a default, so there should be exactly one."""
@@ -499,8 +509,9 @@ class Settings:
     upstream_base: str = field(default_factory=lambda: _env("UPSTREAM_BASE", "https://dashscope.aliyuncs.com/compatible-mode/v1"))
     upstream_key: str = field(default_factory=lambda: _env("UPSTREAM_KEY"))
     # DashScope's native host, for drawing (its OpenAI-compatible host has no
-    # images endpoint). Same key.
+    # images endpoint). Empty keeps using UPSTREAM_KEY for backwards compatibility.
     dashscope_base: str = field(default_factory=lambda: _env("DASHSCOPE_BASE", "https://dashscope.aliyuncs.com/api/v1"))
+    dashscope_key: str = field(default_factory=lambda: _env("DASHSCOPE_KEY"))
     upstream_timeout_s: float = field(default_factory=lambda: float(_env("UPSTREAM_TIMEOUT_S", "180")))
     # Pictures: DashScope allows an account only a couple of image tasks at a time and
     # answers 429 past that, so the relay draws at most IMAGE_CONCURRENCY pictures at once
@@ -646,6 +657,9 @@ class Settings:
     aliyun_sms_api: str = field(default_factory=lambda: _env("ALIYUN_SMS_API", "dypns"))
 
     models: tuple[ModelSpec, ...] = field(default_factory=_models_from_env)
+    # Old clients can keep a saved model id while an operator changes provider.
+    # This JSON object is merged over the aliases built into the relay.
+    model_aliases: dict[str, str] = field(default_factory=_model_aliases_from_env)
     # Members (the operator's list, or flagged on the account) may ask for any model the
     # provider has under the operator's key, by its id, as long as it is used for what it
     # is — a chat model for chat, an image model for pictures, a video model for clips.
@@ -747,10 +761,10 @@ class Settings:
             if m.id == model_id:
                 return m
         # Phones from before 0.4 still ask for the model the menu used to carry;
-        # same API shape, so the cheaper sibling answers in its place.
-        alias = LEGACY_MODEL_IDS.get(model_id)
+        # operators may also keep saved ids working after changing provider.
+        alias = self.model_aliases.get(model_id)
         if alias and alias != model_id:
-            return self.model(alias)
+            return next((m for m in self.models if m.id == alias), None)
         return None
 
     def unlisted_model(self, model_id: str, kind: str) -> ModelSpec | None:
