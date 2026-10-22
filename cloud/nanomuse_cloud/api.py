@@ -455,7 +455,7 @@ def create_app(
         return {
             "ok": True,
             "version": __version__,
-            "models": [m.id for m in settings.models],
+            "models": [m.id for m in cloud.offered_models()],
             "paused": [k for k, v in cloud.controls.paused().items() if v],
         }
 
