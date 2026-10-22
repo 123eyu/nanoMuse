@@ -443,6 +443,24 @@
       "verified": "2026-10"
     },
     {
+      "id": "cheaperinference",
+      "name": "Cheaper Inference",
+      "name_zh": "Cheaper Inference",
+      "protocol": "openai",
+      "base_url": "https://api.cheaperinference.com/v1",
+      "key_url": "https://cheaperinference.com/signup",
+      "key_hint": "ci_live_…",
+      "auth": ["key"],
+      "regions": ["global"],
+      "capabilities": ["chat"],
+      "defaults": {
+        "chat": "gpt-5.4-mini"
+      },
+      "note": "An OpenAI-compatible gateway with one key for models from several labs (DeepSeek, GLM, Kimi, Qwen, GPT, Claude, Gemini and others). Chat only here, on the OpenAI shape: the default model is gpt-5.4-mini, and any id from its /v1/models list can be set instead.",
+      "note_zh": "一把 key 用多个厂商模型（DeepSeek、GLM、Kimi、Qwen、GPT、Claude、Gemini 等）的 OpenAI 兼容网关。这里只有对话，走 OpenAI 格式：默认模型是 gpt-5.4-mini，也可以改填 /v1/models 里的任意模型 id。",
+      "verified": "2026-10"
+    },
+    {
       "id": "ollama",
       "name": "Ollama",
       "name_zh": "Ollama（本机）",
