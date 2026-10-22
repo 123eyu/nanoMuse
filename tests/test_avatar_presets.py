@@ -103,7 +103,9 @@ def test_avatar_preset_copy_is_localized_in_every_mobile_locale() -> None:
         present = {node.attrib["name"] for node in ElementTree.parse(path).getroot()}
         assert keys <= present, path
 
-    ios = json.loads((ROOT / "android" / "src" / "ios" / "Localizable.xcstrings").read_text())
+    ios = json.loads(
+        (ROOT / "android" / "src" / "ios" / "Localizable.xcstrings").read_text(encoding="utf-8")
+    )
     for key in (
         "Moss Courier",
         "a tiny moss-covered courier with leaf ears and an unmarked canvas satchel",
