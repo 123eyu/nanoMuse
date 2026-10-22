@@ -328,6 +328,16 @@
     <string name="nm_avatar_retry">Retry</string>
     <string name="nm_avatar_describe_title">Describe a new face</string>
     <string name="nm_avatar_describe_body">One sentence is enough: what it is, what it wears, what it feels like. Pick a style, and your image model draws four to choose from.</string>
+    <string name="nm_avatar_preset_moss_name">Moss Courier</string>
+    <string name="nm_avatar_preset_moss_description">a tiny moss-covered courier with leaf ears and an unmarked canvas satchel</string>
+    <string name="nm_avatar_preset_tide_name">Tide Tinker</string>
+    <string name="nm_avatar_preset_tide_description">a seafoam axolotl tinkerer with coral frills and a plain tool pouch</string>
+    <string name="nm_avatar_preset_dusk_name">Dusk Moth</string>
+    <string name="nm_avatar_preset_dusk_description">a thoughtful indigo moth with peach wing spots, a cream collar and round glasses</string>
+    <string name="nm_avatar_preset_copper_name">Copper Acorn</string>
+    <string name="nm_avatar_preset_copper_description">a small acorn-shaped copper automaton with sage panels and a muted-blue scarf</string>
+    <string name="nm_avatar_preset_a11y">Option %1$d: %2$s, %3$s</string>
+    <string name="nm_avatar_preset_ai">AI-generated inspiration</string>
     <string name="nm_avatar_default_description">A chubby pale-yellow baby dragon with tiny orange horns and small folded wings</string>
     <string name="nm_avatar_style_flat">Flat</string>
     <string name="nm_avatar_style_clay">3D clay</string>

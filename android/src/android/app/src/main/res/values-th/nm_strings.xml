@@ -331,6 +331,16 @@
     <string name="nm_avatar_retry">ลองใหม่</string>
     <string name="nm_avatar_describe_title">บรรยายใบหน้าใหม่</string>
     <string name="nm_avatar_describe_body">ประโยคเดียวก็พอ: มันคืออะไร สวมอะไร ให้ความรู้สึกแบบไหน เลือกสไตล์ แล้วโมเดลภาพของคุณจะวาดสี่แบบให้เลือก</string>
+    <string name="nm_avatar_preset_moss_name">ผู้ส่งสารมอส</string>
+    <string name="nm_avatar_preset_moss_description">ผู้ส่งสารตัวจิ๋วปกคลุมด้วยมอสนุ่ม มีหูรูปใบไม้และกระเป๋าผ้าใบเรียบ</string>
+    <string name="nm_avatar_preset_tide_name">ช่างแห่งสายน้ำ</string>
+    <string name="nm_avatar_preset_tide_description">แอกโซลอเติลช่างฝีมือสีฟองทะเล มีเหงือกสีปะการังและกระเป๋าเครื่องมือเรียบ</string>
+    <string name="nm_avatar_preset_dusk_name">ผีเสื้อราตรีสนธยา</string>
+    <string name="nm_avatar_preset_dusk_description">ผีเสื้อราตรีสีครามแสนสุขุม มีจุดสีพีชบนปีก ปกสีครีม และแว่นกลม</string>
+    <string name="nm_avatar_preset_copper_name">ลูกโอ๊กทองแดง</string>
+    <string name="nm_avatar_preset_copper_description">หุ่นกลทองแดงตัวเล็กรูปลูกโอ๊ก มีแผงสีเขียวเซจและผ้าพันคอสีน้ำเงินหม่น</string>
+    <string name="nm_avatar_preset_a11y">ตัวเลือก %1$d: %2$s, %3$s</string>
+    <string name="nm_avatar_preset_ai">ตัวอย่างแรงบันดาลใจที่สร้างโดย AI</string>
     <string name="nm_avatar_default_description">ลูกมังกรอ้วนกลมสีเหลืองอ่อน มีเขาสีส้มเล็ก ๆ และปีกเล็กที่พับอยู่</string>
     <string name="nm_avatar_style_flat">แฟลต</string>
     <string name="nm_avatar_style_clay">ดินปั้น 3D</string>

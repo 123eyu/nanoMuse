@@ -335,6 +335,16 @@
     <string name="nm_avatar_retry">Réessayer</string>
     <string name="nm_avatar_describe_title">Décrivez un nouveau visage</string>
     <string name="nm_avatar_describe_body">Une phrase suffit : ce que c’est, ce que ça porte, ce que ça dégage. Choisissez un style, et votre modèle d’image en dessine quatre au choix.</string>
+    <string name="nm_avatar_preset_moss_name">Messager mousse</string>
+    <string name="nm_avatar_preset_moss_description">un petit messager couvert de mousse, aux oreilles en feuilles et à la sacoche de toile sans marque</string>
+    <string name="nm_avatar_preset_tide_name">Bricoleur des marées</string>
+    <string name="nm_avatar_preset_tide_description">un axolotl bricoleur vert écume, aux branchies corail et à la pochette à outils unie</string>
+    <string name="nm_avatar_preset_dusk_name">Papillon du crépuscule</string>
+    <string name="nm_avatar_preset_dusk_description">un papillon indigo pensif, aux taches pêche sur les ailes, avec un col crème et des lunettes rondes</string>
+    <string name="nm_avatar_preset_copper_name">Gland de cuivre</string>
+    <string name="nm_avatar_preset_copper_description">un petit automate en cuivre en forme de gland, avec des panneaux vert sauge et une écharpe bleu sourd</string>
+    <string name="nm_avatar_preset_a11y">Option %1$d : %2$s, %3$s</string>
+    <string name="nm_avatar_preset_ai">Inspiration générée par IA</string>
     <string name="nm_avatar_default_description">Un bébé dragon joufflu jaune pâle, avec de minuscules cornes orange et de petites ailes repliées</string>
     <string name="nm_avatar_style_flat">Plat</string>
     <string name="nm_avatar_style_clay">Pâte à modeler 3D</string>

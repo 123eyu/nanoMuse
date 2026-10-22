@@ -334,6 +334,16 @@
     <string name="nm_avatar_retry">Reintentar</string>
     <string name="nm_avatar_describe_title">Describe una cara nueva</string>
     <string name="nm_avatar_describe_body">Con una frase basta: qué es, qué lleva puesto, qué transmite. Elige un estilo y tu modelo de imagen dibuja cuatro para que elijas.</string>
+    <string name="nm_avatar_preset_moss_name">Mensajero de musgo</string>
+    <string name="nm_avatar_preset_moss_description">un pequeño mensajero cubierto de musgo, con orejas de hoja y una bolsa de lona sin marcas</string>
+    <string name="nm_avatar_preset_tide_name">Inventor de las mareas</string>
+    <string name="nm_avatar_preset_tide_description">un ajolote inventor verde espuma con branquias coral y una bolsa de herramientas sencilla</string>
+    <string name="nm_avatar_preset_dusk_name">Polilla del ocaso</string>
+    <string name="nm_avatar_preset_dusk_description">una polilla índigo pensativa con manchas melocotón en las alas, cuello crema y gafas redondas</string>
+    <string name="nm_avatar_preset_copper_name">Bellota de cobre</string>
+    <string name="nm_avatar_preset_copper_description">un pequeño autómata de cobre con forma de bellota, paneles verde salvia y bufanda azul apagado</string>
+    <string name="nm_avatar_preset_a11y">Opción %1$d: %2$s, %3$s</string>
+    <string name="nm_avatar_preset_ai">Inspiración generada por IA</string>
     <string name="nm_avatar_default_description">Un dragoncito regordete de color amarillo pálido con cuernitos naranjas y alas pequeñas plegadas</string>
     <string name="nm_avatar_style_flat">Plano</string>
     <string name="nm_avatar_style_clay">Arcilla 3D</string>

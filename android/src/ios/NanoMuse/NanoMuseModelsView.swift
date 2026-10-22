@@ -60,7 +60,7 @@ struct NanoMuseModelsView: View {
                     }
                 }
                 NanoMuseCaption(text: cloudOn
-                    ? AppLocalized("nanoMuse Cloud")
+                    ? "nanoMuse Cloud"
                     : AppLocalized("Off: nothing runs on nanoMuse Cloud unless you choose it yourself. You stay signed in for sync and your devices."))
             }
             NanoMuseCard {

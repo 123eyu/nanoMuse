@@ -340,6 +340,16 @@
     <string name="nm_avatar_retry">Ponów</string>
     <string name="nm_avatar_describe_title">Opisz nową twarz</string>
     <string name="nm_avatar_describe_body">Wystarczy jedno zdanie: co to jest, co ma na sobie, jaki ma charakter. Wybierz styl, a twój model obrazów narysuje cztery do wyboru.</string>
+    <string name="nm_avatar_preset_moss_name">Kurier z mchu</string>
+    <string name="nm_avatar_preset_moss_description">mały kurier pokryty miękkim mchem, z liściastymi uszami i prostą płócienną torbą</string>
+    <string name="nm_avatar_preset_tide_name">Majster pływów</string>
+    <string name="nm_avatar_preset_tide_description">aksolotl majster w kolorze morskiej piany, z koralowymi skrzelami i prostą torbą na narzędzia</string>
+    <string name="nm_avatar_preset_dusk_name">Ćma zmierzchu</string>
+    <string name="nm_avatar_preset_dusk_description">zamyślona ćma indygo z brzoskwiniowymi plamkami na skrzydłach, kremowym kołnierzem i okrągłymi okularami</string>
+    <string name="nm_avatar_preset_copper_name">Miedziany żołądź</string>
+    <string name="nm_avatar_preset_copper_description">mały miedziany automat w kształcie żołędzia, z szałwiowymi panelami i stonowanym niebieskim szalikiem</string>
+    <string name="nm_avatar_preset_a11y">Opcja %1$d: %2$s, %3$s</string>
+    <string name="nm_avatar_preset_ai">Inspiracja wygenerowana przez AI</string>
     <string name="nm_avatar_default_description">Pulchny bladożółty smoczek z malutkimi pomarańczowymi rogami i małymi złożonymi skrzydłami</string>
     <string name="nm_avatar_style_flat">Płaski</string>
     <string name="nm_avatar_style_clay">Glina 3D</string>

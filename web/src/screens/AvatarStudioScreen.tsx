@@ -20,6 +20,12 @@ const MOOD_LABEL: Record<Mood, string> = { idle: "Idle", working: "Working", wai
 const CLIP_MOODS = 4;
 /** the dragon's own description, as the placeholder — the phone's too */
 const DEFAULT_DESCRIPTION = "a round, custard-yellow baby dragon with small orange horns and folded little wings";
+const PRESETS = [
+  { id: "moss-courier", name: "Moss Courier", description: "a tiny moss-covered courier with leaf ears and an unmarked canvas satchel", style: "muse" },
+  { id: "tide-tinker", name: "Tide Tinker", description: "a seafoam axolotl tinkerer with coral frills and a plain tool pouch", style: "clay" },
+  { id: "dusk-moth", name: "Dusk Moth", description: "a thoughtful indigo moth with peach wing spots, a cream collar and round glasses", style: "watercolor" },
+  { id: "copper-acorn", name: "Copper Acorn", description: "a small acorn-shaped copper automaton with sage panels and a muted-blue scarf", style: "line" },
+] as const;
 
 /**
  * The avatar studio, the phone's screen (`AvatarStudioScreen.kt`) for the web and the desktop:
@@ -214,6 +220,32 @@ export function AvatarStudioScreen() {
             <p className="mt-0.5 text-[13px] leading-snug text-muted">
               {t("One sentence is enough: what it is, what it wears, its air. Pick a style and your image model draws four to choose from.")}
             </p>
+          </div>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted">{t("AI-generated inspiration")}</p>
+          <div className="grid grid-cols-4 gap-2">
+            {PRESETS.map((preset, index) => (
+              <button
+                key={preset.id}
+                type="button"
+                aria-label={`${t("Candidate {n}", { n: index + 1 })}: ${t(preset.name)}, ${t(styleLabel(preset.style) ?? preset.style)}`}
+                onClick={() => {
+                  setDescription(t(preset.description));
+                  setStyle(preset.style);
+                }}
+                className={cx(
+                  "overflow-hidden rounded-2xl bg-[#f1efeb] text-left transition hover:ring-2 hover:ring-accent/60",
+                  description === t(preset.description) ? "ring-[3px] ring-accent" : "",
+                )}
+              >
+                <img
+                  src={`/avatar-presets/${preset.id}-idle.webp`}
+                  alt=""
+                  className="aspect-square w-full object-cover"
+                />
+                <span className="block truncate px-2 pt-1.5 text-[11px] font-medium text-fg">{t(preset.name)}</span>
+                <span className="block truncate px-2 pb-1.5 text-[10px] text-muted">{t(styleLabel(preset.style) ?? preset.style)}</span>
+              </button>
+            ))}
           </div>
           <textarea
             value={description}

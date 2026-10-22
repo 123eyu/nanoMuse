@@ -1,6 +1,7 @@
 # The avatar studio
 
-The agent's face is the bundled dragon until you ask for another. On the phone since
+The agent's face is the bundled dragon until you ask for another; inspiration cards do
+not change that default. On the phone since
 0.1.20 and, from 0.1.23, on the web app and the desktop through the runtime
 (`nanomuse/avatar/studio.py`), the studio draws one from a description, in the chat:
 
@@ -13,6 +14,13 @@ The agent's face is the bundled dragon until you ask for another. On the phone s
 2. **Your image provider.** Add an image provider and API key under *Models* first.
    nanoMuse Cloud no longer pays for image or video generation. The studio keeps the
    generated files on your device and uses the provider you selected.
+   Four illustrated inspiration cards sit above the description on Android, iPhone, web
+   and desktop. Tapping one fills its description and style; it does not replace the face
+   until you ask your own provider to draw and then choose a result. The examples are
+   *Moss Courier*, *Tide Tinker*, *Dusk Moth* and *Copper Acorn*. Their five-state image
+   sets are under `assets/avatar-presets/`; generation details and
+   the non-sensitive prompts are in `source.json` there. Names, descriptions and style hints
+   follow the app language; the stable preset ids are not user-facing copy.
 3. **Four to choose from.** The same subject four times (classic colouring, lighter, darker
    with a small accessory, a playful take), in the studio's 3D toy style, full body on white. Tap
    one, or say which (「第二个」, "the first one", "top right"); *Redraw* for four more.
@@ -22,6 +30,14 @@ The agent's face is the bundled dragon until you ask for another. On the phone s
    `avatar/<face>/<mood>.webp`; the profile's `avatar` becomes the face id; every app on the
    account shows it (through `/api/files/avatar/<face>/<mood>.webp`). A pose that could not
    be drawn shows the idle picture instead.
+
+The inspiration assets are labelled as AI-generated in their canonical `source.json`. They
+were made through authenticated, metered Bailian model-inference HTTP APIs, not Model Studio's
+experience UI: `qwen-image-3.0-pro` used the native synchronous multimodal endpoint for 20
+pictures. The manifest records the endpoint type, maintainer attestation, prompts, per-file
+SHA-256 and official API and terms links, but no credential, account, private host, request id
+or signed result URL. The manifest also records the terms distinction and the GPL contribution
+of any rights held by the API caller; it is factual project documentation, not legal advice.
 
 Where the pictures come from: the chat model's host and key. The relay speaks the OpenAI
 images API (`/v1/images/generations`, `/v1/images/edits`), as does any OpenAI-compatible

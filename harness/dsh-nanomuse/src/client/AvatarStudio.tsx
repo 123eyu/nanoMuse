@@ -45,6 +45,12 @@ export const MOOD_INSTRUCTIONS: Record<string, string> = {
 const MOODS = ['working', 'waiting', 'happy', 'error']
 const STILL_PX = 512
 const STILL_BYTES = 190 * 1024
+const PRESETS = [
+  { id: 'moss-courier', name: 'presetMossName', description: 'presetMossDescription', style: 'muse' },
+  { id: 'tide-tinker', name: 'presetTideName', description: 'presetTideDescription', style: 'clay' },
+  { id: 'dusk-moth', name: 'presetDuskName', description: 'presetDuskDescription', style: 'watercolor' },
+  { id: 'copper-acorn', name: 'presetCopperName', description: 'presetCopperDescription', style: 'line' },
+] as const
 
 export function buildPrompt(description: string, index: number, style: string): string {
   const subject = description.trim().replace(/[.。!！,，]+$/, '')
@@ -219,6 +225,20 @@ export function AvatarStudioSheet({ t, initial, style: initialStyle, onClose }: 
     const noImage = Boolean(estimateError) && providers.view !== undefined && !providers.view.capabilities.includes('image')
     body = h('form', { id: 'nm-studio', className: 'nm-sheet-form', onSubmit: (e: FormEvent) => { e.preventDefault(); draw(false) } },
       h('p', { className: 'nm-sheet-lead' }, t('stLead')),
+      h('div', { className: 'nm-st-preset-ai' }, t('stPresetAI')),
+      h('div', { className: 'nm-st-grid', role: 'list' }, PRESETS.map((preset, index) =>
+        h('button', {
+          key: preset.id,
+          type: 'button',
+          role: 'listitem',
+          className: `nm-st-cell${text === t(preset.description) ? ' nm-active' : ''}`,
+          'aria-label': t('stPresetOption', { n: index + 1, name: t(preset.name), style: t(`style_${preset.style}` as Words) }),
+          onClick: () => { setText(t(preset.description)); setStyle(preset.style) },
+        }, h('img', {
+          src: `nanomuse/assets/preset-${preset.id}.webp`,
+          alt: '',
+        }), h('span', { className: 'nm-st-preset-name' }, t(preset.name)),
+        h('span', { className: 'nm-st-preset-style' }, t(`style_${preset.style}` as Words))))),
       h('textarea', { className: 'nm-textarea', rows: 3, value: text, placeholder: t('stPlaceholder'), maxLength: 200, onChange: (e: FormEvent<HTMLTextAreaElement>) => setText(e.currentTarget.value), 'data-modal-autofocus': true }),
       h('div', { className: 'nm-st-label' }, t('stStyle')),
       styleChips,
