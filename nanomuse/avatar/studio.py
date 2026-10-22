@@ -461,9 +461,10 @@ class AvatarStudio:
         if base and not image_model and not cloud and not image.configured:
             # nothing named: the chat provider's own picture model, when it has one
             image_model = self._host_default(base, "image")
-        if (not base or not image_model) and not image.configured and signed_in:
+        cloud_image = self._cloud_model("image")
+        if (not base or not image_model) and not image.configured and signed_in and cloud_image:
             # the chat provider draws nothing; the account does (contract §3)
-            base, key, cloud = relay, self._cloud_key(), True
+            base, key, cloud, image_model = relay, self._cloud_key(), True, cloud_image
         if not base:
             return None
         video_model = (llm.video_model or "").strip()
@@ -486,25 +487,26 @@ class AvatarStudio:
         )
         if not ep.image_model:
             if cloud:
-                ep.image_model = self._cloud_model("image", "qwen-image-3.0")
+                ep.image_model = self._cloud_model("image")
             elif ep.dashscope:
                 ep.image_model = DASHSCOPE_IMAGE_MODEL
             elif image.provider:
                 ep.image_model = self._catalogue_default(image.provider, "image")
         if not ep.video_model:
             if cloud:
-                ep.video_model = self._cloud_model("video", DASHSCOPE_VIDEO_MODEL)
+                ep.video_model = self._cloud_model("video")
             elif video.provider:
                 ep.video_model = self._catalogue_default(video.provider, "video")
             elif ep.dashscope or ep.video_base_url:
                 ep.video_model = DASHSCOPE_VIDEO_MODEL
-        if not ep.clips and not video.configured and signed_in and not cloud:
+        cloud_video = self._cloud_model("video")
+        if not ep.clips and not video.configured and signed_in and not cloud and cloud_video:
             # pictures from an own provider that makes no clips: the clips come from the
             # account (contract §3), through the relay's video API under the account key
             ep.video_base_url = _video_root(relay)
             ep.video_api_key = self._cloud_key()
             ep.video_cloud = True
-            ep.video_model = self._cloud_model("video", DASHSCOPE_VIDEO_MODEL)
+            ep.video_model = cloud_video
         return ep if ep.image_model else None
 
     def _cloud_key(self) -> str:
@@ -528,7 +530,7 @@ class AvatarStudio:
         entry = catalogue.load().get(provider)
         return str(entry.defaults.get(kind) or "") if entry else ""
 
-    def _cloud_model(self, kind: str, default: str) -> str:
+    def _cloud_model(self, kind: str) -> str:
         """The relay's image or video model, from the list it sent when the account was checked."""
         hub = self.svc.hub
         for m in hub.models or []:
@@ -536,7 +538,7 @@ class AvatarStudio:
             arch = m.get("architecture") or {}
             if nm.get("kind") == kind or arch.get("output_modalities") == [kind]:
                 return str(m.get("id") or "")
-        return default
+        return ""
 
     def view(self) -> dict[str, Any]:
         ep = self.endpoint()

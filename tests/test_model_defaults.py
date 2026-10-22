@@ -51,7 +51,7 @@ def test_chat_client_starts_with_what_the_id_says():
 
 
 def test_defaults_and_presets():
-    assert DEFAULT_CHAT_MODEL == "deepseek-v4.1-flash" and DEFAULT_GUI_MODEL == "qwen3.8-27b"
+    assert DEFAULT_CHAT_MODEL == DEFAULT_GUI_MODEL == "Qwen/Qwen3.6-27B-FP8"
     bailian, openrouter = PROVIDERS["qwen"], PROVIDERS["openrouter"]
     assert bailian["models"][0] == "deepseek-v4.1-flash" and bailian["gui_model"] == "qwen3.8-27b"
     assert bailian["region"] == "cn"

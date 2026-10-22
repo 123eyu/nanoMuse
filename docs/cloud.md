@@ -23,11 +23,11 @@ and your devices. After the code the app has:
 
 - a provider called **nanoMuse Cloud** under *Settings → Providers*, an
   ordinary OpenAI-compatible provider whose key is the token the relay issued;
-- the four rows of *Settings → Models* (web console: *Connections*) on the
-  account's models when you had chosen none: the recommended chat model, the
-  recommended hands model (the one that reads screenshots and drives a phone or
-  a computer; each model on the relay's menu says which of the two it is for),
-  the picture model and the clip model. A row you have not set follows one
+- the chat and hands rows of *Settings → Models* (web console: *Connections*) on
+  the account's `Qwen/Qwen3.6-27B-FP8` when you had chosen none. It reads image
+  input, so pictures in chat and screenshots used for GUI operation still work.
+  The account does not provide image or video generation; those two rows require
+  a custom provider and API key on the device. A row you have not set follows one
   order: the chat model's provider when it is a key of yours that can do the
   job, else nanoMuse Cloud while signed in, else the first key of yours that
   can; the *Automatic* entry of the row says what that gives right now, and a
@@ -292,36 +292,19 @@ to draw on, for its lifetime, not by the day (relay 0.5):
 | | `cloud.nanomuse.cn` |
 |---|---|
 | sign-up | open to anyone with a mainland China mobile number or an e-mail address |
-| free allowance | **¥10 per account** at the time of writing, across chat, pictures and clips; it does not reset. The figure is the relay's to set (it can go up without an app update; the apps print what the relay says, `/v1/config`), and the account page always shows the current one |
+| free allowance | **¥10 per account** at the time of writing, for the hosted Qwen chat/vision/GUI model; it does not reset. The figure is the relay's to set (it can go up without an app update; the apps print what the relay says, `/v1/config`), and the account page always shows the current one |
 | invitations | each *new* person who signs up with your code adds **¥5** (again, the relay's figure) to your pool, and the same to theirs; both sides get it after your friend's first request, not at sign-up |
 | when it is gone | bring your own key or a plan you already pay for: in mainland China, [Alibaba Cloud Bailian](own-key.md) first (one key covers chat, the hands, pictures and clips); elsewhere, [OpenRouter](https://openrouter.ai/keys) or OpenAI first (Bailian only signs up accounts from mainland China); a ChatGPT, Claude or Kimi plan signs in where the client has the flow; any OpenAI-compatible endpoint works; sign-in and your devices are unaffected |
-| members | the developer and the people they list have no limit, and may set any model the provider has (a chat model for chat, an image one for pictures, a video one for clips): the apps' model picker lists them after the menu as *More models on your account* (relay 0.10 reads the provider's list under the Cloud key), and an id can still be typed (*Other model…*) |
+| members | the developer and the people they list have no limit and may name other chat models from the hosted provider; hosted image and video generation stays disabled for them too |
 | rate | 30 requests per minute |
 | tokens | no ceiling; usage is metered and shown |
 
-Spend is counted at the model provider's list prices (Alibaba Cloud Model
-Studio, Beijing region, read on 2026-10-07). `deepseek-v4.1-flash`, the chat
-model since 0.1.34 (it reads pictures and thinks before it answers), is ¥2 in /
-¥8 out per million tokens from 8:00 to 22:00 Beijing time and ¥1 / ¥4 the rest
-of the night; the hour the reply comes in decides. `qwen3.8-27b`, the hands
-model, usable for chat too, is ¥3 / ¥12; `qwen3.8-flash` ¥0.8 / ¥2.7;
-`qwen-image-3.0` ¥0.18 a picture, and an edit adds ¥0.02 for the picture sent
-in; `wan2.2-i2v-flash` ¥0.10 a second of video at 480P (a 5-second clip is
-¥0.50), ¥0.20 a second at 720P and ¥0.48 at 1080P. A clip is charged once its
-task is done, at the price fixed when it was asked for; until then the price is
-held against the pool for up to an hour. An app that was closed never comes
-back for the answer, so since relay 0.24 the relay asks the provider itself,
-once before that hour is up and once more before the task's row is dropped:
-a finished clip is charged then, a failed one costs nothing, and a later poll
-from the app charges nothing more. The part of a prompt the
-provider served from its cache (the system prompt and the history, turn after
-turn) is counted at the provider's cached rate, 10 % of the input price on
-DeepSeek and 20 % on the Qwen models, as the reply's `usage` reports it. The
-reasoning tokens of a thinking model count as output. A typical day of
-chatting costs a few fen; ¥10 is roughly two million tokens of the chat model
-or fifty pictures. A new face (four candidates, four poses and four clips)
-comes to about ¥3.5, and the app shows the estimate and what is left before it
-draws.
+Spend on `Qwen/Qwen3.6-27B-FP8` is counted at ¥3 input / ¥12 output per
+million tokens, with cached input at 20% of the input price, as reported in
+the reply's `usage`. Reasoning tokens count as output. Image input is part of
+that chat request; it is not image generation. Hosted picture and clip
+generation is not charged because it is not available: add a provider and API
+key of your own for those capabilities.
 
 *Settings → nanoMuse Cloud* shows what was used of the pool in ¥ and $, what
 is left, and how the pool grows. At 80 % the app says so once; when the pool
@@ -527,7 +510,11 @@ clips under the provider's own paths (`POST
 /api/v1/services/aigc/video-generation/video-synthesis`, `GET
 /api/v1/tasks/{id}` for the account's own tasks, `GET /api/v1/uploads`). Errors
 are `{"error": {"message", "type": "nanomuse_cloud", "code"}}` with a stable
-`code` the app turns into a sentence. Relay 0.22 adds the codes of the
+`code` the app turns into a sentence. On the hosted service, new image/video
+requests, uploads, typed media-model lookups and media estimates return `410
+hosted_media_retired` with `action: configure_own_provider` before any
+upstream request. Existing video-task polling remains available so an old
+accepted task can finish. Relay 0.22 adds the codes of the
 operator's [switches](#controls): `403 signup_closed`, `503 service_paused`,
 `503 sync_paused`, `503 hub_paused` (and the hub's close code `4003
 hub_paused`), and `allowance_exhausted` with `paused: true` when the free

@@ -262,8 +262,9 @@ export function AvatarStudioSheet({ t, initial, style: initialStyle, onClose }: 
           image ? h('img', { src: `data:image/png;base64,${image}`, alt: t('stOption', { n: index + 1 }) }) : h('span', { className: 'nm-st-wait' }, busy ? '…' : '—'),
           h('span', { className: 'nm-st-tag' }, t('stOption', { n: index + 1 }))))),
       error ? h('div', { className: 'nm-room-error' }, error) : null,
-      // an own provider failed and the account could draw: this round through nanoMuse Cloud, the slot untouched
-      error && !busy && !viaCloud && estimate?.source === 'provider' && live.cloud.signedIn
+      // An own provider failed and this relay actually lists an image model: this round
+      // through that relay, the slot untouched. A hosted account alone is not a fallback.
+      error && !busy && !viaCloud && estimate?.source === 'provider' && live.cloud.signedIn && providers.view?.cloud.capabilities.includes('image')
         ? h('div', { style: { marginTop: 6 } }, h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', 'data-testid': 'nm-st-cloud-once', onClick: () => draw(true) }, t('rfUseCloudOnce')))
         : null)
     footer = h('div', { className: 'nm-sheet-actions' },

@@ -19,11 +19,11 @@ its base URL.
   its own (`ttl_s`, 90 days at most) — what nanoMuse Web starts a person's
   container with, so the gateway keeps no standing key of theirs; it shows in
   `/v1/me/sessions` with `expires_at` and `via: "session"`.
-- **OpenAI-shaped proxy.** `GET /v1/models`, `POST /v1/chat/completions`
-  (streaming or not) go to the upstream with the relay's key. `POST
-  /v1/images/generations` and `/v1/images/edits` are translated into DashScope's
-  native image API, so drawing and re-drawing the avatar works through the
-  relay too.
+- **OpenAI-shaped chat proxy.** `GET /v1/models` and `POST /v1/chat/completions`
+  (streaming or not) go to the upstream with the relay's key. The hosted menu contains
+  only `Qwen/Qwen3.6-27B-FP8`, including its image-input support for chat and GUI
+  operation. Image and video generation require a provider and API key configured by
+  the person on their device.
 - **Ledger.** Every request is charged from the account's grant using the
   upstream's own `usage` (for streams, from the final usage chunk). Cheaper
   models are charged with a multiplier; pictures cost a flat amount. One
@@ -81,7 +81,8 @@ Errors carry a stable `code` the app can turn into a sentence:
 | 402 | `out_of_tokens` | grant used up — top up with the admin endpoint |
 | 403 | `account_disabled` | the operator switched the account off: its keys answer `401 bad_key`, `POST /v1/auth/verify` answers this, and `/v1/auth/login` answers it only to the right password (a wrong one is `401 bad_credentials` as for any account). `POST /v1/auth/code` answers the same `204` as for anyone, counts towards the same limits and sends nothing, so a request there learns neither that the number has an account nor that it is off |
 | 403 | `session_from_session` | `POST /v1/auth/session-key` was called with a session key; only a device's standing key may mint one, so a leaked short-lived key cannot renew itself |
-| 404 | `model_not_offered` | not on the menu |
+| 404 | `model_not_offered` | not on the chat menu |
+| 410 | `hosted_media_retired` | this relay no longer pays for image or video generation; configure an image/video provider and API key in the client |
 | 400 | `no_secrets_in_profile` | a profile `connectors` entry carried a key named like a credential; nothing was stored |
 | 400 | `too_many_connectors` | the write would leave more than 64 connectors on the account |
 | 429 | `allowance_exhausted` | the account's pool is spent; the body also carries `left`, `grant`, `region`, `ways` (the ways on in order for that person), `guidance` (0.21: every provider for the region with what each covers, the plans an app can sign in with), `invite_url`, `invite_bonus_cny`, `own_key_docs`, `openrouter_url` |
@@ -163,8 +164,6 @@ for the full list. The ones that matter:
 | variable | default | |
 |---|---|---|
 | `UPSTREAM_BASE` / `UPSTREAM_KEY` | Model Studio compatible-mode | where chat goes |
-| `DASHSCOPE_BASE` / `DASHSCOPE_KEY` | Model Studio native / empty | where pictures and clips go; an empty key falls back to `UPSTREAM_KEY` |
-| `IMAGE_CONCURRENCY` / `IMAGE_RETRIES` | 2 / 4 | pictures drawn at once for everyone together (the provider allows an account only a couple), and how often a 429 or 5xx is retried with growing pauses before `429 provider_busy` |
 | `CHAT_DEFAULTS` | `{"enable_thinking": false}` | merged into chat requests for fields the app did not set |
 | `SIGNUP_OPEN` | `1` | anyone may sign in; `0` = members only (a private relay). *Runtime setting* — see below |
 | `ALLOWED_IDENTIFIERS` | empty | comma-separated numbers / addresses of the **members**: no spend limit |
@@ -200,7 +199,8 @@ for the full list. The ones that matter:
 | `CODE_PER_IDENTIFIER_10M`, `CODE_PER_IP_HOUR` | 3, 10 | codes one number or address may request per ten minutes, and one network address per hour; past either the request is answered `429 code_too_often` |
 | `CODE_SENDER` | `log` | `log`, `smtp`, `aliyun` or `both` (SMS for phones, mail for addresses) |
 | `ALIYUN_SMS_API` | `dypns` | `dypns` (号码认证服务 `SendSmsVerifyCode`) or `dysms` (短信服务 `SendSms`) |
-| `CLOUD_MODELS` | DeepSeek + Qwen chat, Qwen image, Wan video | JSON list to replace the menu, prices and lanes (`for`, `recommended_for`) included — see below |
+| `CLOUD_MODELS` | `Qwen/Qwen3.6-27B-FP8` | JSON list to replace the hosted menu and lanes (`for`, `recommended_for`); media kinds take effect only on a self-hosted relay with `CLOUD_MEDIA_ENABLED=1` |
+| `CLOUD_MEDIA_ENABLED` | `0` | self-hosters may set `1` to run the historical native media proxy with their own provider account; project-hosted nanoMuse Cloud leaves it off |
 | `CLOUD_MODEL_ALIASES` | built-in aliases only | JSON object mapping old or saved model ids to ids in `CLOUD_MODELS`, useful when changing provider |
 | `CLOUD_ANY_MODEL_MEMBERS` | `1` | members may name any model of the provider's for its kind (chat, image, video) — see below; `0` = the menu only |
 | `CLOUD_CATALOG` | `1` | list the usable models under the operator's key after the menu in a member's `/v1/models`, read from the provider's own `/models` (0.10) — see below; `0` = the menu only, a member types an id |
@@ -219,16 +219,11 @@ for the full list. The ones that matter:
 | `ADMIN_EMAIL` | empty | where a threshold rule's *notify* goes (0.22, *Controls*), through the `SMTP_*` settings; empty = the rule writes its audit line and the log says there was nobody to tell |
 | `NANOMUSE_CLOUD_BASE` | `PUBLIC_BASE`, else `http://127.0.0.1:8787` | read by the admin CLI only (`nanomuse-cloud admin …`, below): the address of the relay it talks to when `--base` is not given; the relay itself does not read it |
 
-The default menu (0.17): `deepseek-v4.1-flash` (the chat model — text and
-images in, ¥2 / ¥8 per million tokens, charged at 0.7×; it thinks before it
-answers and returns `reasoning_content`), `qwen3.8-27b` (the hands model: the
-GUI model that reads screenshots and drives a phone or a computer, usable for
-chat too; ¥3 / ¥12), `qwen3.8-flash` (charged at 0.3×), `qwen-image-3.0` for
-drawing (¥0.18 a picture, 30 000 tokens) and `wan2.2-i2v-flash` for short
-clips (¥0.10 a second at 480P, five seconds, 200 000 tokens per clip;
-`wan2.2-t2v-plus` when a clip starts from words). Until 0.4 the menu had
-`qwen-image-3.0-pro` (¥0.25 / ¥0.5) and `MiniMax/MiniMax-H3` (¥0.5 a second):
-a new face with its four clips cost about ¥9; it is about ¥3 now.
+The hosted menu contains one model: `Qwen/Qwen3.6-27B-FP8`. It serves both
+chat and the hands and accepts image input, so screenshots and pictures in a
+conversation continue to work. It does not generate pictures or video.
+`/v1/images/*`, video submission/upload routes, and media estimates answer
+`410 hosted_media_retired` before any upstream call or allowance charge.
 
 **Lanes (0.17).** Every chat model says what it is `for` — `chat`, `gui` or
 both — and `recommended_for` names the lane(s) it is the default pick in; both
@@ -236,8 +231,7 @@ ride in each entry's `nanomuse` block of `/v1/models`, and the apps' two
 pickers (the chat model, the hands model) filter on them and take the
 recommended one of each lane as the default. Picture and clip models are for
 neither (`"for": []`; their `kind` says what they do). On the shipped menu
-`deepseek-v4.1-flash` is `for: ["chat"]`, recommended for chat;
-`qwen3.8-27b` is `for: ["gui", "chat"]`, recommended for gui. In
+`Qwen/Qwen3.6-27B-FP8` is `for: ["chat", "gui"]` and recommended for both. In
 `CLOUD_MODELS` the fields are `"for"` and `"recommended_for"` (lists of lane
 names; `for` left out means `["chat"]`; a `recommended_for` needs
 `"recommended": true`); the relay logs a line at start when a lane has no
@@ -248,8 +242,10 @@ untouched, and reasoning tokens are counted as completion tokens whichever
 way the provider reports them (`completion_tokens_details.reasoning_tokens`
 inside the figure, or DashScope's `output_tokens_details` apart from it).
 
-Any OpenAI-compatible upstream works for chat; the image and video
-endpoints assume DashScope. Video is relayed under DashScope's own paths
+Any OpenAI-compatible upstream works for chat. The legacy image and video
+endpoints assume DashScope and are disabled by default; a self-hosted relay
+can opt in with `CLOUD_MEDIA_ENABLED=1` and its own provider key. Video is
+then relayed under DashScope's own paths
 (`/api/v1/services/aigc/video-generation/video-synthesis`, `/api/v1/tasks/{id}`,
 `/api/v1/uploads`), so the app's video code only needs to point its host at
 the relay; a task can be polled by the account that created it only, and the
@@ -398,17 +394,17 @@ above it) and stored in the ledger next to the token count; a chat is priced
 at the hour its reply comes in, with the provider's `cached_tokens` at the
 cached rate, and the ledger line's `extra` says when either applied. A non-member account has one pool for
 its lifetime — `ALLOWANCE_CNY` (¥10 by default, adjustable at runtime), grown by invites (both
-sides) and the operator's credit; a picture or a clip that would go
-over it is refused before it is made, a chat once the pool is spent. Clips are
-not counted apart: a clip is just the dearest line on the same allowance.
+sides) and the operator's credit. On the hosted service only chat/vision/GUI
+requests spend this pool; picture and clip generation returns
+`hosted_media_retired` before budget or upstream work.
 Members — the identifiers in `ALLOWED_IDENTIFIERS`, or any account the
 operator marks on the admin page — have no limit, and (with
 `CLOUD_ANY_MODEL_MEMBERS=1`, the default) may name **any model the provider has
 under the operator's key**, not only the menu's: the id goes upstream as typed,
-as long as it is used for what it is — a chat model at `/v1/chat/completions`,
-an image model at `/v1/images/*`, a video model under the video paths; never
-across. Pictures and clips travel through the provider's qwen-image / Wan-shaped
-APIs, so a model of another family gets the provider's answer. `/v1/models`
+as long as it is a chat model at `/v1/chat/completions`. Disabling hosted media
+also applies to members. A self-hosted operator that sets
+`CLOUD_MEDIA_ENABLED=1` restores the historical typed image/video behavior
+under that operator's own key. `/v1/models`
 says `nanomuse.any_model` for the account, `/v1/me` the same under `account`,
 and `GET /v1/models/<id>?kind=chat` checks a typed id (the answer's `listed` is
 false and `priced_as` names the menu model whose prices stand in for it in the
@@ -419,7 +415,8 @@ provider's own `/models` under the operator's key (once an hour,
 `CLOUD_CATALOG_TTL_S`), sorts the ids by their shape into chat and picture
 models — the spoken, heard, embedding and rerank ones are left out, and a
 video model is not on the compatible list (`catalog.py`) — and lists them in
-the member's `/v1/models` after the menu, each with `catalog: true`, `listed:
+the member's `/v1/models` after the menu (chat only while hosted media is
+disabled), each with `catalog: true`, `listed:
 false`, `priced_as` and `vision` (whether the chat model reads pictures); the
 answer's `nanomuse.catalog` says how many and the provider's error if the list
 could not be refreshed (the last one stands). The apps' pickers then show the

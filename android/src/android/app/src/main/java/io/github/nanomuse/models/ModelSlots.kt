@@ -228,6 +228,8 @@ object ModelSlots {
         val out = mutableListOf<Group>()
         // the relay's recommended model first and marked; a provider of the person's own lists
         // its models as they are, the mark is nanoMuse Cloud's word alone
+        // A signed-in account is not itself a media capability: only a model of that kind
+        // in the relay's menu may create a Cloud group.
         cloud?.let { options(context, slot, it, cloud = true) }?.takeIf { it.isNotEmpty() }
             ?.let { out += Group(cloud, true, ordered(it)) }
         for (inst in own) {

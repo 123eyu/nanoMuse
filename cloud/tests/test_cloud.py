@@ -263,6 +263,71 @@ def test_identifiers():
             parse(bad)
 
 
+async def test_hosted_default_is_one_multimodal_chat_model_and_retires_media(monkeypatch):
+    monkeypatch.delenv("CLOUD_MODELS")
+    monkeypatch.delenv("CLOUD_MEDIA_ENABLED")
+    settings = Settings(
+        database=":memory:",
+        secret="test-secret",
+        upstream_base="http://upstream/compat/v1",
+        upstream_key="sk-upstream",
+        public_base="http://cloud.test",
+    )
+    assert [m.id for m in settings.models] == ["Qwen/Qwen3.6-27B-FP8"]
+    assert settings.models[0].input_modalities == ("text", "image")
+    assert settings.models[0].recommended_lanes == ("chat", "gui")
+    assert settings.models[0].price_in == 3.0 and settings.models[0].price_out == 12.0
+    up = fake_upstream()
+    sender = LogSender()
+    cloud = Cloud(settings, Database(":memory:"), sender)
+    app = create_app(settings, cloud, upstream_transport=httpx.ASGITransport(app=up))
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://cloud.test") as client:
+        me = await sign_up(client, sender)
+        headers = {"Authorization": f"Bearer {me['api_key']}"}
+        listed = (await client.get("/v1/models", headers=headers)).json()["data"]
+        assert [m["id"] for m in listed] == ["Qwen/Qwen3.6-27B-FP8"]
+        caller = cloud.authenticate(me["api_key"])
+        cloud.db.insert_video_task("old-task", caller.account_id, "wan2.2-i2v-flash", cost_uy=500_000, probe=False)
+        before = list(up.state.requests)
+        usage_before = (await client.get("/v1/me", headers=headers)).json()["usage"]
+        retired_model = await client.get("/v1/models/qwen-image-3.0-pro?kind=image", headers=headers)
+        assert retired_model.status_code == 410
+        assert retired_model.json()["error"]["code"] == "hosted_media_retired"
+        responses = (
+            await client.post(
+                "/v1/images/generations",
+                headers=headers,
+                json={"model": "qwen-image-3.0", "prompt": "a dragon"},
+            ),
+            await client.post(
+                "/v1/images/edits",
+                headers=headers,
+                data={"model": "qwen-image-3.0", "prompt": "wave"},
+                files={"image": ("dragon.png", PNG_1PX, "image/png")},
+            ),
+            await client.post(
+                "/api/v1/services/aigc/video-generation/video-synthesis",
+                headers=headers,
+                json={"model": "wan2.2-i2v-flash", "input": {"prompt": "a wave"}},
+            ),
+            await client.get(
+                "/api/v1/uploads",
+                headers=headers,
+                params={"action": "getPolicy", "model": "wan2.2-i2v-flash"},
+            ),
+            await client.get("/api/v1/tasks/old-task", headers=headers),
+        )
+        for response in responses:
+            assert response.status_code == 410
+            assert response.json()["error"]["code"] == "hosted_media_retired"
+            assert response.json()["error"]["action"] == "configure_own_provider"
+        estimate = await client.get("/v1/estimate?images=1&clips=1", headers=headers)
+        assert estimate.status_code == 410
+        assert await app.state.settle_video_tasks() == 0
+        assert up.state.requests == before
+        assert (await client.get("/v1/me", headers=headers)).json()["usage"] == usage_before
+
+
 async def test_signup_grants_and_lists_models(stack):
     app, client, sender, up, cloud = stack
     data = await sign_up(client, sender)
@@ -2177,7 +2242,8 @@ async def test_the_menu_says_which_lane_each_model_is_for(stack, monkeypatch):
     assert ds["name"] == "DeepSeek V4.1 Flash" and ds["architecture"]["input_modalities"] == ["text", "image"]
     assert ds["nanomuse"]["price_cny"]["per_m_input"] == 2.0 and ds["nanomuse"]["price_cny"]["per_m_output"] == 8.0
     assert ds["nanomuse"]["in_mult"] == 0.7 and ds["nanomuse"]["out_mult"] == 0.7
-    assert [m.id for m in DEFAULT_MODELS][:2] == ["deepseek-v4.1-flash", "qwen3.8-27b"]
+    assert [m.id for m in DEFAULT_MODELS] == ["Qwen/Qwen3.6-27B-FP8"]
+    assert DEFAULT_MODELS[0].recommended_lanes == ("chat", "gui")
     assert menu_warnings(DEFAULT_MODELS) == []  # exactly one recommended per lane
 
     # the lanes come from CLOUD_MODELS under the JSON name `for`

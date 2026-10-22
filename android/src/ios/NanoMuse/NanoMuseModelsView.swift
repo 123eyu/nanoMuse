@@ -60,7 +60,7 @@ struct NanoMuseModelsView: View {
                     }
                 }
                 NanoMuseCaption(text: cloudOn
-                    ? AppLocalized("nanoMuse Cloud is one of the sources for the chat, pictures and clips; what runs on it comes off your allowance.")
+                    ? AppLocalized("nanoMuse Cloud")
                     : AppLocalized("Off: nothing runs on nanoMuse Cloud unless you choose it yourself. You stay signed in for sync and your devices."))
             }
             NanoMuseCard {
@@ -269,15 +269,14 @@ struct NanoMuseSlotPickerView: View {
     private var emptyLine: String {
         switch slot {
         case .chat, .hands: return AppLocalized("Sign in to nanoMuse Cloud or add a provider")
-        case .image: return AppLocalized("None of your providers can draw. Sign in to nanoMuse Cloud, or add an Alibaba Cloud Bailian provider with an API key; the avatar is drawn with one of the two.")
-        case .video: return AppLocalized("No provider that can make video yet. nanoMuse speaks Alibaba Cloud Model Studio's video API, which nanoMuse Cloud relays too. Sign in to nanoMuse Cloud, or add a Model Studio key (it can be the same one as the image model uses), and the avatar starts moving; until then it stays as still pictures.")
+        case .image, .video: return AppLocalized("Add a provider")
         }
     }
 
     /// The sentence naming the providers the iPhone cannot draw or film through (`%@`), and why.
     private var notDrivenLine: String {
         switch slot {
-        case .video: return AppLocalized("Not offered here: %@. Clips go through Alibaba Cloud Model Studio's video API, which nanoMuse Cloud relays too.")
+        case .video: return AppLocalized("Not set")
         default: return AppLocalized("Not offered here: %@. On the iPhone, pictures with a key of your own go through Alibaba Cloud Model Studio's image API; the desktop app also draws through providers that speak the OpenAI images API.")
         }
     }

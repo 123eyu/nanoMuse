@@ -10,10 +10,9 @@ The agent's face is the bundled dragon until you ask for another. On the phone s
    phone's page: the face at the top with what it is, a description, the seven style chips,
    *Draw four*, and the rest of this list without a card in the chat (the progress comes over
    the socket as `{"kind": "studio", "current"}`). The agent is not run for it.
-2. **The cost first.** A card says what it will take: with the account's model (nanoMuse
-   Cloud), the relay's figure (`GET /v1/estimate`) next to what is left in your allowance
-   (about ¥1.5 for the eight pictures at qwen-image-3.0's price); with a key of your own, the
-   count, at your provider's prices. *Draw* or *Not now*.
+2. **Your image provider.** Add an image provider and API key under *Models* first.
+   nanoMuse Cloud no longer pays for image or video generation. The studio keeps the
+   generated files on your device and uses the provider you selected.
 3. **Four to choose from.** The same subject four times (classic colouring, lighter, darker
    with a small accessory, a playful take), in the studio's 3D toy style, full body on white. Tap
    one, or say which (「第二个」, "the first one", "top right"); *Redraw* for four more.
@@ -31,12 +30,12 @@ native multimodal endpoint with the same key (qwen-image-3.0 by default). Which 
 is the `[image]` block in `config.toml` (`[llm] image_model` still works), the *Making
 pictures* row on *Connections* in the web console, or *Settings → Models* on the phones and
 the desktop; empty means *Automatic*: the chat model's provider when it draws (qwen-image-3.0
-on Model Studio), else the relay's image model for the account, else none, and then the chat
+on Model Studio), else another image provider configured by the person, else none, and then the chat
 says so plainly instead of trying.
 
 Once the stills are on, the studio makes the four short clips the phone's does (idle,
 working, waiting, happy; the same fixed motions) from them, when the endpoint has a video
-model: the relay's (`wan2.2-i2v-flash`) or Wan on Model Studio, through the asynchronous
+model from a provider configured by the person, such as Wan on Model Studio, through the asynchronous
 video API (an upload, a task, polling, the MP4), the `[video]` slot (or the older `[llm] video_model`,
 [configuration.md](configuration.md#image-and-video)) overriding the choice
 and `[llm] video_base_url` naming the host of that API when it is not the chat model's (a

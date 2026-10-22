@@ -1522,6 +1522,15 @@ class Cloud:
         """The model a request names, checked for `kind` (a chat model answers chat, an
         image model draws, a video model films — never across). The menu for everyone;
         for a member, with any_model_members on, any id shaped like one besides."""
+        if kind in ("image", "video") and not self.s.media_enabled:
+            noun = "pictures" if kind == "image" else "clips"
+            raise CloudError(
+                410,
+                "hosted_media_retired",
+                f"nanoMuse Cloud no longer generates {noun}. Add your own image or video "
+                "provider and API key in Settings → Models, then try again.",
+                {"kind": kind, "action": "configure_own_provider"},
+            )
         m = self.s.model(model_id)
         if m is not None and m.kind == kind:
             return m
@@ -1537,9 +1546,10 @@ class Cloud:
 
     def models_for(self, caller: Caller) -> dict:
         """The menu, and whether this account may name a model beyond it."""
+        models = self.s.models if self.s.media_enabled else tuple(m for m in self.s.models if m.kind == "chat")
         return {
             "object": "list",
-            "data": [m.to_public() for m in self.s.models],
+            "data": [m.to_public() for m in models],
             "nanomuse": {"any_model": self.any_model(caller)},
         }
 
@@ -2151,6 +2161,16 @@ class Cloud:
         the number next to what they have left today. Nothing is charged."""
         images = max(0, min(images, 50))
         clips = max(0, min(clips, 20))
+        if (images or clips) and not self.s.media_enabled:
+            kind = "image" if images else "video"
+            noun = "pictures" if images else "clips"
+            raise CloudError(
+                410,
+                "hosted_media_retired",
+                f"nanoMuse Cloud no longer generates {noun}. Add your own {kind} provider "
+                "and API key in Settings → Models to use this feature.",
+                {"kind": kind, "action": "configure_own_provider"},
+            )
         parts = []
         cost = 0
         if images:

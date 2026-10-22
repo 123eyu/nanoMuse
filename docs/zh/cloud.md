@@ -7,7 +7,7 @@
 0.1.20 起，账号是每个 App 的起点：第一屏要你填手机号或邮箱，发一个六位验证码（或者，设过密码的话，直接输密码），然后问由哪个模型来回答：账号自带的（Cloud），还是你自己的 key。短信验证码只发中国大陆号码（号码认证服务不往别处发）；香港、台湾或海外号码会立刻被告知（`phone_region`），改用邮箱登录。退出登录会回到那一屏（自己部署的：在运行时上设 `[cloud] required = false` 或 `NANOMUSE_CLOUD_REQUIRED=0`）。那一屏是门，不是墙：点「改用自己的 API key」就能越过它进入设置里的自备 key 路径；有了自己的 key，App 不登录也能用（聊天、动手、图片、短片），登录入口留在「连接」里（手机上是「设置 → nanoMuse Cloud」），用于 Cloud 模型、同步和你的设备。输完验证码后，App 有了：
 
 - *设置 → 服务商* 下一个叫 **nanoMuse Cloud** 的服务商，一个普通的 OpenAI 兼容服务商，它的 key 就是中继发的 token；
-- *设置 → 模型*（网页控制台：「连接」页）的四行在你没选过时落在账号的模型上：推荐的聊天模型、推荐的手的模型（读截图、操作手机或电脑的那个；中继菜单上每个模型都写明它是给这两者中的哪一个用的）、图像模型和视频模型。你没设过的一行按一个顺序走：对话模型所在的服务商是你自己的 key、而且能做这件事时用它，否则登录时用 nanoMuse Cloud，否则用你第一把能做这件事的 key；那一行的「自动」写着它现在给的是什么，以后再加一把 key 会先问「用它来做什么」，然后才会动任何一行（[own-key.md](own-key.md#which-model-does-what)）。
+- *设置 → 模型*（网页控制台：「连接」页）的聊天和手两行在你没选过时使用账号的 `Qwen/Qwen3.6-27B-FP8`。它能接收图片，所以聊天看图和 GUI 操作读取截图不受影响。账号不再提供生图或生视频；这两行必须在设备上配置你自己的服务商和 API key。你没设过的一行按现有自动顺序解析，以后再加一把 key 会先问「用它来做什么」，然后才会动任何一行（[own-key.md](own-key.md#which-model-does-what)）。
 
 *设置 → nanoMuse Cloud*（「账号」页）显示谁登录了（一个打码的提示，从不显示号码）、从什么时候起；设置、修改或移除**密码**（八个字符以上；中继上用 scrypt；连续输错会锁一段时间，用验证码重新登录一次就解开）；今天花了多少额度，以 ¥ 和 $ 计，配一个仪表；**按类型的用量**（聊天、图片、视频）今天和累计，以及**按模型**的用量；**登录记录**：每一台持有 key 的设备、它怎么登录的（验证码还是密码）、最后一次使用的时间，每条都可以吊销；账号自己的**历史**（登录、改密码、被拒绝；从不包含消息内容）；还有几条退路：在这台设备「退出登录」、「所有设备退出登录」、「删除账号」。额度属于那个地址：再次登录，不管在这台手机还是另一台，拿到的是同一个账号的新 key，不会多给一份额度。
 
@@ -67,14 +67,14 @@ nanoMuse 是社区项目，不收费。`cloud.nanomuse.cn` 这个公共中继由
 | | `cloud.nanomuse.cn` |
 |---|---|
 | 注册 | 任何有中国大陆手机号或邮箱的人都可以 |
-| 免费额度 | 写这篇时是**每个账号 ¥10**，聊天、图片和短视频共用；不重置。数字由中继决定（可以不更新 App 就上调；App 显示的是中继说的数，`/v1/config`），账号页始终显示当前的 |
+| 免费额度 | 写这篇时是**每个账号 ¥10**，用于托管的 Qwen 对话、图片输入和 GUI 操作模型；不重置。数字由中继决定（可以不更新 App 就上调；App 显示的是中继说的数，`/v1/config`），账号页始终显示当前的 |
 | 邀请 | 每有一个*新*人用你的邀请码注册，你的池子加 **¥5**（同样是中继定的数），对方也加同样多；两边都在朋友第一次发请求之后到账，不是注册时 |
 | 用完之后 | 用自己的 key 或你已经在付费的套餐：在中国大陆，优先[阿里云百炼](own-key.md)（一把 key 覆盖聊天、手、图片和短视频）；其他地方优先 [OpenRouter](https://openrouter.ai/keys) 或 OpenAI（百炼只接受中国大陆的注册）；ChatGPT、Claude 或 Kimi 套餐在有该登录流程的客户端上登录；任何 OpenAI 兼容端点都可以；登录和你的设备不受影响 |
-| 成员 | 开发者和他们列出的人没有上限，可以设服务商有的任何模型（聊天用聊天模型，图片用图像模型，短视频用视频模型）：App 的模型选择器在菜单之后列出它们，叫「账号还能用的更多模型」（中继 0.10 用 Cloud key 读取服务商的列表），也仍然可以手动输入一个 id（「其他模型名」） |
+| 成员 | 开发者和他们列出的人没有上限，也可以指定托管服务商的其他聊天模型；托管生图和生视频对成员同样关闭 |
 | 速率 | 每分钟 30 次请求 |
 | token | 没有上限；用量会计量并显示 |
 
-消费按模型服务商的目录价计算（阿里云百炼，北京地域，2026 年 10 月 7 日查阅）。`deepseek-v4.1-flash` 是 0.1.34 起的聊天模型（能看图，回答前会思考）：北京时间 8:00 到 22:00 每百万 token 输入 ¥2 / 输出 ¥8，其余夜间时段 ¥1 / ¥4，以回复到达的那一刻为准。`qwen3.8-27b` 是手的模型，也能用来聊天：¥3 / ¥12；`qwen3.8-flash` ¥0.8 / ¥2.7；`qwen-image-3.0` 每张图 ¥0.18，编辑时送进去的那张图另加 ¥0.02；`wan2.2-i2v-flash` 480P 视频每秒 ¥0.10（一段 5 秒的短视频是 ¥0.50），720P 每秒 ¥0.20，1080P 每秒 ¥0.48。一段短视频在它的任务完成时扣一次费，按提交时定下的价；在那之前，这个价从额度池里预留，最多一小时。关掉的 App 不会再回来取结果，所以从中继 0.24 起由中继自己去问服务商：在那一小时到期前问一次，在任务那一行被丢弃前再问一次。做完的短视频在那时扣费，失败的不花钱，App 之后再来轮询也不再多扣。提示词里被服务商从缓存里取出的那部分（系统提示和历史记录，一轮接一轮）按服务商的缓存价计：DeepSeek 是输入价的 10%，Qwen 模型是 20%，以回复里 `usage` 报告的数为准。思考模型的推理 token 算作输出。普通的一天聊下来花几分钱；¥10 大约是聊天模型的两百万 token，或者五十张图。一个新形象（四张候选、四个姿势、四段短视频）大约 ¥3.5，App 在画之前会显示估算和剩余额度。
+`Qwen/Qwen3.6-27B-FP8` 按每百万 token 输入 ¥3、输出 ¥12 计费，缓存命中的输入按输入价的 20% 计，以回复里的 `usage` 为准；推理 token 算输出。把图片发给对话属于这个多模态聊天请求，不是生图。托管 Cloud 不再提供生图和生视频，因此也不会从账号额度中扣这两类费用；需要这些能力时，请在客户端接入你自己的供应商和 API key。
 
 *设置 → nanoMuse Cloud* 显示池子用了多少（以 ¥ 和 $ 计）、还剩多少、池子怎么增长。用到 80 % 时 App 提示一次；池子花完后中继以 `allowance_exhausted` 拒绝，App 显示接下来的路：自己的 key、你已经在付费的套餐，或者邀请（你们各加 ¥5，或者中继当天说的数）。先推荐哪家服务商取决于你在哪里（0.1.34：中继的 `region`，从号码的国家码或它自己磁盘上一份 ip2region 的离线副本读出；什么都不往外发）：中国大陆账号被指向阿里云百炼（服务商表单打开时已经预填好，[指南](own-key.md)），其他所有人指向 OpenRouter 或 OpenAI，因为百炼只接受中国大陆的注册。
 
@@ -151,7 +151,7 @@ DELETE /v1/devices/{id}     Bearer                            → 204; 409 devic
 
 `/v1/config` 里的 `code_ttl_s` 和 `password_min_len` 就是中继的 `CODE_TTL_S` 和 `PASSWORD_MIN_LEN`；网页控制台的登录表单和密码表单打印这两个数，所以设了别的数值的中继也能被说对，没有这两个字段的旧中继按十分钟和 8 位读。
 
-其余都是 OpenAI API：`GET /v1/models`（带 `architecture` 模态，好认出图像模型，每个模型还有一个 `nanomuse` 块，含它的 `kind`、价格、`for`（聊天模型适用的通道：`chat` 和 / 或 `gui`）以及 `recommended_for`）、`GET /v1/models/{id}?kind=chat`（成员检查一个手动输入的 id：`listed`、`priced_as`）、流式的 `POST /v1/chat/completions`、`POST /v1/images/generations` 和 `/v1/images/edits`，以及走服务商自己路径的短视频（`POST /api/v1/services/aigc/video-generation/video-synthesis`、只能查自己任务的 `GET /api/v1/tasks/{id}`、`GET /api/v1/uploads`）。错误是 `{"error": {"message", "type": "nanomuse_cloud", "code"}}`，`code` 稳定不变，App 把它变成一句话。中继 0.22 加了运营者[开关](#controls)的码：`403 signup_closed`、`503 service_paused`、`503 sync_paused`、`503 hub_paused`（以及 hub 的关闭码 `4003 hub_paused`），还有免费额度是被暂停而不是花完时带 `paused: true` 的 `allowance_exhausted`；`/healthz`、`/v1/config` 和 `/v1/me` 在 `paused` 下列出关着的开关。
+其余都是 OpenAI API：`GET /v1/models`（带 `architecture` 模态，好认出图像模型，每个模型还有一个 `nanomuse` 块，含它的 `kind`、价格、`for`（聊天模型适用的通道：`chat` 和 / 或 `gui`）以及 `recommended_for`）、`GET /v1/models/{id}?kind=chat`（成员检查一个手动输入的 id：`listed`、`priced_as`）、流式的 `POST /v1/chat/completions`、`POST /v1/images/generations` 和 `/v1/images/edits`，以及走服务商自己路径的短视频（`POST /api/v1/services/aigc/video-generation/video-synthesis`、只能查自己任务的 `GET /api/v1/tasks/{id}`、`GET /api/v1/uploads`）。项目托管服务对新的图片/视频请求、上传、手动媒体模型查询和媒体估算，在调用上游之前统一返回 `410 hosted_media_retired`，并带 `action: configure_own_provider`；已经受理的旧视频任务仍可轮询到结束。错误是 `{"error": {"message", "type": "nanomuse_cloud", "code"}}`，`code` 稳定不变，App 把它变成一句话。中继 0.22 加了运营者[开关](#controls)的码：`403 signup_closed`、`503 service_paused`、`503 sync_paused`、`503 hub_paused`（以及 hub 的关闭码 `4003 hub_paused`），还有免费额度是被暂停而不是花完时带 `paused: true` 的 `allowance_exhausted`；`/healthz`、`/v1/config` 和 `/v1/me` 在 `paused` 下列出关着的开关。
 
 中继不认识的 key 得到 `401 bad_key`；0.1.40 起，账号已被删除的 key 改为得到 `401 account_deleted`，在每一个需要 key 的调用上都如此（`/v1/me`、`/v1/models`、`/v1/chat/completions`、同步和 hub 的调用），删除后持续 90 天；中继把已删除账号的 key 哈希保留这么久，别的什么都不留。不认识这个码的客户端看到的是和以前一样的 `401`；认识的客户端（手机）在 `account_deleted` 时删除账号的本地数据，其他情况都收起来保留（[sync.md](sync.md)）。完整的错误码表在 [`cloud/README.md`](../../cloud/README.md)。
 

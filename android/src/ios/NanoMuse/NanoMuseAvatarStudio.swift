@@ -163,8 +163,10 @@ final class NanoMuseAvatarStudioModel: ObservableObject {
 
     /// Whether a picture can be drawn at all right now; the reason when not.
     var cannotDrawReason: String? {
-        if usesOwnKey || NanoMuseCloud.modelsOn { return nil }
-        return AppLocalized("Sign in to nanoMuse Cloud, or add an Alibaba Cloud Bailian key under Providers; the pictures are drawn with one of the two.")
+        if case .unavailable = NanoMuseImageGen.route() {
+            return AppLocalized("No image model found on this provider. Type one below, or check again once the key is in.")
+        }
+        return nil
     }
 
     /// Files of the candidates on screen, in order ("" where one failed).
@@ -200,7 +202,7 @@ final class NanoMuseAvatarStudioModel: ObservableObject {
     // MARK: Cost
 
     func refreshEstimate() {
-        guard NanoMuseCloud.modelsOn, !usesOwnKey else { return }
+        guard case .relay = NanoMuseImageGen.route() else { return }
         estimating = true
         estimateError = nil
         Task { @MainActor [self] in
