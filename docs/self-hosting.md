@@ -39,6 +39,13 @@ bash scripts/self-host.sh --local --bind 0.0.0.0   # reachable from the phones o
 
 By hand instead of the script: `cd cloud && cp .env.example .env`, fill in `CLOUD_DOMAIN`, `PUBLIC_BASE`, `ACME_EMAIL`, `CLOUD_SECRET`, `CLOUD_ADMIN_TOKEN`, `UPSTREAM_KEY` and the sender settings, then `docker compose up -d`; or, without Caddy, `docker compose -f docker-compose.yml -f docker-compose.local.yml up -d`. The relay runs as uid 10001 inside its container, and `cloud/data`, the bind-mounted data directory, must belong to that uid on the host: `mkdir -p data && sudo chown -R 10001:10001 data` before the first start, and once more when upgrading from a relay whose image ran as root (the script does this for you; a relay that cannot write the directory says so at start and stops).
 
+Chat may use a different OpenAI-compatible provider while pictures and clips stay on
+Model Studio: put the chat endpoint and key in `UPSTREAM_BASE` / `UPSTREAM_KEY`, and
+the Model Studio native endpoint and key in `DASHSCOPE_BASE` / `DASHSCOPE_KEY`.
+`DASHSCOPE_KEY` falls back to `UPSTREAM_KEY` when it is empty. If the change replaces
+the chat menu, `CLOUD_MODEL_ALIASES` can map ids saved by existing clients to a model
+in `CLOUD_MODELS`, for example `{"old-chat-model":"new-chat-model"}`.
+
 ### Sign-in codes
 
 A code goes out every time someone signs in. `CODE_SENDER` says how:

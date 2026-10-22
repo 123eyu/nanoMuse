@@ -412,6 +412,12 @@ def create_app(
             raise CloudError(503, "upstream_unconfigured", "nanoMuse Cloud has no model key configured")
         return {"Authorization": f"Bearer {settings.upstream_key}", "Content-Type": "application/json"}
 
+    def dashscope_headers() -> dict[str, str]:
+        key = settings.dashscope_key or settings.upstream_key
+        if not key:
+            raise CloudError(503, "upstream_unconfigured", "nanoMuse Cloud has no media model key configured")
+        return {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+
     # -- health ----------------------------------------------------------------
 
     @app.get("/healthz")
@@ -919,7 +925,7 @@ def create_app(
             attempt = 0
             while True:
                 try:
-                    r = await http.post(url, headers=upstream_headers(), content=payload)
+                    r = await http.post(url, headers=dashscope_headers(), content=payload)
                 except httpx.HTTPError as e:
                     raise CloudError(502, "upstream", "The image provider did not answer") from e
                 if r.status_code != 429 and r.status_code < 500:
@@ -1103,7 +1109,7 @@ def create_app(
         clip_cost = 0 if probe else spec.video_cost_uy(_clip_seconds(body, spec), _clip_resolution(body))
         # reserved while the submission runs; once accepted, the task row holds the clip's
         # price against the allowance (db.pending_video_cost) until the clip is charged
-        headers = upstream_headers()  # before the hold, as for chat: no key, nothing held
+        headers = dashscope_headers()  # before the hold, as for chat: no key, nothing held
         request_id = uuid.uuid4().hex[:16]
         cloud.check_budget(caller, minimum=spec.per_clip, cost_uy=clip_cost, request_id=request_id, place=client_place(request))
         body["model"] = spec.upstream
@@ -1136,7 +1142,7 @@ def create_app(
         if task is None or task["account_id"] != caller.account_id:
             raise CloudError(404, "no_task", "No such task")
         try:
-            r = await http.get(settings.dashscope_base.rstrip("/") + f"/tasks/{task_id}", headers=upstream_headers())
+            r = await http.get(settings.dashscope_base.rstrip("/") + f"/tasks/{task_id}", headers=dashscope_headers())
         except httpx.HTTPError as e:
             raise CloudError(502, "upstream", "The video provider did not answer") from e
         if r.status_code < 400:
@@ -1158,13 +1164,13 @@ def create_app(
         the row is purged. A SUCCEEDED answer charges the clip exactly once (the same path
         as a poll); FAILED or CANCELED lets the hold go; a task the provider no longer knows
         is marked UNKNOWN. A handful per call. Returns how many tasks were asked about."""
-        if not settings.upstream_key:
+        if not (settings.dashscope_key or settings.upstream_key):
             return 0
         done = 0
         for task in cloud.db.video_tasks_to_settle(limit):
             task_id = str(task["task_id"])
             try:
-                r = await http.get(settings.dashscope_base.rstrip("/") + f"/tasks/{task_id}", headers=upstream_headers())
+                r = await http.get(settings.dashscope_base.rstrip("/") + f"/tasks/{task_id}", headers=dashscope_headers())
             except httpx.HTTPError as e:
                 log.warning("video task %s: the provider did not answer the relay's check: %s", task_id[:12], e)
                 continue  # not counted as a check: the next tick asks again
@@ -1196,7 +1202,7 @@ def create_app(
             r = await http.get(
                 settings.dashscope_base.rstrip("/") + "/uploads",
                 params={"action": "getPolicy", "model": spec.upstream},
-                headers=upstream_headers(),
+                headers=dashscope_headers(),
             )
         except httpx.HTTPError as e:
             raise CloudError(502, "upstream", "The video provider did not answer") from e
