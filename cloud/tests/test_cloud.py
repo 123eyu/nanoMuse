@@ -45,6 +45,10 @@ WAY_FACTS = {
 def fake_upstream() -> FastAPI:
     up = FastAPI()
     up.state.requests = []
+    up.state.chat_503s = 0
+    up.state.chat_delay_s = 0.0
+    up.state.chat_active = 0
+    up.state.chat_active_max = 0
 
     # what the provider lists under the key: chat and picture models, and the spoken / heard /
     # embedded ones the catalog leaves out (ids only, as Model Studio's compatible mode gives them)
@@ -76,6 +80,16 @@ def fake_upstream() -> FastAPI:
     async def chat(request: Request):
         body = await request.json()
         up.state.requests.append(("chat", dict(request.headers), body))
+        up.state.chat_active += 1
+        up.state.chat_active_max = max(up.state.chat_active_max, up.state.chat_active)
+        try:
+            if up.state.chat_delay_s:
+                await asyncio.sleep(up.state.chat_delay_s)
+        finally:
+            up.state.chat_active -= 1
+        if up.state.chat_503s:
+            up.state.chat_503s -= 1
+            return JSONResponse(status_code=503, content={"error": {"message": "temporarily unavailable"}})
         if body.get("model") == "boom":
             return JSONResponse(status_code=500, content={"error": {"message": "upstream exploded"}})
         if body.get("model") in up.state.retired:
@@ -231,6 +245,8 @@ def stack():
         signup_tokens=1000,
         daily_cap_tokens=100_000,
         per_minute_requests=100,
+        chat_concurrency=2,
+        chat_retry_base_s=0,
         public_base="http://cloud.test",
     )
     sender = LogSender()
@@ -326,6 +342,30 @@ async def test_hosted_default_is_one_multimodal_chat_model_and_retires_media(mon
         assert await app.state.settle_video_tasks() == 0
         assert up.state.requests == before
         assert (await client.get("/v1/me", headers=headers)).json()["usage"] == usage_before
+
+
+async def test_retired_media_is_hidden_when_an_old_environment_still_lists_it():
+    settings = Settings(
+        database=":memory:",
+        secret="test-secret",
+        upstream_base="http://upstream/compat/v1",
+        upstream_key="sk-upstream",
+        public_base="http://cloud.test",
+        media_enabled=False,
+    )
+    expected = [m.id for m in settings.models if m.kind == "chat"]
+    assert expected and any(m.kind != "chat" for m in settings.models)
+    up = fake_upstream()
+    sender = LogSender()
+    cloud = Cloud(settings, Database(":memory:"), sender)
+    app = create_app(settings, cloud, upstream_transport=httpx.ASGITransport(app=up))
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://cloud.test") as client:
+        assert (await client.get("/healthz")).json()["models"] == expected
+        signed_in = await sign_up(client, sender)
+        headers = {"Authorization": f"Bearer {signed_in['api_key']}"}
+        assert [m["id"] for m in signed_in["models"]] == expected
+        assert [m["id"] for m in (await client.get("/v1/me", headers=headers)).json()["models"]] == expected
+        assert [m["id"] for m in (await client.get("/v1/models", headers=headers)).json()["data"]] == expected
 
 
 async def test_signup_grants_and_lists_models(stack):
@@ -444,6 +484,47 @@ async def test_chat_is_relayed_and_charged(stack):
     err = r.json()["error"]
     assert err["code"] == "upstream_500" and "exploded" not in err["message"] and "exploded" in err["upstream"]
     assert cloud.me(cloud.authenticate(data["api_key"]))["tokens"]["used"] == used
+
+
+async def test_chat_bursts_are_queued_and_transient_refusals_are_retried(stack):
+    app, client, sender, up, cloud = stack
+    data = await sign_up(client, sender)
+    headers = {"Authorization": f"Bearer {data['api_key']}"}
+    body = {"model": "qwen3.8-flash", "messages": [{"role": "user", "content": "hi"}]}
+
+    up.state.chat_503s = 2
+    before = len([row for row in up.state.requests if row[0] == "chat"])
+    r = await client.post("/v1/chat/completions", headers=headers, json=body)
+    assert r.status_code == 200 and r.headers["x-nanomuse-charged"] == "45"
+    assert len([row for row in up.state.requests if row[0] == "chat"]) - before == 3
+    assert cloud.db.events_since(0).get("upstream.error", 0) == 0
+
+    up.state.chat_delay_s = 0.02
+    rs = await asyncio.gather(*(client.post("/v1/chat/completions", headers=headers, json=body) for _ in range(4)))
+    assert all(r.status_code == 200 for r in rs)
+    assert up.state.chat_active_max == 2
+    health = (await client.get("/v1/admin/health", headers={"X-Admin-Token": "admin"})).json()
+    assert health["chat_upstream"] == {"active": 0, "waiting": 0, "limit": 2, "retries": 2}
+
+
+async def test_stream_retries_only_before_output_starts(stack):
+    app, client, sender, up, cloud = stack
+    data = await sign_up(client, sender)
+    headers = {"Authorization": f"Bearer {data['api_key']}"}
+    up.state.chat_503s = 1
+    before = len([row for row in up.state.requests if row[0] == "chat"])
+
+    async with client.stream(
+        "POST",
+        "/v1/chat/completions",
+        headers=headers,
+        json={"model": "qwen3.8-27b", "stream": True, "messages": [{"role": "user", "content": "hi"}]},
+    ) as r:
+        body = (await r.aread()).decode()
+
+    assert r.status_code == 200 and "data: [DONE]" in body and "你好" in body
+    assert len([row for row in up.state.requests if row[0] == "chat"]) - before == 2
+    assert cloud.db.events_since(0).get("upstream.error", 0) == 0
 
 
 async def test_stream_refused_upstream_is_not_charged(stack):

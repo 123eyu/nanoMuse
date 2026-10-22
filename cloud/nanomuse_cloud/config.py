@@ -435,6 +435,12 @@ class Settings:
     dashscope_base: str = field(default_factory=lambda: _env("DASHSCOPE_BASE", "https://dashscope.aliyuncs.com/api/v1"))
     dashscope_key: str = field(default_factory=lambda: _env("DASHSCOPE_KEY"))
     upstream_timeout_s: float = field(default_factory=lambda: float(_env("UPSTREAM_TIMEOUT_S", "180")))
+    # Chat requests share one provider account. Keep a bounded number at the provider and
+    # queue the rest in the relay; retry only a refusal received before any answer starts.
+    # Zero disables either guard for an operator whose upstream already queues for itself.
+    chat_concurrency: int = field(default_factory=lambda: _int("CHAT_CONCURRENCY", 12))
+    chat_retries: int = field(default_factory=lambda: _int("CHAT_RETRIES", 2))
+    chat_retry_base_s: float = field(default_factory=lambda: float(_env("CHAT_RETRY_BASE_S", "0.5")))
     # Pictures: DashScope allows an account only a couple of image tasks at a time and
     # answers 429 past that, so the relay draws at most IMAGE_CONCURRENCY pictures at once
     # for everyone together (the rest queue) and, on a 429 or 5xx, tries again up to

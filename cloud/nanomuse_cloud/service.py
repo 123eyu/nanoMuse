@@ -1444,7 +1444,7 @@ class Cloud:
                 "bonus_available": False,
                 "bonus_at": caller.contribute_bonus_at,
             },
-            "models": [m.to_public() for m in self.s.models],
+            "models": [m.to_public() for m in self.offered_models()],
             "base_url": self.s.public_base,
             "recent": [self._ledger_row(r) for r in self.db.recent_ledger(caller.account_id)],
             # 0.18: when the app may ask for a star (the same object as GET /v1/nudges), so a
@@ -1544,12 +1544,15 @@ class Cloud:
         more = ", or any model of the provider's by its id" if self.any_model(caller) else ""
         raise CloudError(404, "model_not_offered", f"nanoMuse Cloud does not offer {model_id!r}; choose one of: {offered}{more}")
 
+    def offered_models(self) -> tuple[ModelSpec, ...]:
+        """The configured menu after operator feature switches are applied."""
+        return self.s.models if self.s.media_enabled else tuple(m for m in self.s.models if m.kind == "chat")
+
     def models_for(self, caller: Caller) -> dict:
         """The menu, and whether this account may name a model beyond it."""
-        models = self.s.models if self.s.media_enabled else tuple(m for m in self.s.models if m.kind == "chat")
         return {
             "object": "list",
-            "data": [m.to_public() for m in models],
+            "data": [m.to_public() for m in self.offered_models()],
             "nanomuse": {"any_model": self.any_model(caller)},
         }
 
