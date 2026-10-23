@@ -914,7 +914,11 @@ class HubService:
 
     def _incoming_thread(self, call: IncomingCall, conversation: str) -> Thread:
         for t in self.svc.threads.values():
-            if t.remote_from and t.remote_from.get("conversation") == conversation:
+            if (
+                t.remote_from
+                and t.remote_from.get("device") == call.sender_id
+                and t.remote_from.get("conversation") == conversation
+            ):
                 return t
         thread = self.svc.create_thread(f"From {call.sender_name}")
         thread.remote_from = {

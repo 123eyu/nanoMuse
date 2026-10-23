@@ -33,7 +33,7 @@ class Incoming:
     for *Use nanoMuse Cloud this time*, the model client this one turn runs on (``llm``)
     and its id (``model``); None and "" for a turn on the configured model."""
 
-    __slots__ = ("files", "language", "llm", "model", "text")
+    __slots__ = ("delivery", "files", "language", "llm", "model", "text")
 
     def __init__(
         self,
@@ -42,12 +42,14 @@ class Incoming:
         language: str = "",
         llm: BaseLLM | None = None,
         model: str = "",
+        delivery: str = "",
     ):
         self.text = text
         self.files = files or []
         self.language = language
         self.llm = llm
         self.model = model
+        self.delivery = delivery
 
 
 class MuseAgent:
@@ -106,11 +108,19 @@ class MuseAgent:
             return 0
         count = 0
         while not self.inbox.empty():
+            # a look at the head before taking it: what must run as a turn of its own stays
+            item = self.inbox._queue[0]  # type: ignore[attr-defined]
+            incoming = item if isinstance(item, Incoming) else Incoming(item)
+            if incoming.llm is not None or incoming.model or incoming.delivery:
+                # A one-turn client belongs to the queued turn, not to the run that happens
+                # to be in progress, and scheduled work (a reminder, a routine, a trigger)
+                # is a background run with a purpose of its own that acknowledges its
+                # source when it ends. Both wait for the worker to run them alone.
+                break
             try:
-                item = self.inbox.get_nowait()
+                self.inbox.get_nowait()
             except asyncio.QueueEmpty:  # pragma: no cover
                 break
-            incoming = item if isinstance(item, Incoming) else Incoming(item)
             if incoming.language:
                 self.ui_language = incoming.language
             self.messages.append(self.user_message(incoming.text, incoming.files))

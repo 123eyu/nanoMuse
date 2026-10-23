@@ -27,7 +27,10 @@ class _FakeStream:
     async def __anext__(self):
         if not self.chunks:
             raise StopAsyncIteration
-        return self.chunks.pop(0)
+        item = self.chunks.pop(0)
+        if isinstance(item, BaseException):
+            raise item
+        return item
 
 
 def _llm(chunks) -> OpenAIChatLLM:
@@ -133,3 +136,26 @@ async def test_a_completion_with_no_choices_is_a_provider_failure():
         await llm._ask_once({"model": "m", "messages": []})
     code, text = describe_failure(info.value)
     assert code == "provider" and "having trouble" in text
+
+
+async def test_visible_partial_stream_is_not_retried():
+    import openai
+    import pytest
+
+    from nanomuse.llm.openai_chat import PartialStreamError
+
+    llm = OpenAIChatLLM(
+        LLMSettings(api_key="x", base_url="http://localhost", stream=True, max_retries=2)
+    )
+    calls = 0
+
+    async def fake_create(**_):
+        nonlocal calls
+        calls += 1
+        return _FakeStream([_chunk("visible"), openai.APIConnectionError(request=None)])
+
+    llm.client.chat.completions.create = fake_create  # type: ignore[method-assign]
+    deltas: list[str] = []
+    with pytest.raises(PartialStreamError):
+        await llm._send({"model": "m", "messages": []}, deltas.append)
+    assert calls == 1 and deltas == ["visible"]
