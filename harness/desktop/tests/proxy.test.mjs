@@ -4,7 +4,7 @@
 // Node's fetch reads them. Run after `tsc -p tsconfig.json`.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { DEFAULT_RELAY_HOST, maskProxyUrl, noProxyList, PROXY_SCHEMES, proxyEnv, validProxyUrl } from "../out/proxy.js";
+import { DEFAULT_RELAY_HOST, maskProxyUrl, noProxyList, PROXY_SCHEMES, proxyEnv, trustedRelayHosts, validProxyUrl } from "../out/proxy.js";
 
 test("an address is one of the four schemes with a host, trailing slash dropped", () => {
   assert.deepEqual([...PROXY_SCHEMES], ["http", "https", "socks5", "socks5h"]);
@@ -31,6 +31,11 @@ test("NO_PROXY is loopback, the default relay and the plugin's relays, each once
   assert.deepEqual(noProxyList(["https://cloud.nanomuse.cn", "https://Relay.Example:8790/", "relay.example", "", "not a host at all??"]), ["localhost", "127.0.0.1", "::1", "cloud.nanomuse.cn", "relay.example"]);
   // a bare 127.0.0.1:8790 (a self-hosted relay next to the app) adds nothing: loopback is there already
   assert.deepEqual(noProxyList(["http://127.0.0.1:8790"]), ["localhost", "127.0.0.1", "::1", DEFAULT_RELAY_HOST]);
+});
+
+test("extra relay exceptions come only from trusted process configuration", () => {
+  assert.deepEqual(trustedRelayHosts({}), []);
+  assert.deepEqual(trustedRelayHosts({ NANOMUSE_CLOUD_URL: "https://relay.example:8790" }), ["https://relay.example:8790"]);
 });
 
 test("nothing is set when there is no proxy or it is not an address", () => {

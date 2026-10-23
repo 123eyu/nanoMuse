@@ -32,10 +32,10 @@ import { DEFAULT_NUDGES, dueAsk, LEDGER_EMPTY, NUDGES_EVERY_MS, NUDGES_ORIGIN, N
 import { packageAssetsDir } from './profile.ts'
 import { randomBytes } from 'node:crypto'
 import { createReadStream, readFileSync } from 'node:fs'
-import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { lstat, mkdir, open as openFile, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { deflateRawSync } from 'node:zlib'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { basename, extname, isAbsolute, join, resolve } from 'node:path'
+import { basename, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { Service, type Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createUserMessage, type ContextFormed } from '@deepseek-ai/dsh-llm'
@@ -71,6 +71,81 @@ const ACTIVITY_KEEP = 60
 const LIBRARY_KEEP = 500
 const CHECK_EVERY_MS = 30 * 60_000
 const FIRST_CHECK_MS = 90_000
+// what one zip of the classic format holds (16-bit entry count, 32-bit offsets, with room)
+export const EXPORT_MAX_FILES = 65_000
+export const EXPORT_MAX_BYTES = 3 * 1024 * 1024 * 1024
+// a single file larger than this is left out, as it always was (a stray video in the library)
+export const EXPORT_MAX_FILE_BYTES = 64 * 1024 * 1024
+
+export interface ExportSource {
+  name: string
+  path?: string
+  data?: Buffer
+  at: Date
+}
+
+export interface ExportBudget {
+  files: number
+  bytes: number
+}
+
+/** A proxy kept in desktop.json may contain credentials; exported settings never do. */
+export function redactProxyUserinfo(data: Buffer): Buffer {
+  try {
+    const raw = JSON.parse(data.toString('utf8')) as Record<string, unknown>
+    if (typeof raw.proxy !== 'string') return data
+    const proxy = new URL(raw.proxy)
+    if (!proxy.username && !proxy.password) return data
+    proxy.username = ''
+    proxy.password = ''
+    raw.proxy = proxy.href.replace(/\/$/, '')
+    return Buffer.from(`${JSON.stringify(raw, null, 2)}\n`)
+  } catch {
+    return data
+  }
+}
+
+/**
+ * The files under one export root, by name, for the zip. Links and special files are
+ * left out rather than followed (a link in the workspace must not pull another folder
+ * into the export), so are files over `EXPORT_MAX_FILE_BYTES`; a root that is not there
+ * is nothing. The count and size are what one zip holds; past them the export fails
+ * rather than writes a zip no tool can open.
+ */
+export async function scanExportRoot(root: string, under: string, budget: ExportBudget, skip: (name: string) => boolean = () => false): Promise<ExportSource[]> {
+  const base = resolve(root)
+  const rootInfo = await lstat(base).catch(() => null)
+  if (!rootInfo || rootInfo.isSymbolicLink() || !rootInfo.isDirectory()) return []
+  const entries: ExportSource[] = []
+  const add = async (folder: string, prefix: string): Promise<void> => {
+    let names: string[]
+    try {
+      names = await readdir(folder)
+    } catch {
+      return
+    }
+    for (const name of names) {
+      if (skip(name)) continue
+      const full = resolve(folder, name)
+      const rel = relative(base, full)
+      if (!rel || rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) continue
+      const info = await lstat(full).catch(() => null)
+      if (!info || info.isSymbolicLink()) continue
+      if (info.isDirectory()) {
+        await add(full, `${prefix}${name}/`)
+        continue
+      }
+      if (!info.isFile() || info.size > EXPORT_MAX_FILE_BYTES) continue
+      budget.files += 1
+      budget.bytes += info.size
+      if (budget.files > EXPORT_MAX_FILES) throw new Error(`the export has more than ${EXPORT_MAX_FILES} files, more than one zip holds`)
+      if (budget.bytes > EXPORT_MAX_BYTES) throw new Error(`the export is over ${EXPORT_MAX_BYTES} bytes, more than one zip holds`)
+      entries.push({ name: `${prefix}${name}`, path: full, at: info.mtime })
+    }
+  }
+  await add(base, under)
+  return entries
+}
 
 export const AREAS = ['planning', 'research', 'goals', 'money', 'health', 'home', 'learning', 'people', 'files', 'fun', 'news'] as const
 export type Area = (typeof AREAS)[number]
@@ -946,29 +1021,19 @@ export default class NanomuseRooms extends Service {
     const folder = await downloadsDir()
     const out = join(folder, `nanoMuse-data-${stamp}.zip`)
     await mkdir(folder, { recursive: true })
-    const entries: ZipEntry[] = []
-    const add = async (folder: string, under: string, skip: (name: string) => boolean = () => false) => {
-      let names: string[]
-      try {
-        names = await readdir(folder)
-      } catch {
-        return
-      }
-      for (const name of names) {
-        if (skip(name)) continue
-        const full = join(folder, name)
-        const info = await stat(full).catch(() => null)
-        if (!info) continue
-        if (info.isDirectory()) await add(full, `${under}${name}/`, skip)
-        else if (info.size <= 64 * 1024 * 1024) entries.push({ name: `${under}${name}`, data: await readFile(full), at: info.mtime })
-      }
-    }
-    await add(join(home, 'nanomuse'), 'nanomuse/', (name) => name.endsWith('.tmp'))
-    await add(join(home, 'sessions'), 'sessions/')
+    const budget: ExportBudget = { files: 0, bytes: 0 }
+    const entries: ExportSource[] = [
+      ...await scanExportRoot(join(home, 'nanomuse'), 'nanomuse/', budget, (name) => name.endsWith('.tmp')),
+      ...await scanExportRoot(join(home, 'sessions'), 'sessions/', budget),
+    ]
     const prefs = join(home, 'desktop.json')
-    if (await stat(prefs).catch(() => null)) entries.push({ name: 'desktop.json', data: await readFile(prefs), at: new Date() })
+    const prefsInfo = await lstat(prefs).catch(() => null)
+    if (prefsInfo?.isFile()) {
+      // the proxy address may carry a password: the export never does
+      entries.push({ name: 'desktop.json', data: redactProxyUserinfo(await readFile(prefs)), at: prefsInfo.mtime })
+    }
     entries.push({ name: 'README.txt', at: new Date(), data: Buffer.from(['Your nanoMuse data, exported ' + new Date().toISOString(), '', 'nanomuse/cloud.json    the account snapshot (no sign-in token)', 'nanomuse/profile.json  the agent’s name and look; faces/ its pictures', 'nanomuse/rooms.json    feed, ideas, goals, the library index and memory', 'sessions/              the chats, as DeepSeek Harness keeps them (zstd-compressed JSON lines)', ''].join('\n'))})
-    await writeFile(out, zip(entries), { mode: 0o600 })
+    await writeZipFile(out, entries)
     const sc = this.ctx.get('sessionController')
     if (sc) await sc.openWorkspacePath({ path: out, action: 'reveal' }, new AbortController().signal).catch(() => undefined)
     return out
@@ -2478,4 +2543,83 @@ export function zip(entries: ZipEntry[]): Buffer {
   end.writeUInt32LE(offset, 16)
   end.writeUInt16LE(0, 20)
   return Buffer.concat([...parts, ...central, end])
+}
+
+/**
+ * Write an export one entry at a time. At most one bounded source file and its
+ * compressed form are resident, rather than the complete export twice.
+ */
+export async function writeZipFile(path: string, entries: ExportSource[]): Promise<void> {
+  await rm(path, { force: true }).catch(() => undefined)
+  const file = await openFile(path, 'wx', 0o600)
+  const central: Buffer[] = []
+  let offset = 0
+  let written = 0
+  try {
+    for (const entry of entries) {
+      let data: Buffer
+      if (entry.data) {
+        data = entry.data
+      } else if (entry.path) {
+        // the file as it is now; one replaced by a link or grown since the scan is left out
+        const info = await lstat(entry.path).catch(() => null)
+        if (!info || info.isSymbolicLink() || !info.isFile() || info.size > EXPORT_MAX_FILE_BYTES) continue
+        data = await readFile(entry.path)
+      } else {
+        throw new Error(`export entry has no source: ${entry.name}`)
+      }
+      const name = Buffer.from(entry.name, 'utf8')
+      const packed = deflateRawSync(data)
+      const stored = packed.length < data.length
+      const body = stored ? packed : data
+      const method = stored ? 8 : 0
+      const crc = crc32(data)
+      const { time, date } = dosTime(entry.at)
+      const local = Buffer.alloc(30)
+      local.writeUInt32LE(0x04034b50, 0)
+      local.writeUInt16LE(20, 4)
+      local.writeUInt16LE(0x0800, 6)
+      local.writeUInt16LE(method, 8)
+      local.writeUInt16LE(time, 10)
+      local.writeUInt16LE(date, 12)
+      local.writeUInt32LE(crc, 14)
+      local.writeUInt32LE(body.length, 18)
+      local.writeUInt32LE(data.length, 22)
+      local.writeUInt16LE(name.length, 26)
+      const dir = Buffer.alloc(46)
+      dir.writeUInt32LE(0x02014b50, 0)
+      dir.writeUInt16LE(20, 4)
+      dir.writeUInt16LE(20, 6)
+      dir.writeUInt16LE(0x0800, 8)
+      dir.writeUInt16LE(method, 10)
+      dir.writeUInt16LE(time, 12)
+      dir.writeUInt16LE(date, 14)
+      dir.writeUInt32LE(crc, 16)
+      dir.writeUInt32LE(body.length, 20)
+      dir.writeUInt32LE(data.length, 24)
+      dir.writeUInt16LE(name.length, 28)
+      dir.writeUInt32LE(offset, 42)
+      await file.write(local)
+      await file.write(name)
+      await file.write(body)
+      central.push(dir, name)
+      offset += local.length + name.length + body.length
+      written += 1
+    }
+    const directory = Buffer.concat(central)
+    const end = Buffer.alloc(22)
+    end.writeUInt32LE(0x06054b50, 0)
+    end.writeUInt16LE(written, 8)
+    end.writeUInt16LE(written, 10)
+    end.writeUInt32LE(directory.length, 12)
+    end.writeUInt32LE(offset, 16)
+    await file.write(directory)
+    await file.write(end)
+    await file.sync()
+  } catch (error) {
+    await file.close()
+    await rm(path, { force: true }).catch(() => undefined)
+    throw error
+  }
+  await file.close()
 }
