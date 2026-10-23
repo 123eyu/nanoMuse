@@ -3,6 +3,7 @@ package io.github.nanomuse.feed
 import android.content.Context
 import com.openminis.app.R
 import com.openminis.app.logging.AppLogger
+import io.github.nanomuse.sandbox.FeedSandboxScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.io.File
@@ -36,6 +37,7 @@ object FeedStore {
         root = File(base, "feed").apply { mkdirs() }
         prefsFile = File(base, "feed-preferences.md")
         reload()
+        refreshSandbox()
     }
 
     fun reload() {
@@ -62,12 +64,14 @@ object FeedStore {
     fun setLiked(post: FeedPost, liked: Boolean) {
         val updated = post.copy(liked = liked)
         runCatching { post.file.writeText(updated.serialize()) }
+            .onSuccess { refreshSandbox() }
             .onFailure { AppLogger.warning(TAG, "like not saved: ${it.message}") }
         _posts.value = _posts.value.map { if (it.file == post.file) updated else it }
     }
 
     fun delete(post: FeedPost) {
         runCatching { post.file.delete() }
+            .onSuccess { refreshSandbox() }
         _posts.value = _posts.value.filterNot { it.file == post.file }
     }
 
@@ -91,8 +95,14 @@ object FeedStore {
         }
         prune()
         reload()
+        refreshSandbox()
         AppLogger.info(TAG, "wrote ${written.size} post(s) for $day")
         return written
+    }
+
+    private fun refreshSandbox() {
+        runCatching { FeedSandboxScope.refresh(appContext) }
+            .onFailure { AppLogger.warning(TAG, "sandbox feed not refreshed: ${it.message}") }
     }
 
     private fun prune() {
