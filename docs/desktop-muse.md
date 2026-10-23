@@ -495,7 +495,8 @@ page it opened, named for the page you came from; a pick in the sidebar starts f
   outside the main chat's folder on purpose; a chat opened from the Library or on a folder
   of your own writes there.
 - **Dictation**: the harness's own voice input (local SenseVoice; switched on in
-  Plugins, a microphone appears beside Send, audio stays on the computer), the microphone
+  Plugins, a microphone appears beside Send, audio stays on the computer; the window grants
+  the page its microphone and nothing else, never a camera), the microphone
   permission on macOS, and how to use the system's dictation into the composer.
 - **Devices**: this computer (its name, the remote-control switch that lets the phone
   run things here) and the other devices on the account, online dots, *Forget*.
@@ -520,7 +521,8 @@ page it opened, named for the page you came from; a pick in the sidebar starts f
   *Delete*), as on every other app; then *On this computer*: **Import memory**,
   **Download your agent data** (a zip in Downloads: the account snapshot without the
   sign-in token, the look and faces, the rooms, memory, and the chats as the harness
-  keeps them; shown in the file manager) and **Reset** (memory, the rooms and the local
+  keeps them; a proxy password is left out, and so are links and files over 64 MB; shown in
+  the file manager) and **Reset** (memory, the rooms and the local
   look go, the account signs out; the chats stay).
 - **Help & support**: the docs, the site, discussions, report an issue, the version.
 - **Legal**: the licence, the Meta trademark notice, the acknowledgements (DeepSeek

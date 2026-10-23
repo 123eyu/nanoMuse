@@ -108,7 +108,9 @@ harness 保留外部下载方式。不带软件内更新能力的版本，需先
   （`HTTP_PROXY`、`HTTPS_PROXY`、SOCKS 时还有 `ALL_PROXY`，`NO_PROXY` 带着
   `localhost,127.0.0.1,::1`、`cloud.nanomuse.cn` 和插件所连的中继，以及让 Node 的 fetch 读这些
   变量的 `NODE_USE_ENV_PROXY=1`），所以重启后生效；这一行下面的「立即重启」会在窗口不关的
-  情况下重启 Host。手机上同样的设置在服务商表单里，网页版在自有 key 表单里，运行时是
+  情况下重启 Host，有回复、手、别的设备发来的任务或审批在进行时会先问一声，和退出一样（下面
+  第二条）。自建的中继要进 `NO_PROXY`，启动外壳时带上 `NANOMUSE_CLOUD_URL` 即可，插件读的也是
+  这个变量。手机上同样的设置在服务商表单里，网页版在自有 key 表单里，运行时是
   `[llm] proxy`（[own-key.md](own-key.md#when-the-provider-cannot-be-reached)）；
 - **长期授权**（设置 → 权限）：这台电脑记住的所有授权列成一张表，按手机权限页的三档分组：
   「不再询问」（远程控制开关：账号下的每台设备都可以在这里执行操作）、「卡片上记住的」
@@ -123,6 +125,8 @@ harness 保留外部下载方式。不带软件内更新能力的版本，需先
   被结束，退出也会等工作结束之后才停止 Host。退出交接期间到来的任务会得到和平时一样的 busy 拒绝，
   请它的设备稍后再发一次。开着菜单栏图标时关闭窗口只是留在托盘，从来不算退出。相关路由是插件的
   `GET /nanomuse/cloud/work`（聚合）、`POST /work/gate {open}`（交接）和 `POST /work/stop`（确认后的结束）。
+  代理那一行下面的「立即重启」，以及 macOS 授予屏幕录制权限后要求的重启，都会先问同样的问题；
+  只重启助手程序不碰 Host 的工作。
 
 ## 额度用完时，以及中继的其他回答 {#when-the-allowance-is-used-up-and-the-relay-s-other-answers}
 
@@ -199,6 +203,10 @@ CLI 自己的 `~/.dsh` 不会被碰。主目录下的 `nanomuse/hands.json`（�
 固定的一行：在「操作屏幕」下换了模型，插件会释放客户端并用新环境变量重新启动 `nanomuse mcp`，
 不用重启就生效（进行中的一次手的调用先做完）。什么都没配时这个文件会被删除；`nanomuse/rooms.json`
 保存房间（动态，目标连同它们的步骤和进度，哪些点子试过了，资源库索引，记忆）。
+`desktop.json` 先写到旁边的临时文件再换进去，上一份留作 `desktop.json.bak`：保存失败（磁盘满、
+崩溃）时留下的还是上一份好的设置，文件损坏时下次启动从备份换回来。两个文件都只有本人可读，因为
+代理地址里可能带密码。「下载你的智能体数据」一次只把一个文件写进 zip，链接和超过 64 MB 的文件
+不打包，打包进去的 `desktop.json` 会去掉代理地址里的密码。
 
 ## 模型 {#models}
 
@@ -417,7 +425,8 @@ bundle 在、却没启动起来（日志的 `helper:` 行会说原因）不属�
 bundle（同一身份、hardened runtime、它自己的标识符 `io.github.nanomuse.desktop.computer-use`、
 不带应用的任何 entitlement），然后再签外层的应用。本地 macOS 构建要在 `npm run dist:dir` 之前跑
 `build.sh`；不跑的话 electron-builder 只会警告源文件缺失，应用就不带助手程序出厂，走 0.1.38 之前
-的路径。
+的路径。助手程序里有 Swift 警告时 `build.sh` 直接失败，和 iOS 应用的规矩一样：助手程序是
+nanoMuse 自己的代码。
 
 ## Linux 注意事项 {#linux-notes}
 
