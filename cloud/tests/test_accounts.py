@@ -945,9 +945,27 @@ async def test_gmail_dot_plus_and_googlemail_canonicalisation_and_legacy_lookup(
     again_login = await sign_up(client, sender, "olduser@gmail.com", "pixel")
     assert again_login["created"] is False and again_login["account"]["id"] == legacy_id
 
-    base = await sign_up(client, sender, "dev.a@example.com", "pixel")
+    # Elsewhere plus addressing is the provider's business: two accounts from now on...
     plus = await sign_up(client, sender, "dev.a+1@example.com", "mac")
-    assert plus["created"] is True and plus["account"]["id"] != base["account"]["id"]
+    base = await sign_up(client, sender, "dev.a@example.com", "pixel")
+    assert base["created"] is True and base["account"]["id"] != plus["account"]["id"]
+    # ...but an account relay 0.26 kept under the stripped form is still the tagged
+    # address's when it exists, and the plain address's as well: nobody loses one
+    merged_raw = "team@example.org"
+    merged_id = cloud.db.new_account_id()
+    cloud.db.create_account(
+        parse(merged_raw).hash(cloud.s.hmac_key),
+        "email",
+        "te***@example.org",
+        0,
+        cloud.crypto.encrypt(merged_id, merged_raw),
+        account_id=merged_id,
+        grant_uy=10_000_000,
+    )
+    tagged = await sign_up(client, sender, "team+alerts@example.org", "mac")
+    assert tagged["created"] is False and tagged["account"]["id"] == merged_id
+    plain = await sign_up(client, sender, "team@example.org", "pixel")
+    assert plain["created"] is False and plain["account"]["id"] == merged_id
 
 
 def test_code_limits_and_consumption_are_atomic_under_concurrency():

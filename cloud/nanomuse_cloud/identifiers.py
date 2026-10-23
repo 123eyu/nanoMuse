@@ -78,6 +78,19 @@ class Identifier:
         legacy = self.legacy_hash(key)
         return (primary, legacy) if legacy and legacy != primary else (primary,)
 
+    def merged_hash(self, key: bytes) -> str | None:
+        """Relay 0.26 stripped ``+tag`` from every address, so ``dev+1@example.com`` signed
+        in to ``dev@example.com``'s account. 0.27 keeps such addresses apart, but an
+        account that already exists under the stripped form is still reached by the
+        tagged address (never adopted by it), so nobody loses an account to the change."""
+        if self.channel != "email":
+            return None
+        local, _, domain = self.value.partition("@")
+        if "+" not in local or domain == "gmail.com":
+            return None
+        stripped = f"{local.split('+', 1)[0]}@{domain}"
+        return hmac.new(key, f"{self.channel}:{stripped}".encode(), hashlib.sha256).hexdigest()
+
 
 def parse(raw: str) -> Identifier:
     s = (raw or "").strip()

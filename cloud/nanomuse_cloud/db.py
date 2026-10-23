@@ -801,16 +801,18 @@ class Database:
         with self._lock:
             return self._conn.execute("SELECT * FROM accounts WHERE id_hash=?", (id_hash,)).fetchone()
 
-    def account_by_hashes(self, id_hashes: tuple[str, ...]) -> sqlite3.Row | None:
+    def account_by_hashes(self, id_hashes: tuple[str, ...], shared: str | None = None) -> sqlite3.Row | None:
         """Look up an account by its canonical hash first, then by any legacy
         hash (such as a dotted Gmail address created before canonicalisation).
         When matched on a legacy hash and the canonical hash is not taken,
-        ``id_hash`` is updated in place so subsequent lookups match directly."""
+        ``id_hash`` is updated in place so subsequent lookups match directly.
+        ``shared`` is a hash the identifier reaches but never adopts (the
+        ``+tag``-stripped form relay 0.26 merged every address into)."""
         if not id_hashes:
             return None
         primary = id_hashes[0]
         row = self.account_by_hash(primary)
-        if row is not None or len(id_hashes) == 1:
+        if row is not None:
             return row
         for legacy in id_hashes[1:]:
             row = self.account_by_hash(legacy)
@@ -820,6 +822,8 @@ class Database:
                     if taken is None:
                         c.execute("UPDATE accounts SET id_hash=? WHERE id=?", (primary, row["id"]))
                 return self.account(str(row["id"]))
+        if shared and shared != primary:
+            return self.account_by_hash(shared)
         return None
 
     def account(self, account_id: str) -> sqlite3.Row | None:

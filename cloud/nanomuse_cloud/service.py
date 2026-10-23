@@ -678,7 +678,7 @@ class Cloud:
         """Look up an account by ``ident``'s canonical hash, falling back to its
         legacy pre-canonical hash when present so existing dotted Gmail accounts
         keep matching."""
-        return self.db.account_by_hashes(ident.hashes(self.s.hmac_key))
+        return self.db.account_by_hashes(ident.hashes(self.s.hmac_key), shared=ident.merged_hash(self.s.hmac_key))
 
     def _refuse_if_signups_closed(self, ident: Identifier) -> None:
         """0.22: the *Sign-ups* switch is off; an identifier without an account is turned
