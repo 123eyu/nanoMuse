@@ -20,7 +20,7 @@ Meta 的 Muse 定下了这类智能体的样子；下面是我们还落后于它
 
 ### 主动性 {#proactivity}
 
-目标按计划检查，例程在 App 关着时照样跑，动态每天早上写一篇。三种触发器已经有了（`nanomuse/triggers/`：来了一封邮件、一个快到的日历项、一个 webhook）。还缺的：智能体在两次计划之间自己注意到别的事情，比如一台刚上线的设备，然后判断注意到的事值不值得说一句。
+目标按计划检查，例程在 App 关着时照样跑，动态每天早上写一篇。四种触发器已经有了（`nanomuse/triggers/`：来了一封邮件、一个快到的日历项、一个 webhook、账号下的一台设备上线）。还缺的：智能体在两次计划之间自己注意到别的事情，然后判断注意到的事值不值得说一句。
 
 - 模块：`nanomuse/goals/`、`nanomuse/triggers/`、`nanomuse/nudges.py`；手机的 `io.github.nanomuse.feed` 和 `goals`。
 - 阅读：[every-device.md](every-device.md)，讲一声提醒怎么到达你手里拿着的那台设备。

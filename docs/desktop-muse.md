@@ -119,12 +119,14 @@ skipped on a fresh install and never shown twice:
    turns into a green check as the system grants it (polled, and again when the window gets
    focus or the page becomes visible; one hook, `permissions.ts`, behind every place that
    shows a permission); once *Allow* has been pressed the button reads *Open System
-   Settings*. Only **nanoMuse Desktop** has to be switched on: macOS attributes the bundled
-   runtime's captures and events to the app that started it, so there is no second entry to
-   hunt for. For *Screen Recording* the shell makes one capture attempt before it opens the
-   pane, so nanoMuse is on the pane's list, and when the permission is granted while the app
-   runs a dialog says macOS applies it only to freshly started apps, with *Restart now*
-   (`relaunch` over the bridge). *Try it* rows (a test screenshot, a mouse move) and the
+   Settings*. The entry to switch on is **nanoMuse Computer Use**, the small helper that
+   takes the pictures and moves the mouse for the app ([desktop.md](desktop.md#macos-permissions));
+   the rows name it, and the helper restarts by itself once the grant is given, so the app
+   does not. A build without the helper (before 0.1.38) is the app itself: the shell makes one
+   capture attempt before it opens the pane, so nanoMuse is on the pane's list, and when the
+   permission is granted while the app runs a dialog says macOS applies it only to freshly
+   started apps, with *Restart now* (`relaunch` over the bridge). *Try it* rows (a test
+   screenshot, a mouse move) and the
    runtime row say whether it works (the row names the binary and, when its last start for
    the hands failed, why, in the host's words), and a black capture gets its own notice with
    *Relaunch*.
