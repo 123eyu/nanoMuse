@@ -67,7 +67,7 @@ test('writeZipFile streams an archive Python reads back, one entry at a time', a
   const py = spawnSync('python3', ['-c', `import zipfile,sys; z=zipfile.ZipFile(sys.argv[1]); print(z.testzip()); print(','.join(i.filename for i in z.infolist())); print(len(z.read('sessions/big.bin')))`, file], { encoding: 'utf8' })
   await rm(dir, { recursive: true, force: true })
   if (py.status !== 0) return // no python here
-  assert.deepEqual(py.stdout.trim().split('\n'), ['None', 'nanomuse/rooms.json,sessions/big.bin', '5000'])
+  assert.deepEqual(py.stdout.trim().split(/\r?\n/), ['None', 'nanomuse/rooms.json,sessions/big.bin', '5000']) // Python prints \r\n on Windows
 })
 
 test('the export leaves links, loops and oversized files out instead of following them', async (t) => {
