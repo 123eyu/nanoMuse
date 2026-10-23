@@ -825,6 +825,8 @@ def test_task_approval_is_relayed_and_answered_by_the_device(hub_server) -> None
         approval = relay.next_frame("event")
     body = approval["body"]
     assert body["device"] == "Desk" and "echo careful" in body["preview"] and body["approval_id"]
+    # what an answer remembered on the phone covers: the Sentinel's own key, not the preview
+    assert body["grant_key"] == "shell:echo"
     # the card is pending here too; the phone answers it over the hub
     pending = client.get("/api/state").json()["pending_approvals"]
     assert [p["id"] for p in pending] == [body["approval_id"]]

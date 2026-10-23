@@ -73,12 +73,16 @@ Two kinds of request travel over the hub:
   the caller what to draw, so the run reads the same in the caller's chat as in
   the target's own: `tool {id, name, summary}` when a tool starts and
   `tool_result {id, name, ok, summary}` when it ends (same `id`), `approval
-  {approval_id, preview, risk, reason, device, timeout}` and, once decided on
+  {approval_id, preview, risk, reason, device, timeout, grant_key}` and, once decided on
   either side, `approval_result {approval_id, status}`, `text {text, interim}`
   for what the Muse says along the way, `image` and `file` for things it made,
   `error`. The `result` frame carries the final answer. A caller draws a `text` in place of the
   text since the last `tool`, so a target may send the growing text of one message more than
   once and the caller shows it as it grows; a target that sends each message once is shown the same.
+  `grant_key` (since 1.0.6) is what an answer remembered on the asking device covers:
+  the runtime sends the key its own grants use (the tool and its target, `shell:git`),
+  the desktop the tool and its whole main argument; a sender without it is remembered
+  by the first 60 characters of `preview`, as before, which two different steps can share.
 
 - **Coding agents.** `coding.agents`, `coding.sessions`, `coding.session`,
   `coding.send`, `coding.stop`, `coding.runs`: the Cursor / Codex / Claude Code

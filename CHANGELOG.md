@@ -16,6 +16,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Runtime
 
+- **An approval card relayed to another device says what a remembered answer covers.** The `approval` event a task sends back carries `grant_key`, the same key the Sentinel's own grants use (the tool and its target), so *always* on the phone's card covers that step and not every later step whose preview begins with the same words. An older sender is remembered by its preview as before ([hub.md](docs/hub.md)).
 - **Forgetting a memory is now a change you can see and undo.** `MemoryStore.forget` writes the deletion to the memory change log (action `forget`), so a forget from the chat, the app or `nanomuse memory forget` appears in *Recent changes* with the line it removed and can be restored, where before it left no trace. The `forget` tool names the lines it removed in its result, the line itself for an id and every matched line for a phrase, and the new `MemoryStore.matching` lists what a phrase would forget before anything is deleted. For #532.
 
 - **Responses API requests kept repeated tool calls paired in accumulated or restored request history.** When history contains the same provider `call_id` more than once, both `openai_responses` and the Codex Responses serializer (`to_codex` behind `provider = "chatgpt"` and `nanomuse chatgpt proxy`) keep the first call's id and assign deterministic suffixes to later calls that remain unique and within 64 characters across the request; each tool output follows its call's rewritten id instead of the provider rejecting the next turn with `400 Duplicate call_id`. For [#501](https://github.com/nano-muse/nanoMuse/issues/501).
@@ -40,6 +41,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Desktop
 
+- **A step the desktop asks the phone about names what *always* covers.** The approval relayed to the asking phone carries the tool and its whole command or path as `grant_key`, so an answer remembered on the phone matches that step exactly, not one that begins with the same 60 characters.
 - **Restricted PowerShell commands start inside nanoMuse Desktop on Windows after the sandbox is recreated.** The Electron-hosted DSH process now places the exact Windows ACL runner behind a short-lived Node-mode trampoline that establishes a hidden console before the child token is restricted, instead of letting the child fail during DLL initialization with `0xC0000142`. Workspace-write and read-only confinement stay in place, and full-access PowerShell is unchanged. For [#526](https://github.com/nano-muse/nanoMuse/issues/526).
 
 - **Trimming an own-key provider's model catalog stays trimmed in the model pickers and across restarts.** Editing a provider's `models` list in the `llm-pi-ai` settings (`cordis.patch.yml`), or saving with `catalogOnly: true`, now reconciles the row's chat models in `cloud.json` and the chat/hands pickers (`chatOptions`, `handsOptions`, `handsChoice`, `providersView`, `slotOffer`), moves the default chat selection onto a remaining model when its previous model was removed, and keeps the trimmed catalog when the host restarts or the provider key is updated instead of merging the full gateway `/models` list back in. For [#525](https://github.com/nano-muse/nanoMuse/issues/525).
@@ -72,6 +74,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Android
 
+- **A remembered answer to another device's approval covers that step, not every step that starts the same way.** The card for a step relayed from the computer keys *always* and *for this chat* on the `grant_key` the other device sends (the tool and its target); an older device's approvals are remembered by their preview as before.
 - **Responses API requests no longer failed on repeated tool-call ids in accumulated or restored history.** Later copies receive deterministic request-unique suffixes while every tool output remains paired with its call. For [#501](https://github.com/nano-muse/nanoMuse/issues/501).
 
 - **Memory and date changes no longer invalidate the agent's static prompt prefix.** Safety and phone-operation instructions now stay ahead of a deterministic suffix containing skills, MCP metadata, model/device state, conversation addenda, memory and `USER.md`, with runtime context last, preserving provider prefix-cache hits across memory writes and day changes. For #502.
@@ -94,6 +97,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### iOS
 
+- **A remembered answer to another device's approval covers that step, not every step that starts the same way.** The card keys *always* and *for this chat* on the `grant_key` the other device sends; an older device's approvals are remembered by their preview as before.
 - **A task sent to another device with `@〈device〉` shows its progress.** The reply appears at once with "〈device〉 is working…", then each step that device takes as a capsule, running and then done or failed, and what its Muse says as it arrives; a step whose result never came shows as failed after a timeout or a lost connection, as cancelled after Stop, and never as done; the answer lands in place at the end. The composer's stop button ends the task on that device too, and a message queued meanwhile goes when it ends. Before, the chat showed nothing until the whole task was done. For [#512](https://github.com/nano-muse/nanoMuse/issues/512).
 
 - **The `@` menu offers your other devices.** Typing `@` at the start of a message lists the account's online phones and computers above the files, filtered by what follows; picking one writes `@〈name〉 ` so the message goes to that device. Before, a device could only be addressed by typing its name in full or from *Settings → Devices*. For [#505](https://github.com/nano-muse/nanoMuse/issues/505).
