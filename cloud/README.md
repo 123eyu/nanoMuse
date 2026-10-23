@@ -164,7 +164,7 @@ for the full list. The ones that matter:
 | variable | default | |
 |---|---|---|
 | `UPSTREAM_BASE` / `UPSTREAM_KEY` | Model Studio compatible-mode | where chat goes |
-| `CHAT_DEFAULTS` | `{"enable_thinking": false}` | merged into chat requests for fields the app did not set |
+| `CHAT_DEFAULTS` | `{"enable_thinking": false}` | merged into chat requests for fields the app did not set; for Qwen behind vLLM use `{"chat_template_kwargs":{"enable_thinking":false}}` |
 | `SIGNUP_OPEN` | `1` | anyone may sign in; `0` = members only (a private relay). *Runtime setting* — see below |
 | `ALLOWED_IDENTIFIERS` | empty | comma-separated numbers / addresses of the **members**: no spend limit |
 | `REVIEW_ADDRESSES`, `REVIEW_CODE` | empty (off) | an app store reviewer's sign-in: for these e-mail addresses no code is sent and the six-digit `REVIEW_CODE` signs in — see *For App Store review* below |
@@ -440,7 +440,9 @@ operator's page has a *Model catalog* panel. The relay also reads what a
 request says about reasoning before it applies `CHAT_DEFAULTS`: an app that
 sends `reasoning_effort` (or `thinking`, `thinking_budget`) asked for
 thinking, and the shipped `enable_thinking: false` would make Model Studio
-refuse the pair, so the default follows the request. `/v1/me` carries a `spend`
+refuse the pair, so the default follows the request. The same rule applies to
+`chat_template_kwargs.enable_thinking`, the switch used by Qwen chat templates
+behind vLLM. `/v1/me` carries a `spend`
 block (`total`, `grant`, `left`, `unlimited`, `warn` at 80 %, `usd_cny`,
 `total_usd`, `grant_usd`, `left_usd`, `today`, the bonus amounts,
 `own_key_docs`, `openrouter_url` and `ways`; the 0.4 names `daily_cap` /

@@ -167,11 +167,15 @@ def error_response(status: int, code: str, message: str, extra: dict | None = No
 
 def thinking_requested(body: dict) -> bool | None:
     """What a chat request says about reasoning, in any of the dialects the apps speak:
-    True when it asks for it (`enable_thinking: true`, `thinking: {"type": "enabled"}`, a
-    `reasoning_effort` other than `none`, a `thinking_budget`), False when it declines, None
-    when it says nothing."""
+    True when it asks for it (`enable_thinking: true`,
+    `chat_template_kwargs.enable_thinking: true`, `thinking: {"type": "enabled"}`, a
+    `reasoning_effort` other than `none`, a `thinking_budget`), False when it declines,
+    None when it says nothing."""
     if "enable_thinking" in body:
         return bool(body["enable_thinking"])
+    template = body.get("chat_template_kwargs")
+    if isinstance(template, dict) and "enable_thinking" in template:
+        return bool(template["enable_thinking"])
     thinking = body.get("thinking")
     if isinstance(thinking, bool):
         return thinking
@@ -186,20 +190,30 @@ def thinking_requested(body: dict) -> bool | None:
 
 
 def apply_chat_defaults(body: dict, defaults: dict) -> None:
-    """The operator's defaults (CHAT_DEFAULTS, `{"enable_thinking": false}` as shipped) go
-    in where the request is silent. Reasoning is one thing said in several ways, so the
-    `enable_thinking` default follows what the request already said with `reasoning_effort`
-    or `thinking` — Model Studio refuses `reasoning_effort: low` next to `enable_thinking:
-    false` ("'reasoning_effort' must be 'none' when 'enable_thinking' is false"), which is
-    exactly what an app's thinking-level badge plus the shipped default used to produce."""
+    """Merge operator defaults without contradicting the request's reasoning choice.
+
+    Model Studio reads top-level ``enable_thinking``; vLLM's Qwen chat template reads
+    ``chat_template_kwargs.enable_thinking``. Either default follows an explicit
+    ``reasoning_effort`` or ``thinking`` choice from the app.
+    """
     wants = thinking_requested(body)
     for k, v in defaults.items():
         if k == "enable_thinking" and wants is not None:
             body.setdefault("enable_thinking", wants)
             continue
+        if k == "chat_template_kwargs" and isinstance(v, dict):
+            default_template = dict(v)
+            if "enable_thinking" in default_template and wants is not None:
+                default_template["enable_thinking"] = wants
+            current = body.get(k)
+            if isinstance(current, dict):
+                body[k] = {**default_template, **current}
+            else:
+                body.setdefault(k, default_template)
+            continue
         body.setdefault(k, v)
     effort = body.get("reasoning_effort")
-    if body.get("enable_thinking") is False and isinstance(effort, str) and effort.strip().lower() != "none":
+    if thinking_requested(body) is False and isinstance(effort, str) and effort.strip().lower() != "none":
         body["reasoning_effort"] = "none"
 
 
