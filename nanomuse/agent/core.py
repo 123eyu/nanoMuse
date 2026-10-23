@@ -388,7 +388,13 @@ class MuseAgent:
             # Never start in the middle of a tool exchange: advance to the next user message.
             while cutoff < len(msgs) and msgs[cutoff].role != Role.USER:
                 cutoff += 1
-            window = list(msgs[cutoff:]) if cutoff < len(msgs) else list(msgs[-limit:])
+            if cutoff >= len(msgs):
+                # A single long turn can fill the window. Keep the leading tool
+                # exchange whole, even if that takes a few messages over the limit.
+                cutoff = slice(-limit, None).indices(len(msgs))[0]
+                while 0 < cutoff < len(msgs) and msgs[cutoff].role == Role.TOOL:
+                    cutoff -= 1
+            window = list(msgs[cutoff:])
         return keep_newest_images(window, self.settings.agent.max_context_images)
 
     # ------------------------------------------------------------------ stuck detection
