@@ -8,6 +8,61 @@ import XCTest
 @MainActor
 final class NanoMuseLogicTests: XCTestCase {
 
+    // MARK: - Step visibility
+
+    func testHiddenStepsStayOffWhenMainChatIsReset() {
+        let suite = "NanoMuseLogicTests.steps.reset.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(false, forKey: NanoMuseSteps.key)
+        defaults.set("old-main-session", forKey: NanoMuseMainChat.key)
+
+        // NanoMuseMainChat.startFresh removes only its session pointer.
+        defaults.removeObject(forKey: NanoMuseMainChat.key)
+
+        let blocks = [
+            AssistantBlock(kind: .shellTool(command: "true"), content: "done"),
+            AssistantBlock(kind: .text, content: "Finished"),
+        ]
+        let visible = NanoMuseSteps.visibleBlocks(
+            blocks,
+            active: false,
+            showSteps: NanoMuseSteps.storedValue(in: defaults)
+        )
+        XCTAssertEqual(visible.map(\.kind), [.text])
+    }
+
+    func testHiddenStepsStayOffWhenFinishedChatIsRestoredAfterRelaunch() {
+        let suite = "NanoMuseLogicTests.steps.relaunch.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(false, forKey: NanoMuseSteps.key)
+
+        // A new defaults reader models a new process restoring persisted chat blocks.
+        let relaunchedDefaults = UserDefaults(suiteName: suite)!
+        let blocks = [
+            AssistantBlock(kind: .browserTool(action: "navigate"), content: "done"),
+            AssistantBlock(kind: .text, content: "Finished"),
+        ]
+        XCTAssertEqual(
+            NanoMuseSteps.visibleBlocks(
+                blocks,
+                active: false,
+                showSteps: NanoMuseSteps.storedValue(in: relaunchedDefaults)
+            ).map(\.kind),
+            [.text]
+        )
+        XCTAssertEqual(
+            NanoMuseSteps.visibleBlocks(
+                blocks,
+                active: true,
+                showSteps: NanoMuseSteps.storedValue(in: relaunchedDefaults)
+            ).map(\.kind),
+            blocks.map(\.kind),
+            "the currently running turn still shows its steps"
+        )
+    }
+
     // MARK: - Fences
 
     func testFencesFindTheLastBlockAndStripIt() {
