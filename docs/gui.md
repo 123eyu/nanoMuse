@@ -64,7 +64,10 @@ api_key  = "{{vault:GUI_API_KEY}}"
 The chat model and the hands model are two settings: *Operating the screen* on *Settings → Models* (phones and desktop), the *Hands model* select on *Connections* (web console), `[gui] model` here. Leave it empty (the row's *Automatic*) and the hands follow one order:
 
 - the chat model's provider, when it is a key of yours whose catalogue entry names a hands model on the same endpoint (Alibaba Cloud Bailian `qwen3.8-27b`, OpenRouter `qwen/qwen3.8-27b`); a model that is known to be blind (DeepSeek ids without `v4.1`, `vision` or `ocr`) is never offered for the hands;
-- else, with a nanoMuse Cloud account, the relay's hands model: `qwen3.8-27b` unless the relay names another (`/v1/models` says which models are `for` `chat`, `gui` or both); the chat default there is `deepseek-v4.1-flash`, which reads pictures too, but the hands want the model trained to point at things on a screen, so the two are kept apart;
+- else, with a nanoMuse Cloud account, the model the relay recommends for `gui`
+  (`/v1/models` says which models are `for` and `recommended_for` `chat`, `gui` or both);
+  the hosted Cloud currently uses the same multimodal `Qwen/Qwen3.6-27B-FP8` for chat and
+  screen operation, though the two choices stay independently configurable;
 - else the chat model itself, which only works when it sees (the phones and the desktop try the first key of yours with a model that sees before that).
 
 A choice you made on the row always wins, and the row says what *Automatic* gives right now. When a hands model of your own fails, nothing switches by itself; the card offers *Use nanoMuse Cloud this time* for that one turn ([own-key.md](own-key.md#which-model-does-what)).

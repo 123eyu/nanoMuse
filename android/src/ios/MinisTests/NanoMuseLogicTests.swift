@@ -227,7 +227,19 @@ final class NanoMuseLogicTests: XCTestCase {
 
     // MARK: - Models (contract C4)
 
-    func testRecommendedChatPrefersTheMarkedModelThenTheDefault() {
+    func testRecommendedChatPrefersTheRelaysLaneThenFallsBackForOldMenus() {
+        let current: [[String: Any]] = [
+            [
+                "id": "Qwen/Qwen3.6-27B-FP8",
+                "nanomuse": [
+                    "for": ["chat", "gui"],
+                    "recommended": true,
+                    "recommended_for": ["chat", "gui"],
+                ],
+            ],
+        ]
+        XCTAssertEqual(NanoMuseModelMenu.recommendedChat(current)?["id"] as? String, NanoMuseModelMenu.defaultChatModel)
+        XCTAssertEqual(NanoMuseModelMenu.guiModel(current), NanoMuseModelMenu.defaultGuiModel)
         let marked: [[String: Any]] = [
             ["id": "qwen3.8-flash", "for": ["chat"]],
             ["id": "qwen3.8-27b", "for": ["chat", "gui"], "nanomuse": ["recommended": true]],
@@ -237,7 +249,7 @@ final class NanoMuseLogicTests: XCTestCase {
             ["id": "qwen3.8-27b", "for": ["gui"]],
             ["id": "deepseek-v4.1-flash", "for": ["chat"]],
         ]
-        XCTAssertEqual(NanoMuseModelMenu.recommendedChat(plain)?["id"] as? String, NanoMuseModelMenu.defaultChatModel)
+        XCTAssertEqual(NanoMuseModelMenu.recommendedChat(plain)?["id"] as? String, "deepseek-v4.1-flash")
         let drawsOnly: [[String: Any]] = [["id": "qwen3.8-27b", "for": ["gui"]]]
         XCTAssertNil(NanoMuseModelMenu.recommendedChat(drawsOnly))
         XCTAssertEqual(NanoMuseModelMenu.guiModel(plain), "qwen3.8-27b")
@@ -250,6 +262,15 @@ final class NanoMuseLogicTests: XCTestCase {
         XCTAssertEqual(NanoMuseModelMenu.recommendedChat(relay)?["id"] as? String, "deepseek-v4.1-flash")
         XCTAssertEqual(NanoMuseModelMenu.guiModel(relay), "qwen3.8-27b")
         XCTAssertEqual(NanoMuseModelMenu.lanes(relay[0]), ["gui", "chat"])
+    }
+
+    func testPublicCloudRetiresMediaWhileSelfHostedRelaysMayAdvertiseIt() {
+        XCTAssertFalse(NanoMuseRelayMenu.allows(.image, at: "https://cloud.nanomuse.cn/"))
+        XCTAssertFalse(NanoMuseRelayMenu.allows(.video, at: NanoMuseCloud.defaultBase))
+        XCTAssertTrue(NanoMuseRelayMenu.allows(.image, at: "https://relay.example/v1"))
+        XCTAssertTrue(NanoMuseRelayMenu.allows(.video, at: "https://relay.example"))
+        XCTAssertTrue(NanoMuseRelayMenu.allows(.chat, at: NanoMuseCloud.defaultBase))
+        XCTAssertTrue(NanoMuseRelayMenu.allows(.hands, at: NanoMuseCloud.defaultBase))
     }
 
     func testDeepSeekVisionRule() {

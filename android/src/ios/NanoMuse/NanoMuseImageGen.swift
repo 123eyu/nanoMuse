@@ -6,8 +6,8 @@
 //  key on this phone (an OpenAI-compatible provider whose base URL is on
 //  dashscope / aliyuncs), the face is drawn with that key through Model
 //  Studio's native multimodal endpoint — the compatible endpoint answers 404
-//  to image models. Otherwise through nanoMuse Cloud, where a cost estimate
-//  is shown first. Android: avatar/ImageGen.kt.
+//  to image models. A self-hosted relay can also be used when its live menu
+//  explicitly advertises image generation. Android: avatar/ImageGen.kt.
 //
 
 import Foundation
@@ -59,8 +59,8 @@ extension NanoMuseImageGen {
     private static let defaultsPreferRelayKey = "nanomuse.avatar.prefer_relay"
     private static let defaultsRelayModelKey = "nanomuse.avatar.relay_model"
 
-    /// The person chose nanoMuse Cloud for pictures (Settings › Models, or the older Image &
-    /// video models page). An explicit choice: it wins over any key on the phone while signed in.
+    /// The person chose a relay that advertises pictures (Settings › Models, or the older Image &
+    /// video models page). An explicit choice wins over any key on the phone while signed in.
     static var preferRelay: Bool {
         get { UserDefaults.standard.bool(forKey: defaultsPreferRelayKey) }
         set { UserDefaults.standard.set(newValue, forKey: defaultsPreferRelayKey) }
@@ -72,14 +72,14 @@ extension NanoMuseImageGen {
         return s.isEmpty ? nil : s
     }
 
-    /// Pictures through nanoMuse Cloud from now on, with `model` when the person picked one.
+    /// Pictures through the configured relay from now on, with `model` when the person picked one.
     @MainActor
     static func useRelay(model: String? = nil) {
         preferRelay = true
         UserDefaults.standard.set(model?.trimmingCharacters(in: .whitespaces) ?? "", forKey: defaultsRelayModelKey)
     }
 
-    /// The relay's image model for the next picture: the one picked, else the first the menu lists.
+    /// The relay's image model for the next picture: the one picked, else the first its menu lists.
     @MainActor
     static func relayImageModel() async throws -> String {
         if let model = relayModel { return model }
@@ -132,9 +132,9 @@ extension NanoMuseImageGen {
 
     /// Where the next picture is drawn (0.1.41, the contract's section 3): the person's choice
     /// first; without one, the chat provider's own image model when the chat runs on a key of
-    /// their own that draws, then nanoMuse Cloud when signed in, then the first key on the
-    /// phone that draws. Cloud no longer loses to a Bailian key the person did not pick, and a
-    /// Bailian key the person did pick is never passed over for Cloud.
+    /// their own that draws, then a signed-in relay whose live menu advertises pictures, then
+    /// the first key on the phone that draws. A relay never jumps ahead of a provider the
+    /// person picked.
     @MainActor
     static func route() -> Route {
         let candidates = bailianInstances()
@@ -179,8 +179,8 @@ extension NanoMuseImageGen {
     }
 
     /// Back to the automatic order for pictures (the *Automatic* entry of the picker): no key
-    /// and no Cloud preference stored, so `route()` follows the chat provider, then Cloud, then
-    /// the first key that draws.
+    /// and no relay preference stored, so `route()` follows the chat provider, then a relay
+    /// that advertises pictures, then the first key that draws.
     @MainActor
     static func clearChoice() {
         for key in [defaultsInstanceKey, defaultsModelKey, defaultsPreferRelayKey, defaultsRelayModelKey] {

@@ -29,6 +29,31 @@ class MediaTest {
         assertFalse(VideoGen.speaksDashScope("https://openrouter.ai/api/v1"))
     }
 
+    @Test fun `public Cloud ignores retired cached media while self hosted relays follow their menu`() {
+        val candidates = listOf("Qwen/Qwen3.6-27B-FP8", "qwen-image-3.0", "wan2.2-i2v-flash")
+        val oldMenu = listOf("qwen-image-3.0", "wan2.2-i2v-flash")
+        assertEquals(
+            emptyList<String>(),
+            RelayMediaPolicy.available("https://cloud.nanomuse.cn/", oldMenu, candidates),
+        )
+        assertEquals(
+            emptyList<String>(),
+            RelayMediaPolicy.available("https://CLOUD.NANOMUSE.CN:443/v1", oldMenu, candidates),
+        )
+        assertEquals(
+            oldMenu,
+            RelayMediaPolicy.available("https://relay.example/v1", oldMenu, candidates),
+        )
+        assertEquals(
+            listOf("qwen-image-3.0"),
+            RelayMediaPolicy.available(
+                "https://relay.example",
+                listOf("qwen-image-3.0"),
+                candidates,
+            ),
+        )
+    }
+
     @Test fun `wan siblings and resolutions follow the model family`() {
         assertEquals("wan2.2-i2v-flash", MediaModels.DEFAULT_VIDEO_MODEL)
         assertEquals("wan2.2-i2v-flash", VideoGen.KNOWN_DASHSCOPE_MODELS.first())

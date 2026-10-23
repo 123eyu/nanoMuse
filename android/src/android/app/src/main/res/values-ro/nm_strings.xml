@@ -1131,7 +1131,6 @@
     <string name="nm_cloud_provider_no_delete">Acest furnizor este contul tău nanoMuse Cloud. Oprește-l mai sus ca să nu-i mai folosești modelele; pentru deconectare, deschide Setări › nanoMuse Cloud.</string>
     <string name="nm_welcome_own_key">Folosește propria cheie API</string>
     <string name="nm_useit_title">La ce să o folosești</string>
-    <string name="nm_useit_body">Alege de ce să se ocupe această cheie. De restul se ocupă în continuare nanoMuse Cloud.</string>
     <string name="nm_useit_body_signed_out">Alege de ce să se ocupe această cheie.</string>
     <string name="nm_useit_use">Folosește</string>
     <string name="nm_useit_not_now">Nu acum</string>

@@ -5,8 +5,8 @@
 //  Short clips through Alibaba Cloud Model Studio's asynchronous video API —
 //  Wan 2.2 Flash by default, or whichever Wan or MiniMax model the person
 //  picked or typed. The host is either Model Studio itself (the person's own
-//  key) or nanoMuse Cloud, which relays the same `/api/v1/…` paths under the
-//  account's token. A first frame is uploaded to Model Studio's free 48-hour
+//  key) or a self-hosted relay whose live menu explicitly advertises video.
+//  A first frame is uploaded to Model Studio's free 48-hour
 //  temporary storage first (`/api/v1/uploads`), because the video API takes
 //  URLs, not inline data; then `POST …/video-synthesis` with
 //  `X-DashScope-Async: enable` returns a task, `GET /api/v1/tasks/{id}` is
@@ -34,7 +34,7 @@ enum NanoMuseVideoGen {
     struct Endpoint: Equatable, Sendable {
         var instanceId: String
         var label: String
-        /// `https://dashscope.aliyuncs.com` or `https://cloud.nanomuse.cn`, without the API path.
+        /// A Model Studio or explicitly media-enabled relay origin, without the API path.
         var host: String
         var apiKey: String
         var model: String

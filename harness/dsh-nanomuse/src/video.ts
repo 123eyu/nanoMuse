@@ -13,8 +13,7 @@
  *  4. the MP4 is downloaded from the `video_url` the task ends with.
  *
  * `host` is Model Studio itself (`https://dashscope.aliyuncs.com`) with the person's own
- * key, or the nanoMuse relay (`https://cloud.nanomuse.cn`), which serves the same
- * `/api/v1/…` paths next to its OpenAI-shaped `/v1` and pays from the account's allowance.
+ * key, or a self-hosted relay whose live menu explicitly advertises video generation.
  *
  * The two model families take different bodies: MiniMax wants `media[first_frame]`,
  * `resolution`, `ratio` and `duration`; Wan wants `img_url`, `resolution`/`size` and — on
@@ -32,7 +31,7 @@ export const DEFAULT_VIDEO_MODEL = 'wan2.2-i2v-flash'
 
 /** One video model on one host: what `imageToVideo` needs and nothing more. */
 export interface VideoEndpoint {
-  /** `https://dashscope.aliyuncs.com` or `https://cloud.nanomuse.cn`, without an API path. */
+  /** A Model Studio or explicitly media-enabled relay origin, without an API path. */
   host: string
   apiKey: string
   model: string

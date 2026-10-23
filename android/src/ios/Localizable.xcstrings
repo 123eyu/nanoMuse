@@ -152797,65 +152797,6 @@
         }
       }
     },
-    "Pick what this key should handle. nanoMuse Cloud keeps the rest." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pick what this key should handle. nanoMuse Cloud keeps the rest."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "选这把 key 负责哪些事，其余仍由 nanoMuse Cloud 负责。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "選這把 key 負責哪些事，其餘仍由 nanoMuse Cloud 負責。"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "このキーに任せることを選んでください。残りは nanoMuse Cloud が担当します。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "이 키가 맡을 일을 고르세요. 나머지는 nanoMuse Cloud가 계속 맡습니다."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wähle, was dieser Schlüssel übernehmen soll. Den Rest behält nanoMuse Cloud."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choisissez ce que cette clé doit prendre en charge. nanoMuse Cloud garde le reste."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elige de qué debe encargarse esta clave. nanoMuse Cloud se queda con el resto."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выберите, что будет делать этот ключ. Остальное останется за nanoMuse Cloud."
-          }
-        }
-      }
-    },
     "Pick what this key should handle." : {
       "extractionState" : "manual",
       "localizations" : {

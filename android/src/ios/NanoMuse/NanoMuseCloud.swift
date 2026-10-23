@@ -568,7 +568,7 @@ enum NanoMuseCloud {
     /// one more provider.
     private static func provisionDefaults(store: ProviderConfigStore, instance: ProviderInstance, models: [[String: Any]]) {
         // Contract C4: the chat opens on the model the relay recommends *for chat*
-        // (`for: ["chat"]`, deepseek-v4.1-flash), never on a hands-only one.
+        // (`recommended_for: ["chat"]`), never on a hands-only one.
         let recommendedChat = NanoMuseModelMenu.recommendedChat(models)?["id"] as? String
         let pictureIds = Set(models.filter { drawsOnly($0) }.compactMap { $0["id"] as? String })
 

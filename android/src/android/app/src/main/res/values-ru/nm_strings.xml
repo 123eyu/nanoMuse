@@ -1135,7 +1135,6 @@
     <string name="nm_cloud_provider_no_delete">Этот провайдер и есть ваш аккаунт nanoMuse Cloud. Выключите его выше, чтобы не использовать его модели; чтобы выйти, откройте Настройки › nanoMuse Cloud.</string>
     <string name="nm_welcome_own_key">Использовать свой ключ API</string>
     <string name="nm_useit_title">Для чего использовать</string>
-    <string name="nm_useit_body">Выберите, чем будет заниматься этот ключ. Остальное остаётся за nanoMuse Cloud.</string>
     <string name="nm_useit_body_signed_out">Выберите, чем будет заниматься этот ключ.</string>
     <string name="nm_useit_use">Использовать</string>
     <string name="nm_useit_not_now">Не сейчас</string>

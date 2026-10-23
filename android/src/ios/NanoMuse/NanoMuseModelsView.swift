@@ -496,9 +496,7 @@ struct NanoMuseUseItForView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text(NanoMuseCloud.modelsOn
-                     ? AppLocalized("Pick what this key should handle. nanoMuse Cloud keeps the rest.")
-                     : AppLocalized("Pick what this key should handle."))
+                Text(AppLocalized("Pick what this key should handle."))
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 32)

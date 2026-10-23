@@ -76,18 +76,19 @@ tile as before.
 Models contract (0.1.41), one card each under the chat model. The value is
 `provider · model` as the runtime resolves it (`GET /api/connections` →
 `image` / `video`: the slot as set and its `effective_*`): an explicit choice,
-else the chat provider's own picture model when it has one, else your account's
-when signed in, else the one sentence and an *Add a provider* button. The
-picker offers *Automatic* first, a *nanoMuse Cloud* group when signed in, *The chat model's provider* when it has the capability
-(its key serves, nothing to paste), and under *Add a provider* every catalogue
-provider with the capability for your region, plus *Other OpenAI-compatible
-endpoint* with a base URL; a provider without the capability is not offered.
-A model may be picked from what the endpoint lists (the relay's menu and the
-account's other models on nanoMuse Cloud) or left to the catalogue's default.
+else the chat provider's own media model when it has one, else the first
+provider of yours that covers the job, else the one sentence and an *Add a
+provider* button. The hosted nanoMuse Cloud account is not a media provider.
+The picker offers *Automatic* first, *The chat model's provider* when it has
+the capability (its key serves, nothing to paste), and under *Add a provider*
+every catalogue provider with the capability for your region, plus *Other
+OpenAI-compatible endpoint* with a base URL; a provider without the capability
+is not offered. A model may be picked from what the endpoint lists or left to
+the catalogue's default.
 *Save* calls `PUT /api/connections/image` or `/video` with `provider` (a
 catalogue id, or `openai` with a `base_url`), `model`, `base_url`, `api_key`
-(into the vault as `IMAGE_API_KEY` / `VIDEO_API_KEY`; the relay's row names the
-account key, the chat provider's row leaves it to the chat key); *Automatic*
+(into the vault as `IMAGE_API_KEY` / `VIDEO_API_KEY`; the chat provider's row
+leaves it to the chat key); *Automatic*
 sends all four empty, which clears the slot. The three dependent slots share
 one shape: *Automatic* is the first entry of the *Hands model* picker and of
 both media rows' provider select, saving it returns the slot to the resolution

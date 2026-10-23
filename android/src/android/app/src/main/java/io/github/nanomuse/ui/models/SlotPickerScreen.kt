@@ -248,7 +248,7 @@ private fun SearchField(query: String, onChange: (String) -> Unit) {
 
 /**
  * The *Automatic* row: [SettingsChoiceRow]'s look with a second line that says what the order
- * gives right now (*Currently nanoMuse Cloud · qwen3.8-27b*), or the slot's one sentence on
+ * gives right now (*Currently nanoMuse Cloud · Qwen/Qwen3.6-27B-FP8*, for example), or the slot's one sentence on
  * which provider would serve it when nothing can.
  */
 @Composable

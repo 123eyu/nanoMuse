@@ -262,7 +262,8 @@ ideas were tried, the library index, memory).
 
 Settings → Models, right after General, is one row per thing a model does: *Chat*,
 *Operating the screen*, *Making pictures*, *Making clips*. Each picker lists nanoMuse Cloud
-first while you are signed in, its recommended model marked, then one group per provider
+first while you are signed in only when the relay's live menu covers that row, its
+lane-specific recommendation marked, then one group per provider
 you added under Settings → nanoMuse Cloud, each group holding only the models that can do
 that row's job (the screen needs a model that sees images; the hands speak OpenAI's shape,
 so an Anthropic or native Gemini key is named under the row but not listed). A row nothing
@@ -282,9 +283,11 @@ restarts and across later key updates instead of merging the full `/models` list
 
 What a row uses when you have not chosen: the provider new chats answer through, when it
 is one of your own and has a model for the job (its catalogue default); else nanoMuse
-Cloud while signed in; else the first of your providers that can. The three rows that
+Cloud while signed in only when its live menu offers the job; else the first of your
+providers that can. The hosted Cloud offers chat and screen operation, not media
+generation. The three rows that
 follow this order have *Automatic* as their first entry, with the row saying what it gives
-right now (*Currently nanoMuse Cloud · qwen3.8-27b*, say); pick it to drop a choice you
+right now (*Currently nanoMuse Cloud · Qwen/Qwen3.6-27B-FP8* for screen operation, say); pick it to drop a choice you
 made and let the row follow the order again. A chat pick is the default for new chats and
 moves the main chat with it (*Applies to the main chat and to new chats; a side chat keeps
 its model.*); a side chat keeps the model it was given, and the same pick twice writes
@@ -295,7 +298,8 @@ never left on a route no adapter serves, which showed as *no adapter registered 
 provider "custom"* on every new chat in 0.1.41. Pictures through your own key go straight to that provider (Model Studio's
 native image API, OpenRouter's image API, or the OpenAI shape for the rest) and nothing
 is billed to the account; the avatar studio says so in place of the cost line. Clips come
-from Model Studio only, through the account or your own Bailian key.
+from Model Studio through your own Bailian key (or a self-hosted relay whose operator
+explicitly enabled its legacy media proxy), never through the public hosted account.
 
 After you save a key, a small card asks *Use it for* with a toggle per thing the key can
 handle, all on; *Use it* switches those rows to that provider, *Not now* changes nothing.
@@ -303,7 +307,8 @@ When a model of your own fails under a turn, the card offers *Use nanoMuse Cloud
 time* while signed in: that one message is sent again through the account and the chat
 goes back to its model when the turn ends; the Models page stays as it was. *Use it* with
 chat ticked moves the main chat too. Nothing falls
-back on its own. The same button follows a failed studio round and a failed set of clips.
+back on its own. A failed studio round or clip set asks you to fix or choose a provider of
+your own; there is no hosted Cloud media retry.
 
 While signed in, the page starts with one switch, *Use nanoMuse Cloud models*. Off, the
 account's models leave every picker and the automatic order, the harness's side calls (a

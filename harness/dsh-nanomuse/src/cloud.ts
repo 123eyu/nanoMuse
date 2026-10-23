@@ -85,6 +85,18 @@ export const STOCK_DEFAULT_MODEL = { provider: 'deepseek-official', model: 'deep
 export const IMAGE_BUDGET = { maxRequestImageBytes: 5 * 1024 * 1024, requestImagePixelBudget: 2 * 1024 * 1024 } as const
 /** Where the browser half talks to us. */
 export const API_PREFIX = '/nanomuse/cloud'
+/** The public relay no longer offers account-funded image or video generation. */
+export const OFFICIAL_CLOUD_ORIGIN = 'https://cloud.nanomuse.cn'
+
+/** Self-hosted relays may still advertise media routes; the public service never does. */
+export function relayMediaEnabled(baseURL: string): boolean {
+  try {
+    return new URL(baseURL).origin !== OFFICIAL_CLOUD_ORIGIN
+  } catch {
+    return false
+  }
+}
+
 /** The bundle's version alone, `0.1.41`: what the update check compares with the latest release. */
 export const BUNDLE_VERSION = process.env.NANOMUSE_VERSION ?? '0.0.0'
 /** What this device reports as its software. */
@@ -1534,15 +1546,17 @@ export default class NanomuseCloud extends Service {
     return regionOf(this.state.account?.region, lang)
   }
 
-  /** What the account can do, as the relay's model list says: chat, the hands' `gui` models, image and video kinds. */
+  /** What the account can do, as the relay's model list says. Public Cloud media is retired. */
   private cloudCapabilities(): Capability[] {
     if (!this.cloudModels()) return []
     const models = this.state.models ?? []
     const out: Capability[] = []
     if (models.some((m) => modelFor(m).includes('chat'))) out.push('chat')
     if (models.some((m) => modelFor(m).includes('gui'))) out.push('vision')
-    if (models.some((m) => m.kind === 'image')) out.push('image')
-    if (models.some((m) => m.kind === 'video')) out.push('video')
+    if (relayMediaEnabled(this.relay.origin)) {
+      if (models.some((m) => m.kind === 'image')) out.push('image')
+      if (models.some((m) => m.kind === 'video')) out.push('video')
+    }
     return out
   }
 
@@ -2375,16 +2389,17 @@ export default class NanomuseCloud extends Service {
 
   // ---- the avatar studio: the pictures through the relay, the face onto the account ------
 
-  /** The account's image model, as the relay lists it (the recommended one first). */
+  /** The relay's image model when a self-hosted relay explicitly lists one. */
   private imageModel(): string {
+    if (!relayMediaEnabled(this.relay.origin)) return ''
     const models = (this.state.models ?? []).filter((m) => m.kind === 'image')
     const pick = models.find((m) => m.recommended) ?? models[0]
     return pick ? pick.id : ''
   }
 
-  /** The account's image models, for the picker (the recommended one first and marked). */
+  /** A self-hosted relay's image models, for the picker (recommended first). */
   private cloudImageOptions(): ModelOption[] {
-    if (!this.cloudModels()) return []
+    if (!this.cloudModels() || !relayMediaEnabled(this.relay.origin)) return []
     const models = (this.state.models ?? []).filter((m) => m.kind === 'image')
     const pick = this.imageModel()
     return models.map((m) => ({ provider: PROVIDER_ID, providerLabel: 'nanoMuse Cloud', id: m.id, name: m.name || m.id, ...(m.id === pick ? { recommended: true } : {}) })).sort((a, b) => Number(Boolean(b.recommended)) - Number(Boolean(a.recommended)))
@@ -2405,9 +2420,9 @@ export default class NanomuseCloud extends Service {
   /**
    * Where a picture would be drawn (contract section 3): the person's choice when it still
    * exists; else the chat provider's `defaults.image` when new chats answer through an own row
-   * with pictures; else the account while signed in and it lists an image model; else the first
-   * own row with image models. `cloud: true` asks for the account whatever the order says
-   * (*Use nanoMuse Cloud this time*). Nothing when no source has one.
+   * with pictures; else a self-hosted relay that lists an image model; else the first own row
+   * with image models. `cloud: true` asks that relay whatever the order says. The public Cloud
+   * never returns a media endpoint. Nothing when no source has one.
    */
   async imageEndpoint(opts: { cloud?: boolean; auto?: boolean } = {}): Promise<ImageEndpoint | undefined> {
     const cloud = async (model = this.imageModel()): Promise<ImageEndpoint | undefined> => {
@@ -2512,7 +2527,9 @@ export default class NanomuseCloud extends Service {
   private async studioEndpoint(viaCloud = false): Promise<ImageEndpoint> {
     const ep = await this.imageEndpoint({ cloud: viaCloud })
     if (ep) return ep
-    if (!this.signedInCache || !this.state.account) throw new RelayError(401, 'signed_out', 'Sign in to draw a face')
+    if (relayMediaEnabled(this.relay.origin) && (!this.signedInCache || !this.state.account)) {
+      throw new RelayError(401, 'signed_out', 'Sign in to use this relay')
+    }
     throw new RelayError(409, 'no_image_model', 'Nothing configured has an image model to draw with')
   }
 
@@ -2566,8 +2583,9 @@ export default class NanomuseCloud extends Service {
     }
   }
 
-  /** The account's video models, as the relay lists them. */
+  /** A self-hosted relay's video models. Public Cloud media is retired. */
   private cloudVideoModels(): RelayModel[] {
+    if (!relayMediaEnabled(this.relay.origin)) return []
     return (this.state.models ?? []).filter((m) => m.kind === 'video')
   }
 
@@ -3777,7 +3795,10 @@ export default class NanomuseCloud extends Service {
         const body = await json(req)
         const viaCloud = body.cloud === true
         if (!this.faceId()) return send(res, 409, { error: { code: 'no_face', message: 'No drawn face to animate' } })
-        if (!(await this.videoEndpoint({ cloud: viaCloud }))) return send(res, 409, { error: { code: viaCloud ? 'signed_out' : 'no_video_model', message: viaCloud ? 'Sign in to draw the clips with nanoMuse Cloud' : 'No video model to draw clips with' } })
+        if (!(await this.videoEndpoint({ cloud: viaCloud }))) {
+          const signedOut = viaCloud && relayMediaEnabled(this.relay.origin) && (!this.signedInCache || !this.state.account)
+          return send(res, signedOut ? 401 : 409, { error: { code: signedOut ? 'signed_out' : 'no_video_model', message: signedOut ? 'Sign in to use the relay' : 'No video model to draw clips with' } })
+        }
         const started = await this.motion.animateAll(body.force === true, viaCloud)
         return send(res, 200, { started, motion: this.motion.view() })
       }

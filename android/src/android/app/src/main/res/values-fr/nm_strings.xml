@@ -1128,7 +1128,6 @@
     <string name="nm_cloud_provider_no_delete">Ce fournisseur est votre compte nanoMuse Cloud. Désactivez-le ci-dessus pour ne plus utiliser ses modèles ; pour vous déconnecter, ouvrez Réglages › nanoMuse Cloud.</string>
     <string name="nm_welcome_own_key">Utiliser plutôt ma propre clé d’API</string>
     <string name="nm_useit_title">L’utiliser pour</string>
-    <string name="nm_useit_body">Choisissez ce que cette clé doit prendre en charge. nanoMuse Cloud garde le reste.</string>
     <string name="nm_useit_body_signed_out">Choisissez ce que cette clé doit prendre en charge.</string>
     <string name="nm_useit_use">L’utiliser</string>
     <string name="nm_useit_not_now">Pas maintenant</string>
