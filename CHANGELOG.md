@@ -48,6 +48,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Desktop
 
+- **Wan 2.7 is in the clip picker and speaks its own protocol.** `wan2.7-i2v` and `wan2.7-t2v` join the Model Studio candidates checked against your key, and a task for them sends the first frame as `media` with a `resolution` and a `ratio`, the way the 2.7 API wants it; a dated 2.7 snapshot picked for one job uses the undated sibling for the other, since the two are dated differently (#508).
 - **A face drawn with your own provider is worn while signed out.** The studio drew the four candidates and the poses through your own key and then refused the last step with *sign in first*, dropping back to the grid with no way to keep the pictures; now the face is kept under `faces/<id>/` and worn on this computer at once, with no further picture, and a sign-in only shares it with your other devices (#521).
 - **The chat's model control is back in the composer.** A model with reasoning levels shows the ones it supports there, so with your own key you can change how hard the current chat thinks without turning on the rest of DeepSeek Harness's developer controls. For [#537](https://github.com/nano-muse/nanoMuse/issues/537).
 - **Restarting the Host asks first when work is under way, as quitting does.** *Restart now* under the proxy row, and the restart macOS asks for after a Screen Recording grant, list a reply, the hands, a task from another device or an approval still running and let you keep them running; a Host that no longer answers is restarted without the question. A shell command sent from another device keeps the first and last part of a very long output instead of all of it in memory, and a file sent over the hub is refused when it is over 8 MB before it is decoded. *Download your agent data* writes its zip one file at a time, leaves links and files over 64 MB out, and removes a password from the proxy address it packs. `desktop.json` is replaced in one step with the previous copy kept beside it, so a failed save keeps the last good settings; the window grants the page its microphone only, never a camera; and a Swift warning in the macOS helper fails its build.
@@ -85,6 +86,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Android
 
+- **Wan 2.7 is in the clip picker and speaks its own protocol.** `wan2.7-i2v` and `wan2.7-t2v` join the Model Studio candidates checked against your key, and a task for them is shaped the way the 2.7 API wants it (#508).
 - **A remembered answer to another device's approval covers that step, not every step that starts the same way.** The card for a step relayed from the computer keys *always* and *for this chat* on the `grant_key` the other device sends (the tool and its target); an older device's approvals are remembered by their preview as before.
 - **The agent can read which Feed posts you liked.** The posts are in its sandbox at `/var/minis/feed/YYYY-MM-DD/NN.md`, read-only, with `liked: true` on the ones you tapped; it is told that a post without it is one you have not reacted to, not one you dislike, so it can shift what it writes towards what you liked without you saying so in chat. For [#547](https://github.com/nano-muse/nanoMuse/issues/547).
 
@@ -110,6 +112,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### iOS
 
+- **Wan 2.7 is in the clip picker and speaks its own protocol.** `wan2.7-i2v` and `wan2.7-t2v` join the Model Studio candidates checked against your key, and a task for them is shaped the way the 2.7 API wants it (#508).
 - **A remembered answer to another device's approval covers that step, not every step that starts the same way.** The card keys *always* and *for this chat* on the `grant_key` the other device sends; an older device's approvals are remembered by their preview as before.
 - **Turning off execution steps now survives resetting and reopening the main conversation.** Restored finished tool calls are filtered from the message-list snapshot while the saved setting is off; a currently running turn still shows its steps. For [#548](https://github.com/nano-muse/nanoMuse/issues/548).
 
