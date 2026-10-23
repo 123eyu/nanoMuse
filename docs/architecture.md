@@ -62,6 +62,11 @@ Anything that can show the agent to a person implements `nanomuse/ui.py::UI`: te
 
 `MuseService` keeps one `MuseAgent` per thread, each with its own conversation and worker task, all sharing the memory and goals stores, the vault and the audit log. The main thread is the long conversation; side chats are separate threads; background goal passes run in their own thread and post a summary to the main one. A `contextvar` tells `WebUI` which thread a callback belongs to.
 
+Timeline writes are coalesced but versioned: shutdown flushes the newest snapshot, and an
+older worker write cannot replace it afterwards. The model conversation history is written
+to a temporary file beside its destination and atomically replaced, so a failed write keeps
+the previous valid JSON.
+
 ## Extension points
 
 | Want to add… | Do this |
