@@ -131,7 +131,9 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Project
 
-- **The contributor list is current without publishing a maintainer's personal e-mail address.** All ten READMEs now show the same fourteen community contributors and keep the maintainer's GitHub profile as the contact.
+- **The contributor list is current without publishing a maintainer's personal e-mail address.** All ten READMEs now show the same fifteen community contributors and keep the maintainer's GitHub profile as the contact.
+- **A release is not published without its pull-request list.** When `scripts/release_notes.py` cannot build *What's Changed*, `scripts/release-apk.sh` stops instead of publishing the hand-written notes alone; the tag is already pushed, so the same `--publish-only --target` call resumes once the cause is fixed.
+- **The desktop workflow refuses to attach installers of another version to a release.** A manual run with `release_tag` set checks that `harness/desktop/package.json` carries that version before the four platforms start, the way the harness workflow already did.
 - **The bug report form is back on the new-issue chooser.** GitHub accepts a form's top-level `description` only between 3 and 200 characters and hides the form silently when it is longer, so the bilingual rewrite took *Bug report / 问题报告* to 245 and it disappeared from the chooser: desktop, runtime, web, iPhone, relay and showcase reports went to the Android form, whose own text pointed at the missing one. The description fits again in both languages, and a test checks every form has its `name` and `description`, that the three forms are on disk and that the length stays inside 3-200, so a form cannot be lost without a word again. For [#495](https://github.com/nano-muse/nanoMuse/issues/495).
 
 ## [1.0.5] - 2026-10-14 · Lookout
