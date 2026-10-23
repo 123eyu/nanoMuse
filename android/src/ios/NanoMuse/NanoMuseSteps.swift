@@ -9,6 +9,10 @@ enum NanoMuseSteps {
     static let key = "nanomuse.show_steps"
     static let defaultValue = true
 
+    static func storedValue(in defaults: UserDefaults = .standard) -> Bool {
+        defaults.object(forKey: key) as? Bool ?? defaultValue
+    }
+
     /// Whether to leave this block out of the chat.
     static func hidden(_ kind: AssistantBlockKind, active: Bool, showSteps: Bool) -> Bool {
         guard !showSteps, !active else { return false }
@@ -18,6 +22,16 @@ enum NanoMuseSteps {
         case .text, .thinking, .info:
             return false
         }
+    }
+
+    /// Blocks that belong in the collection-view snapshot. Filtering before cells are restored
+    /// keeps a persisted "off" authoritative across chat resets and process launches.
+    static func visibleBlocks(
+        _ blocks: [AssistantBlock],
+        active: Bool,
+        showSteps: Bool
+    ) -> [AssistantBlock] {
+        blocks.filter { !hidden($0.kind, active: active, showSteps: showSteps) }
     }
 }
 

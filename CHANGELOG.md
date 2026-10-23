@@ -110,6 +110,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 ### iOS
 
 - **A remembered answer to another device's approval covers that step, not every step that starts the same way.** The card keys *always* and *for this chat* on the `grant_key` the other device sends; an older device's approvals are remembered by their preview as before.
+- **Turning off execution steps now survives resetting and reopening the main conversation.** Restored finished tool calls are filtered from the message-list snapshot while the saved setting is off; a currently running turn still shows its steps. For [#548](https://github.com/nano-muse/nanoMuse/issues/548).
+
 - **A task sent to another device with `@〈device〉` shows its progress.** The reply appears at once with "〈device〉 is working…", then each step that device takes as a capsule, running and then done or failed, and what its Muse says as it arrives; a step whose result never came shows as failed after a timeout or a lost connection, as cancelled after Stop, and never as done; the answer lands in place at the end. The composer's stop button ends the task on that device too, and a message queued meanwhile goes when it ends. Before, the chat showed nothing until the whole task was done. For [#512](https://github.com/nano-muse/nanoMuse/issues/512).
 
 - **The `@` menu offers your other devices.** Typing `@` at the start of a message lists the account's online phones and computers above the files, filtered by what follows; picking one writes `@〈name〉 ` so the message goes to that device. Before, a device could only be addressed by typing its name in full or from *Settings → Devices*. For [#505](https://github.com/nano-muse/nanoMuse/issues/505).
