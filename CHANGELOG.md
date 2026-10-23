@@ -71,6 +71,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Android
 
+- **The agent can read which Feed posts you liked.** The posts are in its sandbox at `/var/minis/feed/YYYY-MM-DD/NN.md`, read-only, with `liked: true` on the ones you tapped; it is told that a post without it is one you have not reacted to, not one you dislike, so it can shift what it writes towards what you liked without you saying so in chat. For [#547](https://github.com/nano-muse/nanoMuse/issues/547).
+
 - **Responses API requests no longer failed on repeated tool-call ids in accumulated or restored history.** Later copies receive deterministic request-unique suffixes while every tool output remains paired with its call. For [#501](https://github.com/nano-muse/nanoMuse/issues/501).
 
 - **Memory and date changes no longer invalidate the agent's static prompt prefix.** Safety and phone-operation instructions now stay ahead of a deterministic suffix containing skills, MCP metadata, model/device state, conversation addenda, memory and `USER.md`, with runtime context last, preserving provider prefix-cache hits across memory writes and day changes. For #502.
