@@ -960,8 +960,7 @@ async def test_blocked_disposable_domains_are_refused():
 async def test_invite_settlement_refuses_same_ip_and_tiny_probes():
     """An invite bonus does not settle when the inviter and invitee share the same
     non-local `first_ip`, and does not settle on a tiny probe below
-    `invite_settle_min_spent_uy` unless the invitee has registered a Hub device or crosses
-    the spend threshold."""
+    `invite_settle_min_spent_uy` until the invitee crosses the spend threshold."""
     app, client, sender, up, cloud, settings = make(
         allowance_cny=5, invite_bonus_cny=2, invite_settle_min_spent_uy=200, code_per_ip_hour=1000
     )

@@ -497,9 +497,9 @@ class Settings:
     # until it is cleared — what is here is the starting point.
     allowance_cny: float = field(default_factory=lambda: float(_env("ALLOWANCE_CNY", "10")))
     invite_bonus_cny: float = field(default_factory=lambda: float(_env("INVITE_BONUS_CNY", "5")))
-    # Minimum provider spend (in micro-yuan) by an invited account before its invite bonus
-    # is settled when the account has not registered a Hub device; default 200 micro-yuan
-    # refuses single-line scripted probes while settling normal chat turns.
+    # Minimum cumulative successful provider spend (in micro-yuan) by an invited account
+    # before its invite bonus is settled; default 200 micro-yuan refuses single-line
+    # scripted probes while settling normal chat turns.
     invite_settle_min_spent_uy: int = field(default_factory=lambda: _int("INVITE_SETTLE_MIN_SPENT_UY", 200))
     day_offset_h: int = field(default_factory=lambda: _int("DAY_OFFSET_H", 8))
     # Data controls (0.9): "Help improve nanoMuse's AI models" keeps the text of an

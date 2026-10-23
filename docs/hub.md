@@ -229,6 +229,21 @@ remembered. Bodies for `file.get`, `file.put` and `screen` carry the bytes in
 base64 (`data`) with `mime`; the desktop refuses files over 8 MB, the relay
 refuses frames over `HUB_FRAME_LIMIT`.
 
+From relay 0.27, a credential owns one Hub identity: its `device.id` and
+`device.kind` are fixed when the credential is issued with `device_id` and
+`device_kind` (`POST /v1/auth/verify` and `/login`), or else at the first
+accepted `hello` of a credential that was issued without them. The same
+credential may reconnect and replace its own older socket, but `bad_device`
+rejects another id or kind. An id a live key holds is taken over only by a key
+from a later code or password sign-in (the phone signed in again without
+signing out, the runtime's vault was reset, a sign-out that never reached the
+relay): the older key still opens the account but no longer speaks for the
+device. A revoked or lapsed key releases its id. A session key
+(`/v1/auth/session-key`, nanoMuse Web's containers) registers an id nobody
+holds and never takes one over. Existing clients keep their keys and register
+at their next connection; clients that send the identity at sign-in bind it
+there.
+
 The agent's name and look are the account's, not a device's: `GET` / `PUT
 /v1/me/profile` on the relay keep them (the dragon, an emoji on a colour, or a
 face drawn in the avatar studio with its five small stills), last writer wins,
@@ -310,9 +325,9 @@ computer's own hands) is in [every-device.md](every-device.md).
 
 ## Trust
 
-The relay authenticates every socket with the account key and routes only
-within the account; it stores device names and last-seen times, not what was
-asked. A device answers only devices of its own account, and only while its
+The relay authenticates every socket with a credential bound to its device id
+and kind, and routes only within the account; it stores device names and
+last-seen times, not what was asked. A device answers only devices of its own account, and only while its
 *Remote control* switch is on, and, for anything that runs, reads or writes
 there, after the person at that device agreed (once, or always for the asking
 device). Commands are judged where they are typed, before they leave; a remote
