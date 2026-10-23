@@ -10,6 +10,7 @@ import android.provider.DocumentsContract
 import android.util.Log
 import com.openminis.app.data.FileMentionIndex
 import com.openminis.app.data.MountedFoldersStore
+import io.github.nanomuse.sandbox.FeedSandboxScope
 import java.io.File
 import java.util.TimeZone
 import kotlin.math.abs
@@ -197,6 +198,8 @@ object PRootKernel {
             val hostDir = File(globalBase, subdir).also { it.mkdirs() }
             bindMounts["/var/minis/$subdir"] = hostDir.absolutePath
         }
+        // nanoMuse: PRoot has no read-only bind flag, so expose only the disposable Feed mirror.
+        bindMounts[FeedSandboxScope.LINUX_ROOT] = FeedSandboxScope.refresh(context).absolutePath
     }
 
     fun removeBindMount(linuxPath: String) {
@@ -277,10 +280,13 @@ object PRootKernel {
         // target lands under an effectively-read-only mount, so the agent gets a
         // clear "read-only mounted folder" error in the shell instead of a write
         // that silently no-ops (Android 10 shadow FUSE) or a confusing raw EACCES.
-        val readOnlyLinuxPrefixes = store?.entries?.value.orEmpty()
+        val externalReadOnlyPrefixes = store?.entries?.value.orEmpty()
             .filter { it.name in desired.keys.map { k -> k.removePrefix(MOUNTS_LINUX_PREFIX) } }
             .filterNot { it.effectiveWritable }
             .map { "$MOUNTS_LINUX_PREFIX${it.name}" }
+        // nanoMuse: Feed is always read-only; the bind points at a disposable mirror as the
+        // security boundary, while these wrappers make ordinary shell writes fail clearly.
+        val readOnlyLinuxPrefixes = listOf(FeedSandboxScope.LINUX_ROOT) + externalReadOnlyPrefixes
         installMountWriteGuards(context, readOnlyLinuxPrefixes)
 
         val entryCount = store?.entries?.value?.size ?: 0

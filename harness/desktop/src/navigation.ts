@@ -36,3 +36,20 @@ export function navigationVerdict(url: string, hostUrl: string | null, ownResour
   if (sameOrigin(url, hostUrl) || ownPage(url, ownResourcesHref)) return "allow";
   return EXTERNAL_URL.test(url) ? "external" : "deny";
 }
+
+/** Only same-origin, audio-only capture is available to the Host's dictation UI. */
+export function mediaPermissionAllowed(
+  permission: string,
+  requestingUrl: string,
+  embeddingOrigin: string | undefined,
+  mediaTypes: readonly string[] | undefined,
+  hostUrl: string | null,
+): boolean {
+  return (
+    permission === "media" &&
+    sameOrigin(requestingUrl, hostUrl) &&
+    (!embeddingOrigin || sameOrigin(embeddingOrigin, hostUrl)) &&
+    mediaTypes?.length === 1 &&
+    mediaTypes[0] === "audio"
+  );
+}

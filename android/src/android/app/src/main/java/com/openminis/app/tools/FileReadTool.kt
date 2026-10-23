@@ -4,6 +4,7 @@ import android.content.Context
 import com.openminis.app.data.model.AgentToolDefinition
 import com.openminis.app.data.model.AgentToolParam
 import com.openminis.app.sandbox.PRootKernel
+import io.github.nanomuse.sandbox.FeedSandboxScope
 import org.json.JSONObject
 import java.io.File
 
@@ -49,6 +50,9 @@ object FileReadTool {
             if (path.isBlank()) {
                 return ToolExecutionResult("Error: 'path' is required", false, toolTitle = toolTitle)
             }
+
+            // nanoMuse: refresh the tools-only mirror so file_read sees the latest app-owned like.
+            if (FeedSandboxScope.isReadOnlyPath(path)) FeedSandboxScope.refresh(context)
 
             // T123: per-session resolver — see FileWriteTool for rationale.
             val file = PRootKernel.resolveSessionHostPath(sessionId, path, context)

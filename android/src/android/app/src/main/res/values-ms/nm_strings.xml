@@ -1123,7 +1123,6 @@
     <string name="nm_cloud_provider_no_delete">Pembekal ini ialah akaun nanoMuse Cloud anda. Matikan di atas untuk berhenti menggunakan modelnya; untuk log keluar, buka Tetapan › nanoMuse Cloud.</string>
     <string name="nm_welcome_own_key">Guna kunci API sendiri</string>
     <string name="nm_useit_title">Guna untuk</string>
-    <string name="nm_useit_body">Pilih apa yang patut diuruskan kunci ini. Selebihnya kekal pada nanoMuse Cloud.</string>
     <string name="nm_useit_body_signed_out">Pilih apa yang patut diuruskan kunci ini.</string>
     <string name="nm_useit_use">Guna</string>
     <string name="nm_useit_not_now">Bukan sekarang</string>

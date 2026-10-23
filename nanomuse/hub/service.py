@@ -914,7 +914,11 @@ class HubService:
 
     def _incoming_thread(self, call: IncomingCall, conversation: str) -> Thread:
         for t in self.svc.threads.values():
-            if t.remote_from and t.remote_from.get("conversation") == conversation:
+            if (
+                t.remote_from
+                and t.remote_from.get("device") == call.sender_id
+                and t.remote_from.get("conversation") == conversation
+            ):
                 return t
         thread = self.svc.create_thread(f"From {call.sender_name}")
         thread.remote_from = {
@@ -991,17 +995,22 @@ class HubService:
         elif etype == "approval":
             if status == "pending" and fresh:
                 self._relayed_approvals[str(ev.get("id") or "")] = call.sender_id
-                await call.event(
-                    {
-                        "stage": "approval",
-                        "approval_id": ev.get("id"),
-                        "preview": ev.get("summary", ""),
-                        "risk": ev.get("risk", "moderate"),
-                        "reason": "; ".join(ev.get("warnings") or ev.get("reasons") or []),
-                        "device": self.device_name,
-                        "timeout": int(self.settings.server.approval_timeout),
-                    }
-                )
+                body = {
+                    "stage": "approval",
+                    "approval_id": ev.get("id"),
+                    "preview": ev.get("summary", ""),
+                    "risk": ev.get("risk", "moderate"),
+                    "reason": "; ".join(ev.get("warnings") or ev.get("reasons") or []),
+                    "device": self.device_name,
+                    "timeout": int(self.settings.server.approval_timeout),
+                }
+                # what a remembered answer on the asking device covers: the same key the
+                # Sentinel's own grants use (the tool and its target), never the preview,
+                # whose first words two different steps can share
+                key = str(ev.get("grant_key") or "").strip()
+                if key:
+                    body["grant_key"] = key
+                await call.event(body)
             elif status in ("approved", "denied", "expired") and not fresh:
                 # answered here (or timed out): the caller's card closes too
                 self._relayed_approvals.pop(str(ev.get("id") or ""), None)

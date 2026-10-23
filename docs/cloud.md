@@ -36,7 +36,7 @@ and your devices. After the code the app has:
 
 *Settings → nanoMuse Cloud* (the *Account* screen) shows who is signed in (a
 masked hint, never the number) and since when; sets, changes or removes the
-**password** (eight characters or more; scrypt on the relay; locked for a while
+**password** (the relay sets the minimum, eight characters by default; scrypt on the relay; locked for a while
 after repeated wrong attempts, and a fresh code sign-in opens it again); today's
 spend against the allowance in ¥ and $ with a meter; **usage by kind** (chat,
 pictures, video) today and in all, and **by model**; the
@@ -84,17 +84,19 @@ The relay is the code in [`cloud/`](../cloud/README.md). It stores:
   so the operator can see who an account belongs to on the admin page (the
   database file alone shows nothing);
 - the hash of each key issued, with the device name you signed in from, how
-  (code or password) and when it was last used; revoked keys keep their row
-  so the sign-ins list can say so;
+  (code or password), when it was last used and, once registered, its Hub
+  device id and kind; revoked keys keep their row so the sign-ins list can say
+  so;
 - the password, if you set one, as an scrypt hash, never the password;
 - per request: the kind (chat, picture, video), the model, the token counts
   and the amount charged;
 - a timeline of account events (signed in, failed sign-in, password set or
   changed, signed out, refused for budget, upstream error) with a
   device name, a model or an error code as the detail, never message content;
-- the id of each video task with its price and the provider's last word on it,
-  so only the account that started one can poll it and the clip is charged once
-  (the rows go after three days);
+- legacy video-task rows with their price and the provider's last word, retained
+  only for accounting cleanup and removed after three days. Hosted media is
+  fully retired, so task polling returns `410 hosted_media_retired` like every
+  other hosted media route and never reaches the provider;
 - the agent's name and look (`/v1/me/profile`): which face it wears (the dragon,
   an emoji on a colour, or one drawn in the avatar studio, with that face's five
   stills as small WebP pictures), so every device of the account shows the same
@@ -347,9 +349,9 @@ code brought, with how many of those ever made a request, how many are still
 pending (no first request yet, so no bonus yet) and how many were seen from
 one of the inviter's own addresses, and an account's page names its inviter
 and lists the people it brought (`GET /v1/admin/invites`). Padding one's own
-pool is not worth the trouble: the bonus is paid once the invitee uses the
-relay (`INVITE_SETTLE_MIN_SPENT_UY`, 200 micro-yuan by default, or a
-registered Hub device) from a network address different from the inviter's,
+pool is not worth the trouble: the bonus is paid once the invitee has
+accumulated real successful provider spend (`INVITE_SETTLE_MIN_SPENT_UY`, 200
+micro-yuan by default) from a network address different from the inviter's,
 e-mail `+tag` subaddresses and Gmail dot or `googlemail.com` aliases map to
 the same account, disposable mail domains (`DEFAULT_SIGNUP_DOMAIN_BLOCK` plus
 `SIGNUP_DOMAIN_BLOCK`) are refused, new accounts from a mail domain that is
@@ -475,8 +477,8 @@ The app's calls, all JSON:
 GET  /healthz                                                 → {ok, version, models[], paused[]}; no key
 GET  /v1/config                                               → {version, signup_open, paused[], allowance_cny, allowance_usd, invite_bonus_cny, invitee_bonus_cny, usd_cny, invite_url, own_key_docs, openrouter_url, privacy_url, repo_url, improve_default, code_ttl_s, password_min_len}; no key, a minute's cache
 POST /v1/auth/code          {identifier}                      → 204 (a disabled account gets the same 204 and nothing is sent); 400 phone_region, 403 not_invited | signup_closed, 429 code_too_often | domain_limited, 502 send_failed
-POST /v1/auth/verify        {identifier, code, device, invite?} → {api_key, base_url, account, tokens, models, created, region}; 400 code_wrong | code_expired, 403 account_disabled
-POST /v1/auth/login         {identifier, password, device}    → the same; 401 bad_credentials, 429 locked, 400 no_password
+POST /v1/auth/verify        {identifier, code, device, invite?, device_id?, device_kind?} → {api_key, base_url, account, tokens, models, created, region}; the optional identity binds the key to that Hub device (hub.md); 400 code_wrong | code_expired | bad_device, 403 account_disabled
+POST /v1/auth/login         {identifier, password, device, device_id?, device_kind?} → the same; 401 bad_credentials, 429 locked, 400 bad_device
 POST /v1/auth/password      Bearer  {password, current?}      → 204; "" with current removes it; 400 password_short | password_long | password_weak | password_wrong | password_required
 POST /v1/auth/session-key   Bearer  {device?, ttl_s?}         → {api_key, expires_at}; a key that lapses on its own (90 days at most); 403 session_from_session
 GET  /v1/me                 Bearer                            → {region: cn | intl | unknown, account{…, has_password, sessions, signed_in_via}, usage{today, total by kind / model}, tokens, spend{…, ways, guidance}, invite, contribute, models, defaults, base_url, clips, recent, nudges, paused[]}
@@ -514,10 +516,9 @@ clips under the provider's own paths (`POST
 /api/v1/tasks/{id}` for the account's own tasks, `GET /api/v1/uploads`). Errors
 are `{"error": {"message", "type": "nanomuse_cloud", "code"}}` with a stable
 `code` the app turns into a sentence. On the hosted service, new image/video
-requests, uploads, typed media-model lookups and media estimates return `410
-hosted_media_retired` with `action: configure_own_provider` before any
-upstream request. Existing video-task polling remains available so an old
-accepted task can finish. Relay 0.22 adds the codes of the
+requests, uploads, typed media-model lookups, media estimates and video-task
+polling return `410 hosted_media_retired` with
+`action: configure_own_provider` before any upstream request. Relay 0.22 adds the codes of the
 operator's [switches](#controls): `403 signup_closed`, `503 service_paused`,
 `503 sync_paused`, `503 hub_paused` (and the hub's close code `4003
 hub_paused`), and `allowance_exhausted` with `paused: true` when the free

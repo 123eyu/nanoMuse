@@ -161,17 +161,17 @@ Ours, in `NanoMuse/`:
   `coding.*` actions, a message to any of them), **Scheduled tasks**, **System files** (SOUL,
   GLOBAL, the diary, the feed's instruction, the routines' schedule, *Import memory* from another
   assistant), Connectors, Data controls, the two shell switches, *Show the welcome again*.
-- **Models (0.1.34)** (`NanoMuseModels.swift`): the relay's menu opens on `deepseek-v4.1-flash`
-  (the one marked recommended *for chat*; `qwen3.8-27b` is the hands' model and never the chat
-  default); a pick made in the chat's picker moves to the front of the Cloud group so new chats
+- **Models (0.1.34)** (`NanoMuseModels.swift`): the relay's menu opens on the model marked
+  recommended *for chat*; the hosted relay currently recommends the same multimodal
+  `Qwen/Qwen3.6-27B-FP8` for chat and screen operation. A pick made in the chat's picker moves to the front of the Cloud group so new chats
   follow it, as Android's `followPick`. DeepSeek ids are text-only unless they name `v4.1` or
   later, `vision` or `ocr`: a `// nanoMuse:` step at the top of `LLMModel.withInferredModality()`.
 - **Models as four slots (0.1.41)** (`NanoMuseModelSlots.swift`, `NanoMuseModelsView.swift`;
   Android `ui/models/ModelsScreen.kt`): the first card of *Settings → nanoMuse* is *Models* and
   opens four rows: *Chat*, *Operating the screen* (disabled on iPhone, *Not on iPhone*, *Your
   computer uses its own setting.*), *Making pictures*, *Making clips*, each showing
-  `<provider> · <model>` and opening a picker grouped *nanoMuse Cloud* first (the relay's
-  recommended one marked *Recommended*) and then one group per provider of your own that can do
+  `<provider> · <model>` and opening a picker grouped *nanoMuse Cloud* first only when the
+  relay's live menu covers that row (with its recommendation marked *Recommended*) and then one group per provider of your own that can do
   it; an empty row says what is missing and offers *Add a provider*, and so does the page's last
   row; under the pictures and clips pickers a key the catalogue says can draw but the phone
   cannot drive (`NanoMuseModelSlots.notDriven`: only a DashScope host is) is named in one
@@ -182,9 +182,9 @@ Ours, in `NanoMuse/`:
   side chats answered through the key); the page says *Applies to the main chat and to new
   chats; a side chat keeps its model.*; a pick made in a chat's own picker sticks the same way,
   for any provider, not only Cloud. Pictures and clips resolve in one order (your choice, else the chat
-  provider's own default when it is a Model Studio key that draws, else nanoMuse Cloud when
-  signed in, else the first key that can), so Cloud is no longer passed over for a Bailian key
-  you did not pick; the image and video models come from the catalogue's `defaults`, not from
+  provider's own default when it is a Model Studio key that draws, else a signed-in relay only
+  when its live menu offers the media kind, else the first key that can). The hosted Cloud
+  offers no media generation, so these rows require a key of your own; the image and video models come from the catalogue's `defaults`, not from
   names in the code. The pictures and clips pickers open with an *Automatic* entry (*Currently
   〈provider · model〉*) that forgets the stored choice and lets the slot follow that order
   again; the clips picker keeps *Off* under it. A group shows at most eight rows (the
@@ -196,10 +196,11 @@ Ours, in `NanoMuse/`:
   After a key is saved, `NanoMuseVendorSheet` shows *Use it for*: one switch
   per slot the key covers (pictures and clips only on a DashScope host, the screen never on
   iPhone), all on; *Use it* moves the ticked slots to the provider's defaults, *Not now* changes
-  nothing, and saving no longer switches anything by itself. When a model of your own fails, the
-  failure card (and upstream's plain error) gains *Use nanoMuse Cloud this time* while signed
-  in: the retry runs on the relay's chat model (`NanoMuseCloudOnce`, read at the top of
-  `resolveCurrentEntry()`), and no slot changes. The relay's menu is kept on the phone at sign-in
+  nothing, and saving no longer switches anything by itself. When a chat model of your own
+  fails, the failure card (and upstream's plain error) gains *Use nanoMuse Cloud this time*
+  while signed in: the retry runs on the relay's chat model (`NanoMuseCloudOnce`, read at the
+  top of `resolveCurrentEntry()`), and no slot changes. Media failures have no Cloud retry.
+  The relay's menu is kept on the phone at sign-in
   and refreshed when the page opens. *Image & video models* stays as a shortcut with the animate
   toggle and the clip buttons.
 - **Connections across devices (0.1.34)** (`NanoMuseSharedConnectors` in
@@ -328,8 +329,9 @@ Ours, in `NanoMuse/`:
 - **Motion clips (0.1.35)** (`NanoMuseVideoGen.swift`, `NanoMuseAvatarMotion.swift`,
   `NanoMuseMediaModels.swift`; Android `avatar/VideoGen.kt`, `avatar/AvatarMotion.kt`): a drawn
   face gets four 4-second clips (idle, working, waiting, happy) from `wan2.2-i2v-flash`
-  (DashScope's async API through the relay, or your own Bailian key), the phone's prompts word
-  for word, kept per device under `avatar/motion/`; the face plays them with an `AVQueuePlayer`
+  through your own Bailian key (or a self-hosted relay whose operator explicitly enabled the
+  legacy media proxy; the public Cloud does not), the phone's prompts word for word, kept per
+  device under `avatar/motion/`; the face plays them with an `AVQueuePlayer`
   and an `AVPlayerLooper` (suspended in the background), the dragon's clips come from the bundle.
   *Image & video models* lists the models, *Animate the avatar after a change* (on by default)
   and *Make / Redo clips*; the studio's cost estimate counts the clips.
@@ -892,7 +894,7 @@ what became of it here:
 | `community.StarPrompt`, `community.Nudges`: the star asks from the relay's policy | Done (0.1.35): `NanoMuseNudges.swift`, `NanoMuseStar` (the moments, the cooldown and the cap from `/v1/nudges`) |
 | `community.UpdateCheck`, the Version row | Done (0.1.35): `NanoMuseUpdateCheck.swift` (installed and latest, `nanomuse.cn/dl/index.json` then GitHub) |
 | `avatar.VideoGen`, `avatar.AvatarMotion`: the motion clips | Done (0.1.35): `NanoMuseVideoGen.swift`, `NanoMuseAvatarMotion.swift`, `NanoMuseMediaModels.swift` |
-| `nm.show_steps`: the agent's steps, on by default since 0.1.37 | 0.1.32: `NanoMuseSteps.swift`; finished messages keep to the conversation, a running one shows its steps |
+| `nm.show_steps`: the agent's steps, on by default since 0.1.37 | 0.1.32: `NanoMuseSteps.swift`; finished messages keep to the conversation, including after the main chat is reset or restored on launch; a running one shows its steps |
 | `connectors`: the catalogue, `SharedConnectors` | Done: `NanoMuseConnectors.swift` (0.1.33 the catalogue, 0.1.34 the other devices' entries) |
 | `ui.home`, `ui.chat`, `ui.settings`, `ui.profile`: the shell, header, agent page | Done: `NanoMuseShell.swift`, `NanoMuseHeader.swift`, `NanoMuseAgentPage.swift`, `NanoMuseSettings.swift`; 0.1.35 the Muse header on every room, the settings as Muse cards (`NanoMuseChrome.swift`, `NanoMuseAppearance.swift`) |
 | `avatar`: the drawn face, the chat-driven change, the studio | Done (0.1.34): `NanoMuseAvatarFlow.swift`, `NanoMuseAvatarStudio.swift`, `NanoMuseImageGen.swift` |
@@ -902,8 +904,9 @@ what became of it here:
 | `hands`: the phone's own screen | No equivalent: iOS does not let an app drive another. App Intents / Shortcuts are the door there |
 | Widgets | Upstream's `AgentWidget` as it is |
 
-Still to check on a device, in order: the first run end to end with a fresh account; a chat-driven
-avatar change through the relay and through a Bailian key, and the four clips it draws afterwards; a routine coming due with the app in
+Still to check on a device, in order: the first run end to end with a fresh account; confirm the
+hosted account's media entry points ask for an own provider, then make a chat-driven avatar change
+through a Bailian key and the four clips it draws afterwards; a routine coming due with the app in
 the background (does iOS grant the refresh on the tester's phone, and how often); a coding session
 against a computer of the account; the connectors list after a second device signs in.
 

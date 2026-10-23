@@ -31,7 +31,7 @@ hub 上传递两类请求：
 - **动作。** `info`、`shell`、`files`、`file.get`、`file.put`、`open`、`screen`、`notify`。原始、即时。一条 `shell` 命令在发出之前先在*发起方*判定，用的和本地命令同一套阶梯（手机的 ShellGuard、桌面的 `guard.py`）：读取和构建静默放行，删除 / 发送 / 付款 / 系统命令则等发起设备上的审批卡片。
 - **任务。** `task {text, conversation?, language?, stream?}`：用自然语言描述的一整件事，交给目标设备自己的 Muse，在它自己的一个对话里完成（`conversation` 指定是哪个对话，缺省时用发起方的 id）。`language`（运行时 1.0.0 起，可选）是发起设备界面语言的 BCP-47 标签；目标设备用这个语言作答，而不是从文字里猜。可能要几分钟。那个 Muse 碰到需要审批的事时不会自己拿主意：问题以 `event {stage:"approval"}` 传回来，发起设备显示它惯常的卡片（手机上是 RiskGate，桌面上是终端提示，网页控制台里是一张卡片）。回答以 `approve {approval_id, allow}` 传回去。发起设备可以用 `stop {call}`（它那条 `task` 帧的 id）或 `stop {conversation}`（它指定的对话，没指定时就是它自己的那个按设备分的对话）结束自己发起的任务：目标设备在进行中的一步之后取消运行，回答 `{stopped: true}`，随后那条 `task` 调用本身以 `cancelled` 失败。`{stopped: false}` 表示没有属于发起方的可停之事；一台设备绝不会停掉别的设备发起的任务。运行时、桌面版和手机都这样做。`stream: true` 表示发起方把每条 `text` 画在上一个 `tool` 之后那段文字的位置上；nanoMuse 桌面版这时还会发 `text {text, interim, partial: true}`，带着模型正在写的那条消息的文字，最多每 250 毫秒一次，写完的消息照旧发。没有要求的发起方每条消息只收到一次（Android 的 `nanomuse-pc task` 把每条 `text` 列成一步）；运行时暂时忽略 `stream`。
 
-  任务运行期间，目标设备发送 `event` 帧，`body.stage` 告诉发起方该画什么，于是这次运行在发起方的聊天里读起来和在目标设备自己那里一样：工具开始时是 `tool {id, name, summary}`，结束时是 `tool_result {id, name, ok, summary}`（同一个 `id`）；`approval {approval_id, preview, risk, reason, device, timeout}`，以及任一方作出决定后的 `approval_result {approval_id, status}`；`text {text, interim}` 是 Muse 一路上说的话；`image` 和 `file` 是它做出来的东西；`error`。`result` 帧带着最终答案。发起方把一条 `text` 画在上一个 `tool` 之后那段文字的位置上，所以目标设备可以把同一条消息越写越长地发好几次，发起方随之显示；每条消息只发一次的目标设备显示效果不变。
+  任务运行期间，目标设备发送 `event` 帧，`body.stage` 告诉发起方该画什么，于是这次运行在发起方的聊天里读起来和在目标设备自己那里一样：工具开始时是 `tool {id, name, summary}`，结束时是 `tool_result {id, name, ok, summary}`（同一个 `id`）；`approval {approval_id, preview, risk, reason, device, timeout, grant_key}`，以及任一方作出决定后的 `approval_result {approval_id, status}`；`text {text, interim}` 是 Muse 一路上说的话；`image` 和 `file` 是它做出来的东西；`error`。`result` 帧带着最终答案。发起方把一条 `text` 画在上一个 `tool` 之后那段文字的位置上，所以目标设备可以把同一条消息越写越长地发好几次，发起方随之显示；每条消息只发一次的目标设备显示效果不变。`grant_key`（1.0.6 起）是发起方记住的回答所覆盖的范围：运行时发的是它自己的授权所用的键（工具和目标，如 `shell:git`），桌面版发的是工具加完整的主参数；没有这个字段的发送方，照旧按 `preview` 的前 60 个字符记，而两个不同的步骤可能开头相同。
 
 - **编程助手。** `coding.agents`、`coding.sessions`、`coding.session`、`coding.send`、`coding.stop`、`coding.runs`：电脑上的 Cursor / Codex / Claude Code 会话，由那里的运行时或桌面版从磁盘读取，并通过这些助手自己的 CLI 来驱动。`coding.send {agent, text, session_id?, workspace?, wait}` 以 `event` 帧把运行过程流式传回（`started`、`text`、`tool`、`done`、`error`，每个都带运行 id，发起方据此可以 `coding.stop`），最后以完成的运行作答。只有电脑会宣告这些动作：装了这个模块的运行时，或者桌面版。[coding-agents.md](coding-agents.md)。
 
@@ -90,6 +90,16 @@ hub 上传递两类请求：
 
 设备 id 按安装生成（`phone-…`、`pc-…`）；名字是给人看的，可以在设备上改。`web` 设备从不作为目标，也不会被记住。`file.get`、`file.put` 和 `screen` 的正文以 base64 携带字节（`data`）并附 `mime`；桌面拒绝超过 8 MB 的文件，中继拒绝超过 `HUB_FRAME_LIMIT` 的帧。
 
+从中继 0.27 起，一份凭据只属于一个 Hub 身份。凭据签发时可以用 `device_id` 和
+`device_kind` 固定 `device.id` 与 `device.kind`（`POST /v1/auth/verify` 和 `/login`）；
+签发时没带的凭据，则在第一次通过的 `hello` 时登记。同一份凭据重连仍会顶替自己的旧
+套接字，改报其他 id 或类型会得到 `bad_device`。一个仍有效的 key 持有的 id，只有更晚
+一次验证码或密码登录签发的 key 才能接手（手机没退出就又登录了一次、运行时的保险库
+重置了、退出登录没传到中继）：旧 key 仍能打开账号，但不再代表这台设备。吊销或过期
+的 key 会释放它的 id。session key（`/v1/auth/session-key`，nanoMuse Web 的容器）只能
+登记没人持有的 id，从不接手别人的。现有客户端保留原 key，下次连接时登记；登录时
+带上身份的客户端在登录时就绑定。
+
 智能体的名字和形象属于账号，不属于某台设备：中继上的 `GET` / `PUT /v1/me/profile` 保存它们（小龙、某个颜色底上的 emoji，或者形象工作室里画的一张形象及其五张小图），后写的胜出，一个 `profile` 帧通知其他设备去取新的 `rev`。运行时在 `nanomuse/hub/profile.py` 里做这件事，手机在 `io.github.nanomuse.cloud.ProfileSync` 里做；写入的那台设备会跳过自己的回声。
 
 同一份 profile 还带着**哪台设备连接了什么**（0.1.34）：一个 `connectors` 列表，每一项有连接器的 id 和标签、有地址的话还有地址、登录方式（`oauth`、`key` 或 `open`）、设备的名字和 id、是否启用，以及时间。一台设备只写自己持有的那些项；中继保留其他设备的项，列表上限 64 项，并拒绝任何带有 token、secret、key、authorization 或 password 字段的项；凭据绝不离开登录它的那台设备。其他设备在连接器目录下把这些项列为「已在 \<device\> 上连接，在这里登录即可在这台设备上使用」，照常的本地登录就是对应的操作。
@@ -109,4 +119,4 @@ hub 上传递两类请求：
 
 ## 信任 {#trust}
 
-中继用账号 key 验证每一条套接字，并且只在账号内部路由；它存设备名和最后在线时间，不存问了什么。一台设备只回答自己账号的设备，而且只在它的「远程控制」开关开着时，对于任何会在那里运行、读取或写入的事，还要那台设备旁的人同意过（一次，或对发起设备总是允许）。命令在输入它的地方判定，然后才发出；远端 Muse 的审批由发起的人回答，绝不由另一个 Muse 回答。在一台设备上退出登录会在中继吊销那台设备的 key，并把它从 hub 上摘下来；手机和控制台的「设备」列表显示所有登录过的设备，所以你不认识的设备是看得见的，等它离线后「移除」就能把它去掉。
+中继用绑定了设备 id 和类型的凭据验证每一条套接字，并且只在账号内部路由；它存设备名和最后在线时间，不存问了什么。一台设备只回答自己账号的设备，而且只在它的「远程控制」开关开着时，对于任何会在那里运行、读取或写入的事，还要那台设备旁的人同意过（一次，或对发起设备总是允许）。命令在输入它的地方判定，然后才发出；远端 Muse 的审批由发起的人回答，绝不由另一个 Muse 回答。在一台设备上退出登录会在中继吊销那台设备的 key，并把它从 hub 上摘下来；手机和控制台的「设备」列表显示所有登录过的设备，所以你不认识的设备是看得见的，等它离线后「移除」就能把它去掉。

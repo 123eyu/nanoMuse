@@ -402,7 +402,8 @@ def ws_client():
 
 def test_hub_tells_the_other_devices_after_an_accepting_push(ws_client):
     key = ws_sign_up(ws_client, "13800138000")
-    with connect(ws_client, key) as phone, connect(ws_client, key) as pc:
+    pc_key = ws_sign_up(ws_client, "13800138000")
+    with connect(ws_client, key) as phone, connect(ws_client, pc_key) as pc:
         phone.send_json(hello("phone", "phone-1", "Pixel"))
         phone.receive_json()  # welcome
         phone.receive_json()  # devices
@@ -630,8 +631,9 @@ async def test_working_is_presence_kept_ten_minutes_in_memory():
 
 def test_hub_carries_working_to_the_other_devices(ws_client):
     key = ws_sign_up(ws_client, "13800138000")
+    pc_key = ws_sign_up(ws_client, "13800138000")
     headers = {"Authorization": f"Bearer {key}"}
-    with connect(ws_client, key) as phone, connect(ws_client, key) as pc:
+    with connect(ws_client, key) as phone, connect(ws_client, pc_key) as pc:
         phone.send_json(hello("phone", "phone-1", "Pixel"))
         phone.receive_json()  # welcome
         phone.receive_json()  # devices

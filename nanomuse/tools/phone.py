@@ -28,7 +28,15 @@ from nanomuse.phone.screen import Screen
 from nanomuse.prompts import detect_language
 from nanomuse.schema import RiskLevel, ToolResult
 from nanomuse.tools.base import BaseTool, CallAssessment, number_arg
-from nanomuse.tools.surface import PHONE, hand_over, inside, num, screen_result, wait_hold
+from nanomuse.tools.surface import (
+    PHONE,
+    hand_over,
+    inside,
+    num,
+    screen_result,
+    trusted_node_words,
+    wait_hold,
+)
 
 if TYPE_CHECKING:
     from nanomuse.phone.operator import PhoneOperator
@@ -177,8 +185,15 @@ class PhoneAct(BaseTool):
         words = list(self.gui.sensitive_words)
         risk, warnings, egress = RiskLevel.MODERATE, [], False
         hit: list[str] = []
-        if action in (*POINTED, "enter") and label and not self._is_app_name(label):
-            hit = [w for w in words if w.lower() in label.lower()]
+        # the sensitive words are looked for in the model's `label` and, when the device
+        # reported elements with bounds, in the words of the element under the finger; a
+        # screen without elements (a WebView, Flutter, a game) changes nothing here
+        trusted = trusted_node_words(screen, _point(args, "x", "y")) if action in POINTED else None
+        evidence = " / ".join(
+            part for part in (label, trusted or "") if part and not self._is_app_name(part)
+        )
+        if action in (*POINTED, "enter") and evidence:
+            hit = [w for w in words if w.lower() in evidence.lower()]
         if action in POINTED and not label:
             warnings.append("a tap with no `label`: nothing says what is under the finger")
         if action == "type" and args.get("submit"):

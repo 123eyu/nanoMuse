@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import threading
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -52,6 +53,8 @@ class Timeline:
         self._flush_handle: asyncio.TimerHandle | None = None
         self._writing: asyncio.Future[Any] | None = None
         self._dirty = False
+        self._version = 0
+        self._write_lock = threading.Lock()
         self._load()
 
     def _load(self) -> None:
@@ -73,21 +76,26 @@ class Timeline:
             ensure_ascii=False,
         )
 
-    def _write(self, payload: str) -> None:
+    def _write(self, payload: str, version: int) -> None:
         try:
-            self.path.parent.mkdir(parents=True, exist_ok=True)
-            tmp = self.path.with_suffix(".tmp")
-            tmp.write_text(payload, "utf-8")
-            tmp.replace(self.path)
+            with self._write_lock:
+                if version < self._version:
+                    return
+                self.path.parent.mkdir(parents=True, exist_ok=True)
+                tmp = self.path.with_suffix(".tmp")
+                tmp.write_text(payload, "utf-8")
+                tmp.replace(self.path)
         except OSError as exc:  # pragma: no cover
             logger.warning("could not save timeline {}: {}", self.path, exc)
 
     def save(self) -> None:
         """Persist soon (on a loop) or now (off one)."""
+        self._version += 1
+        version = self._version
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
-            self._write(self._payload())
+            self._write(self._payload(), version)
             return
         self._dirty = True
         if self._flush_handle is None:
@@ -102,7 +110,7 @@ class Timeline:
         if not self._dirty:
             return
         self._dirty = False
-        self._writing = loop.run_in_executor(None, self._write, self._payload())
+        self._writing = loop.run_in_executor(None, self._write, self._payload(), self._version)
 
     def flush(self) -> None:
         """Write now, e.g. at shutdown; a scheduled write is dropped in its favour."""
@@ -111,7 +119,7 @@ class Timeline:
             self._flush_handle = None
         if self._dirty or self._writing is None:
             self._dirty = False
-            self._write(self._payload())
+            self._write(self._payload(), self._version)
 
     def add(self, event: dict[str, Any]) -> dict[str, Any]:
         event.setdefault("id", new_id())

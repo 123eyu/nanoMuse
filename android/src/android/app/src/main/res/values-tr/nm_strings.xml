@@ -1127,7 +1127,6 @@
     <string name="nm_cloud_provider_no_delete">Bu sağlayıcı nanoMuse Cloud hesabınızın kendisidir. Modellerini kullanmayı bırakmak için yukarıdan kapatın; oturumu kapatmak için Ayarlar › nanoMuse Cloud bölümünü açın.</string>
     <string name="nm_welcome_own_key">Bunun yerine kendi API anahtarımı kullan</string>
     <string name="nm_useit_title">Ne için kullanılsın</string>
-    <string name="nm_useit_body">Bu anahtarın neleri üstleneceğini seç. Gerisi nanoMuse Cloud’da kalır.</string>
     <string name="nm_useit_body_signed_out">Bu anahtarın neleri üstleneceğini seç.</string>
     <string name="nm_useit_use">Kullan</string>
     <string name="nm_useit_not_now">Şimdi değil</string>

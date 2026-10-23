@@ -35,7 +35,15 @@ from nanomuse.phone.link import STOP_MARKER, DeviceError, DeviceStopped
 from nanomuse.phone.screen import Screen
 from nanomuse.schema import RiskLevel, ToolResult
 from nanomuse.tools.base import BaseTool, CallAssessment, number_arg
-from nanomuse.tools.surface import COMPUTER, hand_over, inside, num, screen_result, wait_hold
+from nanomuse.tools.surface import (
+    COMPUTER,
+    hand_over,
+    inside,
+    num,
+    screen_result,
+    trusted_node_words,
+    wait_hold,
+)
 
 # the actions of the tool that are not actions of the hands
 _TOOL_ONLY = ("hand_over", "computer_target")
@@ -224,8 +232,18 @@ class ComputerAct(BaseTool):
         words = list(self.gui.sensitive_words)
         risk, warnings, egress = RiskLevel.MODERATE, [], False
         hit: list[str] = []
-        if action in (*POINTED, "drag") and label:
-            hit = [w for w in words if w.lower() in label.lower()]
+        # The sensitive words are looked for in the model's `label` and, when the screen
+        # reported elements with bounds, in the words of the element under the point: the
+        # label is the model's word for what it is about to press, the element the
+        # screen's. A screen without elements (the computer's screenshot, a WebView, a
+        # game) is the common case and changes nothing here.
+        pointed = (action in POINTED and action != "move") or action == "drag"
+        trusted = (
+            trusted_node_words(screen, self._assessment_point(args, screen)) if pointed else None
+        )
+        evidence = " / ".join(part for part in (label, trusted or "") if part)
+        if pointed and evidence:
+            hit = [w for w in words if w.lower() in evidence.lower()]
         if action in POINTED and action != "move" and not label:
             warnings.append("a click with no `label`: nothing says what is under the cursor")
         if action == "type" and args.get("submit"):
@@ -252,6 +270,21 @@ class ComputerAct(BaseTool):
             summary=summary,
             warnings=warnings,
         )
+
+    def _assessment_point(
+        self, args: dict[str, Any], screen: Screen | None
+    ) -> tuple[float, float] | None:
+        try:
+            return _point(
+                args,
+                "x",
+                "y",
+                "box",
+                screen,
+                self.link.settings.coords == "norm1000",
+            )
+        except ValueError:
+            return None
 
     # ------------------------------------------------------------------ doing
     async def execute(self, **kwargs: Any) -> ToolResult:

@@ -1,7 +1,7 @@
 // This computer's hands for the other devices: the shapes and limits the runtime's
 // `nanomuse/hub/actions.py` has, so a phone cannot tell the two apart.
 import assert from 'node:assert/strict'
-import { mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises'
+import { access, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -52,6 +52,29 @@ test('shell: exit code, output, cwd and a timeout that kills the command', { ski
   await assert.rejects(shell({ command: '   ' }), (e) => e.code === 'usage')
 })
 
+test('shell bounds tens of megabytes while receiving them and keeps both ends', { skip: !posix }, async () => {
+  const command = `${JSON.stringify(process.execPath)} -e "process.stdout.write('HEAD'+ 'x'.repeat(30*1024*1024) +'TAIL'); process.stderr.write('ERRHEAD'+ 'y'.repeat(24*1024*1024) +'ERRTAIL')"`
+  const result = await shell({ command, timeout: 20 })
+  assert.equal(result.exit_code, 0)
+  assert.ok(result.stdout.startsWith('HEAD'))
+  assert.ok(result.stdout.endsWith('TAIL'))
+  assert.ok(result.stderr.startsWith('ERRHEAD'))
+  assert.ok(result.stderr.endsWith('ERRTAIL'))
+  assert.match(result.stdout, /bytes not shown/)
+  assert.ok(result.stdout.length < 220_000)
+  assert.ok(result.stderr.length < 220_000)
+})
+
+test('shell timeout kills the descendant process tree', { skip: !posix }, async () => {
+  await scratch(async (dir) => {
+    const marker = join(dir, 'leaked')
+    const result = await shell({ command: `(sleep 3; printf leaked > ${JSON.stringify(marker)}) & wait`, timeout: 1 })
+    assert.equal(result.timed_out, true)
+    await new Promise((resolve) => setTimeout(resolve, 2500))
+    await assert.rejects(access(marker))
+  })
+})
+
 test('files, file.get and file.put: listing, limits and the force rule', async () => {
   await scratch(async (dir) => {
     await writeFile(join(dir, 'b.txt'), 'bee')
@@ -82,6 +105,12 @@ test('files, file.get and file.put: listing, limits and the force rule', async (
     assert.equal(replaced.bytes, 3)
     assert.equal(await readFile(join(dir, 'b.txt'), 'utf8'), 'new')
     await assert.rejects(filePut({ data: '' }), (e) => e.code === 'usage')
+
+    const oversized = Buffer.alloc(8 * 1024 * 1024 + 1).toString('base64')
+    const tooLarge = join(dir, 'too-large.bin')
+    await assert.rejects(filePut({ path: tooLarge, data: oversized }), (e) => e.code === 'too_large')
+    await assert.rejects(access(tooLarge))
+    assert.equal((await readdir(dir)).some((name) => name.endsWith('.nanomuse-part')), false)
   })
 })
 

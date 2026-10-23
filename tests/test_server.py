@@ -17,8 +17,9 @@ from fastapi.testclient import TestClient
 
 from nanomuse.config import Settings
 from nanomuse.llm import MockLLM
-from nanomuse.schema import Function, LLMResponse, ToolCall
+from nanomuse.schema import Function, LLMResponse, Message, ToolCall
 from nanomuse.server import create_app
+from nanomuse.server.events import Timeline
 from nanomuse.server.service import MuseService, _parse_ideas
 from nanomuse.server.webui import current_thread
 
@@ -556,6 +557,41 @@ def test_use_cloud_this_time_runs_one_turn_on_the_account(server, settings: Sett
     notice = events_of(client, kind="notice")[-1]
     assert notice["level"] == "error" and notice["model_used"] == "relay-chat-model"
     assert service.threads["main"].agent.llm is llm
+
+
+def test_cloud_turn_queued_behind_gated_turn_stays_separate(server, settings, monkeypatch):
+    """A per-turn client at the inbox head must not be folded into the active model call."""
+    from nanomuse.cloud import CLOUD_KEY
+    from nanomuse.server import service as service_module
+
+    client, service, _ = server
+    gate = threading.Event()
+    own = _GatedLLM([LLMResponse(content="own reply")], gate)
+    cloud = _GatedLLM([LLMResponse(content="cloud reply")], threading.Event())
+    cloud.gate.set()
+    service.app.llm = own
+    service.threads["main"].agent.llm = own
+    service.app.vault.set(CLOUD_KEY, "cloud-key")
+    service.hub.chat_models = ["cloud-model"]
+    monkeypatch.setattr(service_module, "create_llm", lambda *_args, **_kwargs: cloud)
+
+    client.post("/api/threads/main/send", json={"text": "first"})
+    wait_for(lambda: own.asking)
+    queued = client.post("/api/threads/main/send", json={"text": "second", "via": "cloud"}).json()[
+        "event"
+    ]
+    assert queued["model_used"] == "cloud-model"
+    gate.set()
+    wait_idle(service)
+
+    assert len(own.calls) == 1 and len(cloud.calls) == 1
+    assert [m.content for m in cloud.calls[0]["messages"] if m.role.value == "user"][-1] == "second"
+    wait_for(lambda: cloud.closed)
+    replies = events_of(client, kind="assistant")
+    assert [(r["text"], r.get("model_used")) for r in replies[-2:]] == [
+        ("own reply", None),
+        ("cloud reply", "cloud-model"),
+    ]
 
 
 class _GatedLLM(MockLLM):
@@ -1559,9 +1595,13 @@ def test_workspace_scan_ignores_only_excludes_inside_it(tmp_path: Path):
 def test_html_artifacts_are_served_sandboxed(server, settings: Settings):
     client, _, _ = server
     (settings.agent.workspace / "page.html").write_text("<script>alert(1)</script>", "utf-8")
-    r = client.get("/api/files/page.html")
-    assert r.status_code == 200 and r.headers["content-type"].startswith("text/html")
-    assert "sandbox" in r.headers["content-security-policy"]
+    (settings.agent.workspace / "drawing.svg").write_text("<svg></svg>", "utf-8")
+    for name in ("page.html", "drawing.svg"):
+        r = client.get(f"/api/files/{name}")
+        assert r.status_code == 200
+        # an opaque origin (no token, no API), scripts and pop-ups allowed: a page the agent
+        # wrote may still load a chart library from a CDN or ask a public API for its data
+        assert r.headers["content-security-policy"] == "sandbox allow-scripts allow-popups"
     (settings.agent.workspace / "notes.md").write_text("# hi", "utf-8")
     assert "content-security-policy" not in client.get("/api/files/notes.md").headers
 
@@ -1756,8 +1796,10 @@ def test_reminders_fire_in_their_chat_and_are_pushed_once(server, monkeypatch):
         )
     )
     fired = client.post(f"/api/reminders/{items[0]['id']}/fire").json()
-    assert fired["status"] == "done" and fired["fired"] == 1 and fired["next_at"] is None
+    assert fired["status"] == "active" and fired["fired"] == 0, "claim is not completion"
     wait_idle(service, side["id"])
+    fired = client.get("/api/reminders?all=1").json()[-1]
+    assert fired["status"] == "done" and fired["fired"] == 1 and fired["next_at"] is None
     notice = [e for e in events_of(client, side["id"], "notice") if e.get("source") == "reminder"]
     assert notice and notice[-1]["text"] == "Reminder: call mum"
     said = events_of(client, side["id"], "assistant")[-1]
@@ -1882,6 +1924,66 @@ def test_timeline_survives_restart(server, settings: Settings):
     assert texts == ["remember this", "persisted"]
     # and the model context was restored as well
     assert [m.role.value for m in fresh.threads["main"].agent.messages] == ["user", "assistant"]
+
+
+async def test_timeline_flush_cannot_be_overwritten_by_an_older_async_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    timeline = Timeline("main", tmp_path / "main.json")
+    original_write = timeline._write
+    old_started = threading.Event()
+    release_old = threading.Event()
+
+    def controlled_write(payload: str, version: int) -> None:
+        if version == 1:
+            old_started.set()
+            release_old.wait(timeout=5)
+        original_write(payload, version)
+
+    monkeypatch.setattr(timeline, "_write", controlled_write)
+    timeline.add({"type": "user", "text": "old"})
+    assert timeline._flush_handle is not None
+    timeline._flush_handle.cancel()
+    timeline._flush_handle = None
+    timeline._flush_later(asyncio.get_running_loop())
+    old_write = timeline._writing
+    assert old_write is not None
+    await asyncio.to_thread(old_started.wait, 5)
+
+    timeline.add({"type": "assistant", "text": "latest"})
+    timeline.flush()
+    release_old.set()
+    await old_write
+
+    stored = json.loads(timeline.path.read_text("utf-8"))
+    assert [event["text"] for event in stored["events"]] == ["old", "latest"]
+
+
+def test_session_write_failure_keeps_the_previous_json_and_recovers(
+    server, monkeypatch: pytest.MonkeyPatch
+):
+    _, service, _ = server
+    agent = service.threads["main"].agent
+    assert agent.session_file is not None
+    agent.messages = [Message.user("before")]
+    agent._save_session()
+    previous = agent.session_file.read_text("utf-8")
+
+    agent.messages.append(Message.assistant("after"))
+    real_replace = os.replace
+
+    def fail_replace(source: str | os.PathLike[str], target: str | os.PathLike[str]) -> None:
+        raise OSError("simulated replace failure")
+
+    monkeypatch.setattr("nanomuse.agent.core.os.replace", fail_replace)
+    agent._save_session()
+    assert agent.session_file.read_text("utf-8") == previous
+    assert list(agent.session_file.parent.glob(f".{agent.session_file.name}.*.tmp")) == []
+
+    monkeypatch.setattr("nanomuse.agent.core.os.replace", real_replace)
+    agent._save_session()
+    stored = json.loads(agent.session_file.read_text("utf-8"))
+    assert [message["content"] for message in stored["messages"]] == ["before", "after"]
 
 
 # ----------------------------------------------------------------------------- push
@@ -2302,8 +2404,13 @@ def test_triggers_start_work_from_mail_events_and_webhooks(
         f"/api/hooks/{hook['id']}?key={hook['secret']}",
         json={"deploy": 42, "status": "ok"},
     )
-    assert r.status_code == 200 and r.json() == {"ok": True, "trigger": hook["id"], "fired": 1}
+    assert r.status_code == 200 and r.json() == {
+        "ok": True,
+        "trigger": hook["id"],
+        "fired": 0,
+    }
     wait_idle(service, side["id"])
+    assert client.get("/api/triggers").json()["items"][0]["fired"] == 1
     notice = [e for e in events_of(client, side["id"], "notice") if e.get("source") == "trigger"]
     assert notice and notice[-1]["text"] == "Webhook: deploy"
     said = events_of(client, side["id"], "assistant")[-1]
@@ -2495,8 +2602,9 @@ def test_triggers_start_work_from_mail_events_and_webhooks(
     # --- run now, cancel ------------------------------------------------------------------
     llm.script.append(LLMResponse(content="Test run done."))
     r = client.post(f"/api/triggers/{mail['id']}/fire")
-    assert r.status_code == 200 and r.json()["fired"] == 2
+    assert r.status_code == 200 and r.json()["fired"] == 1
     wait_idle(service, "main")
+    assert client.get("/api/triggers").json()["items"][-1]["fired"] == 2
     assert client.delete(f"/api/triggers/{mail['id']}").json()["status"] == "cancelled"
     assert client.delete(f"/api/triggers/{mail['id']}").status_code == 409
     assert client.delete("/api/triggers/t_nope").status_code == 404

@@ -73,12 +73,16 @@ Two kinds of request travel over the hub:
   the caller what to draw, so the run reads the same in the caller's chat as in
   the target's own: `tool {id, name, summary}` when a tool starts and
   `tool_result {id, name, ok, summary}` when it ends (same `id`), `approval
-  {approval_id, preview, risk, reason, device, timeout}` and, once decided on
+  {approval_id, preview, risk, reason, device, timeout, grant_key}` and, once decided on
   either side, `approval_result {approval_id, status}`, `text {text, interim}`
   for what the Muse says along the way, `image` and `file` for things it made,
   `error`. The `result` frame carries the final answer. A caller draws a `text` in place of the
   text since the last `tool`, so a target may send the growing text of one message more than
   once and the caller shows it as it grows; a target that sends each message once is shown the same.
+  `grant_key` (since 1.0.6) is what an answer remembered on the asking device covers:
+  the runtime sends the key its own grants use (the tool and its target, `shell:git`),
+  the desktop the tool and its whole main argument; a sender without it is remembered
+  by the first 60 characters of `preview`, as before, which two different steps can share.
 
 - **Coding agents.** `coding.agents`, `coding.sessions`, `coding.session`,
   `coding.send`, `coding.stop`, `coding.runs`: the Cursor / Codex / Claude Code
@@ -229,6 +233,21 @@ remembered. Bodies for `file.get`, `file.put` and `screen` carry the bytes in
 base64 (`data`) with `mime`; the desktop refuses files over 8 MB, the relay
 refuses frames over `HUB_FRAME_LIMIT`.
 
+From relay 0.27, a credential owns one Hub identity: its `device.id` and
+`device.kind` are fixed when the credential is issued with `device_id` and
+`device_kind` (`POST /v1/auth/verify` and `/login`), or else at the first
+accepted `hello` of a credential that was issued without them. The same
+credential may reconnect and replace its own older socket, but `bad_device`
+rejects another id or kind. An id a live key holds is taken over only by a key
+from a later code or password sign-in (the phone signed in again without
+signing out, the runtime's vault was reset, a sign-out that never reached the
+relay): the older key still opens the account but no longer speaks for the
+device. A revoked or lapsed key releases its id. A session key
+(`/v1/auth/session-key`, nanoMuse Web's containers) registers an id nobody
+holds and never takes one over. Existing clients keep their keys and register
+at their next connection; clients that send the identity at sign-in bind it
+there.
+
 The agent's name and look are the account's, not a device's: `GET` / `PUT
 /v1/me/profile` on the relay keep them (the dragon, an emoji on a colour, or a
 face drawn in the avatar studio with its five small stills), last writer wins,
@@ -310,9 +329,9 @@ computer's own hands) is in [every-device.md](every-device.md).
 
 ## Trust
 
-The relay authenticates every socket with the account key and routes only
-within the account; it stores device names and last-seen times, not what was
-asked. A device answers only devices of its own account, and only while its
+The relay authenticates every socket with a credential bound to its device id
+and kind, and routes only within the account; it stores device names and
+last-seen times, not what was asked. A device answers only devices of its own account, and only while its
 *Remote control* switch is on, and, for anything that runs, reads or writes
 there, after the person at that device agreed (once, or always for the asking
 device). Commands are judged where they are typed, before they leave; a remote

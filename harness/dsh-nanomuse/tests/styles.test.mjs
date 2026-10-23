@@ -124,6 +124,15 @@ test('an active chat keeps the hidden composer dock space without moving the her
   }
 })
 
+test('the compact model control remains available for reasoning levels (#537)', () => {
+  assert.doesNotMatch(
+    css,
+    /\[data-slot="conversation\.input\.model"\][^{]*\{[^}]*display:\s*none/,
+    'the default Muse view must not hide the compact model and reasoning control',
+  )
+  assert.match(css, /\[data-composer-card\] \[class\*="_modes"\] \{ display: none !important; \}/)
+})
+
 test('under prefers-reduced-motion every breathing light is steady', () => {
   const reduced = css.split('\n').filter((l) => l.startsWith('@media (prefers-reduced-motion: reduce)'))
   assert.ok(reduced.length >= 2)

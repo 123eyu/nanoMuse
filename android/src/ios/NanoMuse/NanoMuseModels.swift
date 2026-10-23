@@ -4,7 +4,7 @@
 //
 //  Which model answers, and how a pick sticks (contract C4): the relay's
 //  menu says `for: ["chat"] | ["gui"] | ["chat","gui"]`; the chat opens on
-//  `deepseek-v4.1-flash`; a model picked in the chat's picker moves to the
+//  the model recommended for that lane; a model picked in the chat's picker moves to the
 //  front of the nanoMuse Cloud group so new chats follow it. Own-key
 //  presets for Alibaba Cloud Bailian and OpenRouter, and whether a model
 //  sees pictures judged from its name when nobody said.
@@ -18,8 +18,8 @@ import SwiftUI
 // MARK: - The relay's menu (pure, tested)
 
 enum NanoMuseModelMenu {
-    static let defaultChatModel = "deepseek-v4.1-flash"
-    static let defaultGuiModel = "qwen3.8-27b"
+    static let defaultChatModel = "Qwen/Qwen3.6-27B-FP8"
+    static let defaultGuiModel = "Qwen/Qwen3.6-27B-FP8"
 
     /// The relay's `for` on a menu entry — under `nanomuse` with its other flags (relay 0.17),
     /// a top-level `for` read too; nil when it did not say (a relay from before 0.17).
@@ -207,15 +207,15 @@ enum NanoMuseOwnKeyPreset: String, CaseIterable, Identifiable {
 
     var chatModel: String {
         switch self {
-        case .bailian: return NanoMuseModelMenu.defaultChatModel
-        case .openrouter: return "deepseek/" + NanoMuseModelMenu.defaultChatModel
+        case .bailian: return "deepseek-v4.1-flash"
+        case .openrouter: return "deepseek/deepseek-v4.1-flash"
         }
     }
 
     var guiModel: String {
         switch self {
-        case .bailian: return NanoMuseModelMenu.defaultGuiModel
-        case .openrouter: return "qwen/" + NanoMuseModelMenu.defaultGuiModel
+        case .bailian: return "qwen3.8-27b"
+        case .openrouter: return "qwen/qwen3.8-27b"
         }
     }
 

@@ -87,15 +87,13 @@ fun UseItForScreen(instanceId: String, onDone: () -> Unit) {
         LaunchedEffect(Unit) { onDone() }
         return
     }
-    // "nanoMuse Cloud keeps the rest" holds only while the Cloud is a model source
-    val signedIn = remember { NanoMuseCloud.modelsOn(context) }
     val ticked = remember { mutableStateOf(offered.toSet()) }
     var busy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     SettingsScaffold(title = stringResource(R.string.nm_useit_title), onBack = onDone) {
         Text(
-            text = stringResource(if (signedIn) R.string.nm_useit_body else R.string.nm_useit_body_signed_out),
+            text = stringResource(R.string.nm_useit_body_signed_out),
             fontSize = 14.sp,
             lineHeight = 20.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

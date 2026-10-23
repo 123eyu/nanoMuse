@@ -1135,7 +1135,6 @@
     <string name="nm_cloud_provider_no_delete">Ten dostawca to Twoje konto nanoMuse Cloud. Wyłącz je powyżej, aby nie używać jego modeli; aby się wylogować, otwórz Ustawienia › nanoMuse Cloud.</string>
     <string name="nm_welcome_own_key">Użyj własnego klucza API</string>
     <string name="nm_useit_title">Do czego go użyć</string>
-    <string name="nm_useit_body">Wybierz, czym ma się zajmować ten klucz. Resztą nadal zajmuje się nanoMuse Cloud.</string>
     <string name="nm_useit_body_signed_out">Wybierz, czym ma się zajmować ten klucz.</string>
     <string name="nm_useit_use">Użyj</string>
     <string name="nm_useit_not_now">Nie teraz</string>

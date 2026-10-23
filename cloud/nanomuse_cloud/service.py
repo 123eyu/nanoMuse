@@ -43,6 +43,8 @@ from .senders import CodeSender, LogSender, SendError, make_sender
 log = logging.getLogger("nanomuse_cloud")
 
 KEY_PREFIX = "nm_"
+HUB_KINDS = ("phone", "computer", "web")
+HUB_DEVICE_ID = re.compile(r"^[A-Za-z0-9._:-]{4,80}$")
 # the settings-table key of the nudges policy (0.18, nudges.py)
 NUDGES_KEY = "nudges"
 
@@ -262,6 +264,10 @@ class Caller:
     via: str = "code"
     key_created_at: int = 0
     key_prefix: str = ""
+    # 0.27: once set, this credential may announce only this Hub installation.
+    # Empty is a legacy credential whose first accepted hello performs the binding.
+    hub_device_id: str = ""
+    hub_device_kind: str = ""
     # Invitations (0.4): the code this person hands out and how many came.
     invite_code: str = ""
     invites: int = 0
@@ -678,7 +684,7 @@ class Cloud:
         """Look up an account by ``ident``'s canonical hash, falling back to its
         legacy pre-canonical hash when present so existing dotted Gmail accounts
         keep matching."""
-        return self.db.account_by_hashes(ident.hashes(self.s.hmac_key))
+        return self.db.account_by_hashes(ident.hashes(self.s.hmac_key), shared=ident.merged_hash(self.s.hmac_key))
 
     def _refuse_if_signups_closed(self, ident: Identifier) -> None:
         """0.22: the *Sign-ups* switch is off; an identifier without an account is turned
@@ -761,15 +767,21 @@ class Cloud:
         self._refuse_if_domain_limited(ident)
         account = self._account_for(ident)
         disabled = account is not None and bool(account["disabled"])
-        t = now()
-        if self.db.codes_recent_for(ident.hash(self.s.hmac_key), t - 600) >= self.s.code_per_identifier_10m:
-            raise CloudError(429, "code_too_often", "Too many codes for this address; wait a few minutes")
-        if ip and self.db.codes_recent_for_ip(ip, t - 3600) >= self.s.code_per_ip_hour:
-            raise CloudError(429, "code_too_often", "Too many codes from this network; wait an hour")
         # The reviewer's code is the fixed one and goes nowhere: the row is written like
         # anyone's, so the lifetime, the attempt limit and the rate limits are the same.
         code = self.s.review_code.strip() if review else f"{secrets.randbelow(1_000_000):06d}"
-        self.db.insert_code(ident.hash(self.s.hmac_key), _code_hash(self.s.hmac_key, code), ip, self.s.code_ttl_s)
+        limited = self.db.insert_code_limited(
+            ident.hash(self.s.hmac_key),
+            _code_hash(self.s.hmac_key, code),
+            ip,
+            self.s.code_ttl_s,
+            self.s.code_per_identifier_10m,
+            self.s.code_per_ip_hour,
+        )
+        if limited == "identifier":
+            raise CloudError(429, "code_too_often", "Too many codes for this address; wait a few minutes")
+        if limited == "ip":
+            raise CloudError(429, "code_too_often", "Too many codes from this network; wait an hour")
         if review:
             log.info("review sign-in: a code request for the reviewer's address; nothing sent")
             return
@@ -787,25 +799,36 @@ class Cloud:
         except SendError as e:
             raise CloudError(502, "send_failed", f"Could not send the code ({e})") from e
 
-    def verify_code(self, ident: Identifier, code: str, device: str, invite: str = "") -> tuple[str, Caller, bool]:
+    def verify_code(
+        self,
+        ident: Identifier,
+        code: str,
+        device: str,
+        invite: str = "",
+        hub_device_id: str = "",
+        hub_device_kind: str = "",
+    ) -> tuple[str, Caller, bool]:
         """Returns (api_key, caller, created). The key is shown once. `invite` is
         a friend's code; it counts only when this sign-in creates the account."""
         if not self.allowed(ident):
             raise CloudError(403, "not_invited", "This relay is private; that address is not on its list")
         id_hash = ident.hash(self.s.hmac_key)
-        row = self.db.live_code(id_hash)
-        if row is None:
+        result = self.db.check_code(id_hash, _code_hash(self.s.hmac_key, code.strip()), self.s.code_max_attempts)
+        if result == "expired":
             raise CloudError(400, "code_expired", "The code has expired; ask for a new one")
-        attempts = self.db.bump_attempts(int(row["id"]))
-        if attempts > self.s.code_max_attempts:
-            self.db.consume_code(int(row["id"]))
-            raise CloudError(400, "code_expired", "Too many tries; ask for a new code")
-        if not secrets.compare_digest(str(row["code_hash"]).encode(), _code_hash(self.s.hmac_key, code.strip()).encode()):
+        if result == "wrong":
             raise CloudError(400, "code_wrong", "That code is not right")
-        self.db.consume_code(int(row["id"]))
-        return self.sign_in(ident, device, "code", invite)
+        return self.sign_in(ident, device, "code", invite, hub_device_id, hub_device_kind)
 
-    def sign_in(self, ident: Identifier, device: str, via: str, invite: str = "") -> tuple[str, Caller, bool]:
+    def sign_in(
+        self,
+        ident: Identifier,
+        device: str,
+        via: str,
+        invite: str = "",
+        hub_device_id: str = "",
+        hub_device_kind: str = "",
+    ) -> tuple[str, Caller, bool]:
         """An identifier that has just been proven (a code, the carrier's word) becomes a
         signed-in device: the account is made on first sight, a key is issued.
         Returns (api_key, caller, created)."""
@@ -819,9 +842,33 @@ class Cloud:
             self._refuse_if_domain_limited(ident)
             account_id = self.db.new_account_id()
             enc = self.crypto.encrypt(account_id, ident.value)
-            account = self.db.create_account(
-                id_hash, ident.channel, ident.hint, self.s.signup_tokens, enc, account_id=account_id, grant_uy=self.s.allowance_uy
+            domain = ident.value.rpartition("@")[2].lower() if ident.channel == "email" else ""
+            domain_limit = (
+                self.s.signup_per_domain_day if domain and not self.is_review(ident) and domain not in self.s.signup_domain_allow_set else 0
             )
+            account, created = self.db.create_account_limited(
+                id_hash,
+                ident.channel,
+                ident.hint,
+                self.s.signup_tokens,
+                enc,
+                account_id,
+                self.s.allowance_uy,
+                domain=domain,
+                domain_limit=domain_limit,
+                domain_since=now() - 86400,
+            )
+            if account is None:
+                self.db.add_event("", "signup.domain_limited", domain[:200])
+                raise CloudError(
+                    429,
+                    "domain_limited",
+                    "This address's domain has reached today's sign-up limit on this relay; try again tomorrow or use another address",
+                )
+            account_id = str(account["id"])
+        else:
+            account_id = str(account["id"])
+        if created:
             self.db.add_event(account_id, "account.created", ident.channel)
             if self.s.improve_default:
                 # the relay's default for a new account, said on its timeline as such (not as a
@@ -832,7 +879,14 @@ class Cloud:
         elif account["disabled"]:
             raise CloudError(403, "account_disabled", "This account is disabled")
 
-        key, caller = self._issue_key(account["id"], device, via=via)
+        key, caller = self._issue_key(
+            account["id"],
+            device,
+            via=via,
+            hub_device_id=hub_device_id,
+            hub_device_kind=hub_device_kind,
+            replace_hub_identity=bool(hub_device_id),
+        )
         self.db.add_event(account["id"], f"sign_in.{via}", device)
         if created:
             # the switches flip now; a notify rule's e-mail goes on its own thread, so this
@@ -968,9 +1022,46 @@ class Cloud:
         allowance. Kept in the shape 0.4 phones read so they show 「不限」."""
         return {"unlimited": True, "allowed": None, "used": 0, "left": None, "per_face": 4}
 
-    def _issue_key(self, account_id: str, device: str, via: str, expires_at: int | None = None) -> tuple[str, Caller]:
+    @staticmethod
+    def validate_hub_identity(device_id: str, kind: str, *, optional: bool = True) -> tuple[str, str]:
+        """Validate the identity a new credential will own.
+
+        Old clients omit both fields and bind at their first hello during the
+        compatibility release. Supplying only one is never interpreted loosely.
+        """
+        device_id = str(device_id or "")
+        kind = str(kind or "")
+        if optional and not device_id and not kind:
+            return "", ""
+        if kind not in HUB_KINDS:
+            raise CloudError(400, "bad_device", "device_kind must be phone, computer or web")
+        if not HUB_DEVICE_ID.fullmatch(device_id):
+            raise CloudError(400, "bad_device", "device_id must be 4–80 letters, digits, . _ : -")
+        return device_id, kind
+
+    def _issue_key(
+        self,
+        account_id: str,
+        device: str,
+        via: str,
+        expires_at: int | None = None,
+        hub_device_id: str = "",
+        hub_device_kind: str = "",
+        replace_hub_identity: bool = False,
+    ) -> tuple[str, Caller]:
+        hub_device_id, hub_device_kind = self.validate_hub_identity(hub_device_id, hub_device_kind)
         key = KEY_PREFIX + secrets.token_urlsafe(30)
-        self.db.insert_key(_sha256(key), key[:10], account_id, device, via=via, expires_at=expires_at)
+        self.db.insert_key(
+            _sha256(key),
+            key[:10],
+            account_id,
+            device,
+            via=via,
+            expires_at=expires_at,
+            hub_device_id=hub_device_id,
+            hub_device_kind=hub_device_kind,
+            replace_hub_identity=replace_hub_identity,
+        )
         caller = self._caller(_sha256(key))
         assert caller is not None
         return key, caller
@@ -984,7 +1075,10 @@ class Cloud:
         requesting key is untouched (the caller revokes it if it has no further use for it).
         A session key cannot mint another: otherwise a key that lapses in an hour could
         hand itself 90 more days, and a container that leaked one would hold the account
-        for as long as it liked."""
+        for as long as it liked. The Hub identity is not fixed here: the container's
+        runtime is a `computer` of the account with an id of its own, and binds it at its
+        first hello like any credential; what a session key can never do is take an id
+        another key holds (`Database.bind_key_to_hub_device`)."""
         if caller.via == "session":
             raise CloudError(403, "session_from_session", "A session key cannot issue another session key; use the device's own key")
         ttl = max(60, min(int(ttl_s), self.SESSION_KEY_MAX_S))
@@ -1040,7 +1134,15 @@ class Cloud:
         self.db.set_password(caller.account_id, "")
         self.db.add_event(caller.account_id, "password.cleared")
 
-    def login_password(self, ident: Identifier, password: str, device: str, ip: str = "") -> tuple[str, Caller]:
+    def login_password(
+        self,
+        ident: Identifier,
+        password: str,
+        device: str,
+        ip: str = "",
+        hub_device_id: str = "",
+        hub_device_kind: str = "",
+    ) -> tuple[str, Caller]:
         """Sign in on a new device with the password instead of waiting for a code."""
         if ip and self._login_failures_from(ip) >= self.s.login_fail_per_ip_hour > 0:
             raise CloudError(429, "locked", "Too many wrong passwords from this network; wait a while or sign in with a code")
@@ -1058,7 +1160,10 @@ class Cloud:
         if locked_until and int(locked_until) > now():
             raise CloudError(429, "locked", "Too many wrong passwords; wait a while or sign in with a code")
         if not account["password_hash"]:
-            raise CloudError(400, "no_password", "This account has no password yet; sign in with a code and set one under Account")
+            hash_password("x")
+            self._note_login_failure(ip)
+            self.db.add_event(account["id"], "sign_in.failed", device)
+            raise CloudError(401, "bad_credentials", "That address and password do not match")
         if not check_password(password, account["password_hash"]):
             left = self.db.login_failed(account["id"], self.s.password_max_attempts, self.s.lockout_s)
             self._note_login_failure(ip)
@@ -1071,7 +1176,14 @@ class Cloud:
             # probe with a guessed password gets the same answer as for any wrong password.
             raise CloudError(403, "account_disabled", "This account is disabled")
         self.db.login_succeeded(account["id"])
-        key, caller = self._issue_key(account["id"], device, via="password")
+        key, caller = self._issue_key(
+            account["id"],
+            device,
+            via="password",
+            hub_device_id=hub_device_id,
+            hub_device_kind=hub_device_kind,
+            replace_hub_identity=bool(hub_device_id),
+        )
         self.db.add_event(account["id"], "sign_in.password", device)
         return key, caller
 
@@ -1118,6 +1230,8 @@ class Cloud:
                 via=row["via"] or "code",
                 key_created_at=int(row["created_at"]),
                 key_prefix=row["prefix"],
+                hub_device_id=row["hub_device_id"] or "",
+                hub_device_kind=row["hub_device_kind"] or "",
                 invite_code=row["invite_code"] or "",
                 invites=int(row["invites"] or 0),
                 grant_uy=int(row["grant_uy"] or 0),

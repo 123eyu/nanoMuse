@@ -1106,7 +1106,6 @@
     <string name="nm_cloud_provider_no_delete">This provider is your nanoMuse Cloud account. Switch it off above to stop using its models; to sign out, open Settings › nanoMuse Cloud.</string>
     <string name="nm_welcome_own_key">Use your own API key instead</string>
     <string name="nm_useit_title">Use it for</string>
-    <string name="nm_useit_body">Pick what this key should handle. nanoMuse Cloud keeps the rest.</string>
     <string name="nm_useit_body_signed_out">Pick what this key should handle.</string>
     <string name="nm_useit_use">Use it</string>
     <string name="nm_useit_not_now">Not now</string>

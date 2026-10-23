@@ -13,12 +13,13 @@
  *  4. the MP4 is downloaded from the `video_url` the task ends with.
  *
  * `host` is Model Studio itself (`https://dashscope.aliyuncs.com`) with the person's own
- * key, or the nanoMuse relay (`https://cloud.nanomuse.cn`), which serves the same
- * `/api/v1/…` paths next to its OpenAI-shaped `/v1` and pays from the account's allowance.
+ * key, or a self-hosted relay whose live menu explicitly advertises video generation.
  *
- * The two model families take different bodies: MiniMax wants `media[first_frame]`,
- * `resolution`, `ratio` and `duration`; Wan wants `img_url`, `resolution`/`size` and — on
- * wan2.6 and 2.5 — a `duration`. Wan also splits text-to-video and image-to-video into
+ * The model families take different bodies: MiniMax wants `media[first_frame]`,
+ * `resolution`, `ratio` and `duration`; Wan up to 2.6 wants `img_url`, `resolution`/`size`
+ * and — on wan2.6 and 2.5 — a `duration`; Wan 2.7 speaks Model Studio's newer protocol,
+ * `media[first_frame]` with `resolution` for a picture and `resolution` with `ratio` for
+ * words, `duration` 2–15 on both. Wan also splits text-to-video and image-to-video into
  * sibling models; whichever was picked, the sibling is used for the other job.
  *
  * Billing is per output second, so callers keep `seconds` at the minimum that reads well
@@ -32,7 +33,7 @@ export const DEFAULT_VIDEO_MODEL = 'wan2.2-i2v-flash'
 
 /** One video model on one host: what `imageToVideo` needs and nothing more. */
 export interface VideoEndpoint {
-  /** `https://dashscope.aliyuncs.com` or `https://cloud.nanomuse.cn`, without an API path. */
+  /** A Model Studio or explicitly media-enabled relay origin, without an API path. */
   host: string
   apiKey: string
   model: string
@@ -94,7 +95,7 @@ export function speaksDashScope(baseUrl: string): boolean {
  * list does not mention them (that list is the chat side), so these are the candidates
  * `probe` checks against the person's key; the first is the recommended one.
  */
-export const KNOWN_DASHSCOPE_MODELS = ['wan2.2-i2v-flash', 'MiniMax/MiniMax-H3', 'wan2.6-i2v', 'wan2.6-t2v', 'wan2.5-i2v-preview', 'wan2.5-t2v-preview', 'wan2.2-i2v-plus', 'wan2.2-t2v-plus']
+export const KNOWN_DASHSCOPE_MODELS = ['wan2.2-i2v-flash', 'wan2.7-i2v', 'wan2.7-t2v', 'MiniMax/MiniMax-H3', 'wan2.6-i2v', 'wan2.6-t2v', 'wan2.5-i2v-preview', 'wan2.5-t2v-preview', 'wan2.2-i2v-plus', 'wan2.2-t2v-plus']
 
 /** Names that mean "video" in a provider's model list. */
 export function looksLikeVideoModel(id: string): boolean {
@@ -106,12 +107,23 @@ function isWan(model: string): boolean {
   return model.toLowerCase().startsWith('wan')
 }
 
+/** Wan 2.7 (`wan2.7-i2v`, `wan2.7-t2v`, their dated snapshots): the newer protocol. */
+export function isWan27(model: string): boolean {
+  return model.toLowerCase().startsWith('wan2.7')
+}
+
 /**
  * The Wan sibling for the job: `…-i2v…` when starting from a picture, `…-t2v…` from words.
- * Wan 2.2 has no text-to-video Flash: its Plus is the sibling there.
+ * Wan 2.2 has no text-to-video Flash: its Plus is the sibling there. Wan 2.7's dated
+ * snapshots differ between the two (`wan2.7-t2v-2026-06-12`, `wan2.7-i2v-2026-04-25`), so
+ * the sibling there is the undated id, which Model Studio keeps current.
  */
 export function modelFor(model: string, fromImage: boolean): string {
   if (!isWan(model)) return model
+  if (isWan27(model)) {
+    const kind = fromImage ? 'i2v' : 't2v'
+    return model.toLowerCase().includes(kind) ? model : `wan2.7-${kind}`
+  }
   if (fromImage) return model.replace('t2v', 'i2v')
   if (model.startsWith('wan2.2')) return 'wan2.2-t2v-plus'
   return model.replace('i2v', 't2v')
@@ -152,7 +164,10 @@ export function wanSize(ratio: string): string {
 export function imageToVideoBody(model: string, ossUrl: string, prompt: string, seconds: number): Record<string, unknown> {
   const input: Record<string, unknown> = { prompt }
   const parameters: Record<string, unknown> = { watermark: false }
-  if (isWan(model)) {
+  if (isWan27(model)) {
+    input.media = [{ type: 'first_frame', url: ossUrl }]
+    parameters.resolution = '720P'
+  } else if (isWan(model)) {
     input.img_url = ossUrl
     parameters.resolution = wanResolution(model)
   } else {
@@ -167,7 +182,10 @@ export function imageToVideoBody(model: string, ossUrl: string, prompt: string, 
 /** The body of a text-to-video task. */
 export function textToVideoBody(model: string, prompt: string, seconds: number, ratio: string): Record<string, unknown> {
   const parameters: Record<string, unknown> = { watermark: false }
-  if (isWan(model)) parameters.size = wanSize(ratio)
+  if (isWan27(model)) {
+    parameters.resolution = '720P'
+    parameters.ratio = ratio === '21:9' ? '16:9' : ratio // 2.7 has 16:9, 9:16, 1:1, 4:3, 3:4
+  } else if (isWan(model)) parameters.size = wanSize(ratio)
   else {
     parameters.resolution = '768P'
     parameters.ratio = ratio

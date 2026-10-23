@@ -14,6 +14,8 @@ import com.openminis.app.data.model.ProviderType
 import com.openminis.app.logging.AppLogger
 import com.openminis.app.provider.ProviderFactory
 import com.openminis.app.provider.openai.OpenAIProvider
+import io.github.nanomuse.cloud.NanoMuseCloud
+import io.github.nanomuse.media.RelayMediaPolicy
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -72,8 +74,14 @@ object ImageGen {
     fun eligibleInstances(context: Context): List<ProviderInstance> {
         val app = context.applicationContext as? MinisApp ?: return emptyList()
         val repo = app.providerRepositoryOrNull ?: return emptyList()
+        val cloudId = NanoMuseCloud.instance(context)?.id
+        val relayCanDraw = cloudId != null &&
+            NanoMuseCloud.baseUrl(context) != NanoMuseCloud.DEFAULT_BASE &&
+            repo.config.value.instances.firstOrNull { it.id == cloudId }
+                ?.let { availableModels(context, it).isNotEmpty() } == true
         return repo.config.value.instances.filter { inst ->
-            inst.isEnabled && inst.credentialType == ProviderCredential.apiKey && when (inst.providerType) {
+            (inst.id != cloudId || relayCanDraw) &&
+                inst.isEnabled && inst.credentialType == ProviderCredential.apiKey && when (inst.providerType) {
                 ProviderType.openAI, ProviderType.openAIResponses, ProviderType.openRouter, ProviderType.xAI -> true
                 ProviderType.anthropic, ProviderType.gemini, ProviderType.kimiCode, ProviderType.antigravity, ProviderType.unsupported -> false
                 else -> inst.customBaseURL != null
@@ -123,7 +131,14 @@ object ImageGen {
      * host leads; dated snapshots (`…-2026-03-03`) hide behind their undated alias.
      */
     fun availableModels(context: Context, instance: ProviderInstance): List<String> {
-        val ids = imageEntries(context, instance).map { it.model.id }.distinct()
+        var ids = imageEntries(context, instance).map { it.model.id }.distinct()
+        if (instance.id == NanoMuseCloud.instance(context)?.id) {
+            ids = RelayMediaPolicy.available(
+                NanoMuseCloud.baseUrl(context),
+                NanoMuseCloud.menuModelIds(context),
+                ids,
+            )
+        }
         val undated = ids.filterNot { DATED.containsMatchIn(it) }.toSet()
         val shown = ids.filter { id -> !DATED.containsMatchIn(id) || DATED.replace(id, "") !in undated }
         val rec = recommendedModel(context, instance)

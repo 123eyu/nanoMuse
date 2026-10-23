@@ -68,7 +68,7 @@ Errors carry a stable `code` the app can turn into a sentence:
 | 400 | `code_wrong` / `code_expired` | verification code |
 | 400 | `channel_unsupported` | this relay's `CODE_SENDER` does not send codes that way (SMS or e-mail); the sentence says which |
 | 502 | `send_failed` | the SMS or mail provider refused or did not answer; the code was not sent |
-| 400 | `bad_credentials` / `no_password` / `password_short` / `password_long` / `password_weak` / `password_wrong` / `password_required` | the password sign-in and the password form (`bad_credentials` is 401; `locked` is 429 after too many wrong passwords) |
+| 400 | `bad_credentials` / `password_short` / `password_long` / `password_weak` / `password_wrong` / `password_required` | the password sign-in and the password form (`bad_credentials` is 401; `locked` is 429 after too many wrong passwords) |
 | 404 | `no_session` | the sign-in to revoke no longer exists |
 | 409 | `device_online` | `DELETE /v1/devices/{id}` (or the hub's `forget`) for a device that is connected right now; sign out on it first |
 | 409 | `sync_off` | a `/v1/sync/*` call while the person has conversation sync turned off |
@@ -164,13 +164,13 @@ for the full list. The ones that matter:
 | variable | default | |
 |---|---|---|
 | `UPSTREAM_BASE` / `UPSTREAM_KEY` | Model Studio compatible-mode | where chat goes |
-| `CHAT_DEFAULTS` | `{"enable_thinking": false}` | merged into chat requests for fields the app did not set |
+| `CHAT_DEFAULTS` | `{"enable_thinking": false}` | merged into chat requests for fields the app did not set; for Qwen behind vLLM use `{"chat_template_kwargs":{"enable_thinking":false}}` |
 | `SIGNUP_OPEN` | `1` | anyone may sign in; `0` = members only (a private relay). *Runtime setting* — see below |
 | `ALLOWED_IDENTIFIERS` | empty | comma-separated numbers / addresses of the **members**: no spend limit |
 | `REVIEW_ADDRESSES`, `REVIEW_CODE` | empty (off) | an app store reviewer's sign-in: for these e-mail addresses no code is sent and the six-digit `REVIEW_CODE` signs in — see *For App Store review* below |
 | `ALLOWANCE_CNY` | 10 | yuan per non-member account **for its lifetime**, at the list prices below; 0 = no limit. *Runtime setting* |
-| `INVITE_BONUS_CNY` | 5 | added to **both** pools, the inviter's and the newcomer's, per new person who signs up with the code, paid once the newcomer uses the relay (at least `INVITE_SETTLE_MIN_SPENT_UY` micro-yuan or a registered Hub device, and not from the inviter's own network address). *Runtime setting* |
-| `INVITE_SETTLE_MIN_SPENT_UY` | 200 | minimum provider spend (in micro-yuan) by an invited account before its invite bonus is settled when it has not registered a Hub device; 0 settles on the first charged request |
+| `INVITE_BONUS_CNY` | 5 | added to **both** pools, the inviter's and the newcomer's, per new person who signs up with the code, paid once the newcomer has really used the relay (at least `INVITE_SETTLE_MIN_SPENT_UY` micro-yuan of successful provider spend, and not from the inviter's own network address). *Runtime setting* |
+| `INVITE_SETTLE_MIN_SPENT_UY` | 200 | minimum cumulative successful provider spend (in micro-yuan) by an invited account before its invite bonus is settled; 0 settles on the first charged request |
 | `SIGNUP_PER_DOMAIN_DAY` | 5 | new accounts one e-mail domain may open per rolling 24 hours when the domain is not a well-known mail provider (gmail.com, outlook.com, qq.com, 163.com and the like are never limited; phones never are); past it `POST /v1/auth/code` answers `429 domain_limited` and the timeline across accounts gets `signup.domain_limited` with the domain; 0 = off |
 | `SIGNUP_DOMAIN_ALLOW` | empty | comma-separated domains that join the built-in list of unlimited ones, your company's or school's for instance |
 | `SIGNUP_DOMAIN_BLOCK` | empty | comma-separated disposable mail domains blocked from opening new accounts in addition to the built-in blocklist (`DEFAULT_SIGNUP_DOMAIN_BLOCK`); `SIGNUP_DOMAIN_ALLOW` overrides an entry |
@@ -440,7 +440,9 @@ operator's page has a *Model catalog* panel. The relay also reads what a
 request says about reasoning before it applies `CHAT_DEFAULTS`: an app that
 sends `reasoning_effort` (or `thinking`, `thinking_budget`) asked for
 thinking, and the shipped `enable_thinking: false` would make Model Studio
-refuse the pair, so the default follows the request. `/v1/me` carries a `spend`
+refuse the pair, so the default follows the request. The same rule applies to
+`chat_template_kwargs.enable_thinking`, the switch used by Qwen chat templates
+behind vLLM. `/v1/me` carries a `spend`
 block (`total`, `grant`, `left`, `unlimited`, `warn` at 80 %, `usd_cny`,
 `total_usd`, `grant_usd`, `left_usd`, `today`, the bonus amounts,
 `own_key_docs`, `openrouter_url` and `ways`; the 0.4 names `daily_cap` /

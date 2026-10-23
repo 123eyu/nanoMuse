@@ -46,3 +46,82 @@ test('zip writes an archive Python can read back', async () => {
   assert.equal(py.stdout.trim().split('\n')[1], 'nanomuse/rooms.json,构件/读我.txt')
   assert.equal(py.stdout.trim().split('\n')[2], '5000')
 })
+
+test('writeZipFile streams an archive Python reads back, one entry at a time', async () => {
+  const { writeZipFile } = await import('../lib/rooms.js')
+  const { writeFile, mkdtemp, rm } = await import('node:fs/promises')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const { spawnSync } = await import('node:child_process')
+  const dir = await mkdtemp(join(tmpdir(), 'nm-zipfile-'))
+  const file = join(dir, 'x.zip')
+  const source = join(dir, 'big.bin')
+  await writeFile(source, Buffer.alloc(5000, 'a'))
+  const entries = [
+    { name: 'nanomuse/rooms.json', data: Buffer.from('{"goals":[]}'), at: new Date(2026, 9, 3, 12, 30, 10) },
+    { name: 'sessions/big.bin', path: source, at: new Date() },
+    { name: 'sessions/gone.bin', path: join(dir, 'gone.bin'), at: new Date() }, // vanished since the scan
+  ]
+  await writeZipFile(file, entries)
+  await writeZipFile(file, entries) // a second export in the same second replaces the first
+  const py = spawnSync('python3', ['-c', `import zipfile,sys; z=zipfile.ZipFile(sys.argv[1]); print(z.testzip()); print(','.join(i.filename for i in z.infolist())); print(len(z.read('sessions/big.bin')))`, file], { encoding: 'utf8' })
+  await rm(dir, { recursive: true, force: true })
+  if (py.status !== 0) return // no python here
+  assert.deepEqual(py.stdout.trim().split(/\r?\n/), ['None', 'nanomuse/rooms.json,sessions/big.bin', '5000']) // Python prints \r\n on Windows
+})
+
+test('the export leaves links, loops and oversized files out instead of following them', async (t) => {
+  const { EXPORT_MAX_FILE_BYTES, scanExportRoot } = await import('../lib/rooms.js')
+  const { mkdir, mkdtemp, rm, symlink, truncate, writeFile } = await import('node:fs/promises')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  if (process.platform === 'win32') return t.skip('symlink creation needs elevated rights on Windows')
+  const dir = await mkdtemp(join(tmpdir(), 'nm-export-links-'))
+  try {
+    await mkdir(join(dir, 'root', 'faces'), { recursive: true })
+    await writeFile(join(dir, 'root', 'profile.json'), '{}')
+    await writeFile(join(dir, 'root', 'faces', 'calm.png'), 'png')
+    await writeFile(join(dir, 'outside'), 'secret')
+    await symlink('.', join(dir, 'root', 'loop'))
+    await symlink(join(dir, 'outside'), join(dir, 'root', 'outside'))
+    await writeFile(join(dir, 'root', 'huge.mp4'), '')
+    await truncate(join(dir, 'root', 'huge.mp4'), EXPORT_MAX_FILE_BYTES + 1)
+    const budget = { files: 0, bytes: 0 }
+    const names = (await scanExportRoot(join(dir, 'root'), 'nanomuse/', budget)).map((e) => e.name).sort()
+    assert.deepEqual(names, ['nanomuse/faces/calm.png', 'nanomuse/profile.json'])
+    assert.deepEqual(budget, { files: 2, bytes: 5 })
+    // a root that is not there, or is a link, is nothing
+    assert.deepEqual(await scanExportRoot(join(dir, 'missing'), 'sessions/', budget), [])
+    await symlink(join(dir, 'root'), join(dir, 'linked-root'))
+    assert.deepEqual(await scanExportRoot(join(dir, 'linked-root'), 'sessions/', budget), [])
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+})
+
+test('an export past what one zip holds fails instead of writing a zip no tool opens', async () => {
+  const { EXPORT_MAX_BYTES, EXPORT_MAX_FILES, scanExportRoot } = await import('../lib/rooms.js')
+  const { mkdir, mkdtemp, rm, writeFile } = await import('node:fs/promises')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const dir = await mkdtemp(join(tmpdir(), 'nm-export-limits-'))
+  const root = join(dir, 'root')
+  try {
+    await mkdir(root)
+    await writeFile(join(root, 'one'), 'x')
+    await assert.rejects(scanExportRoot(root, 'x/', { files: EXPORT_MAX_FILES, bytes: 0 }), /more than/)
+    await assert.rejects(scanExportRoot(root, 'x/', { files: 0, bytes: EXPORT_MAX_BYTES }), /over/)
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+})
+
+test('exported proxy settings remove URL userinfo', async () => {
+  const { redactProxyUserinfo } = await import('../lib/rooms.js')
+  const redacted = JSON.parse(redactProxyUserinfo(Buffer.from(JSON.stringify({
+    proxy: 'http://alice:secret@proxy.example:8080',
+    menuBar: true,
+  }))).toString())
+  assert.equal(redacted.proxy, 'http://proxy.example:8080')
+  assert.equal(redacted.menuBar, true)
+})

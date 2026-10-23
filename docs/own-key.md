@@ -109,9 +109,9 @@ or paste it into a chat.**
 one switch per job the provider can do (chat, operating the screen, making
 pictures, making clips), all on. *Use it* moves those rows to this provider, on
 the catalogue's default model for each job (or the first model of its list that
-fits); *Not now* changes nothing, and so does a switch you turned off. Signed
-in, the card says nanoMuse Cloud keeps the rest. Every row can be changed later
-under *Settings › Models* (web console: *Connections*).
+fits); *Not now* changes nothing, and so does a switch you turned off. The
+other model choices stay as they are. Every row can be changed later under
+*Settings › Models* (web console: *Connections*).
 
 ## Which model does what
 
@@ -127,11 +127,15 @@ model*, *Hands model*, *Making pictures* and *Making clips* cards on
 | Making pictures | Portraits of your Muse and the pictures you ask for. | Your providers with image models |
 | Making clips | Short clips of your Muse. | Your providers with video models (Bailian) |
 
-Each row shows `provider · model` and opens a picker: the *nanoMuse Cloud*
-group first while signed in, its recommended model marked, then one group per
-provider of yours holding only the models that fit. A provider without the
-capability does not appear in that row at all. A row nothing covers shows the
-one sentence naming who could, and *Add a provider*. A chat pick is the default
+Each row shows `provider · model` and opens a picker. Chat and screen operation
+show the *nanoMuse Cloud* group first while signed in, with the relay's
+lane-specific recommendation marked; media rows show only providers of yours
+because the hosted Cloud does not generate pictures or clips. A self-hosted
+relay appears in a media row only when its operator explicitly enabled and
+advertised that capability. Each provider group holds only models that fit.
+A provider without the capability does not appear in that row at all. A row
+nothing covers shows the one sentence naming who could, and *Add a provider*.
+A chat pick is the default
 for new chats and moves the main chat (*Applies to the main chat and to new
 chats; a side chat keeps its model.*): the main chat is the one conversation the
 Chat tab always shows and is never new, so it would otherwise stay on the
@@ -154,18 +158,20 @@ chat's own picker do.
 
 **Automatic.** The screen, pictures and clips rows open with an *Automatic*
 entry that says what it gives right now (*Currently nanoMuse Cloud ·
-qwen3.8-27b*, say). Pick it and the row forgets any choice made there and
+Qwen/Qwen3.6-27B-FP8*, say, for screen operation). Pick it and the row forgets any choice made there and
 follows one order: the chat model's provider when it is one of yours and can do
-the job (its catalogue default), else nanoMuse Cloud while signed in and switched on when its menu offers that job, else the
-first provider of yours that can. A choice you made always wins; nanoMuse Cloud
+the job (its catalogue default), else a signed-in relay while switched on only
+when its live menu offers that job, else the first provider of yours that can.
+The hosted Cloud menu offers chat and screen operation, not media generation.
+A choice you made always wins; nanoMuse Cloud
 never steps in front of a provider you chose. Each device keeps its own choice,
 because keys never leave the device where they were entered.
 
 **No silent fallback.** When a model of your own fails under a turn, nothing
 switches by itself: the error card offers *Use nanoMuse Cloud this time*
 (signed in only), which runs that one turn on the account's model and changes
-no row. The desktop shows the same button after a failed studio round and a
-failed set of clips.
+no row. A failed picture or clip has no Cloud retry: fix or choose a media
+provider of your own and retry there.
 
 **Thinking level (desktop).** The composer's model picker offers a thinking
 level for a model of yours where the vendor documents one, in the vendor's own
@@ -184,7 +190,7 @@ endpoint. A key saved before this build gets the control at the next start.
 
 **Switching nanoMuse Cloud off.** While signed in, the Models page has one
 switch, *Use nanoMuse Cloud models*. Off, the Cloud leaves the pickers and the
-automatic order, no side call (a chat's title, memory, a portrait, the hands)
+automatic order, no side call (a chat's title, memory or the hands)
 runs on it, and the only thing that spends your allowance is the *Use nanoMuse
 Cloud this time* button, each time you tap it. You stay signed in: sync, your
 devices and the account page keep working. The Cloud provider cannot be deleted

@@ -62,7 +62,8 @@ struct CollectionViewMessageListV3: UIViewControllerRepresentable {
 
     func makeUIViewController(context: Context) -> MessageListViewController {
         let vc = MessageListViewController()
-        context.coordinator.attach(to: vc, vm: vm)
+        // nanoMuse: seed the UIKit snapshot from the persisted preference before restoration.
+        context.coordinator.attach(to: vc, vm: vm, showSteps: NanoMuseSteps.storedValue())
         // Drops are handled exclusively by the SwiftUI `.onDrop` on the chat
         // root view. Previously a UIDropInteraction here intercepted drops on
         // top of the collection view, which (a) suppressed SwiftUI's
@@ -980,12 +981,14 @@ extension CollectionViewMessageListV3 {
         private var dataSource: UICollectionViewDiffableDataSource<Section, MessageListItem>!
         private var subscriptions = Set<AnyCancellable>()
         private var contentSizeObservation: NSKeyValueObservation?
+        private var showSteps = NanoMuseSteps.defaultValue // nanoMuse: snapshot-level visibility.
 
         // MARK: - Setup
 
-        func attach(to vc: MessageListViewController, vm: AIChatViewModel) {
+        func attach(to vc: MessageListViewController, vm: AIChatViewModel, showSteps: Bool) {
             self.viewController = vc
             self.vm = vm
+            self.showSteps = showSteps // nanoMuse: apply the persisted value before the first snapshot.
             vc.loadViewIfNeeded()
             guard let collectionView = vc.collectionView else { return }
             collectionView.delegate = self
@@ -1647,6 +1650,15 @@ extension CollectionViewMessageListV3 {
 
         // MARK: - Bindings
 
+        // nanoMuse: `@AppStorage` belongs to the outer representable; UIKit's hosted cells do
+        // not reliably rebuild from that change. Rebuild the item set when its value changes.
+        func setStepVisibility(_ value: Bool) {
+            guard showSteps != value else { return }
+            showSteps = value
+            guard dataSource != nil, let messages = vm?.messages else { return }
+            applySnapshot(messages: messages, caller: "stepsPreference")
+        }
+
         /// [T-ios-scrollbtn-vm-split] Re-point the coordinator at a NEW view
         /// model instance when SwiftUI hands the (reused) representable a
         /// different AIChatViewModel for the same mounted chat view. All
@@ -1680,6 +1692,18 @@ extension CollectionViewMessageListV3 {
         }
 
         private func bindViewModel(_ vm: AIChatViewModel) {
+            // nanoMuse: UIKit-hosted cells do not inherit the settings view's @AppStorage
+            // observation. Watch the shared defaults and rebuild the item set at the source.
+            NotificationCenter.default.publisher(
+                for: UserDefaults.didChangeNotification,
+                object: UserDefaults.standard
+            )
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.setStepVisibility(NanoMuseSteps.storedValue())
+            }
+            .store(in: &subscriptions)
+
             // 1. Messages → snapshot
             //    Skip while isLoadingSession — binding 3 handles the post-load apply.
             //    This prevents a redundant apply when $messages and $isLoadingSession
@@ -1908,7 +1932,15 @@ extension CollectionViewMessageListV3 {
             )
             .removeDuplicates { a, b in a.0 == b.0 && a.1 == b.1 && a.2 == b.2 && a.3 == b.3 }
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in self?.updateLastCellBridge() }
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.updateLastCellBridge()
+                // nanoMuse: running steps stay visible; remove them from the snapshot when the
+                // turn finishes instead of relying on a restored hosting cell to become empty.
+                if !self.showSteps, let messages = self.vm?.messages {
+                    self.applySnapshot(messages: messages, caller: "bind5-stepVisibility")
+                }
+            }
             .store(in: &subscriptions)
 
 
@@ -2591,7 +2623,15 @@ extension CollectionViewMessageListV3 {
                     }
                 case .assistant:
                     newItems.append(.assistantHeader(message.id))
-                    for block in message.blocks {
+                    // nanoMuse: restored UICollectionView cells used to be created for every
+                    // persisted tool block, bypassing the saved "Show steps" choice after a
+                    // reset/relaunch. Filter the snapshot itself; active turns still show all.
+                    let active = message.id == messages.last?.id && vm.isProcessing
+                    for block in NanoMuseSteps.visibleBlocks(
+                        message.blocks,
+                        active: active,
+                        showSteps: showSteps
+                    ) {
                         newItems.append(.assistantBlock(message.id, block.id))
                     }
                     // Only emit a footer cell when it will actually render

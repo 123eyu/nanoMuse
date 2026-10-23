@@ -16,7 +16,7 @@
  * and keeps the gate closed until installation takes over.
  */
 
-export type ExitIntent = "quit" | "restart-update";
+export type ExitIntent = "quit" | "restart-update" | "restart-host" | "relaunch";
 /** Whether the exit went through this flow with the person's explicit say-so. */
 export type ExitApproval = "none" | "user";
 
@@ -118,6 +118,59 @@ export class ProtectedExit {
       }
       if (items.length > 0) this.options.log(`exit: work still on after the stop (${items.map((i) => i.kind).join(", ")}); the exit stops the Host, which ends it`);
       return this.complete();
+    } finally {
+      this.phase = "idle";
+    }
+  }
+
+  /**
+   * Restart a component with the work protected, the tolerant way of a quit: the gate
+   * closes, the work is named and, if the person confirms, ended and waited for. A Host
+   * that answers nothing (it crashed, which is why the person restarts it) has no work to
+   * protect, and the restart goes ahead. A Host restart opens the gate again once the new
+   * Host is up; a whole-app relaunch (`exits`) leaves it closed, the process is leaving.
+   */
+  async requestRestart(intent: "restart-host" | "relaunch", restart: () => Promise<void> | void, exits = false): Promise<boolean> {
+    if (this.phase !== "idle") {
+      this.options.log(`exit: a request is already under way (${intent})`);
+      return false;
+    }
+    this.phase = "handoff";
+    try {
+      await this.attempt(this.options.work.setGate(false), "closing the gate");
+      let items = await this.busyNow();
+      this.options.log(`${intent}: the gate is closed and ${items.length ? `${items.length} kind(s) of work are on` : "nothing is on"}`);
+      if (items.length > 0) {
+        let confirmed = false;
+        try {
+          confirmed = await this.options.dialog.confirm(items, intent);
+        } catch (exc) {
+          this.options.log(`${intent}: the question failed (${String(exc)}); keeping the work running`);
+        }
+        if (!confirmed) {
+          await this.attempt(this.options.work.setGate(true), "opening the gate");
+          this.options.log(`${intent}: the person keeps running; the gate is open and the work goes on`);
+          return false;
+        }
+        for (let round = 0; round < STOP_ROUNDS; round++) {
+          if (round > 0) this.options.log(`${intent}: work still on after round ${round}; stopping again`);
+          await this.attempt(this.withDeadline(this.options.work.stopAll()), "the stop");
+          items = await this.busyNow();
+          if (items.length === 0) break;
+        }
+        if (items.length > 0) this.options.log(`${intent}: work still on after the stop (${items.map((i) => i.kind).join(", ")}); the restart stops the Host, which ends it`);
+      }
+      if (exits) this.approved = "user";
+      try {
+        await restart();
+      } catch (exc) {
+        this.options.log(`${intent}: ${String(exc)}; the gate opens again`);
+        this.approved = "none";
+        await this.attempt(this.options.work.setGate(true), "opening the gate");
+        return false;
+      }
+      if (!exits) await this.attempt(this.options.work.setGate(true), "opening the gate");
+      return true;
     } finally {
       this.phase = "idle";
     }

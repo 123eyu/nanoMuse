@@ -8,6 +8,61 @@ import XCTest
 @MainActor
 final class NanoMuseLogicTests: XCTestCase {
 
+    // MARK: - Step visibility
+
+    func testHiddenStepsStayOffWhenMainChatIsReset() {
+        let suite = "NanoMuseLogicTests.steps.reset.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(false, forKey: NanoMuseSteps.key)
+        defaults.set("old-main-session", forKey: NanoMuseMainChat.key)
+
+        // NanoMuseMainChat.startFresh removes only its session pointer.
+        defaults.removeObject(forKey: NanoMuseMainChat.key)
+
+        let blocks = [
+            AssistantBlock(kind: .shellTool(command: "true"), content: "done"),
+            AssistantBlock(kind: .text, content: "Finished"),
+        ]
+        let visible = NanoMuseSteps.visibleBlocks(
+            blocks,
+            active: false,
+            showSteps: NanoMuseSteps.storedValue(in: defaults)
+        )
+        XCTAssertEqual(visible.map(\.kind), [.text])
+    }
+
+    func testHiddenStepsStayOffWhenFinishedChatIsRestoredAfterRelaunch() {
+        let suite = "NanoMuseLogicTests.steps.relaunch.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(false, forKey: NanoMuseSteps.key)
+
+        // A new defaults reader models a new process restoring persisted chat blocks.
+        let relaunchedDefaults = UserDefaults(suiteName: suite)!
+        let blocks = [
+            AssistantBlock(kind: .browserTool(action: "navigate"), content: "done"),
+            AssistantBlock(kind: .text, content: "Finished"),
+        ]
+        XCTAssertEqual(
+            NanoMuseSteps.visibleBlocks(
+                blocks,
+                active: false,
+                showSteps: NanoMuseSteps.storedValue(in: relaunchedDefaults)
+            ).map(\.kind),
+            [.text]
+        )
+        XCTAssertEqual(
+            NanoMuseSteps.visibleBlocks(
+                blocks,
+                active: true,
+                showSteps: NanoMuseSteps.storedValue(in: relaunchedDefaults)
+            ).map(\.kind),
+            blocks.map(\.kind),
+            "the currently running turn still shows its steps"
+        )
+    }
+
     // MARK: - Fences
 
     func testFencesFindTheLastBlockAndStripIt() {
@@ -227,7 +282,19 @@ final class NanoMuseLogicTests: XCTestCase {
 
     // MARK: - Models (contract C4)
 
-    func testRecommendedChatPrefersTheMarkedModelThenTheDefault() {
+    func testRecommendedChatPrefersTheRelaysLaneThenFallsBackForOldMenus() {
+        let current: [[String: Any]] = [
+            [
+                "id": "Qwen/Qwen3.6-27B-FP8",
+                "nanomuse": [
+                    "for": ["chat", "gui"],
+                    "recommended": true,
+                    "recommended_for": ["chat", "gui"],
+                ],
+            ],
+        ]
+        XCTAssertEqual(NanoMuseModelMenu.recommendedChat(current)?["id"] as? String, NanoMuseModelMenu.defaultChatModel)
+        XCTAssertEqual(NanoMuseModelMenu.guiModel(current), NanoMuseModelMenu.defaultGuiModel)
         let marked: [[String: Any]] = [
             ["id": "qwen3.8-flash", "for": ["chat"]],
             ["id": "qwen3.8-27b", "for": ["chat", "gui"], "nanomuse": ["recommended": true]],
@@ -237,7 +304,7 @@ final class NanoMuseLogicTests: XCTestCase {
             ["id": "qwen3.8-27b", "for": ["gui"]],
             ["id": "deepseek-v4.1-flash", "for": ["chat"]],
         ]
-        XCTAssertEqual(NanoMuseModelMenu.recommendedChat(plain)?["id"] as? String, NanoMuseModelMenu.defaultChatModel)
+        XCTAssertEqual(NanoMuseModelMenu.recommendedChat(plain)?["id"] as? String, "deepseek-v4.1-flash")
         let drawsOnly: [[String: Any]] = [["id": "qwen3.8-27b", "for": ["gui"]]]
         XCTAssertNil(NanoMuseModelMenu.recommendedChat(drawsOnly))
         XCTAssertEqual(NanoMuseModelMenu.guiModel(plain), "qwen3.8-27b")
@@ -250,6 +317,15 @@ final class NanoMuseLogicTests: XCTestCase {
         XCTAssertEqual(NanoMuseModelMenu.recommendedChat(relay)?["id"] as? String, "deepseek-v4.1-flash")
         XCTAssertEqual(NanoMuseModelMenu.guiModel(relay), "qwen3.8-27b")
         XCTAssertEqual(NanoMuseModelMenu.lanes(relay[0]), ["gui", "chat"])
+    }
+
+    func testPublicCloudRetiresMediaWhileSelfHostedRelaysMayAdvertiseIt() {
+        XCTAssertFalse(NanoMuseRelayMenu.allows(.image, at: "https://cloud.nanomuse.cn/"))
+        XCTAssertFalse(NanoMuseRelayMenu.allows(.video, at: NanoMuseCloud.defaultBase))
+        XCTAssertTrue(NanoMuseRelayMenu.allows(.image, at: "https://relay.example/v1"))
+        XCTAssertTrue(NanoMuseRelayMenu.allows(.video, at: "https://relay.example"))
+        XCTAssertTrue(NanoMuseRelayMenu.allows(.chat, at: NanoMuseCloud.defaultBase))
+        XCTAssertTrue(NanoMuseRelayMenu.allows(.hands, at: NanoMuseCloud.defaultBase))
     }
 
     func testDeepSeekVisionRule() {
@@ -481,6 +557,28 @@ final class NanoMuseLogicTests: XCTestCase {
         XCTAssertEqual(NanoMuseVideoGen.model(for: "wan2.6-t2v", fromImage: true), "wan2.6-i2v")
         XCTAssertEqual(NanoMuseVideoGen.model(for: "wan2.6-i2v", fromImage: false), "wan2.6-t2v")
         XCTAssertEqual(NanoMuseVideoGen.model(for: "MiniMax/MiniMax-H3", fromImage: false), "MiniMax/MiniMax-H3")
+        XCTAssertEqual(NanoMuseVideoGen.model(for: "wan2.7-t2v-2026-06-12", fromImage: true), "wan2.7-i2v", "the dated snapshots differ between the two jobs")
+        XCTAssertEqual(NanoMuseVideoGen.model(for: "wan2.7-i2v-2026-04-25", fromImage: true), "wan2.7-i2v-2026-04-25")
+        XCTAssertEqual(NanoMuseVideoGen.model(for: "wan2.7-i2v", fromImage: false), "wan2.7-t2v")
+        XCTAssertTrue(NanoMuseVideoGen.knownDashScopeModels.contains("wan2.7-i2v") && NanoMuseVideoGen.knownDashScopeModels.contains("wan2.7-t2v"))
+
+        let wan27 = NanoMuseVideoGen.imageToVideoBody(model: "wan2.7-i2v", ossURL: "oss://x/y.png", prompt: "p", seconds: 4)
+        let media = ((wan27["input"] as? [String: Any])?["media"] as? [[String: Any]])?.first
+        XCTAssertEqual(media?["type"] as? String, "first_frame")
+        XCTAssertEqual(media?["url"] as? String, "oss://x/y.png")
+        XCTAssertNil((wan27["input"] as? [String: Any])?["img_url"])
+        XCTAssertEqual((wan27["parameters"] as? [String: Any])?["resolution"] as? String, "720P")
+        XCTAssertEqual((wan27["parameters"] as? [String: Any])?["duration"] as? Int, 4)
+        let wan22 = NanoMuseVideoGen.imageToVideoBody(model: "wan2.2-i2v-flash", ossURL: "oss://x/y.png", prompt: "p", seconds: 4)
+        XCTAssertEqual((wan22["input"] as? [String: Any])?["img_url"] as? String, "oss://x/y.png")
+        XCTAssertEqual((wan22["parameters"] as? [String: Any])?["resolution"] as? String, "480P")
+        XCTAssertNil((wan22["parameters"] as? [String: Any])?["duration"])
+        let t2v27 = NanoMuseVideoGen.textToVideoBody(model: "wan2.7-t2v", prompt: "p", seconds: 4, ratio: "21:9")
+        XCTAssertEqual((t2v27["parameters"] as? [String: Any])?["ratio"] as? String, "16:9")
+        XCTAssertEqual((t2v27["parameters"] as? [String: Any])?["resolution"] as? String, "720P")
+        XCTAssertNil((t2v27["parameters"] as? [String: Any])?["size"])
+        let t2v22 = NanoMuseVideoGen.textToVideoBody(model: "wan2.2-t2v-plus", prompt: "p", seconds: 4, ratio: "16:9")
+        XCTAssertEqual((t2v22["parameters"] as? [String: Any])?["size"] as? String, "1280*720")
 
         XCTAssertEqual(NanoMuseVideoGen.wanResolution("wan2.2-i2v-flash"), "480P")
         XCTAssertEqual(NanoMuseVideoGen.wanResolution("wan2.6-i2v"), "720P")

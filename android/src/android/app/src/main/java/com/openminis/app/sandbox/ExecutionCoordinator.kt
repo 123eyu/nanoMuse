@@ -3,6 +3,7 @@ package com.openminis.app.sandbox
 import android.content.Context
 import android.util.Log
 import com.openminis.app.data.repository.EnvVarRepository
+import io.github.nanomuse.sandbox.FeedSandboxScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.File
@@ -90,6 +91,10 @@ object ExecutionCoordinator {
                 Log.i(TAG, "[$sessionId] Auto-booting PRootKernel")
                 PRootKernel.boot(appContext)
             }
+
+            // nanoMuse: rebuild the disposable Feed view before every shell command. The real
+            // app-owned Feed is never bound, even if a command bypasses the read-only wrappers.
+            FeedSandboxScope.refresh(appContext, sessionId)
 
             // [diag] trace the sessionId that shell_execute is dispatched with —
             // suspected source of the Chinese-emoji filename vanishing bug
@@ -209,6 +214,10 @@ object ExecutionCoordinator {
             mounts[linuxPath] = hostDir.absolutePath
             PRootKernel.addBindMount(linuxPath, hostDir.absolutePath)
         }
+        // nanoMuse: unlike the writable global dirs above, Feed uses a disposable mirror because
+        // PRoot's bind syntax cannot make the app-private source read-only.
+        val feedMirror = FeedSandboxScope.refresh(appContext, sessionId)
+        mounts[FeedSandboxScope.LINUX_ROOT] = feedMirror.absolutePath
 
         // T277: user-mounted external folders (SAF-picked trees). PersistentShell
         // uses this map verbatim as PRoot's `-b` argv, so any mount missing here
@@ -233,6 +242,8 @@ object ExecutionCoordinator {
     fun sessionDidTerminate(sessionId: String) {
         val shell = shells.remove(sessionId)
         mutexes.remove(sessionId)
+        // nanoMuse: this cache contains only the session's disposable, read-only Feed mirror.
+        FeedSandboxScope.clear(appContext, sessionId)
         // T124a: drop the snapshot too — a future shell for the same id
         // restarts from a clean baseline, so the next applyEnvironment
         // shouldn't try to `unset` keys that don't exist in the new shell.

@@ -67,10 +67,12 @@ decorative, every surface a flat tone one step from its neighbour. It comes from
   while a turn runs); the send disc and the harness's scroll-to-latest disc are the same
   ink as your pills, with the glyph in the opposite colour. In an active chat it keeps
   the same clear gap above the window edge that the harness dock normally provides,
-  even though the dock itself stays hidden. The harness's model picker, permission mode and plan toggle are
-  hidden from it (the models live in Settings → Models, dsh's own Models page is under
-  Advanced, and the default permission mode in General) and come back with
-  *Show DeepSeek Harness controls* under General. The microphone appears when the harness's voice input is switched on in
+  even though the dock itself stays hidden. The compact model control stays beside the
+  composer; a model that supports adjustable reasoning also exposes its documented level
+  there for this chat. The permission mode and plan toggle are hidden (the four job defaults
+  live in Settings → Models, dsh's own Models page is under Advanced, and the default
+  permission mode is in General) and come back with *Show DeepSeek Harness controls* under
+  General. The microphone appears when the harness's voice input is switched on in
   Plugins (Settings → Dictation says how).
 - Theme: the harness's light and dark palettes are overridden to the app's own tones (`#f9f9f9`
   surfaces with a plain white chat canvas, `#000000` user pills and `#f2f2f7` agent pills
@@ -117,12 +119,14 @@ skipped on a fresh install and never shown twice:
    turns into a green check as the system grants it (polled, and again when the window gets
    focus or the page becomes visible; one hook, `permissions.ts`, behind every place that
    shows a permission); once *Allow* has been pressed the button reads *Open System
-   Settings*. Only **nanoMuse Desktop** has to be switched on: macOS attributes the bundled
-   runtime's captures and events to the app that started it, so there is no second entry to
-   hunt for. For *Screen Recording* the shell makes one capture attempt before it opens the
-   pane, so nanoMuse is on the pane's list, and when the permission is granted while the app
-   runs a dialog says macOS applies it only to freshly started apps, with *Restart now*
-   (`relaunch` over the bridge). *Try it* rows (a test screenshot, a mouse move) and the
+   Settings*. The entry to switch on is **nanoMuse Computer Use**, the small helper that
+   takes the pictures and moves the mouse for the app ([desktop.md](desktop.md#macos-permissions));
+   the rows name it, and the helper restarts by itself once the grant is given, so the app
+   does not. A build without the helper (before 0.1.38) is the app itself: the shell makes one
+   capture attempt before it opens the pane, so nanoMuse is on the pane's list, and when the
+   permission is granted while the app runs a dialog says macOS applies it only to freshly
+   started apps, with *Restart now* (`relaunch` over the bridge). *Try it* rows (a test
+   screenshot, a mouse move) and the
    runtime row say whether it works (the row names the binary and, when its last start for
    the hands failed, why, in the host's words), and a black capture gets its own notice with
    *Relaunch*.
@@ -164,20 +168,23 @@ one. The agent writes memory itself with the `remember` tool when you tell it so
 you will expect it to know next time, and every chat's prompt carries the list back
 (`rooms.json`, this computer only). *Change look* has the dragon, an emoji on a colour,
 and **Draw one**, the avatar studio: describe the character, pick a style (the 3D
-toy look by default), see what it costs against today's allowance, *Draw four*,
+toy look by default), choose an image provider and key of your own, *Draw four*,
 and the four candidates come up in a 2×2 grid with *Option 1–4*; *This one* draws the
 other poses from the pick (working, waiting, happy, oops) and the new look is on, for
-every device of the account. The pictures come from the account's image model through
-the relay (`/v1/images/generations`, `/v1/images/edits`), the browser squares each
+every device of the account. The pictures go directly to the selected provider of your
+own (or to a self-hosted relay that explicitly advertises media), the browser squares each
 still to 512 px WebP, and the host writes the face to the account (`PUT /v1/me/profile`
-with the `face` map) and pulls it back under `faces/<id>/`. The prompts are the
+with the `face` map) and pulls it back under `faces/<id>/`. Signed out, the face is worn
+on this computer alone: the stills are already here, so they are kept under `faces/<id>/`
+and the look is written locally, without another picture; a later sign-in pulls the
+account's look over it, as with an emoji chosen while signed out. The prompts are the
 runtime's, so a face drawn on the phone or here comes out alike.
 
 **A new look from the chat** is the phone's `AvatarFlow`, word for word: "change your
 avatar to an orange cat with a scarf", "把你的形象换成一只橘猫", "become a robot" (the
 same regular expressions, `src/avatar-flow.ts`) are caught before they are sent; a card
-above the composer says what four pictures will cost against today's allowance (the
-phone's `FaceCostDialog`), *Draw* brings the four candidates up numbered in a 2×2 grid,
+above the composer names the provider that will draw; *Draw* brings the four candidates
+up numbered in a 2×2 grid,
 and you pick by clicking or in words ("the second one", "第三个", "regenerate"), then
 *Finalizing* draws the other poses, the look goes on for every device, *Share avatar*
 offers the card. Once it is on, the host leaves the phone's memory line (`- <date>: the
@@ -192,7 +199,8 @@ larger (the header, the profile panel, the stage's cursor marker), with the stil
 the poster, and the still alone below that size, when the system asks for reduced
 motion, or where a list wants a quiet picture. A drawn face gets clips of its own, as on
 the phone: four 4-second clips (idle, working, waiting, happy) drawn from the face by
-`wan2.2-i2v-flash` through the relay or your own Bailian key (`src/video.ts`,
+`wan2.2-i2v-flash` through your own Bailian key, or a self-hosted relay with its legacy
+media proxy explicitly enabled (`src/video.ts`,
 `src/motion.ts`; the phone's prompts word for word), kept under `avatar/motion/` on this
 computer and served by the faces route (`/face/<id>/<state>.webp|mp4`), played in the
 header, the sidebar and the capsule. *Settings → Media* has *Animate the avatar after a
@@ -363,15 +371,17 @@ page it opened, named for the page you came from; a pick in the sidebar starts f
   and *Latest 0.1.x: you have it* / *0.1.x is out · Update* / *Could not check · tap to
   try again*; the check reads `nanomuse.cn/dl/index.json` first and GitHub's releases
   second, once a day); and *Developer*: *Show DeepSeek
-  Harness controls* (the model picker, the modes, the workspace browser in place of the
-  chats column). The harness's other rows (permission presets, font size, link opening,
+  Harness controls* (the modes and the workspace browser in place of the chats column; the
+  compact model and reasoning control is already beside the composer). The harness's other
+  rows (permission presets, font size, link opening,
   Enter to send, performance, session log) live under *Advanced → Harness*.
 - **Models** (right after General, since 0.1.41), one row per thing a model does for
   you: **Chat** (*The model that talks with you.*), **Operating the screen** (*Looks at the
   screen and acts for you. Needs a model that can see images.*), **Making pictures**
   (*Portraits of your Muse and the pictures you ask for.*) and **Making clips** (*Short
-  clips of your Muse.*), a picker on each. Every picker lists nanoMuse Cloud first while
-  signed in, its recommended model marked *Recommended*, then one group per provider you
+  clips of your Muse.*), a picker on each. A picker lists nanoMuse Cloud first while
+  signed in only when the relay's live menu covers that row, its lane recommendation
+  marked *Recommended*, then one group per provider you
   added, each holding only the models that can do the row's job; the value reads
   `<provider> · <model>`. A chat change says *Applies to new chats.*; a hands change takes
   effect at the hands' next step (the plugin restarts `nanomuse mcp` with the new model,
@@ -381,8 +391,9 @@ page it opened, named for the page you came from; a pick in the sidebar starts f
   Bailian, Zhipu GLM, SiliconFlow, …*) and *Add a provider*; the page ends with *Add a
   provider*, which opens the ways on under Account. When you have not chosen, a row
   follows the provider new chats answer through (its catalogue default for the job) when
-  that is one of your own, else nanoMuse Cloud while signed in, else the first of your
-  providers that can.
+  that is one of your own, else nanoMuse Cloud while signed in only when its live menu
+  offers the job, else the first of your providers that can. The hosted Cloud offers
+  chat and screen operation, not media generation.
 - **Account** (under *Advanced*), the nanoMuse account: sign in or the masked
   identifier, the allowance, the look, *Open Devices*, a line that opens Settings → Models
   with what chat and the hands use now, and the block the own keys share with the account:
@@ -404,25 +415,26 @@ page it opened, named for the page you came from; a pick in the sidebar starts f
     sign-in on file comes back after a restart, with its local bridge. Signed out of the
     account, the same block is under the sign-in form, so a key can be changed without an
     account. Once a key is saved, a card asks **Use it for** (*Pick what this key should
-    handle. nanoMuse Cloud keeps the rest.*) with a toggle per thing the key can handle
+    handle. Other model choices stay as they are.*) with a toggle per thing the key can handle
     (chat, the screen, pictures, clips), all on, each naming the model it would get; *Use
     it* switches those rows on the Models page to the provider, *Not now* changes nothing,
     and a footnote says *You can change this any time under Settings › Models.*
 - **Media**, the models that draw the face and its clips: the same two pickers as
-  Settings → Models' *Making pictures* and *Making clips*, nanoMuse Cloud first while
-  signed in, then each own provider's models (the video picker has *Off* too). Pictures
+  Settings → Models' *Making pictures* and *Making clips*, each own provider's models
+  (and a self-hosted relay only when it advertises media; the video picker has *Off* too).
+  Pictures
   through your own key go to that provider directly (Model Studio's native image API,
   OpenRouter's image API, the OpenAI shape for OpenAI, Zhipu, SiliconFlow, Volcengine and
   xAI), and the studio says *Drawn with <provider> · <model>. Nothing is billed to your
   nanoMuse Cloud account.* in place of the estimate; a Google key draws only through the
   OpenAI-compatible layer. When nothing configured covers pictures or clips the row says who could,
-  where you are, with the way to Settings → nanoMuse Cloud (the same sentence the avatar studio
-  shows in place of the estimate), and with only the ChatGPT sign-in, that pictures and
+  where you are, with the way to provider setup under Settings → nanoMuse Cloud (the same sentence
+  the avatar studio shows in place of the estimate), and with only the ChatGPT sign-in, that pictures and
   clips are not covered by it.
   Below: *Animate the avatar after a change*, *Make / Redo clips* with the state of each
-  of the four, and the cost note. When clips through your own key failed and you are
-  signed in, the failure line offers *Use nanoMuse Cloud this time*: that one run through
-  the account, the picker untouched; the studio offers the same after a failed round.
+  of the four, and the cost note. When a picture or clip through your own key fails, the
+  failure line asks you to fix or choose a provider of your own; hosted Cloud is not a
+  media retry.
 - **Models**, **Agents**: the harness's pages, unchanged, under *Advanced*.
 - **Connectors**, a catalogue: a search field, category chips (*All*,
   *Built in*, *Work*, *Talk*, *Files*, *Developer*, *Data*, *Design*, *Money*,
@@ -495,7 +507,8 @@ page it opened, named for the page you came from; a pick in the sidebar starts f
   outside the main chat's folder on purpose; a chat opened from the Library or on a folder
   of your own writes there.
 - **Dictation**: the harness's own voice input (local SenseVoice; switched on in
-  Plugins, a microphone appears beside Send, audio stays on the computer), the microphone
+  Plugins, a microphone appears beside Send, audio stays on the computer; the window grants
+  the page its microphone and nothing else, never a camera), the microphone
   permission on macOS, and how to use the system's dictation into the composer.
 - **Devices**: this computer (its name, the remote-control switch that lets the phone
   run things here) and the other devices on the account, online dots, *Forget*.
@@ -520,7 +533,8 @@ page it opened, named for the page you came from; a pick in the sidebar starts f
   *Delete*), as on every other app; then *On this computer*: **Import memory**,
   **Download your agent data** (a zip in Downloads: the account snapshot without the
   sign-in token, the look and faces, the rooms, memory, and the chats as the harness
-  keeps them; shown in the file manager) and **Reset** (memory, the rooms and the local
+  keeps them; a proxy password is left out, and so are links and files over 64 MB; shown in
+  the file manager) and **Reset** (memory, the rooms and the local
   look go, the account signs out; the chats stay).
 - **Help & support**: the docs, the site, discussions, report an issue, the version.
 - **Legal**: the licence, the Meta trademark notice, the acknowledgements (DeepSeek
@@ -616,9 +630,9 @@ nowhere else.
   ([hub.md](hub.md)).
 - **Any model, your key.** The relay's models for members, a DeepSeek key, or any
   OpenAI-compatible provider the harness supports. Settings → Models shows four rows:
-  **Chat** (the relay's `/v1/models` entries marked `for: ["chat"]`, default
-  `deepseek-v4.1-flash`), **Operating the screen** (`for: ["gui"]`, default
-  `qwen3.8-27b`), **Making pictures** and **Making clips**; a DeepSeek entry is shown as
+  **Chat** (the relay's `/v1/models` entries marked and recommended for `chat`),
+  **Operating the screen** (recommended for `gui`; hosted Cloud currently recommends
+  `Qwen/Qwen3.6-27B-FP8` for both), **Making pictures** and **Making clips**; a DeepSeek entry is shown as
   sighted only when its id says `v4.1`, `vision` or `ocr`. The hands model is written to
   `$DSH_HOME/nanomuse/hands.json` (mode 0600) and handed to `nanomuse mcp` as its
   environment by the plugin's own MCP client, which it restarts when the model changes.
