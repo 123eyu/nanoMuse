@@ -157,12 +157,37 @@ class MCPManager:
                     )
                     continue
                 await self._stack.enter_async_context(stack)
-                self._add_tools(cfg, session, listed)
-                logger.info("MCP server '{}' connected with {} tools", cfg.name, len(listed.tools))
+                if self._add_tools(cfg, session, listed):
+                    logger.info(
+                        "MCP server '{}' connected with {} tools", cfg.name, len(listed.tools)
+                    )
                 break
         return self.tools
 
-    def _add_tools(self, cfg: MCPServerSettings, session: Any, listed: Any) -> None:
+    def _add_tools(self, cfg: MCPServerSettings, session: Any, listed: Any) -> bool:
+        """The server's tools under their model-facing names. Two tools whose names become
+        the same after the character replacement or the 64-character cut would make one of
+        them unreachable (the model's call would always land on the other), so the server
+        is skipped with a warning naming both and nothing of it is added: the operator
+        renames the server or the tool, and the rest of the runtime starts as usual.
+        Returns whether the tools were added."""
+        existing = {tool.name: f"{tool.server}.{tool.original_name}" for tool in self.tools}
+        names: dict[str, str] = {}
+        for remote in listed.tools:
+            safe = _safe_name(cfg.name, remote.name)
+            original = f"{cfg.name}.{remote.name}"
+            other = names.get(safe) or existing.get(safe)
+            if other is not None:
+                logger.warning(
+                    "MCP server '{}' skipped: tool names {!r} and {!r} both become {!r}; "
+                    "rename one of them",
+                    cfg.name,
+                    other,
+                    original,
+                    safe,
+                )
+                return False
+            names[safe] = original
         for t in listed.tools:
             schema = _attr(t, "input_schema", "inputSchema") or {
                 "type": "object",
@@ -185,6 +210,7 @@ class MCPManager:
                 original_name=t.name,
             )
             self.tools.append(tool)
+        return True
 
     async def _open(
         self, cfg: MCPServerSettings, transport: str, stack: AsyncExitStack

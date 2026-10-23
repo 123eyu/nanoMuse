@@ -761,6 +761,25 @@ def test_task_from_a_device_runs_in_a_visible_side_chat(hub_server) -> None:
     relay.call_runtime("task", {"text": "again", "conversation": "conv-1"}, "t2")
     assert relay.next_frame("result")["body"]["text"] == "Again"
     assert len([t for t in client.get("/api/threads").json() if t["title"] == "From Pixel"]) == 1
+    # The conversation id is local to its sending device. Another device using the same
+    # value gets a separate history, approvals and result lane.
+    tablet = {**PHONE, "id": "tablet-1", "name": "Tablet"}
+    llm.script.append(LLMResponse(content="Tablet answer"))
+    relay.send(
+        {
+            "type": "call",
+            "id": "t3",
+            "from": tablet,
+            "action": "task",
+            "args": {"text": "tablet task", "conversation": "conv-1"},
+        }
+    )
+    assert relay.next_frame("result")["body"]["text"] == "Tablet answer"
+    remote = [t for t in client.get("/api/threads").json() if t.get("remote_from")]
+    assert {(t["remote_from"]["device"], t["remote_from"]["conversation"]) for t in remote} == {
+        (PHONE["id"], "conv-1"),
+        ("tablet-1", "conv-1"),
+    }
 
 
 def test_a_stopped_task_fails_with_cancelled_and_only_for_its_asker(hub_server) -> None:
