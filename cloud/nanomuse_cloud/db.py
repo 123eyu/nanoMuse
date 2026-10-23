@@ -10,6 +10,7 @@ shows none of them.
 
 from __future__ import annotations
 
+import hmac
 import json
 import sqlite3
 import threading
@@ -709,18 +710,53 @@ class Database:
     # -- codes -------------------------------------------------------------
 
     def codes_recent_for(self, id_hash: str, since: int) -> int:
+        """Read-only count used by diagnostics and tests, never to authorize an insert."""
         with self._lock:
-            r = self._conn.execute("SELECT COUNT(*) FROM codes WHERE id_hash=? AND created_at>=?", (id_hash, since)).fetchone()
-        return int(r[0])
+            row = self._conn.execute(
+                "SELECT COUNT(*) FROM codes WHERE id_hash=? AND created_at>=?",
+                (id_hash, since),
+            ).fetchone()
+        return int(row[0])
 
-    def codes_recent_for_ip(self, ip: str, since: int) -> int:
+    def live_code(self, id_hash: str) -> sqlite3.Row | None:
+        """Read the current code for diagnostics and tests; verification uses ``check_code``."""
         with self._lock:
-            r = self._conn.execute("SELECT COUNT(*) FROM codes WHERE ip=? AND created_at>=?", (ip, since)).fetchone()
-        return int(r[0])
+            return self._conn.execute(
+                "SELECT * FROM codes WHERE id_hash=? AND used=0 AND expires_at>=? ORDER BY id DESC LIMIT 1",
+                (id_hash, now()),
+            ).fetchone()
 
-    def insert_code(self, id_hash: str, code_hash: str, ip: str, ttl_s: int) -> None:
+    def insert_code_limited(
+        self,
+        id_hash: str,
+        code_hash: str,
+        ip: str,
+        ttl_s: int,
+        identifier_limit: int,
+        ip_limit: int,
+    ) -> str:
+        """Insert one code while holding the same transaction as both window counts.
+
+        Returns ``identifier`` or ``ip`` when that window is already full, otherwise
+        ``""``. Keeping the counts and insert together prevents simultaneous requests
+        from all observing the last free slot.
+        """
         t = now()
         with self.tx() as c:
+            if identifier_limit > 0:
+                count = c.execute(
+                    "SELECT COUNT(*) FROM codes WHERE id_hash=? AND created_at>=?",
+                    (id_hash, t - 600),
+                ).fetchone()
+                if int(count[0]) >= identifier_limit:
+                    return "identifier"
+            if ip and ip_limit > 0:
+                count = c.execute(
+                    "SELECT COUNT(*) FROM codes WHERE ip=? AND created_at>=?",
+                    (ip, t - 3600),
+                ).fetchone()
+                if int(count[0]) >= ip_limit:
+                    return "ip"
             # A new code supersedes the old ones for this identifier.
             c.execute("UPDATE codes SET used=1 WHERE id_hash=? AND used=0", (id_hash,))
             c.execute(
@@ -728,23 +764,36 @@ class Database:
                 (id_hash, code_hash, ip, t, t + ttl_s),
             )
             c.execute("DELETE FROM codes WHERE expires_at < ?", (t - 86400,))
+        return ""
 
-    def live_code(self, id_hash: str) -> sqlite3.Row | None:
-        with self._lock:
-            return self._conn.execute(
+    def check_code(self, id_hash: str, code_hash: str, max_attempts: int) -> str:
+        """Atomically count one attempt and consume a matching live code.
+
+        Returns ``ok``, ``wrong`` or ``expired``. A successful conditional update
+        changes ``used`` in the same transaction, so concurrent verification can
+        never consume one code twice.
+        """
+        t = now()
+        with self.tx() as c:
+            row = c.execute(
                 "SELECT * FROM codes WHERE id_hash=? AND used=0 AND expires_at>=? ORDER BY id DESC LIMIT 1",
-                (id_hash, now()),
+                (id_hash, t),
             ).fetchone()
-
-    def bump_attempts(self, code_id: int) -> int:
-        with self.tx() as c:
-            c.execute("UPDATE codes SET attempts=attempts+1 WHERE id=?", (code_id,))
-            r = c.execute("SELECT attempts FROM codes WHERE id=?", (code_id,)).fetchone()
-        return int(r[0])
-
-    def consume_code(self, code_id: int) -> None:
-        with self.tx() as c:
-            c.execute("UPDATE codes SET used=1 WHERE id=?", (code_id,))
+            if row is None:
+                return "expired"
+            code_id = int(row["id"])
+            attempts = int(row["attempts"]) + 1
+            if attempts > max_attempts:
+                c.execute("UPDATE codes SET attempts=?, used=1 WHERE id=? AND used=0", (attempts, code_id))
+                return "expired"
+            if not hmac.compare_digest(str(row["code_hash"]), code_hash):
+                c.execute("UPDATE codes SET attempts=? WHERE id=? AND used=0", (attempts, code_id))
+                return "wrong"
+            claimed = c.execute(
+                "UPDATE codes SET attempts=?, used=1 WHERE id=? AND used=0 AND expires_at>=?",
+                (attempts, code_id, t),
+            )
+            return "ok" if claimed.rowcount == 1 else "expired"
 
     # -- accounts ------------------------------------------------------------
 
@@ -752,16 +801,18 @@ class Database:
         with self._lock:
             return self._conn.execute("SELECT * FROM accounts WHERE id_hash=?", (id_hash,)).fetchone()
 
-    def account_by_hashes(self, id_hashes: tuple[str, ...]) -> sqlite3.Row | None:
+    def account_by_hashes(self, id_hashes: tuple[str, ...], shared: str | None = None) -> sqlite3.Row | None:
         """Look up an account by its canonical hash first, then by any legacy
         hash (such as a dotted Gmail address created before canonicalisation).
         When matched on a legacy hash and the canonical hash is not taken,
-        ``id_hash`` is updated in place so subsequent lookups match directly."""
+        ``id_hash`` is updated in place so subsequent lookups match directly.
+        ``shared`` is a hash the identifier reaches but never adopts (the
+        ``+tag``-stripped form relay 0.26 merged every address into)."""
         if not id_hashes:
             return None
         primary = id_hashes[0]
         row = self.account_by_hash(primary)
-        if row is not None or len(id_hashes) == 1:
+        if row is not None:
             return row
         for legacy in id_hashes[1:]:
             row = self.account_by_hash(legacy)
@@ -771,6 +822,8 @@ class Database:
                     if taken is None:
                         c.execute("UPDATE accounts SET id_hash=? WHERE id=?", (primary, row["id"]))
                 return self.account(str(row["id"]))
+        if shared and shared != primary:
+            return self.account_by_hash(shared)
         return None
 
     def account(self, account_id: str) -> sqlite3.Row | None:
@@ -814,6 +867,61 @@ class Database:
                     (account_id, t, "credit", 0, json.dumps({"credit_uy": grant_uy, "from": "signup"})),
                 )
         return self.account(account_id)  # type: ignore[return-value]
+
+    def create_account_limited(
+        self,
+        id_hash: str,
+        channel: str,
+        hint: str,
+        grant: int,
+        identifier_enc: str,
+        account_id: str,
+        grant_uy: int,
+        *,
+        domain: str = "",
+        domain_limit: int = 0,
+        domain_since: int = 0,
+    ) -> tuple[sqlite3.Row | None, bool]:
+        """Create an account unless it exists or its domain has filled today's quota.
+
+        The existing-account check, domain count and insert share one transaction.
+        ``(None, False)`` means the domain is full; otherwise the boolean says whether
+        this call inserted the returned account.
+        """
+        t = now()
+        grant_uy = max(0, int(grant_uy))
+        who = _client.current()
+        with self.tx() as c:
+            existing = c.execute("SELECT * FROM accounts WHERE id_hash=?", (id_hash,)).fetchone()
+            if existing is not None:
+                return existing, False
+            if channel == "email" and domain and domain_limit > 0:
+                tail = "@" + domain.lower()
+                count = c.execute(
+                    """SELECT COUNT(*) FROM accounts
+                       WHERE created_at>=? AND channel='email'
+                         AND SUBSTR(hint, -LENGTH(?))=?""",
+                    (domain_since, tail, tail),
+                ).fetchone()
+                if int(count[0]) >= domain_limit:
+                    return None, False
+            c.execute(
+                "INSERT INTO accounts(id, id_hash, channel, hint, created_at, granted, identifier_enc, grant_uy, allowance_uy, "
+                "first_ip, last_ip, last_ua, last_seen_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (account_id, id_hash, channel, hint, t, grant, identifier_enc, grant_uy, grant_uy, who.ip, who.ip, who.ua, t),
+            )
+            if grant:
+                c.execute(
+                    "INSERT INTO ledger(account_id, ts, kind, charged) VALUES (?,?,?,?)",
+                    (account_id, t, "grant", -grant),
+                )
+            if grant_uy:
+                c.execute(
+                    "INSERT INTO ledger(account_id, ts, kind, charged, extra) VALUES (?,?,?,?,?)",
+                    (account_id, t, "credit", 0, json.dumps({"credit_uy": grant_uy, "from": "signup"})),
+                )
+            created = c.execute("SELECT * FROM accounts WHERE id=?", (account_id,)).fetchone()
+            return created, True
 
     def delete_account(self, account_id: str) -> None:
         """Everything about one person: keys, ledger, devices, pending codes, the row itself."""

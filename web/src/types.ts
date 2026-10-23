@@ -409,6 +409,8 @@ export interface CloudConfig {
   privacy_url?: string;
   repo_url?: string;
   improve_default?: boolean;
+  /** Relay policy; absent on older relays, whose minimum was eight. */
+  password_min_len?: number;
 }
 
 /** `/api/cloud/me`: the account as the relay sees it. */

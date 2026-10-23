@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import concurrent.futures
+import threading
+
 import httpx
 import pytest
 from test_cloud import fake_upstream, sign_up
@@ -11,7 +14,7 @@ from nanomuse_cloud.config import Settings
 from nanomuse_cloud.db import Database
 from nanomuse_cloud.identifiers import BadIdentifier, parse
 from nanomuse_cloud.senders import LogSender
-from nanomuse_cloud.service import Cloud, check_password, hash_password
+from nanomuse_cloud.service import Cloud, CloudError, check_password, hash_password
 
 
 def make(**overrides):
@@ -58,9 +61,10 @@ async def test_password_set_login_change_and_lockout():
     key1 = first["api_key"]
     assert first["account"]["has_password"] is False and first["account"]["signed_in_via"] == "code"
 
-    # No password yet: the password sign-in says so instead of pretending.
+    # No password yet is indistinguishable from an unknown account or a wrong password.
     r = await client.post("/v1/auth/login", json={"identifier": "13800138000", "password": "whatever1", "device": "mac"})
-    assert r.status_code == 400 and r.json()["error"]["code"] == "no_password"
+    no_password = (r.status_code, r.json())
+    assert no_password[0] == 401 and no_password[1]["error"]["code"] == "bad_credentials"
 
     # Weak ones are refused; a proper one is set without `current` (none exists).
     r = await client.post("/v1/auth/password", json={"password": "short"}, headers=auth(key1))
@@ -82,9 +86,10 @@ async def test_password_set_login_change_and_lockout():
 
     # Unknown numbers and wrong passwords get the same answer.
     r = await client.post("/v1/auth/login", json={"identifier": "13900001111", "password": "correct horse 1"})
-    assert r.status_code == 401 and r.json()["error"]["code"] == "bad_credentials"
+    unknown = (r.status_code, r.json())
     r = await client.post("/v1/auth/login", json={"identifier": "13800138000", "password": "nope nope nope"})
-    assert r.status_code == 401 and r.json()["error"]["code"] == "bad_credentials"
+    wrong = (r.status_code, r.json())
+    assert unknown == wrong == no_password
 
     # Changing it needs the current one — this key is well past the reset window.
     cloud.db._conn.execute("UPDATE api_keys SET created_at=created_at-7200")
@@ -902,15 +907,16 @@ async def test_the_abuse_action_reclaims_the_credit_and_cleans_up():
 
 async def test_gmail_dot_plus_and_googlemail_canonicalisation_and_legacy_lookup():
     """Gmail and Googlemail addresses have dots and `+tag` stripped and `googlemail.com`
-    folded to `gmail.com`, so dot/plus aliases cannot open extra accounts; any other domain
-    also strips `+tag` subaddresses; an existing account whose `id_hash` was recorded from
+    folded to `gmail.com`, so those aliases cannot open extra accounts. Plus addresses at
+    other providers remain distinct. An existing account whose `id_hash` was recorded from
     a dotted Gmail address before canonicalisation still matches on sign-in and upgrades
     its `id_hash` in place."""
     assert parse("First.Last+tag@GoogleMail.COM").value == "firstlast@gmail.com"
     assert parse("First.Last+tag@GoogleMail.COM").raw_value == "first.last+tag@googlemail.com"
     assert parse("a.b.c@gmail.com").value == "abc@gmail.com"
-    assert parse("dev.a+1@example.com").value == "dev.a@example.com"
-    for bad in ("...@gmail.com", "+tag@gmail.com", "+tag@example.com"):
+    assert parse("dev.a+1@example.com").value == "dev.a+1@example.com"
+    assert parse("dev.a+2@example.com").hash(b"k") != parse("dev.a@example.com").hash(b"k")
+    for bad in ("...@gmail.com", "+tag@gmail.com"):
         with pytest.raises(BadIdentifier):
             parse(bad)
 
@@ -938,6 +944,98 @@ async def test_gmail_dot_plus_and_googlemail_canonicalisation_and_legacy_lookup(
     # The row's id_hash is now upgraded to the canonical hash, so undotted sign-in matches too.
     again_login = await sign_up(client, sender, "olduser@gmail.com", "pixel")
     assert again_login["created"] is False and again_login["account"]["id"] == legacy_id
+
+    # Elsewhere plus addressing is the provider's business: two accounts from now on...
+    plus = await sign_up(client, sender, "dev.a+1@example.com", "mac")
+    base = await sign_up(client, sender, "dev.a@example.com", "pixel")
+    assert base["created"] is True and base["account"]["id"] != plus["account"]["id"]
+    # ...but an account relay 0.26 kept under the stripped form is still the tagged
+    # address's when it exists, and the plain address's as well: nobody loses one
+    merged_raw = "team@example.org"
+    merged_id = cloud.db.new_account_id()
+    cloud.db.create_account(
+        parse(merged_raw).hash(cloud.s.hmac_key),
+        "email",
+        "te***@example.org",
+        0,
+        cloud.crypto.encrypt(merged_id, merged_raw),
+        account_id=merged_id,
+        grant_uy=10_000_000,
+    )
+    tagged = await sign_up(client, sender, "team+alerts@example.org", "mac")
+    assert tagged["created"] is False and tagged["account"]["id"] == merged_id
+    plain = await sign_up(client, sender, "team@example.org", "pixel")
+    assert plain["created"] is False and plain["account"]["id"] == merged_id
+
+
+def test_code_limits_and_consumption_are_atomic_under_concurrency():
+    """A barrier makes requests reach each atomic boundary together: one code occupies the
+    only rate-limit slot, and one verification consumes it exactly once."""
+    app, client, sender, up, cloud, settings = make(
+        code_per_identifier_10m=1,
+        code_per_ip_hour=100,
+    )
+    ident = parse("parallel@example.com")
+    issue_barrier = threading.Barrier(8)
+
+    def issue() -> str:
+        issue_barrier.wait()
+        try:
+            cloud.request_code(ident, "198.51.100.20")
+            return "ok"
+        except CloudError as exc:
+            return exc.code
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+        issued = list(pool.map(lambda _: issue(), range(8)))
+    assert issued.count("ok") == 1
+    assert issued.count("code_too_often") == 7
+    code = sender.sent[-1][1]
+
+    verify_barrier = threading.Barrier(8)
+
+    def verify() -> str:
+        verify_barrier.wait()
+        try:
+            cloud.verify_code(ident, code, "parallel")
+            return "ok"
+        except CloudError as exc:
+            return exc.code
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+        verified = list(pool.map(lambda _: verify(), range(8)))
+    assert verified.count("ok") == 1
+    assert verified.count("code_expired") == 7
+
+
+def test_domain_signup_limit_is_atomic_under_concurrency():
+    """All workers pass the advisory pre-check before any creates; the transaction still
+    permits only one account at a one-account daily domain limit."""
+    app, client, sender, up, cloud, settings = make(
+        signup_per_domain_day=1,
+        code_per_ip_hour=100,
+    )
+    barrier = threading.Barrier(8)
+    original = cloud._refuse_if_domain_limited
+
+    def checked_together(ident):
+        original(ident)
+        barrier.wait()
+
+    cloud._refuse_if_domain_limited = checked_together  # type: ignore[method-assign]
+
+    def create(i: int) -> str:
+        try:
+            cloud.sign_in(parse(f"parallel{i}@race.example"), "worker", "code")
+            return "ok"
+        except CloudError as exc:
+            return exc.code
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+        created = list(pool.map(create, range(8)))
+    assert created.count("ok") == 1
+    assert created.count("domain_limited") == 7
+    assert cloud.db.signups_from_domain_since("race.example", 0) == 1
 
 
 async def test_blocked_disposable_domains_are_refused():
