@@ -17,8 +17,9 @@ from fastapi.testclient import TestClient
 
 from nanomuse.config import Settings
 from nanomuse.llm import MockLLM
-from nanomuse.schema import Function, LLMResponse, ToolCall
+from nanomuse.schema import Function, LLMResponse, Message, ToolCall
 from nanomuse.server import create_app
+from nanomuse.server.events import Timeline
 from nanomuse.server.service import MuseService, _parse_ideas
 from nanomuse.server.webui import current_thread
 
@@ -1594,9 +1595,13 @@ def test_workspace_scan_ignores_only_excludes_inside_it(tmp_path: Path):
 def test_html_artifacts_are_served_sandboxed(server, settings: Settings):
     client, _, _ = server
     (settings.agent.workspace / "page.html").write_text("<script>alert(1)</script>", "utf-8")
-    r = client.get("/api/files/page.html")
-    assert r.status_code == 200 and r.headers["content-type"].startswith("text/html")
-    assert "sandbox" in r.headers["content-security-policy"]
+    (settings.agent.workspace / "drawing.svg").write_text("<svg></svg>", "utf-8")
+    for name in ("page.html", "drawing.svg"):
+        r = client.get(f"/api/files/{name}")
+        assert r.status_code == 200
+        # an opaque origin (no token, no API), scripts and pop-ups allowed: a page the agent
+        # wrote may still load a chart library from a CDN or ask a public API for its data
+        assert r.headers["content-security-policy"] == "sandbox allow-scripts allow-popups"
     (settings.agent.workspace / "notes.md").write_text("# hi", "utf-8")
     assert "content-security-policy" not in client.get("/api/files/notes.md").headers
 
@@ -1919,6 +1924,66 @@ def test_timeline_survives_restart(server, settings: Settings):
     assert texts == ["remember this", "persisted"]
     # and the model context was restored as well
     assert [m.role.value for m in fresh.threads["main"].agent.messages] == ["user", "assistant"]
+
+
+async def test_timeline_flush_cannot_be_overwritten_by_an_older_async_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    timeline = Timeline("main", tmp_path / "main.json")
+    original_write = timeline._write
+    old_started = threading.Event()
+    release_old = threading.Event()
+
+    def controlled_write(payload: str, version: int) -> None:
+        if version == 1:
+            old_started.set()
+            release_old.wait(timeout=5)
+        original_write(payload, version)
+
+    monkeypatch.setattr(timeline, "_write", controlled_write)
+    timeline.add({"type": "user", "text": "old"})
+    assert timeline._flush_handle is not None
+    timeline._flush_handle.cancel()
+    timeline._flush_handle = None
+    timeline._flush_later(asyncio.get_running_loop())
+    old_write = timeline._writing
+    assert old_write is not None
+    await asyncio.to_thread(old_started.wait, 5)
+
+    timeline.add({"type": "assistant", "text": "latest"})
+    timeline.flush()
+    release_old.set()
+    await old_write
+
+    stored = json.loads(timeline.path.read_text("utf-8"))
+    assert [event["text"] for event in stored["events"]] == ["old", "latest"]
+
+
+def test_session_write_failure_keeps_the_previous_json_and_recovers(
+    server, monkeypatch: pytest.MonkeyPatch
+):
+    _, service, _ = server
+    agent = service.threads["main"].agent
+    assert agent.session_file is not None
+    agent.messages = [Message.user("before")]
+    agent._save_session()
+    previous = agent.session_file.read_text("utf-8")
+
+    agent.messages.append(Message.assistant("after"))
+    real_replace = os.replace
+
+    def fail_replace(source: str | os.PathLike[str], target: str | os.PathLike[str]) -> None:
+        raise OSError("simulated replace failure")
+
+    monkeypatch.setattr("nanomuse.agent.core.os.replace", fail_replace)
+    agent._save_session()
+    assert agent.session_file.read_text("utf-8") == previous
+    assert list(agent.session_file.parent.glob(f".{agent.session_file.name}.*.tmp")) == []
+
+    monkeypatch.setattr("nanomuse.agent.core.os.replace", real_replace)
+    agent._save_session()
+    stored = json.loads(agent.session_file.read_text("utf-8"))
+    assert [message["content"] for message in stored["messages"]] == ["before", "after"]
 
 
 # ----------------------------------------------------------------------------- push

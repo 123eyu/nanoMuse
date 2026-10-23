@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
+import tempfile
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
@@ -574,6 +576,7 @@ class MuseAgent:
     def _save_session(self) -> None:
         if not self.session_file:
             return
+        temporary: Path | None = None
         try:
             self.session_file.parent.mkdir(parents=True, exist_ok=True)
             data: dict[str, Any] = {
@@ -581,9 +584,25 @@ class MuseAgent:
                 "turns": self.turns,
                 "messages": [m.model_dump(mode="json") for m in self.messages],
             }
-            self.session_file.write_text(json.dumps(data, ensure_ascii=False, indent=1), "utf-8")
+            with tempfile.NamedTemporaryFile(
+                "w",
+                encoding="utf-8",
+                dir=self.session_file.parent,
+                prefix=f".{self.session_file.name}.",
+                suffix=".tmp",
+                delete=False,
+            ) as handle:
+                temporary = Path(handle.name)
+                json.dump(data, handle, ensure_ascii=False, indent=1)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, self.session_file)
+            temporary = None
         except OSError as exc:  # pragma: no cover
             logger.warning("could not save session: {}", exc)
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
 
     def load_session(self, path: Path) -> int:
         data = json.loads(Path(path).read_text("utf-8"))

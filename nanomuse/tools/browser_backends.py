@@ -24,6 +24,7 @@ from __future__ import annotations
 import base64
 import json
 from abc import ABC, abstractmethod
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -106,6 +107,10 @@ class BrowserBackend(ABC):
 
     @abstractmethod
     async def goto(self, url: str) -> None: ...
+
+    async def set_url_guard(self, guard: Callable[[str], Awaitable[bool]]) -> None:
+        """Install a last-moment network URL guard when the backend supports interception."""
+        return None
 
     @abstractmethod
     async def evaluate(self, js: str, arg: Any = None) -> Any:
@@ -242,6 +247,9 @@ class PlaywrightBackend(BrowserBackend):
         self._pw: Any = None
         self._context: Any = None
         self._page: Any = None
+        self._url_guard: Callable[[str], Awaitable[bool]] | None = None
+        self._guard_installed = False
+        self._blocked_url = ""
 
     @staticmethod
     def available() -> bool:
@@ -275,6 +283,7 @@ class PlaywrightBackend(BrowserBackend):
                 locale=None,
             )
             self._context.set_default_timeout(self.timeout_ms)
+            await self._install_url_guard()
         pages = self._context.pages
         self._page = pages[0] if pages else await self._context.new_page()
         self._page.set_default_timeout(self.timeout_ms)
@@ -292,8 +301,38 @@ class PlaywrightBackend(BrowserBackend):
 
         spawn(save(), "saving a browser download")
 
+    async def set_url_guard(self, guard: Callable[[str], Awaitable[bool]]) -> None:
+        self._url_guard = guard
+        await self._install_url_guard()
+
+    async def _install_url_guard(self) -> None:
+        guard = self._url_guard
+        if self._context is None or guard is None or self._guard_installed:
+            return
+
+        async def check(route: Any) -> None:
+            url = str(route.request.url)
+            if await guard(url):
+                await route.continue_()
+                return
+            self._blocked_url = url
+            await route.abort("blockedbyclient")
+
+        await self._context.route("**/*", check)
+        self._guard_installed = True
+
     async def goto(self, url: str) -> None:
-        await self._page.goto(url, wait_until="domcontentloaded")
+        self._blocked_url = ""
+        try:
+            await self._page.goto(url, wait_until="domcontentloaded")
+        except Exception as exc:
+            if self._blocked_url:
+                blocked = self._blocked_url
+                self._blocked_url = ""
+                raise PermissionError(
+                    f"refusing to navigate to a private or local address: {blocked}"
+                ) from exc
+            raise
 
     async def evaluate(self, js: str, arg: Any = None) -> Any:
         return await self._page.evaluate(js, arg)
@@ -356,6 +395,7 @@ class PlaywrightBackend(BrowserBackend):
             url = await self.url() if self.open else ""
             await self._context.close()
             self._context = self._page = None
+            self._guard_installed = False
             await self.ensure()
             if url and url != "about:blank":
                 await self.goto(url)
@@ -370,6 +410,7 @@ class PlaywrightBackend(BrowserBackend):
             logger.debug("browser cleanup: {}", exc)
         finally:
             self._context = self._page = self._pw = None
+            self._guard_installed = False
 
 
 # ---------------------------------------------------------------------- the phone's WebView

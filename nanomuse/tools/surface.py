@@ -70,6 +70,36 @@ def inside(point: tuple[float, float], screen: Screen, surface: Surface) -> bool
     return -s <= x <= screen.width + s and -s <= y <= screen.height + s
 
 
+def trusted_node_words(screen: Screen | None, point: tuple[float, float] | None) -> str | None:
+    """The words of the smallest element the screen reported whose bounds contain ``point``,
+    or None when the screen reported no such element (no tree, or nothing under the point).
+
+    The model's `label` is its own word for what it is about to press; the element is the
+    screen's. The Sentinel reads both. Only reported bounds count as a hit: a centre alone
+    says nothing about an element's area."""
+    if screen is None or point is None:
+        return None
+    x, y = point
+    matches: list[tuple[float, dict[str, Any]]] = []
+    for node in screen.nodes:
+        box = node.get("box")
+        if not isinstance(box, list) or len(box) != 4:
+            continue
+        try:
+            left, top, right, bottom = (float(value) for value in box)
+        except (TypeError, ValueError):
+            continue
+        if left <= x <= right and top <= y <= bottom and right > left and bottom > top:
+            matches.append(((right - left) * (bottom - top), node))
+    if not matches:
+        return None
+    node = min(matches, key=lambda item: item[0])[1]
+    words = " / ".join(
+        str(node[key]).strip() for key in ("text", "desc", "hint", "res") if node.get(key)
+    )
+    return words or None
+
+
 def screen_result(screen: Screen, surface: Surface, prefix: str = "") -> ToolResult:
     """The screen as a tool result: its rendering, the screenshot when there is one, and a
     note when there is not."""
@@ -125,5 +155,6 @@ __all__ = [
     "inside",
     "num",
     "screen_result",
+    "trusted_node_words",
     "wait_hold",
 ]

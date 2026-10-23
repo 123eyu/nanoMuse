@@ -53,6 +53,11 @@ The tool's actions, identical on both backends:
 | `profile name` | present as `mobile` (412×915, a phone's user agent) or `desktop` (1280×900), or a custom user agent and size |
 | `close` | close the page; the profile and its cookies stay |
 
+`navigate` accepts public HTTP and HTTPS destinations only. It checks the initial host and
+the final URL after navigation, so `localhost`, private addresses and a public URL that
+redirects into the local network are refused. The Playwright backend also repeats the check
+immediately before browser requests continue, narrowing the DNS check-to-connect window.
+
 Every action that changes the page sends a frame to the chat: a JPEG of the page, its title and URL, and a caption of what just happened ("Clicked 'Sign in'"). Frames are the size of the profile's viewport in CSS pixels, so a point on the picture is the same point on the page; the take-over relies on that. They stay in memory on the server for the session; the last dozen per chat.
 
 From a script inside the sandbox on the phone the same tool is `nanomuse-browser <action> …` ([local-runtime.md](local-runtime.md#the-python-side-on-a-phone)): `nanomuse-browser fetch https://example.com/api/orders` is rung two from the shell, under the same Sentinel.
