@@ -113,6 +113,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Project
 
+- **The contributor list is current without publishing a maintainer's personal e-mail address.** All ten READMEs now show the same fourteen community contributors and keep the maintainer's GitHub profile as the contact.
 - **The bug report form is back on the new-issue chooser.** GitHub accepts a form's top-level `description` only between 3 and 200 characters and hides the form silently when it is longer, so the bilingual rewrite took *Bug report / 问题报告* to 245 and it disappeared from the chooser: desktop, runtime, web, iPhone, relay and showcase reports went to the Android form, whose own text pointed at the missing one. The description fits again in both languages, and a test checks every form has its `name` and `description`, that the three forms are on disk and that the length stays inside 3-200, so a form cannot be lost without a word again. For [#495](https://github.com/nano-muse/nanoMuse/issues/495).
 
 ## [1.0.5] - 2026-10-14 · Lookout
