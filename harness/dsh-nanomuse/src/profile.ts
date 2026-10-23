@@ -10,11 +10,13 @@
  * and the host serves them at `/nanomuse/assets/face/<id>/<mood>.webp`, so the
  * browser half shows the same face the phone does. Writes go the other way through
  * `cloud.ts` (`writeProfile`, `wearFace`): a rename, an emoji look or a face drawn in the
- * desktop's own studio is put to the relay whole, and `wearLocal` wears it here at once.
+ * desktop's own studio is put to the relay whole, and `wearLocal` wears it here at once;
+ * with no account, a rename stays local and a drawn face is kept here (`wearDrawn`).
  *
  * Never a key, never a message: the fields are the name, the face kind, the
  * emoji and its colour, the description and style, and the pictures.
  */
+import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { access, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
@@ -160,6 +162,22 @@ export class ProfileStore {
     await this.wear(normalize({ ...this.profile, ...next }))
   }
 
+  /**
+   * Wear a face drawn here while no account is signed in: the stills are kept under
+   * `faces/<id>/` with an id taken from the idle still, and the look is written locally, the
+   * way `wearLocal` writes a rename. Nothing leaves this computer; signing in later pulls the
+   * account's look over it, as with an emoji chosen while signed out.
+   * @returns the face id, or nothing when the stills do not decode.
+   */
+  async wearDrawn(face: Record<string, string>, description: string, style: string): Promise<string | undefined> {
+    const idle = decode(face.idle)
+    if (!idle) return undefined
+    const faceId = createHash('sha256').update(idle).digest('hex').slice(0, 16)
+    await this.saveStills(faceId, face, idle, { description, style, from: 'local' })
+    await this.wear(normalize({ ...this.profile, avatar: 'face', faceId, description, style, emoji: '', color: '' }))
+    return faceId
+  }
+
   private async storeFace(apiKey: string, light: RelayProfile): Promise<string | undefined> {
     const faceId = light.faceId
     if (!FACE_ID.test(faceId)) return undefined
@@ -169,13 +187,20 @@ export class ProfileStore {
     const face = full.face ?? {}
     const idle = decode(face.idle)
     if (!idle) return undefined
+    await this.saveStills(faceId, face, idle, { description: light.description, style: light.style, from: 'account' })
+    return faceId
+  }
+
+  /** The five stills under `faces/<id>/` (a missing mood shows the idle still) and the folder's note; other faces are removed. */
+  private async saveStills(faceId: string, face: Record<string, string | undefined>, idle: Buffer, note: { description: string; style: string; from: 'account' | 'local' }): Promise<void> {
+    const folder = join(this.dir, 'faces', faceId)
     await mkdir(folder, { recursive: true })
     for (const mood of MOODS) {
       const raw = decode(face[mood]) ?? idle
       await writeFile(join(folder, `${mood}.webp`), raw)
     }
-    await writeFile(join(folder, 'face.json'), JSON.stringify({ description: light.description, style: light.style, from: 'account' }, null, 2) + '\n')
-    // Older pulled faces are not worn any more.
+    await writeFile(join(folder, 'face.json'), JSON.stringify(note, null, 2) + '\n')
+    // Older faces are not worn any more.
     try {
       for (const other of await readdir(join(this.dir, 'faces'))) {
         if (other !== faceId) await rm(join(this.dir, 'faces', other), { recursive: true, force: true })
@@ -183,7 +208,6 @@ export class ProfileStore {
     } catch {
       // nothing to tidy
     }
-    return faceId
   }
 
   private async wear(next: Profile): Promise<void> {

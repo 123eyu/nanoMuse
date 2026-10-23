@@ -174,7 +174,10 @@ other poses from the pick (working, waiting, happy, oops) and the new look is on
 every device of the account. The pictures go directly to the selected provider of your
 own (or to a self-hosted relay that explicitly advertises media), the browser squares each
 still to 512 px WebP, and the host writes the face to the account (`PUT /v1/me/profile`
-with the `face` map) and pulls it back under `faces/<id>/`. The prompts are the
+with the `face` map) and pulls it back under `faces/<id>/`. Signed out, the face is worn
+on this computer alone: the stills are already here, so they are kept under `faces/<id>/`
+and the look is written locally, without another picture; a later sign-in pulls the
+account's look over it, as with an emoji chosen while signed out. The prompts are the
 runtime's, so a face drawn on the phone or here comes out alike.
 
 **A new look from the chat** is the phone's `AvatarFlow`, word for word: "change your

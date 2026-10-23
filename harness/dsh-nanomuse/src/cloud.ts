@@ -2803,12 +2803,19 @@ export default class NanomuseCloud extends Service {
   /**
    * Wear a face drawn here: the stills go to the account (`PUT /v1/me/profile` with the
    * `face` map), then the profile is pulled so the pictures land under `faces/<id>/`
-   * and every device of the account hears the hub's `profile` frame.
+   * and every device of the account hears the hub's `profile` frame. Signed out, the face
+   * is worn on this computer alone (`ProfileStore.wearDrawn`): the pictures were drawn by
+   * your own provider and are already here, so a sign-in gates only the other devices.
    */
   wearFace(description: string, style: string, face: Record<string, string>): Promise<Profile> {
     return this.serialize(async () => {
       const token = await this.token()
-      if (!token || !this.state.account) throw new RelayError(401, 'signed_out', 'Sign in to wear a drawn face')
+      if (!token || !this.state.account) {
+        const faceId = await this.profile.wearDrawn(face, description.slice(0, 200), style.slice(0, 20))
+        if (!faceId) throw new RelayError(400, 'bad_face', 'The drawn face has no idle still')
+        this.broadcast()
+        return this.profile.current()
+      }
       const current = this.profile.current()
       const write: ProfileWrite = {
         name: current.name || 'nanoMuse',
