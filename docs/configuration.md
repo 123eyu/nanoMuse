@@ -177,6 +177,8 @@ With `language = "auto"` the system prompt names the reply language and tells th
 
 `max_context_images` is for the hands. A run on a screen appends a screenshot per step and the whole conversation goes up again on every step, so a dozen full-size pictures had passed the relay's body limit (413 `too_large`, 0.1.37). Only the newest four travel now, each downscaled to at most two megapixels; the older ones are replaced by a one-line note so the model still knows a screenshot was there. The desktop app's harness keeps the same budget on its side.
 
+`max_context_messages` trims older history at a user-message boundary when possible. If a single turn fills the window, the runtime keeps the newest messages plus the complete tool exchange at the cutoff. This can exceed the configured message count by the messages needed to retain that exchange. Stored conversation history is unchanged.
+
 ## `[sync]`
 
 ```toml

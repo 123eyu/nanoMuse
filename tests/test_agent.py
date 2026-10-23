@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+import pytest
+
 from nanomuse.agent import MuseAgent
 from nanomuse.config import Settings
 from nanomuse.goals import GoalStore
@@ -154,6 +156,45 @@ async def test_context_window_trims_at_user_boundary(settings: Settings):
     ]
     ctx = agent.context_messages()
     assert [m.content for m in ctx] == ["u2", "a2"]
+
+
+@pytest.mark.parametrize(
+    ("limit", "steps", "calls_per_step"),
+    [(4, 2, 2), (80, 27, 2), (1, 1, 2), (3, 2, 1), (3, 2, 2), (0, 2, 2)],
+)
+async def test_long_tool_turn_keeps_call_result_pairs(
+    settings: Settings, limit: int, steps: int, calls_per_step: int
+):
+    settings.agent.max_context_messages = limit
+    settings.agent.max_steps = steps + 1
+    script = [
+        LLMResponse(tool_calls=[tc("add", a=i, b=b) for b in range(1, calls_per_step + 1)])
+        for i in range(steps)
+    ]
+    script.append(LLMResponse(content="Done."))
+    agent, llm, *_ = make_agent(settings, script)
+
+    assert await agent.run("Add each pair.") == "Done."
+    assert len(llm.calls) == steps + 1
+    for request in llm.calls:
+        history = [m for m in request["messages"] if m.role != Role.SYSTEM]
+        if limit > 0:
+            assert len(history) <= limit + calls_per_step
+        pending: set[str] = set()
+        for message in request["messages"]:
+            if message.role == Role.TOOL:
+                assert message.tool_call_id in pending, "tool result lost its assistant call"
+                pending.remove(message.tool_call_id)
+            else:
+                assert not pending, "tool exchange was cut short"
+                pending = {call.id for call in message.tool_calls or []}
+        assert not pending
+    # The newest results still reach the model.
+    latest_results = [m.content for m in llm.calls[-1]["messages"] if m.role == Role.TOOL]
+    assert latest_results[-calls_per_step:] == [
+        str(steps - 1 + b) for b in range(1, calls_per_step + 1)
+    ]
+    assert len(agent.messages) > limit  # trimming must not discard stored history
 
 
 async def test_context_window_keeps_only_the_newest_images(settings: Settings):
