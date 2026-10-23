@@ -62,13 +62,13 @@ object OpenAIModelsApi {
         ModelsDevApi.enrichModels(it)
     } + codexImageModels
 
-    // nanoMuse: query https://chatgpt.com/backend-api/codex/models when an OAuth token is present (#475)
+    // nanoMuse: use the same Codex client version for model discovery and responses.
     suspend fun fetchModelsOAuth(accessToken: String?, accountId: String? = null): List<LLMModel> = withContext(Dispatchers.IO) {
         val token = accessToken?.trim().orEmpty()
         if (token.isEmpty()) return@withContext fetchModelsOAuth()
         val live = try {
             val builder = Request.Builder()
-                .url("https://chatgpt.com/backend-api/codex/models?client_version=99.99.99")
+                .url("https://chatgpt.com/backend-api/codex/models?client_version=${OpenAIProvider.CODEX_CLIENT_VERSION}")
                 .header("Authorization", "Bearer $token")
                 .header("Originator", "codex_cli_rs")
                 .header("Accept", "application/json")
@@ -84,9 +84,9 @@ object OpenAIModelsApi {
             emptyList()
         }
         if (live.isEmpty()) return@withContext fetchModelsOAuth()
-        val seen = live.mapTo(mutableSetOf()) { it.id }
-        val merged = live + builtInCodexOAuthModels.filter { it.id !in seen }
-        ModelsDevApi.enrichModels(merged) + codexImageModels
+        // nanoMuse: a live catalogue is authoritative for this account/client.
+        // Do not append built-in entries that may be rejected with HTTP 400.
+        ModelsDevApi.enrichModels(live) + codexImageModels
     }
 
     // nanoMuse: parse `{"models":[{"slug":"gpt-6.1-sol","display_name":"...","visibility":"list"}, ...]}`
