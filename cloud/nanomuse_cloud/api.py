@@ -3,8 +3,8 @@
     GET  /healthz                                               → {ok, version, models, paused}
     GET  /v1/config                                             → the public figures the apps print (allowance, bonus, links, code_ttl_s, password_min_len); a minute's cache
     POST /v1/auth/code        {identifier}                      → 204 (400 phone_region: a number the SMS sender cannot reach; a disabled account gets the same 204 and no code is sent; 429 domain_limited: a new address of a domain at its day's sign-up limit)
-    POST /v1/auth/verify      {identifier, code, device, invite?} → {api_key, base_url, account, tokens, models}
-    POST /v1/auth/login       {identifier, password, device}    → the same, for accounts that set a password
+    POST /v1/auth/verify      {identifier, code, device, invite?, device_id?, device_kind?} → {api_key, base_url, account, tokens, models}
+    POST /v1/auth/login       {identifier, password, device, device_id?, device_kind?} → the same, for accounts that set a password
     POST /v1/auth/password    {password, current?}              → 204 (set / change; "" + current removes)
     GET  /v1/me                                                 → account, tokens, spend (¥ spent / pool / left), invite, contribute, usage by kind, models, recent, nudges
     GET  /v1/nudges                                             → when the apps may ask for a star (0.18; public, cached an hour; the operator's policy over the defaults)
@@ -504,7 +504,15 @@ def create_app(
             raise CloudError(400, "code_wrong", "The code is six digits")
         device = str(body.get("device", ""))[:80]
         invite = str(body.get("invite", ""))[:32]
-        key, caller, created = await asyncio.to_thread(cloud.verify_code, ident, code, device, invite)
+        key, caller, created = await asyncio.to_thread(
+            cloud.verify_code,
+            ident,
+            code,
+            device,
+            invite,
+            str(body.get("device_id") or ""),
+            str(body.get("device_kind") or ""),
+        )
         me = cloud.me(caller, client_place(request))
         return {"api_key": key, "created": created, **me}
 
@@ -520,7 +528,15 @@ def create_app(
         if not password:
             raise CloudError(400, "password_required", "Enter the password")
         device = str(body.get("device", ""))[:80]
-        key, caller = await asyncio.to_thread(cloud.login_password, ident, password, device, client_ip(request))
+        key, caller = await asyncio.to_thread(
+            cloud.login_password,
+            ident,
+            password,
+            device,
+            client_ip(request),
+            str(body.get("device_id") or ""),
+            str(body.get("device_kind") or ""),
+        )
         me = cloud.me(caller, client_place(request))
         return {"api_key": key, "created": False, **me}
 
