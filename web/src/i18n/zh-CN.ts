@@ -1051,7 +1051,7 @@ const zhCN: Record<string, string> = {
   "Set a password": "设一个密码",
   "Your account is in. With a password, your phone and your other computers sign in at once, without waiting for a code. Optional; you can set one later under Account.":
     "账号已登录。设了密码，手机和其他电脑就能直接登录，不用再等验证码。可选，以后也可以在「账号」里设置。",
-  "At least 8 characters": "至少 8 个字符",
+  "At least {n} characters": "至少 {n} 个字符",
   "Set the password": "设置密码",
   "Not now": "以后再说",
   "I already starred": "已经点过了",
@@ -1343,7 +1343,7 @@ const zhCN: Record<string, string> = {
   Change: "修改",
   Set: "设置",
   "Current password": "当前密码",
-  "New password (8 characters or more)": "新密码（至少 8 位）",
+  "New password ({n} characters or more)": "新密码（至少 {n} 位）",
   "Once more": "再输一次",
   "The two do not match.": "两次输入不一致。",
   "Change password": "修改密码",

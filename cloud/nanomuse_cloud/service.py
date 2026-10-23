@@ -761,15 +761,21 @@ class Cloud:
         self._refuse_if_domain_limited(ident)
         account = self._account_for(ident)
         disabled = account is not None and bool(account["disabled"])
-        t = now()
-        if self.db.codes_recent_for(ident.hash(self.s.hmac_key), t - 600) >= self.s.code_per_identifier_10m:
-            raise CloudError(429, "code_too_often", "Too many codes for this address; wait a few minutes")
-        if ip and self.db.codes_recent_for_ip(ip, t - 3600) >= self.s.code_per_ip_hour:
-            raise CloudError(429, "code_too_often", "Too many codes from this network; wait an hour")
         # The reviewer's code is the fixed one and goes nowhere: the row is written like
         # anyone's, so the lifetime, the attempt limit and the rate limits are the same.
         code = self.s.review_code.strip() if review else f"{secrets.randbelow(1_000_000):06d}"
-        self.db.insert_code(ident.hash(self.s.hmac_key), _code_hash(self.s.hmac_key, code), ip, self.s.code_ttl_s)
+        limited = self.db.insert_code_limited(
+            ident.hash(self.s.hmac_key),
+            _code_hash(self.s.hmac_key, code),
+            ip,
+            self.s.code_ttl_s,
+            self.s.code_per_identifier_10m,
+            self.s.code_per_ip_hour,
+        )
+        if limited == "identifier":
+            raise CloudError(429, "code_too_often", "Too many codes for this address; wait a few minutes")
+        if limited == "ip":
+            raise CloudError(429, "code_too_often", "Too many codes from this network; wait an hour")
         if review:
             log.info("review sign-in: a code request for the reviewer's address; nothing sent")
             return
@@ -793,16 +799,11 @@ class Cloud:
         if not self.allowed(ident):
             raise CloudError(403, "not_invited", "This relay is private; that address is not on its list")
         id_hash = ident.hash(self.s.hmac_key)
-        row = self.db.live_code(id_hash)
-        if row is None:
+        result = self.db.check_code(id_hash, _code_hash(self.s.hmac_key, code.strip()), self.s.code_max_attempts)
+        if result == "expired":
             raise CloudError(400, "code_expired", "The code has expired; ask for a new one")
-        attempts = self.db.bump_attempts(int(row["id"]))
-        if attempts > self.s.code_max_attempts:
-            self.db.consume_code(int(row["id"]))
-            raise CloudError(400, "code_expired", "Too many tries; ask for a new code")
-        if not secrets.compare_digest(str(row["code_hash"]).encode(), _code_hash(self.s.hmac_key, code.strip()).encode()):
+        if result == "wrong":
             raise CloudError(400, "code_wrong", "That code is not right")
-        self.db.consume_code(int(row["id"]))
         return self.sign_in(ident, device, "code", invite)
 
     def sign_in(self, ident: Identifier, device: str, via: str, invite: str = "") -> tuple[str, Caller, bool]:
@@ -819,9 +820,33 @@ class Cloud:
             self._refuse_if_domain_limited(ident)
             account_id = self.db.new_account_id()
             enc = self.crypto.encrypt(account_id, ident.value)
-            account = self.db.create_account(
-                id_hash, ident.channel, ident.hint, self.s.signup_tokens, enc, account_id=account_id, grant_uy=self.s.allowance_uy
+            domain = ident.value.rpartition("@")[2].lower() if ident.channel == "email" else ""
+            domain_limit = (
+                self.s.signup_per_domain_day if domain and not self.is_review(ident) and domain not in self.s.signup_domain_allow_set else 0
             )
+            account, created = self.db.create_account_limited(
+                id_hash,
+                ident.channel,
+                ident.hint,
+                self.s.signup_tokens,
+                enc,
+                account_id,
+                self.s.allowance_uy,
+                domain=domain,
+                domain_limit=domain_limit,
+                domain_since=now() - 86400,
+            )
+            if account is None:
+                self.db.add_event("", "signup.domain_limited", domain[:200])
+                raise CloudError(
+                    429,
+                    "domain_limited",
+                    "This address's domain has reached today's sign-up limit on this relay; try again tomorrow or use another address",
+                )
+            account_id = str(account["id"])
+        else:
+            account_id = str(account["id"])
+        if created:
             self.db.add_event(account_id, "account.created", ident.channel)
             if self.s.improve_default:
                 # the relay's default for a new account, said on its timeline as such (not as a
@@ -1058,7 +1083,10 @@ class Cloud:
         if locked_until and int(locked_until) > now():
             raise CloudError(429, "locked", "Too many wrong passwords; wait a while or sign in with a code")
         if not account["password_hash"]:
-            raise CloudError(400, "no_password", "This account has no password yet; sign in with a code and set one under Account")
+            hash_password("x")
+            self._note_login_failure(ip)
+            self.db.add_event(account["id"], "sign_in.failed", device)
+            raise CloudError(401, "bad_credentials", "That address and password do not match")
         if not check_password(password, account["password_hash"]):
             left = self.db.login_failed(account["id"], self.s.password_max_attempts, self.s.lockout_s)
             self._note_login_failure(ip)

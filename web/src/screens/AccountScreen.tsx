@@ -1,6 +1,7 @@
 import { Check, Clapperboard, Copy, DatabaseZap, Gift, Image as ImageIcon, KeyRound, Loader2, LogOut, MessageCircle, Phone, Share2, ShieldCheck, Smartphone, Trash2 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { api } from "../api";
+import { passwordMinLength } from "../cloud-config";
 import { AllowanceWays } from "../components/AllowanceWays";
 import { PageBar } from "../components/BackBar";
 import { inputCls, primaryBtn, secondaryBtn } from "../components/Form";
@@ -73,7 +74,7 @@ export function AccountScreen() {
             {me?.invite?.code && <Invite invite={me.invite} />}
             {me && <Usage me={me} />}
             {me && <DataControlsLink me={me} />}
-            <Password account={account} onChanged={() => void load()} />
+            <Password account={account} minimum={passwordMinLength(cfg)} onChanged={() => void load()} />
             <Sessions sessions={sessions} loading={loading} onChanged={() => void load()} />
             {events && events.length > 0 && <Timeline events={events} />}
             <SignOut account={account} onDone={() => setTab("chat")} />
@@ -369,7 +370,7 @@ function fmtTokens(n: number): string {
   return String(n);
 }
 
-function Password({ account, onChanged }: { account: CloudAccount | null; onChanged: () => void }) {
+function Password({ account, minimum, onChanged }: { account: CloudAccount | null; minimum: number; onChanged: () => void }) {
   const t = useT();
   const { toast } = useStore();
   const has = !!account?.has_password;
@@ -381,7 +382,7 @@ function Password({ account, onChanged }: { account: CloudAccount | null; onChan
   const [error, setError] = useState<string | null>(null);
 
   const save = async (remove = false) => {
-    if (!remove && (next.length < 8 || next !== again)) return;
+    if (!remove && (next.length < minimum || next !== again)) return;
     setBusy(true);
     setError(null);
     try {
@@ -424,12 +425,12 @@ function Password({ account, onChanged }: { account: CloudAccount | null; onChan
           }}
         >
           {has && <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} placeholder={t("Current password")} aria-label={t("Current password")} autoComplete="current-password" className={inputCls} />}
-          <input type="password" value={next} onChange={(e) => setNext(e.target.value)} placeholder={t("New password (8 characters or more)")} aria-label={t("New password (8 characters or more)")} autoComplete="new-password" autoFocus className={inputCls} />
+          <input type="password" value={next} onChange={(e) => setNext(e.target.value)} placeholder={t("New password ({n} characters or more)", { n: minimum })} aria-label={t("New password ({n} characters or more)", { n: minimum })} autoComplete="new-password" autoFocus className={inputCls} />
           <input type="password" value={again} onChange={(e) => setAgain(e.target.value)} placeholder={t("Once more")} aria-label={t("Once more")} autoComplete="new-password" className={inputCls} />
           {again && next !== again && <p className="text-[12px] text-rose-600 dark:text-rose-300">{t("The two do not match.")}</p>}
           {error && <p className="rounded-2xl bg-rose-500/12 px-3 py-2 text-[12.5px] text-rose-700 dark:text-rose-300">{error}</p>}
           <div className="flex flex-wrap gap-2">
-            <button type="submit" disabled={busy || next.length < 8 || next !== again || (has && !current)} className={cx(primaryBtn, "flex-1")}>
+            <button type="submit" disabled={busy || next.length < minimum || next !== again || (has && !current)} className={cx(primaryBtn, "flex-1")}>
               {busy ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />} {has ? t("Change password") : t("Set password")}
             </button>
             {has && (

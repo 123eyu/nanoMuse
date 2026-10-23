@@ -24,16 +24,16 @@ class BadIdentifier(ValueError):
 def _canonical_email(address: str) -> str:
     """Canonical form of an e-mail address for hashing and account identity.
 
-    Every address has any ``+tag`` subaddress stripped from its local part so
-    ``user+1@example.com`` and ``user@example.com`` are one account; Gmail and
-    Googlemail addresses also have ``googlemail.com`` folded to ``gmail.com``
-    and dots removed from the local part, matching how Gmail routes mail.
+    Gmail and Googlemail addresses have ``googlemail.com`` folded to
+    ``gmail.com``, dots removed and ``+tag`` stripped from the local part,
+    matching how Gmail routes mail. Other providers decide for themselves
+    whether plus addressing is an alias, so their local parts stay exact.
     """
     local, _, domain = address.partition("@")
-    if "+" in local:
-        local = local.split("+", 1)[0]
     if domain in _GMAIL_DOMAINS:
         domain = "gmail.com"
+        if "+" in local:
+            local = local.split("+", 1)[0]
         local = local.replace(".", "")
     if not local:
         raise BadIdentifier("email")
