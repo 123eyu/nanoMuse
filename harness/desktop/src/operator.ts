@@ -633,7 +633,8 @@ export class Operator {
     const f = fraction(start) ?? this.lastMarker ?? { fx: -1, fy: -1 };
     if (fraction(start)) this.lastMarker = f;
     const f2 = fraction(end);
-    this.options.onAction?.({ ...f, ...(f2 ? { fx2: f2.fx, fy2: f2.fy } : {}), kind, text: describeAction({ action: kind, dy: action.dy, text: action.text, keys: action.keys, seconds: action.seconds }) });
+    // awaited like the libnut path: the capsule moves out of the way before the helper acts
+    await this.options.onAction?.({ ...f, ...(f2 ? { fx2: f2.fx, fy2: f2.fy } : {}), kind, text: describeAction({ action: kind, dy: action.dy, text: action.text, keys: action.keys, seconds: action.seconds }) });
     this.log(`${kind}${start ? ` at ${start.x},${start.y}` : ""}${end ? ` → ${end.x},${end.y}` : ""} (helper)`);
     try {
       return await helper.execute({ ...action, action: kind, ...(start ? { x: start.x, y: start.y } : {}), ...(end ? { x2: end.x, y2: end.y } : {}) });

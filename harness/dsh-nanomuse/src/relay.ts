@@ -547,7 +547,10 @@ export class Relay {
     return toDataControls(await res.json()) ?? { on, samples: 0, privacyUrl: '' }
   }
 
-  /** Delete every turn the relay kept from the account; how many went. */
+  /**
+   * Delete every turn the relay kept from the account (the training turns, and from relay 0.29
+   * the record with its files); how many training turns went.
+   */
   async deleteSamples(apiKey: string, signal?: AbortSignal): Promise<number> {
     const res = await this.fetchImpl(`${this.origin}/v1/me/samples`, {
       method: 'DELETE',

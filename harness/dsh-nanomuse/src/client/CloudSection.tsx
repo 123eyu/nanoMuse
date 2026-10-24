@@ -11,7 +11,7 @@ import { AccountPage } from './AccountPage.tsx'
 import { Avatar } from './Avatar.tsx'
 import { settingsBus } from './bus.ts'
 import { useLive, type LiveHub } from './live.ts'
-import { DEVICES_PANEL } from './panels.ts'
+import { DATA_SECTION, DEVICES_PANEL } from './panels.ts'
 import { DataRows } from './Memory.tsx'
 import { NetworkRows } from './Network.tsx'
 import { OwnKeyPanel } from './OwnKey.tsx'
@@ -175,9 +175,8 @@ export function makeCloudSection(t: Translate, part: 'account' | 'data' = 'accou
               a.contribute.defaultOn === undefined ? '' : t(a.contribute.defaultOn ? 'dataDefaultOn' : 'dataDefaultOff'), ' ',
               a.contribute.samples > 0 ? t('dataKept', { n: a.contribute.samples }) : '', ' ',
               h('a', { href: a.contribute.privacyUrl || PRIVACY_URL, target: '_blank', rel: 'noopener noreferrer' }, t('dataPrivacy'))),
-            a.contribute.samples > 0
-              ? h('div', { style: { marginTop: 6 } }, h(Button, { variant: 'outline', size: 'sm', disabled: busy, onClick: deleteSamples }, t('dataDelete')))
-              : null,
+            // the record (relay 0.29) is kept whether or not any training turn is: the delete is always there
+            h('div', { style: { marginTop: 6 } }, h(Button, { variant: 'outline', size: 'sm', disabled: busy, onClick: deleteSamples }, t('dataDelete'))),
             notice ? h('div', { style: muted }, notice) : null)
         : h('div', { style: muted }, t('dataOlderRelay'))
       if (part === 'data') {
@@ -208,10 +207,11 @@ export function makeCloudSection(t: Translate, part: 'account' | 'data' = 'accou
         h('h3', { style: heading }, t('devicesTitle')),
         h('div', { style: muted }, t('devicesSummary', { n: (live.streaming ? live.hub : status.hub).devices.filter((d) => d.kind !== 'web').length }), ' ',
           h(Button, { variant: 'ghost', size: 'sm', onClick: () => { settingsBus.openSection?.(DEVICES_PANEL) } }, t('devicesOpen'))),
-        // Data controls: the one switch over what the relay keeps, the shape of Muse's own.
+        // Data controls live on their own page (the Help-improve switch is there and nowhere
+        // else); the account page only points at it.
         h('h3', { style: heading }, t('dataTitle')),
-        h(SyncControls, { t }),
-        dataControls,
+        h('div', { style: muted }, t('dataOnAccount'), ' ',
+          h(Button, { variant: 'ghost', size: 'sm', onClick: () => { settingsBus.openSection?.(DATA_SECTION) } }, t('dataOpen'))),
         error ? h('div', { style: errorStyle }, error) : null,
         h('div', { style: row },
           h(Button, { variant: 'outline', size: 'sm', disabled: busy, onClick: refresh }, t('refresh')),
