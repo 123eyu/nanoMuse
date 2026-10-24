@@ -8,6 +8,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Runtime
 
+- **Cheaper Inference is in the own-key catalogue.** An OpenAI-compatible gateway at `https://api.cheaperinference.com/v1`, a key from [cheaperinference.com/signup](https://cheaperinference.com/signup); one key reaches models from several labs. The default model is `gpt-5.4-mini`, and any id from its public `/v1/models` list can be set instead. Chat only, on the OpenAI shape. `providers.json` lists twenty-two providers now, and the desktop, the phones, the relay and the web console carry the same file.
+
 ### Web
 
 ### Desktop

@@ -9,10 +9,10 @@ from nanomuse.llm import catalogue
 from nanomuse.llm.factory import create_llm
 
 
-def test_the_packaged_file_is_read_once_and_has_the_twenty_one_providers():
+def test_the_packaged_file_is_read_once_and_has_the_twenty_two_providers():
     cat = catalogue.load()
     assert cat.source.endswith("providers.json")
-    assert len(cat.providers) == 21
+    assert len(cat.providers) == 22
     assert cat.get("bailian").capabilities == ["chat", "vision", "image", "video"]
     assert cat.get("nowhere") is None
     # the same object on every call
