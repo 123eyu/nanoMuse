@@ -10,7 +10,22 @@ import io.github.nanomuse.avatar.ImageGen
 import io.github.nanomuse.cloud.NanoMuseCloud
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.json.JSONArray
+
+/** Media exposed by a relay: never from public Cloud, only from a self-hosted relay's live menu. */
+object RelayMediaPolicy {
+    private fun isPublicCloud(baseUrl: String): Boolean {
+        val url = baseUrl.trim().toHttpUrlOrNull() ?: return false
+        return url.scheme == "https" && url.host == "cloud.nanomuse.cn" && url.port == 443
+    }
+
+    fun available(baseUrl: String, menuIds: Collection<String>, candidates: Collection<String>): List<String> {
+        if (isPublicCloud(baseUrl)) return emptyList()
+        val menu = menuIds.toSet()
+        return candidates.filter { it in menu }.distinct()
+    }
+}
 
 /**
  * The three models nanoMuse runs on. Muse ships with all of them built in; here each is one of
@@ -49,16 +64,29 @@ object MediaModels {
     // ── video ─────────────────────────────────────────────────────────────
 
     /**
-     * Providers whose host speaks Model Studio's asynchronous video API: Model Studio itself, and
-     * nanoMuse Cloud, which relays those same paths (the account's own key is used).
+     * Providers whose host speaks Model Studio's asynchronous video API: Model Studio itself,
+     * and a self-hosted relay only when its current menu advertises a video model.
      */
     fun eligibleVideoInstances(context: Context): List<ProviderInstance> {
         val app = context.applicationContext as? MinisApp ?: return emptyList()
         val repo = app.providerRepositoryOrNull ?: return emptyList()
         val cloudId = NanoMuseCloud.instance(context)?.id
+        val relayModels = if (cloudId == null) {
+            emptyList()
+        } else {
+            RelayMediaPolicy.available(
+                NanoMuseCloud.baseUrl(context),
+                NanoMuseCloud.menuModelIds(context),
+                repo.config.value.modelEntries
+                    .filter { it.providerInstanceId == cloudId }
+                    .map { it.model.id },
+            )
+        }
+        val relayCanVideo = relayModels.any(VideoGen::looksLikeVideoModel)
         return repo.config.value.instances.filter { inst ->
             inst.isEnabled && inst.credentialType == ProviderCredential.apiKey &&
-                (VideoGen.speaksDashScope(ImageGen.baseUrlOf(inst)) || inst.id == cloudId) &&
+                (VideoGen.speaksDashScope(ImageGen.baseUrlOf(inst)) ||
+                    (inst.id == cloudId && relayCanVideo)) &&
                 // C11: the catalogue's word on the vendor (Bailian has video models; a gateway on the same host is not gated)
                 io.github.nanomuse.cloud.Capabilities.allows(context, inst, io.github.nanomuse.cloud.ProviderCatalogue.VIDEO)
         }
@@ -82,9 +110,10 @@ object MediaModels {
      * The video model, or null when there is none. The one chosen (Settings → Models, or →
      * Image & video models); with nothing chosen, in the Models page's order (0.1.41,
      * [io.github.nanomuse.models.SlotOrder]): the chat provider's own video model when the
-     * chat provider is the person's own and makes clips, else nanoMuse Cloud's when signed
-     * in, else the first own provider that can. Off stays off. [automatic] leaves the choice
-     * (and Off) aside and answers what that order gives now, for the picker's *Automatic* row.
+     * chat provider is the person's own and makes clips, else a relay whose live menu
+     * advertises video, else the first own provider that can. Off stays off. [automatic]
+     * leaves the choice (and Off) aside and answers what that order gives now, for the
+     * picker's *Automatic* row.
      */
     fun videoEndpoint(context: Context, automatic: Boolean = false): VideoGen.Endpoint? {
         val app = context.applicationContext as? MinisApp ?: return null

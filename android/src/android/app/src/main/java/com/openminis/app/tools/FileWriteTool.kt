@@ -4,6 +4,7 @@ import android.content.Context
 import com.openminis.app.data.model.AgentToolDefinition
 import com.openminis.app.data.model.AgentToolParam
 import com.openminis.app.sandbox.PRootKernel
+import io.github.nanomuse.sandbox.FeedSandboxScope
 import org.json.JSONObject
 
 object FileWriteTool {
@@ -34,6 +35,15 @@ object FileWriteTool {
 
             if (path.isBlank()) {
                 return ToolExecutionResult("Error: 'path' is required", false, toolTitle = toolTitle)
+            }
+
+            // nanoMuse: Feed is an app-owned feedback record exposed through a disposable mirror.
+            if (FeedSandboxScope.isReadOnlyPath(path)) {
+                return ToolExecutionResult(
+                    FeedSandboxScope.writeError(path),
+                    false,
+                    toolTitle = toolTitle,
+                )
             }
 
             // T219: read-only mount guard. Reject before opening so we don't

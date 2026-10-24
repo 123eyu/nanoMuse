@@ -327,9 +327,9 @@ html[data-nm-muse] [data-composer-card] > div:last-child > div:last-child { orde
 html[data-nm-muse] [data-composer-card] > [class*="_rail"] { flex-basis: 100%; order: -2; }
 html[data-nm-muse] [data-composer-card] > [class*="_accessory"] { flex-basis: 100%; order: -3; padding-top: 4px !important; }
 html[data-nm-muse] [data-composer-card] [class*="_modes"] { display: none !important; }
-/* the right-hand seats stay for the microphone; the model picker goes (Settings keeps it) */
+/* Keep the harness's compact model control: for models that expose reasoning levels it is
+   the one lightweight place to change the level for this chat. The other harness controls stay hidden. */
 html[data-nm-muse] [data-composer-card] [class*="_standardControls"] { gap: 2px !important; }
-html[data-nm-muse] [data-composer-card] [data-slot="conversation.input.model"] { display: none !important; }
 html[data-nm-muse] [data-composer-card] [class*="_activity"] { display: none !important; }
 html[data-nm-muse] [data-composer-card] [class*="_add"] { width: 34px; height: 34px; border-radius: 50%; color: var(--dsw-alias-label-secondary); }
 /* the send disc is the ink (black in the light, white in the dark) with the arrow in the opposite colour */

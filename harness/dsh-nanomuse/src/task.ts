@@ -86,6 +86,20 @@ export function textOf(content: readonly ContentBlock[] | undefined): string {
 
 /** `name: the arguments on one line`, bounded, for the asker's step list and approval card. */
 export function preview(name: string, args: string): string {
+  const shown = mainArgument(args)
+  return shown ? `${name}: ${shown.length > 160 ? `${shown.slice(0, 159)}…` : shown}` : name
+}
+
+/**
+ * What a remembered answer on the asking device covers: the tool and its whole main
+ * argument, never the cut preview, whose first words two different commands can share.
+ */
+export function grantKey(name: string, args: string): string {
+  const shown = mainArgument(args)
+  return shown ? `${name}: ${shown}` : name
+}
+
+function mainArgument(args: string): string {
   let shown = args.trim()
   try {
     const parsed: unknown = JSON.parse(args)
@@ -98,9 +112,7 @@ export function preview(name: string, args: string): string {
   } catch {
     // not JSON (a model mid-call) — show it raw
   }
-  shown = shown.replace(/\s+/g, ' ').trim()
-  if (shown.length > 160) shown = `${shown.slice(0, 159)}…`
-  return shown ? `${name}: ${shown}` : name
+  return shown.replace(/\s+/g, ' ').trim()
 }
 
 export class TaskRunner {
@@ -293,6 +305,7 @@ export class TaskRunner {
       stage: 'approval',
       approval_id: id,
       preview: tool ? preview(tool.name, tool.args) : req.toolName,
+      grant_key: tool ? grantKey(tool.name, tool.args) : req.toolName,
       risk: 'moderate',
       reason: req.displayReason?.en ?? req.reason ?? '',
       device: this.options.deviceName(),

@@ -200,6 +200,36 @@ async def test_actions_produce_the_same_summary_and_frames_on_any_backend(tmp_pa
     assert not res.ok and "no longer on the page" in (res.error or "")
 
 
+async def test_navigate_refuses_localhost_redirects_and_private_final_urls(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    backend = FakeBackend()
+    tool, _ = tool_with(backend, tmp_path)
+    monkeypatch.setattr(
+        "nanomuse.tools.browser._is_private_host",
+        lambda host: host in {"localhost", "127.0.0.1", "10.0.0.8"},
+    )
+
+    local = await tool.execute(action="navigate", url="http://localhost:8000/admin")
+    assert not local.ok and "private or local" in (local.error or "")
+    assert not any(call[0] == "goto" for call in backend.calls)
+
+    async def redirected(_url: str) -> None:
+        backend.calls.append(("goto", "https://public.example/redirect"))
+        backend.page_url = "http://10.0.0.8/secrets"
+
+    monkeypatch.setattr(backend, "goto", redirected)
+    redirect = await tool.execute(action="navigate", url="https://public.example/redirect")
+    assert not redirect.ok and "final URL" in (redirect.error or "")
+
+    async def rebound(_url: str) -> None:
+        backend.page_url = "http://127.0.0.1/internal"
+
+    monkeypatch.setattr(backend, "goto", rebound)
+    final = await tool.execute(action="navigate", url="https://public.example/final")
+    assert not final.ok and "127.0.0.1" in (final.error or "")
+
+
 async def test_fetch_and_profile_actions(tmp_path: Path):
     backend = FakeBackend()
     tool, _ = tool_with(backend, tmp_path)

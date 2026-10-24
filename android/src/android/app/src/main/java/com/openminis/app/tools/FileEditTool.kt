@@ -4,6 +4,7 @@ import android.content.Context
 import com.openminis.app.data.model.AgentToolDefinition
 import com.openminis.app.data.model.AgentToolParam
 import com.openminis.app.sandbox.PRootKernel
+import io.github.nanomuse.sandbox.FeedSandboxScope
 import org.json.JSONObject
 
 object FileEditTool {
@@ -37,6 +38,15 @@ object FileEditTool {
             }
             if (oldString.isEmpty()) {
                 return ToolExecutionResult("Error: 'old_string' is required and cannot be empty", false, toolTitle = toolTitle)
+            }
+
+            // nanoMuse: never let file tools cross the disposable Feed mirror into app state.
+            if (FeedSandboxScope.isReadOnlyPath(path)) {
+                return ToolExecutionResult(
+                    FeedSandboxScope.writeError(path),
+                    false,
+                    toolTitle = toolTitle,
+                )
             }
 
             // T219: read-only mount guard — see FileWriteTool for rationale.

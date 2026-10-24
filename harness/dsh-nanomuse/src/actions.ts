@@ -12,6 +12,7 @@
  * shapes alike, so a caller cannot tell the two apart.
  */
 import { spawn } from 'node:child_process'
+import { randomBytes } from 'node:crypto'
 import { mkdir, mkdtemp, readdir, readFile, rename, rm, stat, lstat, writeFile } from 'node:fs/promises'
 import { homedir, tmpdir } from 'node:os'
 import { basename, dirname, extname, isAbsolute, join, resolve } from 'node:path'
@@ -59,9 +60,50 @@ export function expand(path: string | undefined, home = homedir()): string {
   return resolve(isAbsolute(p) ? p : join(home, p))
 }
 
-function clip(text: string): string {
-  if (text.length <= OUTPUT_LIMIT) return text
-  return `${text.slice(0, OUTPUT_LIMIT)}\n… [${text.length - OUTPUT_LIMIT} more characters not shown]`
+class BoundedOutput {
+  private readonly head: Buffer[] = []
+  private readonly tail: Buffer[] = []
+  private headBytes = 0
+  private tailBytes = 0
+  private totalBytes = 0
+  private readonly half = Math.floor(OUTPUT_LIMIT / 2)
+
+  push(chunk: Buffer): void {
+    this.totalBytes += chunk.length
+    if (this.headBytes < OUTPUT_LIMIT) {
+      const kept = chunk.subarray(0, OUTPUT_LIMIT - this.headBytes)
+      if (kept.length) {
+        this.head.push(Buffer.from(kept))
+        this.headBytes += kept.length
+      }
+    }
+    if (chunk.length >= this.half) {
+      this.tail.length = 0
+      this.tail.push(Buffer.from(chunk.subarray(chunk.length - this.half)))
+      this.tailBytes = this.half
+      return
+    }
+    this.tail.push(Buffer.from(chunk))
+    this.tailBytes += chunk.length
+    while (this.tailBytes > this.half && this.tail.length) {
+      const excess = this.tailBytes - this.half
+      const first = this.tail[0]!
+      if (first.length <= excess) {
+        this.tail.shift()
+        this.tailBytes -= first.length
+      } else {
+        this.tail[0] = Buffer.from(first.subarray(excess))
+        this.tailBytes -= excess
+      }
+    }
+  }
+
+  text(): string {
+    const beginning = Buffer.concat(this.head)
+    if (this.totalBytes <= OUTPUT_LIMIT) return beginning.toString('utf8')
+    const omitted = this.totalBytes - this.half - this.tailBytes
+    return `${beginning.subarray(0, this.half).toString('utf8')}\n… [${omitted} bytes not shown] …\n${Buffer.concat(this.tail).toString('utf8')}`
+  }
 }
 
 function shellCommand(command: string, platform: NodeJS.Platform, env: NodeJS.ProcessEnv): { file: string; args: string[] } {
@@ -86,8 +128,8 @@ export async function shell(args: Args, platform: NodeJS.Platform = process.plat
       done({ exit_code: 127, stdout: '', stderr: message(error), timed_out: false, duration_ms: 0 })
       return
     }
-    const out: Buffer[] = []
-    const err: Buffer[] = []
+    const out = new BoundedOutput()
+    const err = new BoundedOutput()
     let timedOut = false
     let settled = false
     const finish = (code: number | null) => {
@@ -96,8 +138,8 @@ export async function shell(args: Args, platform: NodeJS.Platform = process.plat
       clearTimeout(timer)
       done({
         exit_code: timedOut ? 124 : (code ?? 1),
-        stdout: clip(Buffer.concat(out).toString('utf8')),
-        stderr: clip(Buffer.concat(err).toString('utf8')),
+        stdout: out.text(),
+        stderr: err.text(),
         timed_out: timedOut,
         duration_ms: Date.now() - started,
       })
@@ -200,7 +242,13 @@ export async function fileGet(args: Args): Promise<Result> {
 export async function filePut(args: Args): Promise<Result> {
   if (typeof args.path !== 'string' || !args.path.trim()) throw new HubError('usage', 'a path is required')
   const path = expand(args.path)
-  const raw = Buffer.from(typeof args.data === 'string' ? args.data : '', 'base64')
+  const encoded = typeof args.data === 'string' ? args.data : ''
+  // the limit is checked on the encoded text first, so an oversized frame is refused before
+  // it is decoded into memory, and on the bytes after (base64 may carry line breaks)
+  const tooLarge = () => new HubError('too_large', `the file exceeds the ${FILE_LIMIT} byte hub limit`)
+  if (encoded.length > Math.ceil(FILE_LIMIT / 3) * 4 + 4096) throw tooLarge()
+  const raw = Buffer.from(encoded, 'base64')
+  if (raw.length > FILE_LIMIT) throw tooLarge()
   let info
   try {
     info = await stat(path)
@@ -212,7 +260,7 @@ export async function filePut(args: Args): Promise<Result> {
   await mkdir(dirname(path), { recursive: true })
   // written next to the target and renamed into place, so a reader never sees half a file; a
   // write or rename that fails takes its part file with it
-  const part = join(dirname(path), `${basename(path)}.nanomuse-part`)
+  const part = join(dirname(path), `${basename(path)}.${randomBytes(6).toString('hex')}.nanomuse-part`)
   try {
     await writeFile(part, raw)
     await rename(part, path)

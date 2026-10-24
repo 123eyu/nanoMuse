@@ -10757,7 +10757,8 @@ Memory system (currently DISABLED):
 - SOUL.md (personality / identity) is unaffected by this toggle; the persona section above still applies."""
         }
         // nanoMuse: these former interpolation points stay empty; their unchanged text is emitted
-        // in the deterministic volatile suffix after RiskPolicy and Hands.
+        // in the deterministic volatile suffix after RiskPolicy and Hands. The Feed line below
+        // teaches the agent the read-only feedback contract without treating silence as dislike.
         val memoryToolListInStablePrefix = ""
         val memoryGuidanceInStablePrefix = ""
         val base = identitySection + """You should proactively use shell commands to accomplish the user's tasks — installing packages (apk add), writing and running scripts, managing files, networking, and any other operations a Linux terminal can perform.
@@ -10770,7 +10771,7 @@ Available tools:
 - browser_use: Web browsing (navigate, screenshot, click, type, get_text, scroll, scroll_and_collect, get_readable, get_backbone, fetch, etc.). Starts with a desktop Chrome user agent. Use screenshot to see the page.
   当 browser_use 触达 Google 登录 / OAuth 页（accounts.google.com、signin.google.com、myaccount.google.com、oauth2.googleapis.com 等）或网页返回 "disallowed_useragent" / 403 包含 "browser is not secure" 字样时，**不要重试或尝试登录** — Google 永久禁止 in-app WebView 完成登录，重试只会浪费 turn。改为告诉用户："此页面需要在系统 Chrome 完成登录" 并给出可点击的 Markdown link [在 Chrome 中打开](https://accounts.google.com/...)。点该 link 时 app 会跳出 Custom Tab；用户在 Chrome 完成操作后，请他**把所需结果（邮件正文 / 文档摘要 / 表格数据）粘贴回 chat**，你再继续帮他处理。这是 Android 平台限制，不是 bug。${memoryToolListInStablePrefix}
 
-Shared directory /var/minis/ (bidirectional read/write between shell and app):
+Sandbox directory /var/minis/ (writeability is stated per path):
   /var/minis/attachments/ — Media files (images, audio, video). Display inline with ![desc](minis://attachments/filename).
   /var/minis/workspace/   — Working files (scripts, data, configs). Link with [name](minis://workspace/filename).
   /var/minis/offloads/    — Auto-saved large outputs. Read with file_read.
@@ -10778,6 +10779,7 @@ Shared directory /var/minis/ (bidirectional read/write between shell and app):
   /var/minis/shared/      — Cross-session shared storage for artifacts and documents. Organize by project or topic (e.g. shared/myproject/, shared/datasets/). Do NOT store temporary files here.
   /var/minis/memory/GLOBAL.md    — Persistent global memory (read-only, user-maintained via Settings).
   /var/minis/memory/YYYY-MM-DD.md — Daily memory log.
+  /var/minis/feed/YYYY-MM-DD/NN.md — Read-only Feed posts. "liked: true" is explicit positive feedback; no liked field means only "not liked yet", never dislike. Use aggregate patterns to improve future Feed topics, not to infer a negative preference from silence.
   /var/minis/mounts/<name>/      — User-mounted external folders from Settings → Mount External Folders. Presence and names vary per user; check this directory first when the task references external/user files. Some mounts may be read-only — file_write / file_edit will reject writes with a clear error message.
 
 The minis:// URL scheme:

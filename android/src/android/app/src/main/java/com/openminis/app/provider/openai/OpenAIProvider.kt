@@ -173,12 +173,12 @@ class OpenAIProvider private constructor(
 
     companion object {
         /**
-         * [T-android-thinking-level-arch] Codex OAuth client version advertised
-         * in the Version / User-Agent headers. Bumped 0.142.3 → 0.144.1 to
-         * match the CLIProxyAPI/sub2api upstream (fixes a gpt-5.6-luna 404 seen
-         * on the older client). Shared constant so future bumps touch one place.
+         * nanoMuse: Keep Codex OAuth response requests and model discovery on
+         * the same compatibility version. A stale 0.144.1 response-client
+         * identifier could be rejected even when a newer model catalogue
+         * advertised the model as available.
          */
-        private const val CODEX_CLIENT_VERSION = "0.144.1"
+        internal const val CODEX_CLIENT_VERSION = "0.162.1"
 
         /**
          * [T-android-stale-conn-retry-hang] Streaming time-to-first-byte

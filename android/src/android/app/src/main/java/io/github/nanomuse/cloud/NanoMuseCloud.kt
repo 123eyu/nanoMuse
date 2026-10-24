@@ -106,9 +106,9 @@ object NanoMuseCloud {
     private const val KEY_CHAT_IDS = "cloud.chat_ids"
     private const val KEY_GUI_IDS = "cloud.gui_ids"
     private const val KEY_MODELS_AT = "cloud.models_at"
-    /** The two lanes' defaults (contract C4), for a relay that does not mark `for` itself. */
-    const val DEFAULT_CHAT_MODEL = "deepseek-v4.1-flash"
-    const val DEFAULT_GUI_MODEL = "qwen3.8-27b"
+    /** The hosted fallback for a relay that does not mark its lanes itself. */
+    const val DEFAULT_CHAT_MODEL = "Qwen/Qwen3.6-27B-FP8"
+    const val DEFAULT_GUI_MODEL = "Qwen/Qwen3.6-27B-FP8"
     private const val MODELS_FRESH_MS = 60 * 60 * 1000L
 
     /** Where the privacy policy is when the relay did not name one. */
@@ -780,8 +780,8 @@ object NanoMuseCloud {
      */
     private fun provisionDefaults(context: Context, repo: ProviderRepository, inst: ProviderInstance, models: JSONArray?) {
         val offered = (0 until (models?.length() ?: 0)).mapNotNull { models?.optJSONObject(it) }
-        // the group opens on the chat default (deepseek-v4.1-flash, contract C4); the hands
-        // model (qwen3.8-27b) is a setting of its own, read by Hands.screenModel
+        // The relay's lane recommendation wins; the current hosted model serves both chat
+        // and the hands. The hands choice remains a separate setting read by Hands.screenModel.
         val recommendedChat = recommendedChat(offered.filter { !drawsOnly(it) })?.optString("id")
 
         var config = repo.config.value
@@ -843,16 +843,22 @@ object NanoMuseCloud {
         return (0 until arr.length()).map { arr.optString(it) }
     }
 
+    private fun recommendedLanes(model: JSONObject): List<String>? {
+        val arr = model.optJSONObject("nanomuse")?.optJSONArray("recommended_for") ?: return null
+        return (0 until arr.length()).map { arr.optString(it) }
+    }
+
     /**
      * The chat model the menu opens on (contract C4): the one the relay recommends *for chat*
-     * — `deepseek-v4.1-flash` — and, on a relay from before `for`, the recommended one, then
-     * the known default by name, then the first of the menu. [chats] are the menu's chat
-     * models in the menu's order.
+     * and, on a relay from before `recommended_for`, the recommended one, then the current
+     * hosted fallback by name, then the first of the menu. [chats] are the menu's chat models
+     * in the menu's order.
      */
     private fun recommendedChat(chats: List<JSONObject>): JSONObject? {
         fun recommended(m: JSONObject) = m.optJSONObject("nanomuse")?.optBoolean("recommended") == true
         fun forChat(m: JSONObject) = lanes(m)?.contains("chat") != false
-        return chats.firstOrNull { recommended(it) && forChat(it) && lanes(it)?.contains("gui") != true }
+        return chats.firstOrNull { recommendedLanes(it)?.contains("chat") == true }
+            ?: chats.firstOrNull { recommended(it) && forChat(it) && lanes(it)?.contains("gui") != true }
             ?: chats.firstOrNull { recommended(it) && forChat(it) }
             ?: chats.firstOrNull { it.optString("id") == DEFAULT_CHAT_MODEL }
             ?: chats.firstOrNull { forChat(it) }
@@ -887,10 +893,10 @@ object NanoMuseCloud {
         }
         val chats = items.filter { !drawsOnly(it) && it.optJSONObject("nanomuse")?.optBoolean("catalog") != true }
         val recommended = recommendedChat(chats)
-        // the menu's model for the screen — the hands model, a setting apart from the chat
-        // model (contract C4): what the relay marks `for: ["gui"]`, qwen3.8-27b on an older
-        // relay that does not say, else the first of the menu that sees
-        val sighted = (chats.firstOrNull { lanes(it)?.contains("gui") == true }
+        // The menu's model for the screen is a setting apart from chat. Honour the relay's
+        // lane recommendation first; older relays fall back to `for`, the known id, then sight.
+        val sighted = (chats.firstOrNull { recommendedLanes(it)?.contains("gui") == true }
+            ?: chats.firstOrNull { lanes(it)?.contains("gui") == true }
             ?: chats.firstOrNull { it.optString("id") == DEFAULT_GUI_MODEL }
             ?: chats.firstOrNull { sees(it) })?.optString("id")
         // the menu by lane (0.1.41, the Models page): `for` contains `chat` / `gui`; a relay

@@ -17,7 +17,7 @@ from nanomuse.computer import hands as hands_mod
 from nanomuse.computer.link import ComputerLink
 from nanomuse.config import GUISettings, HandsSettings, Settings
 from nanomuse.llm import MockLLM
-from nanomuse.phone.link import STOP_MARKER, DeviceStopped
+from nanomuse.phone.link import STOP_MARKER, DeviceStopped, PhoneLink
 from nanomuse.phone.operator import COMPUTER, PhoneOperator, parse_step, to_computer_action
 from nanomuse.phone.screen import Screen
 from nanomuse.schema import Function, LLMResponse, RiskLevel, ToolCall
@@ -25,7 +25,8 @@ from nanomuse.sentinel import AuditLog, Sentinel
 from nanomuse.server import create_app
 from nanomuse.server.service import MuseService
 from nanomuse.tools.computer import ComputerAct, ComputerScreen, ComputerTask
-from tests.test_phone import AutoApproveUI, png
+from nanomuse.tools.phone import PhoneAct
+from tests.test_phone import PAY_SCREEN, AutoApproveUI, FakePhone, png
 
 SCREEN_RAW = {
     "app": "firefox",
@@ -310,7 +311,23 @@ def test_pyautogui_without_tk_does_not_take_the_runtime_down(
 # ----------------------------------------------------------------------------- the tools
 def test_computer_act_risk(settings: Settings, fake_screen) -> None:
     link = make_link(settings)
-    link.last_screen = Screen.from_device(SCREEN_RAW)
+    link.last_screen = Screen.from_device(
+        {
+            **SCREEN_RAW,
+            "nodes": [
+                {
+                    "text": "Bookmarks",
+                    "box": [0, 0, 50, 50],
+                    "clickable": True,
+                },
+                {
+                    "text": "Confirm payment",
+                    "box": [80, 80, 180, 140],
+                    "clickable": True,
+                },
+            ],
+        }
+    )
     act = ComputerAct(link=link, gui=GUISettings())
     plain = act.assess({"action": "click", "x": 1, "y": 2, "label": "Bookmarks"})
     assert plain.risk == RiskLevel.MODERATE and plain.target == "Firefox"
@@ -319,6 +336,13 @@ def test_computer_act_risk(settings: Settings, fake_screen) -> None:
     assert unlabelled.warnings and "no `label`" in unlabelled.warnings[0]
     pay = act.assess({"action": "click", "x": 1, "y": 2, "label": "Confirm payment"})
     assert pay.risk == RiskLevel.SENSITIVE and "pay" in pay.warnings[0]
+    # the label says one thing, the element under the cursor another: the stricter decides
+    dishonest = act.assess({"action": "click", "x": 100, "y": 100, "label": "View details"})
+    assert dishonest.risk == RiskLevel.SENSITIVE
+    assert any("pay" in warning for warning in dishonest.warnings)
+    # no element under the point: the label decides, as on a screen without a tree
+    bare = act.assess({"action": "click", "x": 500, "y": 500, "label": "Bookmarks"})
+    assert bare.risk == RiskLevel.MODERATE and not bare.warnings
     submit = act.assess({"action": "type", "text": "hi", "submit": True})
     assert submit.risk == RiskLevel.SENSITIVE and submit.egress is True
     save = act.assess({"action": "key", "keys": ["ctrl", "s"]})
@@ -328,6 +352,29 @@ def test_computer_act_risk(settings: Settings, fake_screen) -> None:
         act.assess({"action": "open_app", "app": "Terminal"}).summary
         == "computer_act: open Terminal"
     )
+
+
+async def test_a_screen_without_elements_is_judged_by_the_label_alone(
+    settings: Settings, fake_screen
+) -> None:
+    # the computer's screenshot and a WebView report no elements: a tap there is not made
+    # sensitive for that reason alone, the label decides as it always has
+    phone_link = PhoneLink()
+    FakePhone(phone_link, [PAY_SCREEN])
+    await phone_link.screen()
+    computer_link = make_link(settings)
+    computer_link.last_screen = Screen.from_device(SCREEN_RAW)
+    assert not computer_link.last_screen.nodes
+
+    phone = PhoneAct(link=phone_link, gui=GUISettings()).assess(
+        {"action": "tap", "x": 20, "y": 20, "label": "Harmless"}
+    )
+    computer = ComputerAct(link=computer_link, gui=GUISettings()).assess(
+        {"action": "click", "x": 20, "y": 20, "label": "Harmless"}
+    )
+    for assessment in (phone, computer):
+        assert assessment.risk == RiskLevel.MODERATE and not assessment.egress
+        assert assessment.reads_private_data and not assessment.warnings
 
 
 async def test_computer_tools_execute(settings: Settings, fake_screen) -> None:

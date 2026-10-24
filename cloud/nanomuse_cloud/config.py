@@ -435,6 +435,12 @@ class Settings:
     dashscope_base: str = field(default_factory=lambda: _env("DASHSCOPE_BASE", "https://dashscope.aliyuncs.com/api/v1"))
     dashscope_key: str = field(default_factory=lambda: _env("DASHSCOPE_KEY"))
     upstream_timeout_s: float = field(default_factory=lambda: float(_env("UPSTREAM_TIMEOUT_S", "180")))
+    # Chat requests share one provider account. Keep a bounded number at the provider and
+    # queue the rest in the relay; retry only a refusal received before any answer starts.
+    # Zero disables either guard for an operator whose upstream already queues for itself.
+    chat_concurrency: int = field(default_factory=lambda: _int("CHAT_CONCURRENCY", 12))
+    chat_retries: int = field(default_factory=lambda: _int("CHAT_RETRIES", 2))
+    chat_retry_base_s: float = field(default_factory=lambda: float(_env("CHAT_RETRY_BASE_S", "0.5")))
     # Pictures: DashScope allows an account only a couple of image tasks at a time and
     # answers 429 past that, so the relay draws at most IMAGE_CONCURRENCY pictures at once
     # for everyone together (the rest queue) and, on a 429 or 5xx, tries again up to
@@ -491,9 +497,9 @@ class Settings:
     # until it is cleared — what is here is the starting point.
     allowance_cny: float = field(default_factory=lambda: float(_env("ALLOWANCE_CNY", "10")))
     invite_bonus_cny: float = field(default_factory=lambda: float(_env("INVITE_BONUS_CNY", "5")))
-    # Minimum provider spend (in micro-yuan) by an invited account before its invite bonus
-    # is settled when the account has not registered a Hub device; default 200 micro-yuan
-    # refuses single-line scripted probes while settling normal chat turns.
+    # Minimum cumulative successful provider spend (in micro-yuan) by an invited account
+    # before its invite bonus is settled; default 200 micro-yuan refuses single-line
+    # scripted probes while settling normal chat turns.
     invite_settle_min_spent_uy: int = field(default_factory=lambda: _int("INVITE_SETTLE_MIN_SPENT_UY", 200))
     day_offset_h: int = field(default_factory=lambda: _int("DAY_OFFSET_H", 8))
     # Data controls (0.9): "Help improve nanoMuse's AI models" keeps the text of an

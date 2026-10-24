@@ -29,6 +29,31 @@ class MediaTest {
         assertFalse(VideoGen.speaksDashScope("https://openrouter.ai/api/v1"))
     }
 
+    @Test fun `public Cloud ignores retired cached media while self hosted relays follow their menu`() {
+        val candidates = listOf("Qwen/Qwen3.6-27B-FP8", "qwen-image-3.0", "wan2.2-i2v-flash")
+        val oldMenu = listOf("qwen-image-3.0", "wan2.2-i2v-flash")
+        assertEquals(
+            emptyList<String>(),
+            RelayMediaPolicy.available("https://cloud.nanomuse.cn/", oldMenu, candidates),
+        )
+        assertEquals(
+            emptyList<String>(),
+            RelayMediaPolicy.available("https://CLOUD.NANOMUSE.CN:443/v1", oldMenu, candidates),
+        )
+        assertEquals(
+            oldMenu,
+            RelayMediaPolicy.available("https://relay.example/v1", oldMenu, candidates),
+        )
+        assertEquals(
+            listOf("qwen-image-3.0"),
+            RelayMediaPolicy.available(
+                "https://relay.example",
+                listOf("qwen-image-3.0"),
+                candidates,
+            ),
+        )
+    }
+
     @Test fun `wan siblings and resolutions follow the model family`() {
         assertEquals("wan2.2-i2v-flash", MediaModels.DEFAULT_VIDEO_MODEL)
         assertEquals("wan2.2-i2v-flash", VideoGen.KNOWN_DASHSCOPE_MODELS.first())
@@ -37,8 +62,35 @@ class MediaTest {
         assertEquals("wan2.6-t2v", VideoGen.modelFor("wan2.6-i2v", fromImage = false))
         assertEquals("wan2.6-i2v", VideoGen.modelFor("wan2.6-t2v", fromImage = true))
         assertEquals("MiniMax/MiniMax-H3", VideoGen.modelFor("MiniMax/MiniMax-H3", fromImage = false))
+        assertEquals("wan2.7-i2v", VideoGen.modelFor("wan2.7-t2v-2026-06-12", fromImage = true)) // the dated snapshots differ between the two jobs
+        assertEquals("wan2.7-i2v-2026-04-25", VideoGen.modelFor("wan2.7-i2v-2026-04-25", fromImage = true))
+        assertEquals("wan2.7-t2v", VideoGen.modelFor("wan2.7-i2v", fromImage = false))
+        assertTrue(VideoGen.KNOWN_DASHSCOPE_MODELS.containsAll(listOf("wan2.7-i2v", "wan2.7-t2v")))
         assertEquals("480P", VideoGen.wanResolution("wan2.2-i2v-flash"))
         assertEquals("720P", VideoGen.wanResolution("wan2.6-i2v"))
+    }
+
+    @Test fun `task bodies follow the family, Wan img_url, Wan 2 7 media and ratio, MiniMax 768P`() {
+        val wan = VideoGen.imageToVideoBody("wan2.2-i2v-flash", "oss://x/y.png", "p", 4)
+        assertEquals("oss://x/y.png", wan.getJSONObject("input").getString("img_url"))
+        assertEquals("480P", wan.getJSONObject("parameters").getString("resolution"))
+        assertFalse(wan.getJSONObject("parameters").has("duration"))
+        val wan27 = VideoGen.imageToVideoBody("wan2.7-i2v", "oss://x/y.png", "p", 4)
+        val media = wan27.getJSONObject("input").getJSONArray("media").getJSONObject(0)
+        assertEquals("first_frame", media.getString("type"))
+        assertEquals("oss://x/y.png", media.getString("url"))
+        assertFalse(wan27.getJSONObject("input").has("img_url"))
+        assertEquals("720P", wan27.getJSONObject("parameters").getString("resolution"))
+        assertEquals(4, wan27.getJSONObject("parameters").getInt("duration"))
+        val mm = VideoGen.imageToVideoBody("MiniMax/MiniMax-H3", "oss://x/y.png", "p", 2)
+        assertEquals("768P", mm.getJSONObject("parameters").getString("resolution"))
+        assertEquals(4, mm.getJSONObject("parameters").getInt("duration"))
+        val t2v = VideoGen.textToVideoBody("wan2.2-t2v-plus", "p", 4, "16:9")
+        assertEquals("1280*720", t2v.getJSONObject("parameters").getString("size"))
+        val t2v27 = VideoGen.textToVideoBody("wan2.7-t2v", "p", 4, "21:9")
+        assertEquals("16:9", t2v27.getJSONObject("parameters").getString("ratio"))
+        assertEquals("720P", t2v27.getJSONObject("parameters").getString("resolution"))
+        assertFalse(t2v27.getJSONObject("parameters").has("size"))
     }
 
     @Test fun `failure messages are plain for the user`() {

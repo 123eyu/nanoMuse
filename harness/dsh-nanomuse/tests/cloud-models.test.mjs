@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
 import { Service } from '@deepseek-ai/cordis'
-import NanomuseCloud, { API_PREFIX, LLM_ROW, PROVIDER_ID, TOKEN_REF } from '../lib/cloud.js'
+import NanomuseCloud, { API_PREFIX, LLM_ROW, PROVIDER_ID, TOKEN_REF, relayMediaEnabled } from '../lib/cloud.js'
 import { editImage, generateImage, imageShapeOf } from '../lib/images.js'
 import { clientConfig } from '../lib/hands-tools.js'
 
@@ -72,7 +72,7 @@ const ACCOUNT_MODELS = [
   { id: 'wan2.2-i2v-flash', name: 'Wan', kind: 'video' },
 ]
 
-async function cloud({ signedIn = false, defaultModel } = {}) {
+async function cloud({ signedIn = false, defaultModel, baseURL = 'https://relay.invalid' } = {}) {
   const home = await mkdtemp(join(tmpdir(), 'nm-models-'))
   const statePath = join(home, 'cloud.json')
   const fake = fakeContext({ defaultModel })
@@ -82,7 +82,7 @@ async function cloud({ signedIn = false, defaultModel } = {}) {
   } else {
     await writeFile(statePath, JSON.stringify({ update: { checkedAt: Date.now() } }))
   }
-  const svc = new NanomuseCloud(fake.ctx, { baseURL: 'https://relay.invalid', deviceName: 'test-desktop', statePath })
+  const svc = new NanomuseCloud(fake.ctx, { baseURL, deviceName: 'test-desktop', statePath })
   svc.hub.start = () => undefined
   svc.refresh = async () => svc.status()
   await svc[Service.init]()
@@ -100,6 +100,43 @@ async function cloud({ signedIn = false, defaultModel } = {}) {
 }
 
 const BAILIAN_MODELS = ['deepseek-v4.1-flash', 'qwen3.8-27b', 'qwen3-vl-plus', 'qwen-image-3.0', 'wan2.2-i2v-flash']
+
+test('the public Cloud ignores retired media models left in an older local snapshot', async () => {
+  assert.equal(relayMediaEnabled('https://cloud.nanomuse.cn/'), false)
+  assert.equal(relayMediaEnabled('https://relay.example/v1'), true)
+  const out = await cloud({ signedIn: true, baseURL: 'https://cloud.nanomuse.cn' })
+  try {
+    const view = (await out.api('GET', '/models')).body
+    assert.deepEqual(view.slots.image.options, [])
+    assert.deepEqual(view.slots.video.options, [])
+    assert.equal(await out.svc.imageEndpoint(), undefined)
+    assert.equal(await out.svc.imageEndpoint({ cloud: true }), undefined)
+    assert.equal(await out.svc.videoEndpoint(), undefined)
+    assert.equal(await out.svc.videoEndpoint({ cloud: true }), undefined)
+    assert.doesNotMatch(out.svc.capabilities().join(','), /image|video/)
+    await out.svc.profile.wearLocal({ avatar: 'face', faceId: 'abcdef' })
+    const animate = await out.api('POST', '/media/animate', { cloud: true })
+    assert.equal(animate.status, 409)
+    assert.equal(animate.body.error.code, 'no_video_model', 'signed in without video is not signed out')
+  } finally {
+    await out.done()
+  }
+})
+
+test('the public Cloud asks for a media provider, not an account sign-in', async () => {
+  const out = await cloud({ baseURL: 'https://cloud.nanomuse.cn' })
+  try {
+    const estimate = await out.api('GET', '/studio/estimate')
+    assert.equal(estimate.status, 409)
+    assert.equal(estimate.body.error.code, 'no_image_model')
+    await out.svc.profile.wearLocal({ avatar: 'face', faceId: 'abcdef' })
+    const animate = await out.api('POST', '/media/animate', { cloud: true })
+    assert.equal(animate.status, 409)
+    assert.equal(animate.body.error.code, 'no_video_model')
+  } finally {
+    await out.done()
+  }
+})
 
 test('GET /models: the four slots; signed in with nothing else, every row is the account and the recommended model is marked and first', async () => {
   const out = await cloud({ signedIn: true, defaultModel: { provider: PROVIDER_ID, model: 'deepseek-v4.1-flash' } })
@@ -142,6 +179,21 @@ test('signed out with nothing configured, every slot is empty and lists nothing;
     assert.equal(est.body.error.code, 'signed_out')
   } finally {
     await out.done()
+  }
+})
+
+test('asking the relay for clips distinguishes signed out from a signed-in relay with no video model', async () => {
+  for (const [signedIn, status, code] of [[false, 401, 'signed_out'], [true, 409, 'no_video_model']]) {
+    const out = await cloud({ signedIn })
+    try {
+      out.svc.faceId = () => 'face-1'
+      out.svc.videoEndpoint = async () => undefined
+      const res = await out.api('POST', '/media/animate', { cloud: true })
+      assert.equal(res.status, status)
+      assert.equal(res.body.error.code, code)
+    } finally {
+      await out.done()
+    }
   }
 })
 

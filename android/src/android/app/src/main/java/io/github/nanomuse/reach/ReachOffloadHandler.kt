@@ -107,7 +107,7 @@ class ReachOffloadHandler(private val context: Context) : NativeOffloadHandler {
                 "approval" -> {
                     val id = ev.optString("approval_id")
                     val preview = ev.optString("preview").ifBlank { ev.optString("summary") }
-                    val assessment = RiskAssessment(riskClass(ev.optString("risk")), ev.optString("reason").ifBlank { "asked by ${c.name}" }, "task:" + ev.optString("action").ifBlank { preview.take(60) })
+                    val assessment = RiskAssessment(riskClass(ev.optString("risk")), ev.optString("reason").ifBlank { "asked by ${c.name}" }, RemoteApprovalKey.target(ev))
                     val gate = approve(sessionId, c, assessment, "${c.name}: $preview")
                     Computers.approve(c, id, allow = gate.denied == null)
                     steps.put(JSONObject().put("approval", preview).put("allowed", gate.denied == null).apply { gate.notice?.let { put("notice", it) } })

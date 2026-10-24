@@ -133,6 +133,34 @@ async def test_remember_updates_instead_of_duplicating(tmp_path: Path):
     assert out.output.startswith("Remembered") and store.count() == 3 and len(store.history()) == n
 
 
+async def test_forget_tool_names_what_it_forgot(tmp_path: Path):
+    from nanomuse.tools.memory_tools import Forget
+
+    store = MemoryStore(tmp_path / "m.db")
+    tool = Forget(store=store)
+    a = store.add("Prefers window seats on flights", "preference")
+    store.add("Works at Acme in Shanghai", "profile")
+    store.add("Acme project kickoff on Monday", "project")
+
+    # by id: the result names the line, and the deletion is logged for undo
+    out = await tool.execute(memory_id=a.id)
+    assert "Prefers window seats on flights" in out.output
+    assert store.get(a.id) is None and store.history(1)[0].action == "forget"
+
+    # by phrase: every line it took is listed, not only counted
+    out = await tool.execute(query="Acme")
+    assert "Works at Acme in Shanghai" in out.output
+    assert "Acme project kickoff on Monday" in out.output
+    assert store.count() == 0
+
+    out = await tool.execute(query="Acme")
+    assert out.output.startswith("No memories matched")
+    out = await tool.execute(memory_id="m_nope")
+    assert out.output.startswith("No memory with id m_nope")
+    assert (await tool.execute()).error
+    store.close()
+
+
 def test_tidy_summary_follows_the_reply_language():
     from nanomuse.memory import MemoryChange, MemoryItem, TidyReport
     from nanomuse.server.service import _tidy_summary

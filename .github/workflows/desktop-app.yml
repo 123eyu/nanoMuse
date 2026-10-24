@@ -63,6 +63,20 @@ jobs:
     outputs:
       matrix: ${{ steps.pick.outputs.matrix }}
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The installers carry the version in harness/desktop/package.json; attaching them to a
+      # release of another version (a manual run from main after the next bump, with
+      # release_tag set to the previous tag) would replace that release's installers with the
+      # wrong build, so the run stops here before the four platforms start. As in harness.yml.
+      - name: The version matches the release
+        env:
+          TAG: ${{ inputs.release_tag || (startsWith(github.ref, 'refs/tags/v') && github.ref_name) || '' }}
+        run: |
+          VERSION=$(node -p "require('./harness/desktop/package.json').version")
+          if [ -n "$TAG" ] && [ "v$VERSION" != "$TAG" ]; then
+            echo "harness/desktop/package.json says $VERSION, the release is $TAG; run the workflow from a commit of that version" >&2
+            exit 1
+          fi
       - id: pick
         shell: bash
         env:

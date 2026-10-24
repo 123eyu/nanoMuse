@@ -41,7 +41,7 @@ function fakeRelay() {
     if (req.url === '/v1/models') {
       return json(200, {
         data: [
-          { id: 'qwen-a', name: 'Qwen A', architecture: { input_modalities: ['text', 'image'] }, nanomuse: { kind: 'chat', recommended: true } },
+          { id: 'qwen-a', name: 'Qwen A', architecture: { input_modalities: ['text', 'image'] }, nanomuse: { kind: 'chat', recommended: true, recommended_for: ['chat', 'gui'] } },
           { id: 'wan-v', name: 'Wan (video)', architecture: { input_modalities: ['text'] }, nanomuse: { kind: 'video', recommended: false } },
           { id: 'bare' },
         ],
@@ -133,6 +133,7 @@ test('models keeps kind, recommendation and modalities, with defaults', async ()
       ['bare', 'chat', false, ['text']],
     ],
   )
+  assert.deepEqual(models[0].recommendedFor, ['chat', 'gui'])
   assert.equal(models[2].name, 'bare')
 })
 

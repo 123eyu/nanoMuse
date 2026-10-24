@@ -10,6 +10,7 @@ shows none of them.
 
 from __future__ import annotations
 
+import hmac
 import json
 import sqlite3
 import threading
@@ -57,6 +58,8 @@ CREATE TABLE IF NOT EXISTS api_keys (
     prefix        TEXT NOT NULL,
     account_id    TEXT NOT NULL REFERENCES accounts(id),
     device        TEXT NOT NULL DEFAULT '',
+    hub_device_id TEXT NOT NULL DEFAULT '', -- 0.27: the Hub installation this credential owns
+    hub_device_kind TEXT NOT NULL DEFAULT '', -- phone | computer | web; empty is a legacy key
     created_at    INTEGER NOT NULL,
     last_used_at  INTEGER,
     revoked_at    INTEGER,
@@ -363,6 +366,16 @@ class Database:
                 self._conn.execute(f"ALTER TABLE accounts ADD COLUMN {col} {ddl}")
         if "via" not in cols("api_keys"):
             self._conn.execute("ALTER TABLE api_keys ADD COLUMN via TEXT NOT NULL DEFAULT 'code'")
+        # 0.27: a Hub credential owns one installation identity. Empty rows are keys
+        # issued by an older relay (or by an old client during the one-release migration);
+        # their first accepted hello fills both columns atomically. Only live keys hold
+        # an identity: a revoked one keeps its row for the sign-ins list and nothing more.
+        add("api_keys", "hub_device_id", "TEXT NOT NULL DEFAULT ''")
+        add("api_keys", "hub_device_kind", "TEXT NOT NULL DEFAULT ''")
+        self._conn.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS api_keys_hub_device ON api_keys(account_id, hub_device_id) "
+            "WHERE hub_device_id<>'' AND revoked_at IS NULL"
+        )
         # 0.4: invitations, credit and the clip allowance
         for col, ddl in (
             ("invite_code", "TEXT NOT NULL DEFAULT ''"),
@@ -709,18 +722,53 @@ class Database:
     # -- codes -------------------------------------------------------------
 
     def codes_recent_for(self, id_hash: str, since: int) -> int:
+        """Read-only count used by diagnostics and tests, never to authorize an insert."""
         with self._lock:
-            r = self._conn.execute("SELECT COUNT(*) FROM codes WHERE id_hash=? AND created_at>=?", (id_hash, since)).fetchone()
-        return int(r[0])
+            row = self._conn.execute(
+                "SELECT COUNT(*) FROM codes WHERE id_hash=? AND created_at>=?",
+                (id_hash, since),
+            ).fetchone()
+        return int(row[0])
 
-    def codes_recent_for_ip(self, ip: str, since: int) -> int:
+    def live_code(self, id_hash: str) -> sqlite3.Row | None:
+        """Read the current code for diagnostics and tests; verification uses ``check_code``."""
         with self._lock:
-            r = self._conn.execute("SELECT COUNT(*) FROM codes WHERE ip=? AND created_at>=?", (ip, since)).fetchone()
-        return int(r[0])
+            return self._conn.execute(
+                "SELECT * FROM codes WHERE id_hash=? AND used=0 AND expires_at>=? ORDER BY id DESC LIMIT 1",
+                (id_hash, now()),
+            ).fetchone()
 
-    def insert_code(self, id_hash: str, code_hash: str, ip: str, ttl_s: int) -> None:
+    def insert_code_limited(
+        self,
+        id_hash: str,
+        code_hash: str,
+        ip: str,
+        ttl_s: int,
+        identifier_limit: int,
+        ip_limit: int,
+    ) -> str:
+        """Insert one code while holding the same transaction as both window counts.
+
+        Returns ``identifier`` or ``ip`` when that window is already full, otherwise
+        ``""``. Keeping the counts and insert together prevents simultaneous requests
+        from all observing the last free slot.
+        """
         t = now()
         with self.tx() as c:
+            if identifier_limit > 0:
+                count = c.execute(
+                    "SELECT COUNT(*) FROM codes WHERE id_hash=? AND created_at>=?",
+                    (id_hash, t - 600),
+                ).fetchone()
+                if int(count[0]) >= identifier_limit:
+                    return "identifier"
+            if ip and ip_limit > 0:
+                count = c.execute(
+                    "SELECT COUNT(*) FROM codes WHERE ip=? AND created_at>=?",
+                    (ip, t - 3600),
+                ).fetchone()
+                if int(count[0]) >= ip_limit:
+                    return "ip"
             # A new code supersedes the old ones for this identifier.
             c.execute("UPDATE codes SET used=1 WHERE id_hash=? AND used=0", (id_hash,))
             c.execute(
@@ -728,23 +776,36 @@ class Database:
                 (id_hash, code_hash, ip, t, t + ttl_s),
             )
             c.execute("DELETE FROM codes WHERE expires_at < ?", (t - 86400,))
+        return ""
 
-    def live_code(self, id_hash: str) -> sqlite3.Row | None:
-        with self._lock:
-            return self._conn.execute(
+    def check_code(self, id_hash: str, code_hash: str, max_attempts: int) -> str:
+        """Atomically count one attempt and consume a matching live code.
+
+        Returns ``ok``, ``wrong`` or ``expired``. A successful conditional update
+        changes ``used`` in the same transaction, so concurrent verification can
+        never consume one code twice.
+        """
+        t = now()
+        with self.tx() as c:
+            row = c.execute(
                 "SELECT * FROM codes WHERE id_hash=? AND used=0 AND expires_at>=? ORDER BY id DESC LIMIT 1",
-                (id_hash, now()),
+                (id_hash, t),
             ).fetchone()
-
-    def bump_attempts(self, code_id: int) -> int:
-        with self.tx() as c:
-            c.execute("UPDATE codes SET attempts=attempts+1 WHERE id=?", (code_id,))
-            r = c.execute("SELECT attempts FROM codes WHERE id=?", (code_id,)).fetchone()
-        return int(r[0])
-
-    def consume_code(self, code_id: int) -> None:
-        with self.tx() as c:
-            c.execute("UPDATE codes SET used=1 WHERE id=?", (code_id,))
+            if row is None:
+                return "expired"
+            code_id = int(row["id"])
+            attempts = int(row["attempts"]) + 1
+            if attempts > max_attempts:
+                c.execute("UPDATE codes SET attempts=?, used=1 WHERE id=? AND used=0", (attempts, code_id))
+                return "expired"
+            if not hmac.compare_digest(str(row["code_hash"]), code_hash):
+                c.execute("UPDATE codes SET attempts=? WHERE id=? AND used=0", (attempts, code_id))
+                return "wrong"
+            claimed = c.execute(
+                "UPDATE codes SET attempts=?, used=1 WHERE id=? AND used=0 AND expires_at>=?",
+                (attempts, code_id, t),
+            )
+            return "ok" if claimed.rowcount == 1 else "expired"
 
     # -- accounts ------------------------------------------------------------
 
@@ -752,16 +813,18 @@ class Database:
         with self._lock:
             return self._conn.execute("SELECT * FROM accounts WHERE id_hash=?", (id_hash,)).fetchone()
 
-    def account_by_hashes(self, id_hashes: tuple[str, ...]) -> sqlite3.Row | None:
+    def account_by_hashes(self, id_hashes: tuple[str, ...], shared: str | None = None) -> sqlite3.Row | None:
         """Look up an account by its canonical hash first, then by any legacy
         hash (such as a dotted Gmail address created before canonicalisation).
         When matched on a legacy hash and the canonical hash is not taken,
-        ``id_hash`` is updated in place so subsequent lookups match directly."""
+        ``id_hash`` is updated in place so subsequent lookups match directly.
+        ``shared`` is a hash the identifier reaches but never adopts (the
+        ``+tag``-stripped form relay 0.26 merged every address into)."""
         if not id_hashes:
             return None
         primary = id_hashes[0]
         row = self.account_by_hash(primary)
-        if row is not None or len(id_hashes) == 1:
+        if row is not None:
             return row
         for legacy in id_hashes[1:]:
             row = self.account_by_hash(legacy)
@@ -771,6 +834,8 @@ class Database:
                     if taken is None:
                         c.execute("UPDATE accounts SET id_hash=? WHERE id=?", (primary, row["id"]))
                 return self.account(str(row["id"]))
+        if shared and shared != primary:
+            return self.account_by_hash(shared)
         return None
 
     def account(self, account_id: str) -> sqlite3.Row | None:
@@ -814,6 +879,61 @@ class Database:
                     (account_id, t, "credit", 0, json.dumps({"credit_uy": grant_uy, "from": "signup"})),
                 )
         return self.account(account_id)  # type: ignore[return-value]
+
+    def create_account_limited(
+        self,
+        id_hash: str,
+        channel: str,
+        hint: str,
+        grant: int,
+        identifier_enc: str,
+        account_id: str,
+        grant_uy: int,
+        *,
+        domain: str = "",
+        domain_limit: int = 0,
+        domain_since: int = 0,
+    ) -> tuple[sqlite3.Row | None, bool]:
+        """Create an account unless it exists or its domain has filled today's quota.
+
+        The existing-account check, domain count and insert share one transaction.
+        ``(None, False)`` means the domain is full; otherwise the boolean says whether
+        this call inserted the returned account.
+        """
+        t = now()
+        grant_uy = max(0, int(grant_uy))
+        who = _client.current()
+        with self.tx() as c:
+            existing = c.execute("SELECT * FROM accounts WHERE id_hash=?", (id_hash,)).fetchone()
+            if existing is not None:
+                return existing, False
+            if channel == "email" and domain and domain_limit > 0:
+                tail = "@" + domain.lower()
+                count = c.execute(
+                    """SELECT COUNT(*) FROM accounts
+                       WHERE created_at>=? AND channel='email'
+                         AND SUBSTR(hint, -LENGTH(?))=?""",
+                    (domain_since, tail, tail),
+                ).fetchone()
+                if int(count[0]) >= domain_limit:
+                    return None, False
+            c.execute(
+                "INSERT INTO accounts(id, id_hash, channel, hint, created_at, granted, identifier_enc, grant_uy, allowance_uy, "
+                "first_ip, last_ip, last_ua, last_seen_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (account_id, id_hash, channel, hint, t, grant, identifier_enc, grant_uy, grant_uy, who.ip, who.ip, who.ua, t),
+            )
+            if grant:
+                c.execute(
+                    "INSERT INTO ledger(account_id, ts, kind, charged) VALUES (?,?,?,?)",
+                    (account_id, t, "grant", -grant),
+                )
+            if grant_uy:
+                c.execute(
+                    "INSERT INTO ledger(account_id, ts, kind, charged, extra) VALUES (?,?,?,?,?)",
+                    (account_id, t, "credit", 0, json.dumps({"credit_uy": grant_uy, "from": "signup"})),
+                )
+            created = c.execute("SELECT * FROM accounts WHERE id=?", (account_id,)).fetchone()
+            return created, True
 
     def delete_account(self, account_id: str) -> None:
         """Everything about one person: keys, ledger, devices, pending codes, the row itself."""
@@ -1036,9 +1156,9 @@ class Database:
         the invitee alone is credited and the account is still marked settled, so the
         question is never asked again. When ``refuse_same_ip`` is true and both accounts
         share the same non-local ``first_ip``, or when ``min_spent_uy`` is positive and the
-        invitee has neither spent at least ``min_spent_uy`` nor registered a Hub device,
-        settlement is deferred and ``(False, inviter_id, False)`` is returned. Returns
-        ``(settled, inviter_id, inviter_paid)``."""
+        invitee has not spent at least ``min_spent_uy``, settlement is deferred and
+        ``(False, inviter_id, False)`` is returned. Returns ``(settled, inviter_id,
+        inviter_paid)``."""
         t = now()
         bonus_uy = max(0, int(bonus_uy))
         min_spent_uy = max(0, int(min_spent_uy))
@@ -1065,9 +1185,7 @@ class Database:
                     or 0
                 )
                 if spent < min_spent_uy:
-                    has_device = c.execute("SELECT 1 FROM devices WHERE account_id=? LIMIT 1", (invitee_id,)).fetchone()
-                    if has_device is None:
-                        return False, inviter_id, False
+                    return False, inviter_id, False
             inviter_paid = inviter is not None and not inviter["disabled"]
             if inviter_paid:
                 c.execute("UPDATE accounts SET grant_uy=grant_uy+? WHERE id=?", (bonus_uy, inviter_id))
@@ -1380,14 +1498,98 @@ class Database:
     # -- keys ----------------------------------------------------------------
 
     def insert_key(
-        self, key_hash: str, prefix: str, account_id: str, device: str, via: str = "code", expires_at: int | None = None
+        self,
+        key_hash: str,
+        prefix: str,
+        account_id: str,
+        device: str,
+        via: str = "code",
+        expires_at: int | None = None,
+        hub_device_id: str = "",
+        hub_device_kind: str = "",
+        replace_hub_identity: bool = False,
     ) -> None:
         who = _client.current()
         with self.tx() as c:
+            if hub_device_id and replace_hub_identity:
+                # A fresh code/password sign-in proves the account again and may rotate
+                # the credential of the same installation. The old key remains a valid
+                # account key, but no longer owns this Hub identity.
+                c.execute(
+                    "UPDATE api_keys SET hub_device_id='', hub_device_kind='' WHERE account_id=? AND hub_device_id=?",
+                    (account_id, hub_device_id),
+                )
             c.execute(
-                "INSERT INTO api_keys(key_hash, prefix, account_id, device, created_at, via, ip, ua, expires_at) VALUES (?,?,?,?,?,?,?,?,?)",
-                (key_hash, prefix, account_id, device[:80], now(), via, who.ip, who.ua, expires_at),
+                "INSERT INTO api_keys(key_hash, prefix, account_id, device, hub_device_id, "
+                "hub_device_kind, created_at, via, ip, ua, expires_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                (
+                    key_hash,
+                    prefix,
+                    account_id,
+                    device[:80],
+                    hub_device_id,
+                    hub_device_kind,
+                    now(),
+                    via,
+                    who.ip,
+                    who.ua,
+                    expires_at,
+                ),
             )
+
+    def bind_key_to_hub_device(self, key_hash: str, account_id: str, device_id: str, kind: str) -> bool:
+        """Bind an unbound credential to its first Hub identity.
+
+        False means this key already names another identity, or a live key of the
+        account owns this device id and this key may not take it over. A revoked or
+        lapsed owner releases its id. A key from a later code or password sign-in on
+        the same installation (the phone signed in again without signing out first,
+        the runtime's vault was reset, the old sign-out never reached the relay) takes
+        the id over, since that sign-in proved the account again; the older key stays a
+        valid account key but no longer speaks for the device. A session key never
+        takes over: it may only register an id nobody holds. The unique index makes two
+        simultaneous first hellos choose one owner rather than both succeeding.
+        """
+        t = now()
+        with self.tx() as c:
+            row = c.execute(
+                "SELECT rowid, hub_device_id, hub_device_kind, via, created_at FROM api_keys WHERE key_hash=? AND account_id=?",
+                (key_hash, account_id),
+            ).fetchone()
+            if row is None:
+                return False
+            bound_id = str(row["hub_device_id"] or "")
+            bound_kind = str(row["hub_device_kind"] or "")
+            if bound_id:
+                return bound_id == device_id and bound_kind == kind
+            # what no longer opens releases its identity
+            c.execute(
+                "UPDATE api_keys SET hub_device_id='', hub_device_kind='' WHERE account_id=? AND hub_device_id=? "
+                "AND (revoked_at IS NOT NULL OR (expires_at IS NOT NULL AND expires_at <= ?))",
+                (account_id, device_id, t),
+            )
+            owner = c.execute(
+                "SELECT rowid, key_hash, created_at FROM api_keys WHERE account_id=? AND hub_device_id=? LIMIT 1",
+                (account_id, device_id),
+            ).fetchone()
+            if owner is not None:
+                proven = str(row["via"] or "code") in ("code", "password")
+                # issue order: the second, then the row, since two keys can share a second
+                later = (int(row["created_at"]), int(row["rowid"])) > (int(owner["created_at"]), int(owner["rowid"]))
+                if not proven or not later:
+                    return False
+                c.execute(
+                    "UPDATE api_keys SET hub_device_id='', hub_device_kind='' WHERE key_hash=?",
+                    (owner["key_hash"],),
+                )
+            try:
+                cur = c.execute(
+                    "UPDATE api_keys SET hub_device_id=?, hub_device_kind=? WHERE key_hash=? AND account_id=? AND hub_device_id=''",
+                    (device_id, kind, key_hash, account_id),
+                )
+            except sqlite3.IntegrityError:
+                return False
+            return cur.rowcount == 1
 
     def key(self, key_hash: str) -> sqlite3.Row | None:
         with self._lock:

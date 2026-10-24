@@ -24,16 +24,16 @@ class BadIdentifier(ValueError):
 def _canonical_email(address: str) -> str:
     """Canonical form of an e-mail address for hashing and account identity.
 
-    Every address has any ``+tag`` subaddress stripped from its local part so
-    ``user+1@example.com`` and ``user@example.com`` are one account; Gmail and
-    Googlemail addresses also have ``googlemail.com`` folded to ``gmail.com``
-    and dots removed from the local part, matching how Gmail routes mail.
+    Gmail and Googlemail addresses have ``googlemail.com`` folded to
+    ``gmail.com``, dots removed and ``+tag`` stripped from the local part,
+    matching how Gmail routes mail. Other providers decide for themselves
+    whether plus addressing is an alias, so their local parts stay exact.
     """
     local, _, domain = address.partition("@")
-    if "+" in local:
-        local = local.split("+", 1)[0]
     if domain in _GMAIL_DOMAINS:
         domain = "gmail.com"
+        if "+" in local:
+            local = local.split("+", 1)[0]
         local = local.replace(".", "")
     if not local:
         raise BadIdentifier("email")
@@ -77,6 +77,19 @@ class Identifier:
         primary = self.hash(key)
         legacy = self.legacy_hash(key)
         return (primary, legacy) if legacy and legacy != primary else (primary,)
+
+    def merged_hash(self, key: bytes) -> str | None:
+        """Relay 0.26 stripped ``+tag`` from every address, so ``dev+1@example.com`` signed
+        in to ``dev@example.com``'s account. 0.27 keeps such addresses apart, but an
+        account that already exists under the stripped form is still reached by the
+        tagged address (never adopted by it), so nobody loses an account to the change."""
+        if self.channel != "email":
+            return None
+        local, _, domain = self.value.partition("@")
+        if "+" not in local or domain == "gmail.com":
+            return None
+        stripped = f"{local.split('+', 1)[0]}@{domain}"
+        return hmac.new(key, f"{self.channel}:{stripped}".encode(), hashlib.sha256).hexdigest()
 
 
 def parse(raw: str) -> Identifier:

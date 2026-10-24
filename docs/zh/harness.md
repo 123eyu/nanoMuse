@@ -189,7 +189,7 @@ Laptop B 自己的聊天里让它的 Muse「在 Desk A 上」运行一条命令�
 | 界面里的形象（[avatar.md](avatar.md)）             | 插槽 `sidebar.brand.*`、`conversation.hero.brand.mark`；静态图来自宿主；状态来自会话状态；手工作时的胶囊 | 已完成     |
 | 形象跨设备同步                                | `profile.ts` 在 hub 的 `profile` 帧上拉取中继的资料；画出来的形象的静态图由宿主缓存并提供                            | 已完成     |
 | 会动的形象（[avatar.md](avatar.md)）                | `Avatar.tsx`：小龙的各状态短视频来自 `assets/`，44 px 及以上静音循环播放，静态图作封面；画出来的形象和 emoji 用 CSS 做呼吸 / 摇摆 / 跳一下，减弱动态下什么都不做 | 已完成     |
-| 形象工作室（在这里画新形象）                 | 一个基于中继图像模型的设置页；今天形象在手机上画，这里戴                                                | 阶段 4    |
+| 形象工作室（在这里画新形象）                 | `AvatarStudio.tsx`：四个本地化预设灵感或一段描述，通过「模型」里选定的自有图像服务商和 API key 画候选和姿势；项目托管 Cloud 不提供媒体生成 | 已完成    |
 | 第一次打开                                               | 我们在 dsh `settings.onboarding` 位上的步骤，全窗口：欢迎、登录、验证码格、权限轮播（macOS 上的电脑、文件、设备）、就绪 | 已完成     |
 | 窗口（[desktop-muse.md](desktop-muse.md)）         | `sidebar`、`sidebar.settings` 和 `shell.overlay` 位加 bundle 的样式表：窄栏 + 主要聊天 / 旁聊、钉住的形象和带停止的状态标签、邀请、资料面板、药丸形输入框、气泡、权限卡片、带「高级」的分组设置、App 的色调 | 已完成     |
 | 哨兵（[sentinel.md](sentinel.md)）                   | dsh 的审批策略和 `tools/pre-execute` 瀑布；我们的类别变成一个审批预设；看得见的门保留                | 阶段 4    |

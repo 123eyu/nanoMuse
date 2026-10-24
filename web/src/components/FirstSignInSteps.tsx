@@ -1,6 +1,7 @@
 import { ArrowRight, CloudCog, KeyRound, Loader2, LogIn } from "lucide-react";
 import { useEffect, useId, useState, useRef } from "react";
 import { api } from "../api";
+import { passwordMinLength } from "../cloud-config";
 import { useT } from "../i18n";
 import { useFocusTrap } from "./useFocusTrap";
 import { useStore } from "../store";
@@ -8,6 +9,7 @@ import { cx } from "../util";
 import { ownKeyWay } from "../region";
 import { openOwnKeySetup } from "./AllowanceWays";
 import { inputCls, primaryBtn, secondaryBtn } from "./Form";
+import { useCloudConfig } from "./StarNudge";
 
 /**
  * Two short, skippable steps right after an account is *created* (the relay said
@@ -60,6 +62,7 @@ export function useFirstSignIn(): boolean {
 
 export function FirstSignInSteps() {
   const t = useT();
+  const minimum = passwordMinLength(useCloudConfig());
   const { toast, refreshHub, setTab, state } = useStore();
   const way = ownKeyWay(state.hub?.account);
   const [step, setStep] = useState<"password" | "source">("password");
@@ -74,7 +77,7 @@ export function FirstSignInSteps() {
   };
 
   const setIt = async () => {
-    if (password.length < 8 || password !== again) return;
+    if (password.length < minimum || password !== again) return;
     setBusy(true);
     setError(null);
     try {
@@ -131,7 +134,7 @@ export function FirstSignInSteps() {
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="new-password"
                 autoFocus
-                placeholder={t("At least 8 characters")}
+                placeholder={t("At least {n} characters", { n: minimum })}
                 aria-label={t("Password")}
                 className={inputCls}
               />
@@ -143,7 +146,7 @@ export function FirstSignInSteps() {
               <button type="button" disabled={busy} onClick={() => setStep("source")} className={secondaryBtn}>
                 {t("Skip")}
               </button>
-              <button type="submit" disabled={busy || password.length < 8 || password !== again} className={cx(primaryBtn, "flex-1 py-3")}>
+              <button type="submit" disabled={busy || password.length < minimum || password !== again} className={cx(primaryBtn, "flex-1 py-3")}>
                 {busy ? <Loader2 size={15} className="animate-spin" /> : null} {t("Set the password")} <ArrowRight size={16} />
               </button>
             </div>
