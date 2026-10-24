@@ -36,7 +36,7 @@ dsh 也是唯一不只从 `PATH` 上找命令行的助手：桌面版把 harness
 
 ## 在哪里跑 {#where-it-runs}
 
-每个助手都以它在那台电脑上拥有的权限运行（Codex 在 `workspace-write` 下，Claude Code 带 `acceptEdits`，Cursor 带 `--force`，dsh headless 按它自己的沙箱策略），并且在那里改文件。所以发一条消息被当作在那台电脑上运行一条命令来对待：请求只在同一个账号的设备之间传递，走该账号自己的 hub 会话，而且那台电脑可以完全拒绝远程控制（「远程控制」关掉后，`coding.*` 只在本机可用）。在桌面版上，`coding.send` 和 `coding.stop` 过的是和 `shell`、`files` 同一道关：「远程控制」关着时，尚未信任的设备会在屏幕上弹出一张卡片，由回答（这一次、总是、不行，或没人及时回答）决定；只读动作直接应答，不问。
+每个助手都以它在那台电脑上拥有的权限运行（Codex 在 `workspace-write` 下，Claude Code 带 `acceptEdits`，Cursor 带 `--force`，dsh headless 按它自己的沙箱策略），并且在那里改文件。所以发一条消息被当作在那台电脑上运行一条命令来对待：对哨兵来说 `coding_agents send` 是 `sensitive`，和 `shell` 同级（`ask` 模式下卡片会写明助手、文件夹和消息）；请求只在同一个账号的设备之间传递，走该账号自己的 hub 会话，而且那台电脑可以完全拒绝远程控制（「远程控制」关掉后，`coding.*` 只在本机可用）。在桌面版上，`coding.send` 和 `coding.stop` 过的是和 `shell`、`files` 同一道关：「远程控制」关着时，尚未信任的设备会在屏幕上弹出一张卡片，由回答（这一次、总是、不行，或没人及时回答）决定；只读动作直接应答，不问。
 
 助手自己的 API key 和登录状态是它们自己的；nanoMuse 从不接触。记录是从磁盘读出来给你看的；除了发起请求的那台设备，不会发给任何地方。
 
@@ -52,7 +52,7 @@ POST /api/coding/send    {agent, text, session_id?, workspace?, device?}  → th
 POST /api/coding/stop    {run, device?}
 ```
 
-一次运行是 `{id, agent, session_id, asked_session_id, workspace, text, started_at, ended_at, status, output, resumed, error, tools, device?}`；`status` 是 `running`、`done`、`error` 或 `stopped` 之一。最近 50 次已结束的运行保存在 `<data_dir>/coding/runs.json`，运行时启动时读回来，所以记录能挺过重启；当时还在跑的运行回来时变成 `stopped`，并附一句说明（CLI 进程随运行时一起结束了）。运行期间，总线上传递 `{"kind": "coding", "run": id, …}` 事件，每个打开的 App 都实时跟着：`started {session_id, model}`、`text {text, partial}`（Cursor 先发增量，再发整条消息；App 用最终那条替换掉流式显示的文字）、`tool {text, phase}`、`done`、`error`。
+一次运行是 `{id, agent, session_id, asked_session_id, workspace, text, started_at, ended_at, status, output, resumed, error, tools, device?}`；`status` 是 `running`、`done`、`failed` 或 `stopped` 之一。最近 50 次已结束的运行保存在 `<data_dir>/coding/runs.json`，运行时启动时读回来，所以记录能挺过重启；当时还在跑的运行回来时变成 `stopped`，并附一句说明（CLI 进程随运行时一起结束了）。运行期间，总线上传递 `{"kind": "coding", "run": id, …}` 事件，每个打开的 App 都实时跟着：`started {session_id, model}`、`text {text, partial}`（Cursor 先发增量，再发整条消息；App 用最终那条替换掉流式显示的文字）、`tool {text, phase}`、`done`、`error`。
 
 桌面版把同样的数据形状提供给它自己的窗口，路径在 `nanomuse/cloud/coding` 下（页面的本机回环 API）：`GET`（助手和运行记录）、`GET /sessions`、`GET /sessions/{agent}/{id}`、`POST /send`、`POST /stop`，以及 `GET /events`，上面那些运行事件的服务器推送流。它的 `runs.json` 放在插件数据目录的 `coding/` 下。
 

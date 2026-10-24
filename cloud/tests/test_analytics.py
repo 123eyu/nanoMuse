@@ -587,17 +587,28 @@ async def test_kept_turns_get_a_shape_row_and_older_ones_are_backfilled(stack):
     r = await client.delete("/v1/me/samples", headers=headers)
     assert r.status_code in (200, 204), r.text
     assert cloud.db.sample_count() == 0 and cloud.db.sample_stats_count() == 0
+    # a turn whose shape row never got written (the second write failed) is not lost to the
+    # figures: the daily pass finds it by its missing row, and finds nothing the next day
+    cloud.db.add_sample(aid, "qwen3.8-27b", json.dumps([{"role": "user", "content": "Draft the invoice mail"}]), "Sure", 5, 5, "{}")
+    assert cloud.db.sample_count() == 1 and cloud.db.sample_stats_count() == 0
+    assert fresh.describe_missing() == 1 and cloud.db.sample_stats_count() == 1
+    assert fresh.describe_missing() == 0
 
 
 async def test_the_analytics_loop_warms_the_meter_sweeps_old_calls_and_backfills():
     """The lifespan task: on start the last hour's rows come back into the meter, the
     backfill runs to the end, and rows older than CALLS_KEEP_DAYS go."""
     up = fake_upstream()
-    settings = make_settings(calls_keep_days=1)
+    settings = make_settings(calls_keep_days=1, events_keep_days=1)
     sender = LogSender()
     cloud = Cloud(settings, Database(":memory:"), sender)
     aid = cloud.db.create_account("hash", "phone", "138****8000", 0, account_id="a")["id"]
     now = int(time.time())
+    # the timelines' lines age out the same way; the trace of a deletion does not
+    with cloud.db.tx() as c:
+        c.execute("INSERT INTO events(account_id, ts, kind, detail) VALUES (?,?,?,?)", (aid, now - 3 * 86400, "sign_in.code", "pixel"))
+        c.execute("INSERT INTO events(account_id, ts, kind, detail) VALUES (?,?,?,?)", ("", now - 3 * 86400, "account.deleted", "x"))
+        c.execute("INSERT INTO events(account_id, ts, kind, detail) VALUES (?,?,?,?)", (aid, now - 120, "sign_in.code", "mac"))
     base = {
         "account_id": aid,
         "model": "m",
@@ -626,11 +637,19 @@ async def test_the_analytics_loop_warms_the_meter_sweeps_old_calls_and_backfills
     with TestClient(app):
         meter = app.state.meter
         deadline = time.time() + 5
-        while time.time() < deadline and (not app.state.analytics.backfill_done or cloud.db.calls_count() > 1):
+
+        # the events sweep follows the calls sweep in the same tick: wait for both (a slow runner
+        # can be between the two when the calls are already gone)
+        def events_left() -> int:
+            return int(cloud.db._conn.execute("SELECT COUNT(*) FROM events").fetchone()[0])
+
+        while time.time() < deadline and (not app.state.analytics.backfill_done or cloud.db.calls_count() > 1 or events_left() > 2):
             time.sleep(0.05)
         assert meter.summary(now - 3600)["requests"] == 1  # the recent row, back in the meter
         assert app.state.analytics.backfill_done is True and cloud.db.sample_stats_count() == 1
         assert cloud.db.calls_count() == 1  # the three-day-old row is gone
+        kinds = sorted(str(r["kind"]) for r in cloud.db._conn.execute("SELECT kind FROM events").fetchall())
+        assert kinds == ["account.deleted", "sign_in.code"]
 
 
 # -- the hub: a device may say which model it runs on --------------------------------------------
@@ -678,3 +697,42 @@ def test_a_device_reports_its_own_model_by_ids_only():
         assert platforms["own_models"] == [
             {"provider": "cloud", "devices": 1, "accounts": 1, "models": [{"model": "Qwen/Qwen3.6-27B-FP8", "devices": 1}]}
         ]
+
+
+def test_platform_percentiles_from_sqlite_match_the_nearest_rank_helper():
+    """The platform page's latencies are ranked in SQLite; they are the figures the Python
+    helper gives, call for call, with the waits over every call and the rest over the calls
+    that went well."""
+    import random
+
+    db = Database(":memory:")
+    rng = random.Random(7)
+    now = int(time.time())
+    rows: dict[str, list[dict]] = {"ios": [], "desktop": []}
+    for platform, n in (("ios", 37), ("desktop", 4)):
+        for i in range(n):
+            status = "ok" if rng.random() < 0.8 else rng.choice(["refused", "upstream_error"])
+            row = {
+                "ts": now - 60 - i,
+                "account_id": "a",
+                "model": "m",
+                "platform": platform,
+                "family": "app",
+                "status": status,
+                "wait_ms": rng.randint(0, 900),
+                "ttft_ms": rng.randint(100, 9000),
+                "total_ms": rng.randint(1000, 60000),
+            }
+            rows[platform].append(row)
+            db.add_call(row)
+    got = {str(r["platform"]): dict(r) for r in db.calls_latency_by_platform(now - 3600, now + 1)}
+    counts = {str(r["platform"]): dict(r) for r in db.calls_by_platform(now - 3600, now + 1)}
+    for platform, calls in rows.items():
+        ok = [c for c in calls if c["status"] == "ok"]
+        assert got[platform]["p95_wait_ms"] == an.percentile([c["wait_ms"] for c in calls], 0.95)
+        assert got[platform]["p50_ttft_ms"] == an.percentile([c["ttft_ms"] for c in ok], 0.5)
+        assert got[platform]["p95_ttft_ms"] == an.percentile([c["ttft_ms"] for c in ok], 0.95)
+        assert got[platform]["p50_total_ms"] == an.percentile([c["total_ms"] for c in ok], 0.5)
+        assert counts[platform]["n"] == len(calls) and counts[platform]["ok"] == len(ok)
+        assert counts[platform]["errors"] == sum(1 for c in calls if c["status"] == "upstream_error")
+        assert counts[platform]["refused"] == sum(1 for c in calls if c["status"] == "refused")

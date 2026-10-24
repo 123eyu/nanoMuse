@@ -131,7 +131,7 @@ test('models: the endpoint’s list sorted into chat, image and video by id; sig
   assert.equal(keyRefFor('lm-studio'), 'NANOMUSE_KEY_LM_STUDIO')
 })
 
-test('listModels: OpenAI’s shape with the bearer, Anthropic’s with x-api-key, Gemini’s native with ?key=; a refusal or a hang gives an empty list', async () => {
+test('listModels: OpenAI’s shape with the bearer, Anthropic’s with x-api-key, Gemini’s native with x-goog-api-key and no key in the address; a refusal or a hang gives an empty list', async () => {
   const calls = []
   const fetchImpl = async (url, init) => {
     calls.push([url, init.headers ?? {}])
@@ -146,7 +146,9 @@ test('listModels: OpenAI’s shape with the bearer, Anthropic’s with x-api-key
   assert.deepEqual(await listModels('anthropic', 'https://api.anthropic.com', 'sk-ant', fetchImpl), ['claude-sonnet-5-5'])
   assert.equal(calls[1][1]['x-api-key'], 'sk-ant')
   assert.deepEqual(await listModels('gemini', 'https://generativelanguage.googleapis.com/v1beta', 'AIza', fetchImpl), ['gemini-3.8-flash'])
-  assert.ok(calls[2][0].includes('key=AIza'))
+  assert.equal(calls[2][0], 'https://generativelanguage.googleapis.com/v1beta/models?pageSize=200')
+  assert.equal(calls[2][1]['x-goog-api-key'], 'AIza')
+  assert.ok(!calls[2][0].includes('AIza'))
   assert.deepEqual(await listModels('openai', 'https://refuse.example/v1', 'k', fetchImpl), [])
   assert.deepEqual(await listModels('openai', 'https://slow.example/v1', 'k', () => new Promise(() => undefined), 20), [])
 })

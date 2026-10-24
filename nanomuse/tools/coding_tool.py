@@ -74,9 +74,13 @@ class CodingAgents(BaseTool):
         agent = str(args.get("agent") or "")
         where = f" on {args['device']}" if args.get("device") else ""
         if action == "send":
-            a.risk = RiskLevel.MODERATE
+            # the agent then runs with the permissions it has on that computer (edits,
+            # commands, the network): the same level as `shell`, as docs/coding-agents.md says
+            a.risk = RiskLevel.SENSITIVE
+            folder = f" in {args['workspace']}" if args.get("workspace") else ""
             a.summary = (
-                f"tell {agent or 'the coding agent'}{where}: {str(args.get('text') or '')[:60]}"
+                f"tell {agent or 'the coding agent'}{where}{folder}: "
+                f"{str(args.get('text') or '')[:60]}"
             )
         elif action == "stop":
             a.risk = RiskLevel.MODERATE

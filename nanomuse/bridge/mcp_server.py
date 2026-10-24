@@ -191,7 +191,11 @@ async def call(tool: BaseTool, args: dict[str, Any]) -> ToolResult:
     try:
         return await tool.execute(**clean)
     except Exception as exc:  # noqa: BLE001 - the host gets a message, not a dead server
-        return ToolResult.fail(f"{type(exc).__name__}: {exc}")
+        # the kind of failure and its message, with the value of every URL query parameter
+        # masked (a key rides there, and httpx quotes the full URL in a 4xx)
+        from nanomuse.tools.mcp_tools import _QUERY_VALUE
+
+        return ToolResult.fail(_QUERY_VALUE.sub(r"\1\2=***", f"{type(exc).__name__}: {exc}")[:2000])
 
 
 def content_blocks(result: ToolResult) -> list[dict[str, Any]]:

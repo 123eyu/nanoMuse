@@ -636,7 +636,9 @@ class Connections:
         if hub is None or not hub.signed_in:
             return []
         local_names = {m.name for m in self.settings.mcp.servers}
-        local_urls = {(m.url or "").split("?", 1)[0] for m in self.settings.mcp.servers if m.url}
+        local_urls = {
+            hub.profile.public_url(m.url or "") for m in self.settings.mcp.servers if m.url
+        }
         return [
             {**e, "here": e["id"] in local_names or (bool(e["url"]) and e["url"] in local_urls)}
             for e in hub.profile.shared_connectors
@@ -1688,7 +1690,12 @@ class Connections:
         if not tools:
             await manager.close()
             self._publish()
-            raise RuntimeError(f"could not connect to '{cfg.name}' (see the server log)")
+            # the server is kept as typed (the Connections page shows it as not connected)
+            # and tried again at the next start; the person removes it if it was a mistake
+            raise RuntimeError(
+                f"could not connect to '{cfg.name}' (see the server log); it is saved and will "
+                "be tried again when the runtime starts"
+            )
         self._mcp[cfg.name] = manager
         self.svc.app.tools.add(*tools)
         self._publish()

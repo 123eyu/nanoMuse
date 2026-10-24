@@ -65,7 +65,7 @@ Errors carry a stable `code` the app can turn into a sentence:
 | status | code | meaning |
 |---|---|---|
 | 400 | `bad_identifier` | not a phone number or e-mail address |
-| 400 | `phone_region` | a number the SMS sender cannot reach (号码认证 sends to mainland China only); e-mail works everywhere |
+| 400 | `phone_region` | a number the SMS sender cannot reach (the Aliyun sender covers mainland China only); e-mail works everywhere |
 | 400 | `code_wrong` / `code_expired` | verification code |
 | 400 | `channel_unsupported` | this relay's `CODE_SENDER` does not send codes that way (SMS or e-mail); the sentence says which |
 | 502 | `send_failed` | the SMS or mail provider refused or did not answer; the code was not sent |
@@ -195,6 +195,7 @@ for the full list. The ones that matter:
 | `CHAT_CONCURRENCY` | 12 | chat requests at the provider at once across all accounts (0 = off); the rest wait at the relay, so a burst does not overload one shared deployment |
 | `CHAT_RETRIES` | 2 | retries after an upstream 429 or 5xx received before any chat output starts (0 = off; capped at 5) |
 | `CALLS_KEEP_DAYS` | 90 | how long the per-call telemetry rows (`calls`: timings, outcome, shape, platform; never content) are kept before the hourly sweep removes them (0.28) |
+| `EVENTS_KEEP_DAYS` | 365 | how long the timelines' lines (`events`: sign-ins, devices joining, errors, refusals; never content) are kept before the hourly sweep removes them; the `account.deleted` lines and the ledger are never swept (0.29) |
 | `RECORD_TURNS` | `1` | the record (0.29): every chat turn kept in full — the request as sent, the answer as given, pictures as files — for the account's devices and the operator. `0` keeps none of it and answers 404 to `POST /v1/turns` and `PUT /v1/blobs` |
 | `RECORD_KEEP_DAYS` | 0 | how long a turn of the record stays; 0 = until the person deletes it (Data controls) or the account. The hourly sweep removes older turns and the files only they referenced |
 | `MEDIA_DIR` | `<database dir>/blobs` | where the record's files live, one per distinct picture, audio or clip, named by SHA-256 (`<aa>/<sha256>`); back it up with the database if you want the pictures back |
@@ -1017,8 +1018,10 @@ report can be matched to a ledger row without any content being logged.
   `${code}`; that review is Aliyun's process and takes a working day or two.
   Either way the relay makes and checks the code itself.
 - `both` routes by identifier type. Non-mainland numbers are accepted as
-  identifiers but the Aliyun sender only covers `+86`; use e-mail for the rest
-  or plug in another sender in `senders.py`.
+  identifiers but the Aliyun sender only covers `+86` with either service (an
+  international SMS costs many times a domestic one, and is what SMS-pumping
+  fraud dials); use e-mail for the rest or plug in another sender in
+  `senders.py`.
 
 Any sender but `log` needs `CLOUD_SECRET`: without a secret the relay would
 hash every identifier with the published development key while real codes go

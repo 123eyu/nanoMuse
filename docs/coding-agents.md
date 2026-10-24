@@ -99,7 +99,9 @@ after a grace period.
 Every agent runs with the permissions it has on that computer (Codex in
 `workspace-write`, Claude Code with `acceptEdits`, Cursor with `--force`, dsh
 headless under its own sandbox policy) and edits files there. Sending a message
-is therefore treated like running a command on that computer: the request travels
+is therefore treated like running a command on that computer: to the Sentinel
+`coding_agents send` is `sensitive`, the same level as `shell` (in `ask` mode the
+card names the agent, the folder and the message), and the request travels
 only between devices of one account, over the account's own hub session, and the
 computer can refuse remote control altogether (*Remote control* off keeps
 `coding.*` local). On the desktop
@@ -126,7 +128,7 @@ POST /api/coding/stop    {run, device?}
 
 A run is `{id, agent, session_id, asked_session_id, workspace, text, started_at,
 ended_at, status, output, resumed, error, tools, device?}`; `status` is `running`,
-`done`, `error` or `stopped`. The last 50 finished runs are kept in
+`done`, `failed` or `stopped`. The last 50 finished runs are kept in
 `<data_dir>/coding/runs.json` and read back when the runtime starts, so the
 record survives a restart; a run that was still going then comes back as
 `stopped` with a note (the CLI process ended with the runtime). While it runs the bus carries `{"kind": "coding", "run":

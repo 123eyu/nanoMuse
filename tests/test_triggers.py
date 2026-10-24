@@ -104,7 +104,9 @@ def test_triggers_tool(tmp_path: Path):
 
     r = run(tool.execute(action="create", kind="hook", match="deploy", text="check the site"))
     hook = store.active("hook")[0]
-    assert f"http://phone.local:8787/api/hooks/{hook.id}?key={hook.secret}" in r.output
+    # the address, never the key: the person copies the full URL from the app
+    assert f"POST http://phone.local:8787/api/hooks/{hook.id} " in r.output
+    assert hook.secret not in r.output and "X-Hook-Key" in r.output
 
     listed = run(tool.execute(action="list")).output
     assert items[0].id in listed and hook.id in listed

@@ -44,6 +44,7 @@ import shutil
 import time
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlsplit
 
 from nanomuse.cloud import CloudError
 from nanomuse.logger import logger
@@ -271,17 +272,35 @@ class ProfileSync:
         return face_id
 
     # ------------------------------------------------------------------ the connectors
+    @staticmethod
+    def public_url(url: str) -> str:
+        """The address of a server as the account may see it: scheme, host, port and path.
+        The user info (``user:secret@``), the query (``?key=``) and the fragment are
+        where a credential rides, and none of them leaves this device."""
+        try:
+            parts = urlsplit(url.strip())
+        except ValueError:
+            return ""
+        if not parts.scheme or not parts.hostname:
+            return ""
+        host = parts.hostname
+        if ":" in host:  # an IPv6 literal keeps its brackets
+            host = f"[{host}]"
+        if parts.port is not None:
+            host = f"{host}:{parts.port}"
+        return f"{parts.scheme}://{host}{parts.path}"
+
     def my_connectors(self) -> list[dict[str, Any]]:
         """This device's entries for the profile body: the remote MCP servers it connected —
-        a name, an address without its query string, how it signs in. Nothing that opens
-        anything; a stdio command stays here."""
+        a name, an address without its user info, query and fragment, how it signs in.
+        Nothing that opens anything; a stdio command stays here."""
         out: list[dict[str, Any]] = []
         device = self.hub.device_name[:80]
         device_id = self.hub.device_id[:80]
         stamps = dict(self._cloud.get("connector_at") or {})
         touched = False
         for server in self.hub.svc.settings.mcp.servers[:MAX_CONNECTORS]:
-            url = (server.url or "").strip()
+            url = self.public_url(server.url or "")
             if not url:
                 continue
             at = stamps.get(server.name)
@@ -289,12 +308,15 @@ class ProfileSync:
                 at = datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
                 stamps[server.name] = at
                 touched = True
-            auth = "key" if "?" in url or server.env else "open"
+            raw = (server.url or "").strip()
+            parts = urlsplit(raw)
+            signs_in = bool(parts.query or parts.username or parts.password or "{{vault:" in raw)
+            auth = "key" if signs_in or server.env else "open"
             out.append(
                 {
                     "id": server.name[:64],
                     "label": server.name[:80],
-                    "url": url.split("?", 1)[0][:256],
+                    "url": url[:256],
                     "auth": auth,
                     "device": device,
                     "device_id": device_id,

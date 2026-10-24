@@ -800,43 +800,19 @@ class Analytics:
             name = platform_of(str(p["ua"] or ""))
             accounts_by_platform.setdefault(name, set()).add(str(p["account_id"]))
             platforms_by_account.setdefault(str(p["account_id"]), set()).add(name)
-        # the telemetry's word on each platform
-        calls = self.db.calls_between(since, int(time.time()) + 1)
+        # the telemetry's word on each platform, aggregated in SQLite: a season of calls is
+        # hundreds of thousands of rows, and the relay should not hold them all at once
+        until = int(time.time()) + 1
         tele: dict[str, dict[str, Any]] = {}
-        for c in calls:
-            t = tele.setdefault(
-                str(c["platform"]),
-                {
-                    "n": 0,
-                    "ok": 0,
-                    "errors": 0,
-                    "refused": 0,
-                    "hands": 0,
-                    "images": 0,
-                    "tools": 0,
-                    "stream": 0,
-                    "ttft": [],
-                    "total": [],
-                    "wait": [],
-                    "messages": 0,
-                },
-            )
-            t["n"] += 1
-            st = str(c["status"])
-            if st == "ok":
-                t["ok"] += 1
-                t["ttft"].append(int(c["ttft_ms"]))
-                t["total"].append(int(c["total_ms"]))
-            elif st in ERROR_STATUSES:
-                t["errors"] += 1
-            elif st == "refused":
-                t["refused"] += 1
-            t["wait"].append(int(c["wait_ms"]))
-            t["hands"] += int(c["hands"] or 0)
-            t["images"] += 1 if int(c["images"] or 0) > 0 else 0
-            t["tools"] += 1 if int(c["tools"] or 0) > 0 else 0
-            t["stream"] += int(c["stream"] or 0)
-            t["messages"] += int(c["messages"] or 0)
+        for c in self.db.calls_by_platform(since, until):
+            tele[str(c["platform"])] = {
+                k: int(c[k] or 0) for k in ("n", "ok", "errors", "refused", "hands", "images", "tools", "stream", "messages")
+            }
+        for c in self.db.calls_latency_by_platform(since, until):
+            t = tele.get(str(c["platform"]))
+            if t is not None:
+                for k in ("p50_ttft_ms", "p95_ttft_ms", "p50_total_ms", "p95_wait_ms"):
+                    t[k] = int(c[k] or 0)
         rows = []
         for name in sorted(set(folded) | set(tele), key=lambda n: -(folded.get(n, {}).get("requests", 0))):
             g = folded.get(name, {"requests": 0, "prompt_tokens": 0, "completion_tokens": 0, "cost_uy": 0, "versions": {}})
@@ -867,10 +843,10 @@ class Analytics:
                             "tools_share": t["tools"] / t["n"] if t["n"] else 0,
                             "stream_share": t["stream"] / t["n"] if t["n"] else 0,
                             "avg_messages": round(t["messages"] / t["n"], 1) if t["n"] else 0,
-                            "p50_ttft_ms": percentile(t["ttft"], 0.5),
-                            "p95_ttft_ms": percentile(t["ttft"], 0.95),
-                            "p50_total_ms": percentile(t["total"], 0.5),
-                            "p95_wait_ms": percentile(t["wait"], 0.95),
+                            "p50_ttft_ms": t.get("p50_ttft_ms", 0),
+                            "p95_ttft_ms": t.get("p95_ttft_ms", 0),
+                            "p50_total_ms": t.get("p50_total_ms", 0),
+                            "p95_wait_ms": t.get("p95_wait_ms", 0),
                         }
                         if t
                         else None
@@ -1405,6 +1381,29 @@ class Analytics:
         self.backfill_rows += len(rows)
         if len(rows) < batch:
             self.backfill_done = True
+        return len(rows)
+
+    def describe_missing(self, batch: int = 500) -> int:
+        """Give a shape row to kept turns that have none: the turn and its row are two writes,
+        and when the second failed (logged, the request unaffected) the turn stayed outside
+        the quality figures for good. Returns how many were written; a daily pass."""
+        rows = self.db.samples_without_stats(batch)
+        if not rows:
+            return 0
+        self.db.add_sample_stats(
+            [
+                sample_shape(
+                    str(r["id"]),
+                    str(r["account_id"]),
+                    int(r["ts"]),
+                    str(r["model"]),
+                    str(r["request"] or ""),
+                    str(r["response"] or ""),
+                    str(r["meta"] or ""),
+                )
+                for r in rows
+            ]
+        )
         return len(rows)
 
     # -- clients that are not the apps ------------------------------------------------------------

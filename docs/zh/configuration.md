@@ -422,6 +422,8 @@ url                = "http://localhost:8000/mcp"   # streamable HTTP; falls back
 risk               = "sensitive"
 egress             = true         # counts as network egress for taint tracking
 reads_private_data = true         # taints the conversation when called
+connect_timeout_s  = 30           # 握手（连接、initialize、工具列表）的秒数；超时就跳过这个服务器
+call_timeout_s     = 120          # 一次调用的秒数；超时这次调用失败，任务继续
 
 # one tool of a server may differ from the server's defaults
 [mcp.servers.tools.list_events]
@@ -430,6 +432,8 @@ risk               = "moderate"
 risk               = "sensitive"
 reads_private_data = false
 ```
+
+`egress` 不写时由地址决定：`url` 指向别的主机，每次调用的参数都会发过去，就按向那台主机外发算（污点追踪会在读过私密数据之后、调用它之前先问一句，除非主机在 `egress_allowlist` 里）；`command` 或回环地址不算。想说得不一样就显式写 `egress`。审批卡片和审计日志只记工具名和参数的形状（字符串的长度、列表的长度、对象的键），从不记参数的值。
 
 `tools` 是可选的，按工具名（不带 `<server>__` 前缀）逐个写；没写的都回退到服务器的值。手机自带的工具就是这样拿到默认值的：在手机上，App 的能力不用任何配置就以 `device` 这个服务器的身份出现（[device.md](device.md)），逐工具的表来自 `nanomuse/runtime.py`。
 

@@ -374,6 +374,10 @@ CREATE INDEX IF NOT EXISTS blob_refs_account ON blob_refs(account_id, sha256);
 # account to come back online and hear the answer; short enough that a deletion is a deletion.
 DELETED_KEYS_TTL_S = 90 * 24 * 3600
 
+# What `invited_by` says once the inviter's account is deleted and the bonus was still unpaid:
+# the invitee was invited (its own half is still due) but by nobody that can be named.
+INVITER_GONE = "deleted"
+
 # How long a write waits for another process's lock on the file before it fails (sqlite3's
 # `timeout` and PRAGMA busy_timeout). Five seconds covers a backup's read transaction or a
 # checkpoint; a request held longer than that is better refused than queued for good.
@@ -1043,10 +1047,19 @@ class Database:
     def delete_account(self, account_id: str) -> None:
         """Everything about one person: keys, ledger, devices, pending codes, the row itself."""
         with self.tx() as c:
-            row = c.execute("SELECT id_hash FROM accounts WHERE id=?", (account_id,)).fetchone()
+            row = c.execute("SELECT id_hash, created_at FROM accounts WHERE id=?", (account_id,)).fetchone()
             if row is None:
                 return
             c.execute("DELETE FROM codes WHERE id_hash=?", (row["id_hash"],))
+            # one more account of its sign-up day is gone: the statistics' sign-ups per day
+            # and the total at each day's end stay right (stats._accounts_daily); a count per
+            # UTC day, nothing of the account
+            ts = now()
+            c.execute(
+                "INSERT INTO daily(day, metric, key, value, updated_at) VALUES (?,?,?,?,?) "
+                "ON CONFLICT(day, metric, key) DO UPDATE SET value=value+excluded.value, updated_at=excluded.updated_at",
+                (utc_day(int(row["created_at"] or ts)), "accounts", "gone", 1, ts),
+            )
             c.execute("DELETE FROM samples WHERE account_id=?", (account_id,))
             c.execute("DELETE FROM sample_stats WHERE account_id=?", (account_id,))
             # the record's rows go here; the files whose last reference this was are removed
@@ -1067,13 +1080,21 @@ class Database:
             c.execute("DELETE FROM daily WHERE metric='active' AND key=?", (account_id,))
             # the keys' hashes stay a while, so a device still holding one hears
             # `account_deleted` (0.1.40); the rows that named the account do not
-            ts = now()
             c.execute("DELETE FROM deleted_keys WHERE deleted_at < ?", (ts - DELETED_KEYS_TTL_S,))
             c.execute(
                 "INSERT OR REPLACE INTO deleted_keys(key_hash, deleted_at) SELECT key_hash, ? FROM api_keys WHERE account_id=?",
                 (ts, account_id),
             )
             c.execute("DELETE FROM api_keys WHERE account_id=?", (account_id,))
+            # the accounts that signed up with this one's code no longer name it. A settled
+            # one keeps nothing; one whose bonus is still unpaid keeps the mark of having
+            # been invited (settle_invite then credits that side alone, as for any inviter
+            # that is gone). A code is only ever accepted at sign-up, so nothing reopens.
+            c.execute(
+                "UPDATE accounts SET invited_by='' WHERE invited_by=? AND invite_settled_at IS NOT NULL",
+                (account_id,),
+            )
+            c.execute("UPDATE accounts SET invited_by=? WHERE invited_by=?", (INVITER_GONE, account_id))
             c.execute("DELETE FROM accounts WHERE id=?", (account_id,))
 
     def key_deleted(self, key_hash: str) -> bool:
@@ -2571,10 +2592,24 @@ class Database:
         with self.tx() as c:
             return c.execute("DELETE FROM calls WHERE ts<?", (before,)).rowcount
 
+    def sweep_events(self, before: int) -> int:
+        """The timelines' lines older than `before` go, except the `account.deleted` ones (the
+        statistics' only trace of a deletion) and the operator's `control_audit`, which is
+        kept whole. The leftovers of the retired media proxy (`video_tasks`, otherwise only
+        purged when a new task is written) go with them."""
+        with self.tx() as c:
+            n = c.execute("DELETE FROM events WHERE ts<? AND kind<>'account.deleted'", (before,)).rowcount
+            c.execute("DELETE FROM video_tasks WHERE created_at<?", (now() - self.VIDEO_KEEP_S,))
+            return n
+
     def calls_since(self, since: int, limit: int = 20000) -> list[sqlite3.Row]:
-        """Every call since `since`, oldest first (the live meter's warm-up after a restart)."""
+        """Every call since `since`, oldest first (the live meter's warm-up after a restart).
+        Over ``limit`` rows it is the newest that are kept, so a busy hour's latest minutes
+        are the ones the live page shows."""
         with self._lock:
-            return self._conn.execute("SELECT * FROM calls WHERE ts>=? ORDER BY id LIMIT ?", (since, limit)).fetchall()
+            rows = self._conn.execute("SELECT * FROM calls WHERE ts>=? ORDER BY id DESC LIMIT ?", (since, limit)).fetchall()
+            rows.reverse()
+            return rows
 
     def calls_between(self, since: int, until: int) -> list[sqlite3.Row]:
         """The figures of every call of a window, without the ids: what the drill-downs and
@@ -2584,6 +2619,43 @@ class Database:
                 """SELECT ts, account_id, model, platform, family, status, stream, wait_ms, ttft_ms, total_ms,
                           prompt_tokens, completion_tokens, messages, images, tools, hands, retries
                    FROM calls WHERE ts>=? AND ts<?""",
+                (since, until),
+            ).fetchall()
+
+    def calls_by_platform(self, since: int, until: int) -> list[sqlite3.Row]:
+        """Per platform over a window: how many calls, how they ended, what they carried; the
+        aggregation stays in SQLite (a season is hundreds of thousands of rows)."""
+        with self._lock:
+            return self._conn.execute(
+                """SELECT platform, COUNT(*) AS n, SUM(status='ok') AS ok,
+                          SUM(status IN ('upstream_error','upstream_timeout','broken')) AS errors,
+                          SUM(status='refused') AS refused, SUM(COALESCE(hands, 0)) AS hands,
+                          SUM(COALESCE(images, 0)>0) AS images, SUM(COALESCE(tools, 0)>0) AS tools,
+                          SUM(COALESCE(stream, 0)) AS stream, SUM(COALESCE(messages, 0)) AS messages
+                   FROM calls WHERE ts>=? AND ts<? GROUP BY platform""",
+                (since, until),
+            ).fetchall()
+
+    def calls_latency_by_platform(self, since: int, until: int) -> list[sqlite3.Row]:
+        """Per platform over a window: the nearest-rank percentiles of the waits (every call)
+        and of the time to the first token and the total (the calls that went well), the
+        same figures `analytics.percentile` gives, ranked by SQLite's window functions."""
+        with self._lock:
+            return self._conn.execute(
+                """WITH w AS (
+                       SELECT platform, status='ok' AS ok, wait_ms, ttft_ms, total_ms,
+                              ROW_NUMBER() OVER (PARTITION BY platform ORDER BY wait_ms) AS r_wait,
+                              COUNT(*) OVER (PARTITION BY platform) AS n_all,
+                              ROW_NUMBER() OVER (PARTITION BY platform, status='ok' ORDER BY ttft_ms) AS r_ttft,
+                              ROW_NUMBER() OVER (PARTITION BY platform, status='ok' ORDER BY total_ms) AS r_total,
+                              COUNT(*) OVER (PARTITION BY platform, status='ok') AS n_ok
+                       FROM calls WHERE ts>=? AND ts<?)
+                   SELECT platform,
+                          MAX(CASE WHEN r_wait=(95*n_all+99)/100 THEN wait_ms END) AS p95_wait_ms,
+                          MAX(CASE WHEN ok AND r_ttft=(n_ok+1)/2 THEN ttft_ms END) AS p50_ttft_ms,
+                          MAX(CASE WHEN ok AND r_ttft=(95*n_ok+99)/100 THEN ttft_ms END) AS p95_ttft_ms,
+                          MAX(CASE WHEN ok AND r_total=(n_ok+1)/2 THEN total_ms END) AS p50_total_ms
+                   FROM w GROUP BY platform""",
                 (since, until),
             ).fetchall()
 
@@ -2874,6 +2946,18 @@ class Database:
                 [[r.get(k, "" if k in ("sample_id", "account_id", "model", "platform", "user_hash") else 0) for k in cols] for r in rows],
             )
         return len(rows)
+
+    def samples_without_stats(self, limit: int) -> list[sqlite3.Row]:
+        """Kept turns that have no shape row (the row's write failed once, after the turn was
+        kept): the newest first. One pass over the ts index with a lookup per turn, so it is
+        asked once a day, not on every tick."""
+        with self._lock:
+            return self._conn.execute(
+                """SELECT s.rowid, s.id, s.account_id, s.ts, s.model, s.request, s.response, s.meta FROM samples s
+                   LEFT JOIN sample_stats t ON t.sample_id=s.id WHERE t.sample_id IS NULL
+                   ORDER BY s.ts DESC LIMIT ?""",
+                (limit,),
+            ).fetchall()
 
     def samples_page_before(self, before_ts: int, before_rowid: int, limit: int) -> list[sqlite3.Row]:
         """The next page of turns going back in time from a (ts, rowid) position — the

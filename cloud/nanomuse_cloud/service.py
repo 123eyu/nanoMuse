@@ -24,6 +24,7 @@ from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from . import __version__
 from .analytics import sample_shape
@@ -1925,8 +1926,18 @@ class Cloud:
             raise CloudError(400, "bad_request", "connectors[].id is required")
         if not out["label"]:
             out["label"] = out["id"]
-        if out["url"] and not re.match(r"^[a-z][a-z0-9+.-]*:", out["url"], re.IGNORECASE):
-            raise CloudError(400, "bad_request", "connectors[].url is a URL (scheme:...)")
+        if out["url"]:
+            if not re.match(r"^[a-z][a-z0-9+.-]*:", out["url"], re.IGNORECASE):
+                raise CloudError(400, "bad_request", "connectors[].url is a URL (scheme:...)")
+            # the public form only: a query (`?key=`), a user info (`user:secret@`) or a
+            # fragment is where a credential rides, and the relay holds none of them
+            parts = urlsplit(out["url"])
+            if parts.query or parts.fragment or parts.username or parts.password:
+                raise CloudError(
+                    400,
+                    "no_secrets_in_profile",
+                    "connectors[].url carries a query, a fragment or a user info; send scheme://host/path only",
+                )
         auth = str(raw.get("auth") or "").strip().lower()
         if auth not in self.CONNECTOR_AUTHS:
             raise CloudError(400, "bad_request", "connectors[].auth is oauth, key or open")

@@ -325,6 +325,32 @@ test("operator: the helper's picture comes through at the asked size; /info name
   });
 });
 
+test("operator: an action waits for onAction (the capsule moving away) before the helper acts", async (t) => {
+  const dir = scratch();
+  const fake = fakeHelper();
+  const order = [];
+  const lines = [];
+  const helper = new MacHelper({ appPath: fakeBundle(dir), dataDir: join(dir, "data"), launch: fake.launch, log: (l) => lines.push(l) });
+  const operator = new Operator({
+    helper,
+    log: (l) => lines.push(l),
+    permissions: () => ({ accessibility: true, screen: true }),
+    onAction: async (marker) => {
+      order.push(`marker:${marker.kind}`);
+      await new Promise((resolve) => setTimeout(resolve, 40));
+      // nothing has reached the helper while the capsule was still moving
+      order.push(`moved, executes so far: ${fake.requests.filter((r) => r.path === "/execute").length}`);
+    },
+  });
+  t.after(() => helper.stop());
+  await onDarwin(async () => {
+    const done = await operator.execute({ action: "click", x: 10, y: 20 });
+    assert.equal(done.ok, true);
+    assert.equal(fake.requests.filter((r) => r.path === "/execute").length, 1);
+    assert.deepEqual(order, ["marker:click", "moved, executes so far: 0"]);
+  });
+});
+
 test("operator: a helper whose capture fails is reported with its own words — no desktopCapturer", async (t) => {
   const dir = scratch();
   const fake = fakeHelper("fails");
