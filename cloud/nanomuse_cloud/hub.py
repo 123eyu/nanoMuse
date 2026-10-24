@@ -48,7 +48,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 from . import __version__
 from . import client as _client
 from .db import Database
-from .service import Caller, Cloud, CloudError
+from .service import Caller, Cloud, CloudError, Pace
 
 log = logging.getLogger("nanomuse_cloud.hub")
 
@@ -73,6 +73,14 @@ FLOOD_CLOSE_AFTER = 600
 # the largest size.
 SEND_QUEUE_FRAMES = 512
 SEND_QUEUE_BYTES = 32 * 1024 * 1024
+
+# 0.30: what comes before the first frame is bounded too. One address may open this many
+# sockets a minute (every device of a household reconnecting after the router came back
+# fits several times over); one account may have this many sockets open at once (phones,
+# computers, browser tabs). Over either, the socket is closed before any key is checked
+# or any device row written: 4008 `too_many_connections`.
+HELLOS_PER_MINUTE = 60
+MAX_ONLINE_PER_ACCOUNT = 32
 
 
 class Bucket:
@@ -217,6 +225,10 @@ class Hub:
         self.flood_closes = 0
         # ... and sockets closed because they stopped reading (SEND_QUEUE_*)
         self.slow_closes = 0
+        # ... and sockets refused before their hello: an address opening too many, an
+        # account with too many open (0.30)
+        self.refused_connections = 0
+        self._hellos = Pace(HELLOS_PER_MINUTE, 60.0)
 
     # -- presence -------------------------------------------------------------------
 
@@ -233,6 +245,7 @@ class Hub:
             "dropped_frames": self.dropped_total,
             "flood_closes": self.flood_closes,
             "slow_closes": self.slow_closes,
+            "refused_connections": self.refused_connections,
         }
 
     def devices(self, account_id: str) -> list[dict]:
@@ -357,6 +370,11 @@ class Hub:
     async def serve(self, ws: WebSocket, caller: Caller | None) -> None:
         """The whole life of one connection: hello, then frames until it drops."""
         await ws.accept()
+        ip = _client.current().ip
+        if ip and not self._hellos.allow(ip):
+            self.refused_connections += 1
+            await self._close(ws, 4008, "too_many_connections")
+            return
         try:
             raw = await asyncio.wait_for(ws.receive_text(), HELLO_TIMEOUT_S)
         except (TimeoutError, WebSocketDisconnect, KeyError):
@@ -380,6 +398,21 @@ class Hub:
         except CloudError as e:
             await ws.send_text(json.dumps({"type": "error", "code": e.code, "message": e.message}))
             await self._close(ws, 4002, e.code)
+            return
+        live = self.online.get(conn.account_id, {})
+        if conn.device_id not in live and len(live) >= MAX_ONLINE_PER_ACCOUNT:
+            # a device taking its own place again is fine; a thirty-third is not
+            self.refused_connections += 1
+            await ws.send_text(
+                json.dumps(
+                    {
+                        "type": "error",
+                        "code": "too_many_connections",
+                        "message": f"At most {MAX_ONLINE_PER_ACCOUNT} devices of one account are connected at once",
+                    }
+                )
+            )
+            await self._close(ws, 4008, "too_many_connections")
             return
 
         await self._attach(conn)

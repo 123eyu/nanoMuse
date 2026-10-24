@@ -45,6 +45,17 @@ gzip -f "$out/cloud-$stamp.db"
 chown "$owner" "$out/cloud-$stamp.db.gz"
 chmod 600 "$out/cloud-$stamp.db.gz"
 
+# 0.29 keeps the record's files (pictures, clips) under data/blobs, one file per hash;
+# the rows in the database point at them. A mirror of the directory sits beside the
+# copies: files are never rewritten, so the mirror only gains what the relay added and
+# loses what it removed (a deleted account, the store's cap).
+if [ -d "$relay/data/blobs" ]; then
+	mkdir -p "$out/blobs"
+	rsync -a --delete "$relay/data/blobs/" "$out/blobs/"
+	chown -R "$owner" "$out/blobs"
+	chmod -R u+rwX,go-rwx "$out/blobs"
+fi
+
 if [ -f "$relay/.env" ] && ! cmp -s "$relay/.env" "$out/env.latest" 2>/dev/null; then
 	cp "$relay/.env" "$out/env-$stamp"
 	cp "$relay/.env" "$out/env.latest"

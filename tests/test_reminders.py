@@ -105,5 +105,5 @@ def test_reminders_tool(tmp_path: Path):
     # creating standing work is a change of state; listing and cancelling are not
     assert create.risk == RiskLevel.MODERATE
     assert tool.assess({"action": "list"}).risk == RiskLevel.SAFE
-    assert tool.assess({"action": "cancel", "reminder_id": "r_x"}).risk == RiskLevel.SAFE
+    assert tool.assess({"action": "cancel", "reminder_id": "r_x"}).risk == RiskLevel.MODERATE
     store.close()

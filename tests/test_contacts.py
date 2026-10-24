@@ -245,6 +245,10 @@ async def test_contacts_tool(tmp_path: Path):
     assert tool.risk == RiskLevel.SAFE and tool.reads_private_data
     assert tool.assess({"action": "search", "query": "ali"}).reads_private_data
     assert not tool.assess({"action": "add", "name": "x"}).reads_private_data
+    assert (
+        tool.assess({"action": "add", "name": "x"}).risk == RiskLevel.MODERATE
+    )  # the book changes
+    assert tool.assess({"action": "search", "query": "ali"}).risk == RiskLevel.SAFE
     r = await tool.execute(action="search", query="ali")
     assert r.ok and r.output.startswith("Alice Zhang (Ali)") and "[google-1]" in r.output
     r = await tool.execute(action="search", query="nobody")

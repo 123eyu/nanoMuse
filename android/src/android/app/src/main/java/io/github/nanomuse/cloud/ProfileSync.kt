@@ -10,10 +10,12 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.openminis.app.agent.SoulStore
 import com.openminis.app.logging.AppLogger
+import io.github.nanomuse.avatar.AvatarMotion
 import io.github.nanomuse.avatar.AvatarStore
 import io.github.nanomuse.connectors.SharedConnectors
 import io.github.nanomuse.ui.avatar.AgentMood
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.security.MessageDigest
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
@@ -52,6 +54,8 @@ object ProfileSync {
     private const val KEY_FACE_HASH = "face_hash"
     /** This phone's connector entries as last sent, so a push with nothing new is skipped. */
     private const val KEY_PUSHED_CONNECTORS = "pushed_connectors"
+    /** The face's clips as the account lists them (`{mood: {sha256, mime, bytes}}`, relay 0.29), to add this phone's to. */
+    private const val KEY_CLIPS = "account_clips"
     private const val PUSH_DELAY_MS = 2_500L
     private const val DRAGON = "dragon"
 
@@ -169,9 +173,13 @@ object ProfileSync {
                         wearFace(context, full, knownHash)
                     }
                     // else: the pictures this phone already wears — only the name changed
+                    // the clips another device made of this face (relay 0.29): taken instead of drawn
+                    rememberClips(context, light.optJSONObject("clips"))
+                    adoptClips(context, account)
                 }
                 // the dragon, or an emoji the phone cannot draw: the built-in face
-                AvatarStore.current.value != null -> AvatarStore.reset()
+                AvatarStore.current.value != null -> { AvatarStore.reset(); rememberClips(context, null) }
+                else -> rememberClips(context, null)
             }
         } finally {
             applying = false
@@ -300,9 +308,88 @@ object ProfileSync {
             .putString(KEY_PUSHED_CONNECTORS, connectors.toString())
         if (body.optString("avatar") != "face") editor.putString(KEY_FACE_HASH, "")
         else if (sentHash != null) editor.putString(KEY_FACE_HASH, sentHash)
+        // new pictures, or no face: the relay drops the clips of the old face with them
+        if (body.has("face") || body.optString("avatar") != "face") editor.putString(KEY_CLIPS, "")
         editor.apply()
         AppLogger.info(TAG, "shared with the account as rev ${out.optInt("rev")}")
+        // clips this phone drew of the face before the account knew the face: up they go now
+        if (body.has("face")) for ((mood, file) in AvatarMotion.clips.value) shareClip(context, mood, file.readBytes())
     }
+
+    // -- the face's clips (relay 0.29) ----------------------------------------------------
+
+    private fun rememberClips(context: Context, clips: JSONObject?) {
+        prefs(context).edit().putString(KEY_CLIPS, clips?.toString().orEmpty()).apply()
+    }
+
+    private fun accountClips(context: Context): JSONObject =
+        prefs(context).getString(KEY_CLIPS, null)?.takeIf { it.isNotBlank() }?.let { runCatching { JSONObject(it) }.getOrNull() } ?: JSONObject()
+
+    /**
+     * The clips the account lists for the worn face, downloaded for the moods this phone has
+     * none of: the file by its hash, checked against it, written whole and then put in place.
+     * A bad file (another type, a hash that does not match) is left out; the mood is drawn here
+     * as before when a video model allows.
+     */
+    private fun adoptClips(context: Context, account: String) {
+        val listed = accountClips(context)
+        if (listed.length() == 0 || AvatarStore.current.value == null) return
+        var taken = 0
+        for ((key, mood) in moods) {
+            val clip = listed.optJSONObject(key) ?: continue
+            if (mood !in AvatarMotion.animated) continue
+            val target = AvatarMotion.clipFile(mood)
+            if (target.exists() && target.length() > 0) continue
+            val sha = clip.optString("sha256").lowercase()
+            if (!sha.matches(Regex("[0-9a-f]{64}"))) continue
+            val got = try { NanoMuseCloud.getBlob(context, sha) } catch (e: Exception) { AppLogger.warning(TAG, "clip $key: ${e.message}"); continue } ?: continue
+            if (!still(context, account)) return
+            val (mime, bytes) = got
+            if (!mime.startsWith("video/") && !clip.optString("mime").startsWith("video/")) continue
+            if (sha256(bytes) != sha) { AppLogger.warning(TAG, "clip $key: the file does not match its hash"); continue }
+            val tmp = File(target.parentFile, target.name + ".tmp")
+            tmp.parentFile?.mkdirs()
+            tmp.writeBytes(bytes)
+            if (!tmp.renameTo(target)) { target.delete(); tmp.renameTo(target) }
+            taken++
+        }
+        if (taken > 0) {
+            AvatarMotion.rescan()
+            AppLogger.info(TAG, "$taken clip(s) of the face taken from the account")
+        }
+    }
+
+    /**
+     * A clip drawn here goes to the account for its other devices (relay 0.29): the file by its
+     * hash, then the profile's `clips` with this mood added to what the account already lists.
+     * Signed out, or on a relay that keeps no files, nothing is sent; the clip stays here.
+     */
+    fun shareClip(context: Context, mood: AgentMood, bytes: ByteArray) {
+        val ctx = context.applicationContext
+        if (!NanoMuseCloud.isSignedIn(ctx) || AvatarStore.current.value == null) return
+        if (NanoMuseCloud.account(ctx)?.record?.on != true) return
+        val key = moods.entries.firstOrNull { it.value == mood }?.key ?: return
+        val account = account(ctx)
+        val stamp = faceStamp()
+        worker.execute {
+            try {
+                val sha = sha256(bytes)
+                if (!NanoMuseCloud.hasBlob(ctx, sha)) NanoMuseCloud.putBlob(ctx, sha, "video/mp4", bytes)
+                // the face may have moved on while the clip was drawn: then it is not this face's clip any more
+                if (!still(ctx, account) || faceStamp() != stamp) return@execute
+                val clips = accountClips(ctx).put(key, JSONObject().put("sha256", sha).put("mime", "video/mp4").put("bytes", bytes.size))
+                val out = NanoMuseCloud.putProfile(ctx, JSONObject().put("device", io.github.nanomuse.hub.Hub.deviceId(ctx)).put("clips", clips))
+                if (!still(ctx, account)) return@execute
+                prefs(ctx).edit().putString(KEY_CLIPS, clips.toString()).putInt(KEY_REV, out.optInt("rev", prefs(ctx).getInt(KEY_REV, 0))).apply()
+                AppLogger.info(TAG, "the $key clip shared with the account")
+            } catch (e: Exception) {
+                AppLogger.warning(TAG, "clip $key not shared: ${e.message}")
+            }
+        }
+    }
+
+    private fun sha256(bytes: ByteArray): String =
+        MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
 
     /** A still as WebP bytes, small enough for the relay (512 px, lossy). */
     private fun webp(bitmap: Bitmap): ByteArray {

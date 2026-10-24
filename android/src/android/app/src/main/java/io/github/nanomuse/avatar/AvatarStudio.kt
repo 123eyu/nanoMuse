@@ -274,6 +274,17 @@ object AvatarStudio {
         AvatarStore.reset()
     }
 
+    /**
+     * The account is leaving this phone: whatever is being drawn for it stops, and this waits
+     * for the runs to end so a late picture does not land in the next account's folder.
+     */
+    suspend fun stopRuns() {
+        val jobs = listOfNotNull(candidateJob, moodJob)
+        jobs.forEach { it.cancel() }
+        jobs.forEach { runCatching { it.join() } }
+        _moodProgress.value = null
+    }
+
     fun clearMoodProgress() { if (_moodProgress.value?.running == false) _moodProgress.value = null }
 
     /** Prepended when the candidates are drawn from a picture the user attached. */

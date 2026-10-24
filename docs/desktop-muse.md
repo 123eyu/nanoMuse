@@ -203,7 +203,10 @@ the phone: four 4-second clips (idle, working, waiting, happy) drawn from the fa
 media proxy explicitly enabled (`src/video.ts`,
 `src/motion.ts`; the phone's prompts word for word), kept under `avatar/motion/` on this
 computer and served by the faces route (`/face/<id>/<state>.webp|mp4`), played in the
-header, the sidebar and the capsule. *Settings → Media* has *Animate the avatar after a
+header, the sidebar and the capsule. Signed in, the clips travel with the face (relay
+0.29): a clip drawn here is put up as a file and named in the profile's `clips`, and a
+clip another device drew lands here instead of being drawn again, so a face is animated
+once per account. *Settings → Media* has *Animate the avatar after a
 change* (on by default), *Make / Redo clips* and the models used; the studio's cost
 estimate counts the clips. Until the clips are there, or with the setting off, a drawn
 face and an emoji move the way CSS can: a slow breath while idle, a sway while the agent
@@ -528,9 +531,15 @@ page it opened, named for the page you came from; a pick in the sidebar starts f
   messages the relay keeps and *Delete synced conversations*) and under it *Also sync
   side chats* (同时同步旁聊; this computer's own switch, off by default; *Off: side
   chats stay on this device. On: this device's side chats go to the account and the
-  other devices' side chats come here*; see [every-device.md](every-device.md)), *Help
-  improve nanoMuse's AI models* (the relay's switch, with how many turns it kept and
-  *Delete*), as on every other app; then *On this computer*: **Import memory**,
+  other devices' side chats come here*; see [every-device.md](every-device.md)), the
+  account's record (what the relay keeps of the account's turns in full, those on your own
+  keys and the pictures among them, how long this relay keeps a turn; relay 0.29, see
+  [cloud.md](cloud.md#the-record)), *Help improve nanoMuse's AI models* (the relay's switch,
+  with how many turns joined the training set) and one *Delete* that removes the record and
+  the training turns together, as on every other app. From 1.0.7 this computer takes part in
+  the record itself: its chat requests to the account carry `X-NanoMuse-Device` and
+  `X-NanoMuse-Conversation`, and a turn answered on a key of your own goes up afterwards with
+  its pictures as files (`src/record.ts`; never the key or the base URL). Then *On this computer*: **Import memory**,
   **Download your agent data** (a zip in Downloads: the account snapshot without the
   sign-in token, the look and faces, the rooms, memory, and the chats as the harness
   keeps them; a proxy password is left out, and so are links and files over 64 MB; shown in

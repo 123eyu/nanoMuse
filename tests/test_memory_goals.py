@@ -204,6 +204,15 @@ def test_goals_tool_rates_creating_a_goal_as_a_change(tmp_path: Path):
 
     tool = Goals(store=GoalStore(tmp_path / "g.db"))
     assert tool.assess({"action": "create", "title": "Sell my old car"}).risk == RiskLevel.MODERATE
+    # so are closing it and rewriting what it is
+    assert (
+        tool.assess({"action": "set_status", "goal_id": "g_1", "status": "done"}).risk
+        == RiskLevel.MODERATE
+    )
+    assert (
+        tool.assess({"action": "update", "goal_id": "g_1", "due": "2026-12-01"}).risk
+        == RiskLevel.MODERATE
+    )
     for args in (
         {"action": "list"},
         {"action": "get", "goal_id": "g_1"},

@@ -489,6 +489,11 @@ async def test_tools_take_boxes_and_the_norm_grid(
     assert not r.ok and "[x1, y1, x2, y2]" in (r.error or "")
     r = await act.execute(action="click", x=1700, y=10, label="x")
     assert not r.ok and "outside the 1596×896 picture" in (r.error or "")
+    # the drag's end is checked like its start; NaN and infinity are refused as numbers
+    r = await act.execute(action="drag", x=10, y=10, x2=1700, y2=10)
+    assert not r.ok and "outside the 1596×896 picture" in (r.error or "")
+    r = await act.execute(action="drag", x=10, y=10, x2=float("nan"), y2=10)
+    assert not r.ok and "finite" in (r.error or "")
     # the 0–1000 grid: 500,500 is the picture's centre whatever its size
     link.settings.coords = "norm1000"
     r = await act.execute(action="click", x=500, y=500, label="Save")
