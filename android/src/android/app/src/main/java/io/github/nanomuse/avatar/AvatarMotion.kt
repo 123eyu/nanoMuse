@@ -20,7 +20,10 @@ import java.io.File
  * five-pointed star when pleased, headphones and a laptop while working. Clips live next to the
  * pictures (`avatar/motion/<mood>.mp4`) and the header plays whichever exists for the current
  * mood, falling back to the still picture. Clips are made one after another (each takes a few
- * minutes and costs the user per second) and only when a video model is set.
+ * minutes and costs the user per second) and only when a video model is set. A clip drawn here
+ * goes with the face to the account's other devices, and theirs come here, through the profile's
+ * `clips` ([io.github.nanomuse.cloud.ProfileSync], relay 0.29); the person's own clip
+ * ([OwnClip]) stays on this phone.
  */
 object AvatarMotion {
     private const val TAG = "AvatarMotion"
@@ -96,6 +99,8 @@ object AvatarMotion {
                     tmp.writeBytes(bytes)
                     if (!tmp.renameTo(f)) { f.delete(); tmp.renameTo(f) }
                     rescan()
+                    // the account's other devices take this clip instead of drawing their own (relay 0.29)
+                    io.github.nanomuse.cloud.ProfileSync.shareClip(context, mood, bytes)
                 }.onFailure { e ->
                     AppLogger.warning(TAG, "clip $mood failed: ${e.message}")
                     failed += mood
@@ -110,6 +115,13 @@ object AvatarMotion {
     fun cancel() {
         job?.cancel()
         _progress.value = _progress.value?.copy(running = false)
+    }
+
+    /** [cancel], and wait for the run to end: the account is leaving and its folder is about to move. */
+    suspend fun stop() {
+        val j = job
+        cancel()
+        j?.let { runCatching { it.join() } }
     }
 
     fun clearProgress() { if (_progress.value?.running == false) _progress.value = null }
