@@ -52,6 +52,8 @@ async def settled(app) -> None:
     """The record is written off the loop after the answer left; wait for it."""
     while app.state.record_tasks:
         await asyncio.gather(*list(app.state.record_tasks))
+        # gather may finish immediately; let the queued discard callbacks run.
+        await asyncio.sleep(0)
 
 
 FULL_TURN = [

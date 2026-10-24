@@ -128,6 +128,7 @@ import httpx
 from fastapi import Depends, FastAPI, File, Form, Header, Request, Response, UploadFile, WebSocket
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
 from starlette.requests import ClientDisconnect
 
 from . import __version__
@@ -495,6 +496,12 @@ def create_app(
         of a refusal; None when the database is not there or the address is unplaced."""
         return geo.place(client_ip(request)) if geo.ready else None
 
+    def count_request(error_code: str, group: str) -> None:
+        # Keep both writes in one worker call if the waiting request is cancelled.
+        if error_code:
+            cloud.db.daily_add("error", error_code)
+        cloud.db.daily_add("api", group)
+
     @app.middleware("http")
     async def _remember_client(request: Request, call_next):
         # the address and the client software behind this request, for the rows the
@@ -516,9 +523,9 @@ def create_app(
             # call by route group, and an error by its code — written as the answer leaves
             if not path.startswith("/app"):  # the console's own files are not API calls
                 code = getattr(request.state, "error_code", "")
-                if code or response.status_code >= 400:
-                    cloud.db.daily_add("error", code or f"http_{response.status_code}")
-                cloud.db.daily_add("api", api_group(path))
+                if not code and response.status_code >= 400:
+                    code = f"http_{response.status_code}"
+                await run_in_threadpool(count_request, code, api_group(path))
             elif "cache-control" not in response.headers:
                 # the console's script and page are revalidated on every load (an ETag answers
                 # 304 when nothing changed), so a deploy reaches the next reload instead of
