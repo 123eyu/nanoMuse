@@ -1,9 +1,10 @@
-"""Web search providers: DuckDuckGo by default, Brave / Tavily / Serply / You.com / SearXNG by
-settings, the fallback to DuckDuckGo with a note, keys from the vault, the tool, the API and
+"""Web search providers: DuckDuckGo by default, Brave / Tavily / Serply / You.com / Parallel /
+SearXNG by settings, the fallback to DuckDuckGo with a note, keys from the vault, the tool, the API and
 the doctor."""
 
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Any
 
@@ -238,6 +239,196 @@ async def test_you_with_a_key(wire: Wire, ddg):
     assert "the key was refused (HTTP 401)" in note
 
 
+def _parallel_reply(rows: list[dict[str, Any]], structured: bool = True) -> dict[str, Any]:
+    """What Parallel's Search MCP answers to ``tools/call``: the results as JSON text, and the
+    same object as ``structuredContent``."""
+    found = {"search_id": "search_1", "results": rows, "warnings": None}
+    result: dict[str, Any] = {
+        "content": [{"type": "text", "text": json.dumps(found)}],
+        "isError": False,
+    }
+    if structured:
+        result["structuredContent"] = found
+    return {"jsonrpc": "2.0", "id": 1, "result": result}
+
+
+PARALLEL_ROWS = [
+    {
+        "url": "https://github.com/nano-muse/nanoMuse",
+        "title": "nanoMuse",
+        "publish_date": None,
+        "excerpts": ["# nanoMuse\n\nAn open-source  personal agent.", "On every device."],
+    },
+    {"url": "https://nanomuse.cn/docs/", "title": "Docs", "excerpts": []},
+    {"url": "https://example.com/three", "title": "Three", "excerpts": ["third"]},
+]
+
+
+async def test_parallel_without_a_key(wire: Wire, ddg):
+    wire.body = _parallel_reply(PARALLEL_ROWS)
+    p = WebSearchProvider(SearchSettings(provider="parallel"))
+    # keyless is a configured provider, not a fallback to DuckDuckGo
+    assert p.configured and p.host == "search.parallel.ai"
+    assert p.describe() == "Parallel (no key: free, lower limits)"
+    results, note = await p.search("nanomuse agent", 2, "cn-zh")
+    assert note == "" and ddg == []
+    # the excerpts become one line; the count caps the list
+    assert [(r.title, r.url, r.snippet) for r in results] == [
+        (
+            "nanoMuse",
+            "https://github.com/nano-muse/nanoMuse",
+            "# nanoMuse An open-source personal agent. On every device.",
+        ),
+        ("Docs", "https://nanomuse.cn/docs/", ""),
+    ]
+    req = wire.requests[0]
+    assert req.method == "POST" and req.url == "https://search.parallel.ai/mcp"
+    assert "Authorization" not in req.headers
+    assert req.headers["MCP-Protocol-Version"] == "2025-06-18"
+    assert "text/event-stream" in req.headers["Accept"]
+    call = json.loads(req.content)
+    assert call["method"] == "tools/call" and call["params"]["name"] == "web_search"
+    args = call["params"]["arguments"]
+    assert args["objective"] == "nanomuse agent" and args["search_queries"] == ["nanomuse agent"]
+    # one session id for the provider's life: Parallel counts its free tier by it
+    await p.search("other", 2, "")
+    again = json.loads(wire.requests[1].content)["params"]["arguments"]
+    assert args["session_id"] and again["session_id"] == args["session_id"]
+    # a reply with the results as text only reads the same
+    wire.body = _parallel_reply(PARALLEL_ROWS, structured=False)
+    results, _ = await p.search("nanomuse", 3, "")
+    assert [r.title for r in results] == ["nanoMuse", "Docs", "Three"]
+
+
+async def test_parallel_with_a_key(wire: Wire, ddg):
+    wire.body = _parallel_reply(PARALLEL_ROWS[:1])
+    p = WebSearchProvider(SearchSettings(provider="parallel", api_key="par-key"))
+    assert p.configured and p.host == "search.parallel.ai"
+    assert p.describe() == "Parallel (key set)"
+    results, note = await p.search("nanomuse", 2, "")
+    assert note == "" and [r.title for r in results] == ["nanoMuse"]
+    assert wire.requests[0].headers["Authorization"] == "Bearer par-key"
+    # a refused key reads as one
+    wire.status = 401
+    _, note = await p.search("nanomuse", 2, "")
+    assert note == "Parallel failed (the key was refused (HTTP 401)); results from DuckDuckGo"
+
+
+async def test_parallel_reads_an_event_stream(monkeypatch: pytest.MonkeyPatch):
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = json.dumps(_parallel_reply(PARALLEL_ROWS[:1]))
+        return httpx.Response(
+            200,
+            headers={"Content-Type": "text/event-stream"},
+            text=f"event: message\ndata: {body}\n\n",
+        )
+
+    monkeypatch.setattr(
+        search_mod, "_client", lambda: httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    )
+    p = WebSearchProvider(SearchSettings(provider="parallel", fallback=False))
+    results, _ = await p.search("nanomuse", 2, "")
+    assert [r.url for r in results] == ["https://github.com/nano-muse/nanoMuse"]
+
+
+async def test_parallel_errors_are_said(wire: Wire, ddg):
+    """Each failure names Parallel and why; with fallback on, DuckDuckGo answers once and the
+    note says so, with it off the search fails. Nothing switches providers quietly."""
+    p = WebSearchProvider(SearchSettings(provider="parallel"))
+    strict = WebSearchProvider(SearchSettings(provider="parallel", fallback=False))
+    tool_error = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+            "content": [{"type": "text", "text": "Missing required argument: objective."}],
+            "isError": True,
+        },
+    }
+    cases: list[tuple[int, Any, str]] = [
+        (200, tool_error, "Missing required argument: objective."),
+        (
+            200,
+            {"jsonrpc": "2.0", "id": 1, "error": {"code": -32602, "message": "bad params"}},
+            "MCP error: bad params",
+        ),
+        (200, {"jsonrpc": "2.0", "id": 1, "result": {"content": []}}, "no search results"),
+        (429, {}, "the free limit is reached for now (HTTP 429)"),
+        (500, {}, "HTTP 500"),
+    ]
+    for status, body, reason in cases:
+        wire.status, wire.body = status, body
+        results, note = await p.search("nanomuse", 2, "")
+        assert note.startswith("Parallel failed (") and reason in note
+        assert note.endswith("; results from DuckDuckGo") and results
+        with pytest.raises(RuntimeError, match="Parallel failed") as err:
+            await strict.search("nanomuse", 2, "")
+        assert reason in str(err.value)
+    assert len(ddg) == len(cases)  # once per fallback search, never for the strict one
+    wire.status, wire.text = 200, "<html>not an MCP server</html>"
+    with pytest.raises(RuntimeError, match="not JSON-RPC"):
+        await strict.search("nanomuse", 2, "")
+    # the test button reports the error without falling back
+    r = await p.probe()
+    assert r["ok"] is False and "not JSON-RPC" in r["error"] and len(ddg) == len(cases)
+    # the tool says the search failed rather than answering from elsewhere
+    out = await WebSearch(provider=strict).execute(query="nanomuse")
+    assert out.error and "Parallel failed (the reply was not JSON-RPC" in out.error
+
+
+async def test_parallel_timeout(monkeypatch: pytest.MonkeyPatch, ddg):
+    def slow(request: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("")
+
+    monkeypatch.setattr(
+        search_mod, "_client", lambda: httpx.AsyncClient(transport=httpx.MockTransport(slow))
+    )
+    strict = WebSearchProvider(SearchSettings(provider="parallel", fallback=False))
+    with pytest.raises(RuntimeError, match=r"search\.parallel\.ai did not answer within 20s"):
+        await strict.search("nanomuse", 2, "")
+    assert ddg == []
+    _, note = await WebSearchProvider(SearchSettings(provider="parallel")).search("q", 2, "")
+    assert note == (
+        "Parallel failed (search.parallel.ai did not answer within 20s); results from DuckDuckGo"
+    )
+
+
+async def test_parallel_cancellation(monkeypatch: pytest.MonkeyPatch, ddg):
+    """A cancelled search stops: it is not an error to fall back from."""
+    started = asyncio.Event()
+
+    async def hang(request: httpx.Request) -> httpx.Response:
+        started.set()
+        await asyncio.Event().wait()
+        raise AssertionError("unreachable")
+
+    monkeypatch.setattr(
+        search_mod, "_client", lambda: httpx.AsyncClient(transport=httpx.MockTransport(hang))
+    )
+    p = WebSearchProvider(SearchSettings(provider="parallel"))
+    task = asyncio.create_task(p.search("nanomuse", 2, ""))
+    await started.wait()
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert ddg == []
+
+
+async def test_parallel_goes_through_the_sentinel_as_its_host(wire: Wire):
+    tool = WebSearch(provider=WebSearchProvider(SearchSettings(provider="parallel")))
+    assessment = tool.assess({"query": "q"})
+    assert assessment.egress and assessment.egress_target == "search.parallel.ai"
+    assert assessment.egress_configured
+
+
+def test_parallel_is_saved_and_others_kept(settings: Settings):
+    assert SearchSettings().provider == "duckduckgo"
+    apply_app_settings(settings, {"search": {"provider": "parallel"}})
+    assert settings.connectors.search.provider == "parallel"
+    # a provider this version does not know leaves the saved choice as it was
+    apply_app_settings(settings, {"search": {"provider": "bing"}})
+    assert settings.connectors.search.provider == "parallel"
+
+
 async def test_searxng(wire: Wire, ddg):
     wire.body = {"results": [{"title": "S", "url": "https://s.example", "content": "from searx"}]}
     p = WebSearchProvider(SearchSettings(provider="searxng", base_url="http://127.0.0.1:8080/"))
@@ -395,6 +586,7 @@ def test_connections_search(settings: Settings, wire: Wire, ddg):
             "tavily",
             "serply",
             "you",
+            "parallel",
             "searxng",
         ]
         assert view["providers"][1]["needs_key"] and view["providers"][1]["keys_url"]
@@ -403,6 +595,9 @@ def test_connections_search(settings: Settings, wire: Wire, ddg):
         assert serply["needs_key"] and not serply["optional_key"] and serply["keys_url"]
         you = view["providers"][4]
         assert not you["needs_key"] and you["optional_key"] and you["keys_url"]
+        parallel = view["providers"][5]
+        assert parallel["id"] == "parallel" and parallel["label"] == "Parallel"
+        assert not parallel["needs_key"] and parallel["optional_key"] and parallel["keys_url"]
 
         # You.com without a key is configured: the picker needs nothing more
         r = client.put("/api/connections/search", json={"provider": "you"}).json()

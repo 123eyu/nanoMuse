@@ -1054,7 +1054,14 @@ export interface ConnectionsData {
     status: string;
   };
   search: {
-    provider: "duckduckgo" | "brave" | "tavily" | "serply" | "you" | "searxng";
+    provider:
+      | "duckduckgo"
+      | "brave"
+      | "tavily"
+      | "serply"
+      | "you"
+      | "parallel"
+      | "searxng";
     /** SearXNG instance */
     base_url: string;
     key_source: "none" | "vault" | "config" | "missing";
@@ -1065,7 +1072,7 @@ export interface ConnectionsData {
       id: string;
       label: string;
       needs_key: boolean;
-      /** works without a key; one raises the limit (You.com) */
+      /** works without a key; one raises the limit (You.com, Parallel) */
       optional_key?: boolean;
       keys_url: string;
     }>;
