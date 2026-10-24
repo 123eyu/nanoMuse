@@ -8,6 +8,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Runtime
 
+- **A thinking model's reasoning shows while it thinks, not only after the answer.** With `agent.show_thinking = true`, the reasoning a provider streams (`reasoning_content` on Chat Completions chunks, the Responses API's reasoning deltas, the ChatGPT sign-in's stream) reaches the screen as it arrives: the console prints it as a dim `⌗` line ahead of the reply, and the web console's bubble shows a live *Thinking…* fold that closes once the answer starts, where before both sat on a blank pause and showed the thinking only in *Show thinking* after the turn. A new `reasoning_delta` frame on the web console's WebSocket carries it; nothing is stored until the reply, which keeps the full reasoning as before. By @mongo027 ([#484](https://github.com/nano-muse/nanoMuse/pull/484)).
 - **Cheaper Inference is in the own-key catalogue.** An OpenAI-compatible gateway at `https://api.cheaperinference.com/v1`, a key from [cheaperinference.com/signup](https://cheaperinference.com/signup); one key reaches models from several labs. The default model is `gpt-5.4-mini`, and any id from its public `/v1/models` list can be set instead. Chat only, on the OpenAI shape. `providers.json` lists twenty-two providers now, and the desktop, the phones, the relay and the web console carry the same file.
 
 ### Web
