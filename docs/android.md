@@ -326,7 +326,7 @@ cancelled recording's audio is dropped, never sent to the provider.
 
 ## Building it yourself
 
-JDK 17 or 21 (CI uses 21) and the Android SDK (Android Studio installs both); `scripts/android/env.sh` sets
+JDK 21 (what CI uses) and the Android SDK (Android Studio installs both); `scripts/android/env.sh` sets
 the environment on a bare machine. The project is under `android/src/android`:
 
 ```bash

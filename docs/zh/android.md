@@ -241,7 +241,7 @@ web view 不对其他 App 导出。用服务商语音模型做语音输入时，
 
 ## 自己构建 {#building-it-yourself}
 
-JDK 17 或 21（CI 用 21）和 Android SDK（Android Studio 会把两个都装上）；`scripts/android/env.sh` 在一台空机器上
+JDK 21（CI 用的也是它）和 Android SDK（Android Studio 会把两个都装上）；`scripts/android/env.sh` 在一台空机器上
 设好环境。工程在 `android/src/android` 下：
 
 ```bash

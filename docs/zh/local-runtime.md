@@ -117,9 +117,9 @@ libproot.so -0 --kill-on-exit --link2symlink
 - **存储。** 解压后约 330 MB，加上用户自己装的东西。压缩的 rootfs 不到 70 MB；APK 略多一点。
 - **后台限制。** 在内存紧张或厂商激进的电池管理下，Android 仍可能杀掉服务（各厂商的电池放行设置在 [archive/android-python-line.md](../archive/android-python-line.md#keeping-it-running)）。服务是 `START_STICKY`，会重启；上面说的闹钟在进程之外存活，调度器回来后补上错过的例程。
 - **箱子里有什么。** Alpine 的 `apk`、`git`、`curl`、`jq`、`bash`、`openssh-client`、带 `pip` 的 `python3`，以及带 `npm` 的 Node。`uv` 没有（35 MB）；`pip install uv` 能装上。`nanomuse-mirror cn|default` 在上游服务器和中国大陆的镜像之间切换 apk、pip 和 npm；第一次启动按手机的地区选。
-- **Node 是可选的。** `NODE=0 scripts/rootfs/build.sh` 产出不带它的 rootfs，压缩后小约 12 MB。默认带上，因为展示站里的中国服务（lark-cli、`@tencentcloud/tmeet`、`12306-mcp`）都是 npm 包。
+- **Node 是可选的。** `NODE=0 scripts/rootfs/build.sh` 曾产出不带它的 rootfs，压缩后小约 12 MB。默认带上，因为展示站里的中国服务（lark-cli、`@tencentcloud/tmeet`、`12306-mcp`）都是 npm 包。
 
-## 构建各个部分 {#building-the-pieces}
+## 构建各个部分（当时的做法，见 `pre-openminis`）{#building-the-pieces}
 
 ```bash
 # the root file system (Docker with QEMU for arm64: docker run --privileged --rm tonistiigi/binfmt --install arm64)
@@ -143,7 +143,7 @@ PRoot 从 [Termux 分支](https://github.com/termux/proot)构建（`5.1.107.94`�
 
 Python 线的 CI 里有一个 `rootfs.yml` 工作流构建这两样并放进 `local` APK；这两个工作流都已不存在（现在的 `android.yml` 构建基于 OpenMinis 的 APK，[android.md](android.md)）。
 
-## 文件 {#files}
+## 文件（`pre-openminis` 时） {#files}
 
 | 文件 | 作用 |
 | --- | --- |

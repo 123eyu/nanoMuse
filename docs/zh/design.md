@@ -37,7 +37,7 @@
 
 状态来自 `web/src/mood.ts`：status 给出它保持的姿势；store 记下的两个时刻（`finishedAt`、`mishapAt`）给它短暂地染上色彩。动效是作用在 SVG 组上的 CSS 关键帧；每个零件都按坐标定位，这样变换才能做动画，`transform-box: view-box` 加上显式的原点让轴心待在该待的地方。`still` 把它冻住，给列表和选择器用；`prefers-reduced-motion` 让它全停。
 
-同一幅画缩成只剩脑袋，就是 logo：`web/public/icon.svg` 和 `mark.svg`、PWA 图标、README 封面、Android 自适应启动器图标（森林绿的底盘；脑袋是平涂、没有渐变，因为启动器的遮罩和主题图标反正会把一切压平；主题图标和状态栏用的是一个镂空了眼睛、鼻子和嘴的单色剪影），还有 MobileGym 应用的启动器图标。`web/` 里的 `npm run mascot:assets` 从 `redPandaShapes.ts` 写出矢量图，`npm run site:mascot` 为网站渲染六种状态，`python scripts/mascot_png.py` 把 PWA 图标和封面栅格化；没有任何东西画两遍，所以各份拷贝不会走样。`RedPanda.test.tsx` 保存着平涂脑袋、剪影和待命 hero 的快照；改画的话必须有意地更新它。
+到 0.1.23 为止，同一幅画缩成只剩脑袋，也曾是 logo：`web/public/icon.svg` 和 `mark.svg`、PWA 图标、README 封面、Android 自适应启动器图标（森林绿的底盘；脑袋是平涂、没有渐变，因为启动器的遮罩和主题图标反正会把一切压平；主题图标和状态栏用的是一个镂空了眼睛、鼻子和嘴的单色剪影），还有 MobileGym 应用的启动器图标。`web/` 里的 `npm run mascot:assets` 从 `redPandaShapes.ts` 写出矢量图，`npm run site:mascot` 为网站渲染六种状态，`python scripts/mascot_png.py` 把 PWA 图标和封面栅格化；没有任何东西画两遍，所以各份拷贝不会走样。`RedPanda.test.tsx` 保存着平涂脑袋、剪影和待命 hero 的快照。今天的图标是 `web/public/icon.svg` 里的蓝色 N，画出来的脸只有小龙；小熊猫的文件和玩偶一起离开了源码树。
 
 ## 颜色和字体，用数字说 {#colour-and-type-in-numbers}
 
