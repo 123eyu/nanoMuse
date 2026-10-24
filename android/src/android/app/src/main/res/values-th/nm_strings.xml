@@ -129,6 +129,9 @@
     <string name="nm_routine_paused">ปิด</string>
     <!-- The chat row a routine sent: its label and the clock time it fired -->
     <string name="nm_routine_wake_caption">กิจวัตร · %1$s · %2$s</string>
+    <!-- One scheduled task, several times a day (GH#557) -->
+    <string name="nm_scheduled_task_add_time">เพิ่มเวลาอื่น</string>
+    <string name="nm_scheduled_task_runs_scheduled_for">กำหนดไว้สำหรับ %1$s</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">ไอเดีย</string>
@@ -1123,7 +1126,6 @@
     <string name="nm_cloud_provider_no_delete">ผู้ให้บริการนี้คือบัญชี nanoMuse Cloud ของคุณ ปิดสวิตช์ด้านบนเพื่อเลิกใช้โมเดลของมัน หากต้องการออกจากระบบ ให้เปิด การตั้งค่า › nanoMuse Cloud</string>
     <string name="nm_welcome_own_key">ใช้คีย์ API ของตัวเองแทน</string>
     <string name="nm_useit_title">ใช้ทำอะไร</string>
-    <string name="nm_useit_body">เลือกว่าคีย์นี้จะรับผิดชอบอะไร ส่วนที่เหลือ nanoMuse Cloud ยังคงดูแล</string>
     <string name="nm_useit_body_signed_out">เลือกว่าคีย์นี้จะรับผิดชอบอะไร</string>
     <string name="nm_useit_use">ใช้</string>
     <string name="nm_useit_not_now">ไว้ก่อน</string>

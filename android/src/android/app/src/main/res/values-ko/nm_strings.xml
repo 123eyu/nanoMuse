@@ -129,6 +129,9 @@
     <string name="nm_routine_paused">끔</string>
     <!-- The chat row a routine sent: its label and the clock time it fired -->
     <string name="nm_routine_wake_caption">루틴 · %1$s · %2$s</string>
+    <!-- One scheduled task, several times a day (GH#557) -->
+    <string name="nm_scheduled_task_add_time">시간 추가</string>
+    <string name="nm_scheduled_task_runs_scheduled_for">%1$s 예정</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">아이디어</string>
@@ -1123,7 +1126,6 @@
     <string name="nm_cloud_provider_no_delete">이 제공자는 nanoMuse Cloud 계정 자체입니다. 모델 사용을 멈추려면 위 스위치를 끄고, 로그아웃하려면 설정 › nanoMuse Cloud를 여세요.</string>
     <string name="nm_welcome_own_key">내 API 키 사용</string>
     <string name="nm_useit_title">어디에 쓸지</string>
-    <string name="nm_useit_body">이 키가 맡을 일을 고르세요. 나머지는 nanoMuse Cloud가 계속 맡습니다.</string>
     <string name="nm_useit_body_signed_out">이 키가 맡을 일을 고르세요.</string>
     <string name="nm_useit_use">쓰기</string>
     <string name="nm_useit_not_now">나중에</string>

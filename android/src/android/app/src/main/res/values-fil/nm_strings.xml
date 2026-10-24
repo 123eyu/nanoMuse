@@ -132,6 +132,9 @@
     <string name="nm_routine_paused">Naka-off</string>
     <!-- The chat row a routine sent: its label and the clock time it fired -->
     <string name="nm_routine_wake_caption">Routine · %1$s · %2$s</string>
+    <!-- One scheduled task, several times a day (GH#557) -->
+    <string name="nm_scheduled_task_add_time">Magdagdag ng isa pang oras</string>
+    <string name="nm_scheduled_task_runs_scheduled_for">Naka-iskedyul para sa %1$s</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">Mga Ideya</string>
@@ -1127,7 +1130,6 @@
     <string name="nm_cloud_provider_no_delete">Ang provider na ito ay ang iyong nanoMuse Cloud account. I-off ito sa itaas para hindi na gamitin ang mga modelo nito; para mag-sign out, buksan ang Mga Setting › nanoMuse Cloud.</string>
     <string name="nm_welcome_own_key">Gamitin na lang ang sariling API key</string>
     <string name="nm_useit_title">Gamitin ito para sa</string>
-    <string name="nm_useit_body">Piliin kung ano ang dapat asikasuhin ng key na ito. Ang iba ay nasa nanoMuse Cloud pa rin.</string>
     <string name="nm_useit_body_signed_out">Piliin kung ano ang dapat asikasuhin ng key na ito.</string>
     <string name="nm_useit_use">Gamitin</string>
     <string name="nm_useit_not_now">Hindi muna</string>

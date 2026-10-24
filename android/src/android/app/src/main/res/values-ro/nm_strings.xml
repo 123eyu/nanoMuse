@@ -135,6 +135,9 @@
     <string name="nm_routine_paused">Oprit</string>
     <!-- The chat row a routine sent: its label and the clock time it fired -->
     <string name="nm_routine_wake_caption">Rutină · %1$s · %2$s</string>
+    <!-- One scheduled task, several times a day (GH#557) -->
+    <string name="nm_scheduled_task_add_time">Adaugă altă oră</string>
+    <string name="nm_scheduled_task_runs_scheduled_for">Programat pentru %1$s</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">Idei</string>
@@ -1131,7 +1134,6 @@
     <string name="nm_cloud_provider_no_delete">Acest furnizor este contul tău nanoMuse Cloud. Oprește-l mai sus ca să nu-i mai folosești modelele; pentru deconectare, deschide Setări › nanoMuse Cloud.</string>
     <string name="nm_welcome_own_key">Folosește propria cheie API</string>
     <string name="nm_useit_title">La ce să o folosești</string>
-    <string name="nm_useit_body">Alege de ce să se ocupe această cheie. De restul se ocupă în continuare nanoMuse Cloud.</string>
     <string name="nm_useit_body_signed_out">Alege de ce să se ocupe această cheie.</string>
     <string name="nm_useit_use">Folosește</string>
     <string name="nm_useit_not_now">Nu acum</string>

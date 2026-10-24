@@ -20,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -100,8 +101,9 @@ fun ScheduledTaskEditScreen(
     var prompt by remember { mutableStateOf("") }
     var repeatMode by remember { mutableStateOf(ScheduledRepeatMode.DAILY) }
     var customDays by remember { mutableStateOf<Set<Int>>(emptySet()) }
-    var hour by remember { mutableStateOf(9) }
-    var minute by remember { mutableStateOf(0) }
+    // nanoMuse: [GH#557] every time of day the task fires at, earliest
+    // first; the first is the primary time, the rest are additional times.
+    var times by remember { mutableStateOf<List<Pair<Int, Int>>>(listOf(9 to 0)) }
     var enabled by remember { mutableStateOf(true) }
     var loaded by remember { mutableStateOf(isNew) }
     var createdAt by remember { mutableStateOf(System.currentTimeMillis()) }
@@ -131,8 +133,8 @@ fun ScheduledTaskEditScreen(
         prompt = existing.prompt
         repeatMode = existing.repeatMode
         customDays = existing.customDays
-        hour = existing.timeOfDayHour
-        minute = existing.timeOfDayMinute
+        // nanoMuse: [GH#557]
+        times = existing.timesOfDay
         enabled = existing.enabled
         createdAt = existing.createdAt
         lastFiredAt = existing.lastFiredAt
@@ -179,7 +181,7 @@ fun ScheduledTaskEditScreen(
     val runNowState by vm.runNowState.collectAsState()
 
     fun currentTask(): ScheduledTask = buildTask(
-        id = taskId, label = label, prompt = prompt, hour = hour, minute = minute,
+        id = taskId, label = label, prompt = prompt, times = times,
         repeatMode = repeatMode, customDays = customDays, enabled = enabled,
         createdAt = createdAt, lastFiredAt = lastFiredAt,
         lastResultPreview = lastResultPreview, lastResultSessionId = lastResultSessionId,
@@ -236,7 +238,7 @@ fun ScheduledTaskEditScreen(
             label = label, onLabelChange = { label = it },
             prompt = prompt, onPromptChange = { prompt = it },
             needsPrompt = needsPrompt,
-            hour = hour, minute = minute, onTimeChange = { h, m -> hour = h; minute = m },
+            times = times, onTimesChange = { times = it },
             repeatMode = repeatMode, onRepeatModeChange = { repeatMode = it },
             customDays = customDays, onCustomDaysChange = { customDays = it },
             targetKind = targetKind, onTargetKindChange = {
@@ -344,7 +346,7 @@ private fun EditFormBody(
     label: String, onLabelChange: (String) -> Unit,
     prompt: String, onPromptChange: (String) -> Unit,
     needsPrompt: Boolean,
-    hour: Int, minute: Int, onTimeChange: (Int, Int) -> Unit,
+    times: List<Pair<Int, Int>>, onTimesChange: (List<Pair<Int, Int>>) -> Unit,
     repeatMode: ScheduledRepeatMode, onRepeatModeChange: (ScheduledRepeatMode) -> Unit,
     customDays: Set<Int>, onCustomDaysChange: (Set<Int>) -> Unit,
     targetKind: TargetKind, onTargetKindChange: (TargetKind) -> Unit,
@@ -365,9 +367,20 @@ private fun EditFormBody(
 ) {
     // [T-android-scheduled-tasks-full] Compact time entry (TimeInput keyboard,
     // not the full clock dial — the user asked for the compact mode).
-    val timeState = rememberTimePickerState(initialHour = hour, initialMinute = minute, is24Hour = true)
-    LaunchedEffect(timeState.hour, timeState.minute) { onTimeChange(timeState.hour, timeState.minute) }
+    // nanoMuse: [GH#557] the inline input still edits the FIRST time, as
+    // before; the rows in the Time section below edit the rest, and this
+    // effect carries them through untouched.
+    val firstTime = times.firstOrNull() ?: (9 to 0)
+    val timeState = rememberTimePickerState(
+        initialHour = firstTime.first, initialMinute = firstTime.second, is24Hour = true,
+    )
+    LaunchedEffect(timeState.hour, timeState.minute) {
+        onTimesChange(listOf(timeState.hour to timeState.minute) + times.drop(1))
+    }
 
+    // nanoMuse: [GH#557] index into times of the row the time dialog edits;
+    // -1 is the row the "+" adds, null is no dialog.
+    var timeDialogIndex by remember { mutableStateOf<Int?>(null) }
     var showSessionPicker by remember { mutableStateOf(false) }
     var showMessagePicker by remember { mutableStateOf(false) }
     var showModelPicker by remember { mutableStateOf(false) }
@@ -433,6 +446,50 @@ private fun EditFormBody(
             SectionLabel(stringResource(R.string.scheduled_task_field_time))
             Spacer(Modifier.height(8.dp))
             TimeInput(state = timeState)
+            // nanoMuse: [GH#557] one row per further time; every row shares
+            // the repeat and days below. Tapping a row re-picks it in the
+            // time dialog; the ✕ removes it in one tap, and removing the
+            // last one leaves just the single time above, as before.
+            times.drop(1).forEachIndexed { i, extra ->
+                val index = i + 1
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        "%02d:%02d".format(extra.first, extra.second),
+                        fontSize = 16.sp,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { timeDialogIndex = index }
+                            .padding(vertical = 10.dp),
+                    )
+                    IconButton(onClick = {
+                        onTimesChange(times.filterIndexed { j, _ -> j != index })
+                    }) {
+                        Text("✕", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+            // nanoMuse: [GH#557] the "+" of the request: one more time row.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clickable { timeDialogIndex = -1 }
+                    .padding(vertical = 6.dp),
+            ) {
+                Icon(
+                    Icons.Filled.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    stringResource(R.string.nm_scheduled_task_add_time),
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
 
         // ── Repeat ──
@@ -649,6 +706,26 @@ private fun EditFormBody(
             onEndDateChange(it); showEndPicker = false
         }
     }
+    // nanoMuse: [GH#557] the time dialog for an additional-times row (an
+    // index into times) or for the row the "+" adds (index -1, starting
+    // from the last time so the new row is a nudge away).
+    timeDialogIndex?.let { index ->
+        TimeOfDayDialog(
+            initial = if (index >= 0) {
+                times.getOrNull(index) ?: firstTime
+            } else {
+                times.lastOrNull() ?: firstTime
+            },
+            onDismiss = { timeDialogIndex = null },
+        ) { h, m ->
+            if (index >= 0) {
+                onTimesChange(times.mapIndexed { j, p -> if (j == index) h to m else p })
+            } else {
+                onTimesChange(times + (h to m))
+            }
+            timeDialogIndex = null
+        }
+    }
 }
 
 @Composable
@@ -761,6 +838,34 @@ private fun MessagePickerDialog(
     )
 }
 
+// nanoMuse: [GH#557] pick one time of day for an additional-times row.
+// Same compact TimeInput as the main field, in the dialog shape DateDialog
+// uses below.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TimeOfDayDialog(
+    initial: Pair<Int, Int>,
+    onDismiss: () -> Unit,
+    onPick: (hour: Int, minute: Int) -> Unit,
+) {
+    val state = rememberTimePickerState(
+        initialHour = initial.first, initialMinute = initial.second, is24Hour = true,
+    )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.scheduled_task_field_time)) },
+        text = { TimeInput(state = state) },
+        confirmButton = {
+            MinisTextButton(onClick = { onPick(state.hour, state.minute) }) {
+                Text(stringResource(R.string.ok))
+            }
+        },
+        dismissButton = {
+            MinisTextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+        },
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DateDialog(initialMs: Long?, onDismiss: () -> Unit, onPick: (Long) -> Unit) {
@@ -800,8 +905,7 @@ private fun buildTask(
     id: String?,
     label: String,
     prompt: String,
-    hour: Int,
-    minute: Int,
+    times: List<Pair<Int, Int>>, // nanoMuse: [GH#557] was hour/minute
     repeatMode: ScheduledRepeatMode,
     customDays: Set<Int>,
     enabled: Boolean,
@@ -838,11 +942,15 @@ private fun buildTask(
             } else null
         }.getOrNull()
     }
+    // nanoMuse: [GH#557] the first time is the primary one; a row the user
+    // set twice collapses, and an emptied list falls back to 09:00.
+    val cleanTimes = times.distinct().ifEmpty { listOf(9 to 0) }
     return ScheduledTask(
         id = id ?: java.util.UUID.randomUUID().toString(),
         label = label.trim(),
-        timeOfDayHour = hour,
-        timeOfDayMinute = minute,
+        timeOfDayHour = cleanTimes.first().first,
+        timeOfDayMinute = cleanTimes.first().second,
+        additionalTimes = cleanTimes.drop(1),
         repeatMode = repeatMode,
         customDays = if (repeatMode == ScheduledRepeatMode.CUSTOM) customDays else emptySet(),
         prompt = prompt.trim(),

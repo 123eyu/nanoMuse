@@ -7,6 +7,7 @@ package com.openminis.app.sandbox.offload
  *   --flag               boolean flag (returned by [hasFlag])
  *   --key value          value read by [get]
  *   --key=value          value read by [get]
+ *   --key repeated       every value, in order, read by [getAll] (nanoMuse)
  *   positional args      [positional]
  *
  * Short flags (`-h`) are matched literally by [hasFlag].
@@ -15,6 +16,9 @@ internal class OffloadArgs(argv: List<String>, booleanFlags: Set<String> = empty
     val positional: List<String>
     private val flags: Set<String>
     private val values: Map<String, String>
+    // nanoMuse: [GH#557] every value a key was given, in order; [values]
+    // above keeps only the last, as before.
+    private val allValues: Map<String, List<String>>
 
     init {
         // T54: every android-* command supports --compact / -q / --quiet for
@@ -28,6 +32,7 @@ internal class OffloadArgs(argv: List<String>, booleanFlags: Set<String> = empty
         val pos = mutableListOf<String>()
         val fs = mutableSetOf<String>()
         val vs = mutableMapOf<String, String>()
+        val avs = mutableMapOf<String, MutableList<String>>() // nanoMuse: [GH#557]
         var i = 0
         while (i < argv.size) {
             val a = argv[i]
@@ -35,6 +40,8 @@ internal class OffloadArgs(argv: List<String>, booleanFlags: Set<String> = empty
                 a.startsWith("--") && a.contains('=') -> {
                     val eq = a.indexOf('=')
                     vs[a.substring(2, eq)] = a.substring(eq + 1)
+                    // nanoMuse: [GH#557]
+                    avs.getOrPut(a.substring(2, eq)) { mutableListOf() }.add(a.substring(eq + 1))
                 }
                 a.startsWith("--") -> {
                     val key = a.substring(2)
@@ -48,6 +55,8 @@ internal class OffloadArgs(argv: List<String>, booleanFlags: Set<String> = empty
                         fs.add(key)
                     } else {
                         vs[key] = next
+                        // nanoMuse: [GH#557]
+                        avs.getOrPut(key) { mutableListOf() }.add(next)
                         i++
                     }
                 }
@@ -59,10 +68,14 @@ internal class OffloadArgs(argv: List<String>, booleanFlags: Set<String> = empty
         positional = pos
         flags = fs
         values = vs
+        allValues = avs // nanoMuse: [GH#557]
     }
 
     fun hasFlag(vararg names: String): Boolean = names.any { it in flags }
     fun get(vararg names: String): String? = names.firstNotNullOfOrNull { values[it] }
+    // nanoMuse: [GH#557] all values given for any of [names], in the order
+    // the names are passed and, within a name, in argv order.
+    fun getAll(vararg names: String): List<String> = names.flatMap { allValues[it].orEmpty() }
     fun getInt(vararg names: String): Int? = get(*names)?.toIntOrNull()
     fun getLong(vararg names: String): Long? = get(*names)?.toLongOrNull()
     fun getDouble(vararg names: String): Double? = get(*names)?.toDoubleOrNull()
