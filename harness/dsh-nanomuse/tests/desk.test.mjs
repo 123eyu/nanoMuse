@@ -68,6 +68,22 @@ test('an approval the chat answers first clears the stage', async () => {
   assert.equal(desk.list().length, 0)
 })
 
+test('a hands step names the app it asked in; another tool names none', async () => {
+  const desk = new ApprovalDesk(() => undefined, () => false, (r) => (r.toolName === 'mcp__nanomuse__computer_act' ? 'WeChat' : ''))
+  void desk.handle({ ...req('c4'), toolName: 'mcp__nanomuse__computer_act' }, () => new Promise(() => undefined))
+  void desk.handle(req('c5'), () => new Promise(() => undefined))
+  await new Promise((r) => setImmediate(r))
+  assert.deepEqual(desk.list().map((a) => a.app), ['WeChat', ''])
+})
+
+test('a request a grant covers is allowed without a card', async () => {
+  const desk = new ApprovalDesk(() => undefined, (r) => r.agent.session.id === 's-granted')
+  let asked = false
+  assert.equal(await desk.handle(req('c6', 's-granted'), async () => { asked = true; return 'rejected' }), 'allowed-once')
+  assert.equal(asked, false)
+  assert.equal(await desk.handle(req('c7', 's-other'), async () => 'rejected'), 'rejected')
+})
+
 test('approvals of an excluded session go straight to the next answerer', async () => {
   const desk = new ApprovalDesk(() => undefined)
   desk.exclude('task-session')

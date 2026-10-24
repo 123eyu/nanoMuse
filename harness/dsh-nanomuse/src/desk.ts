@@ -20,18 +20,40 @@ export interface PendingApproval {
   summary: string
   summaryZh: string
   purpose: string
+  /** The app in front when a hands step asked (what *Always in <app>* would allow); '' for any other tool. */
+  app: string
   status: 'pending'
   at: number
 }
 
 export type ApprovalScope = 'once' | 'conversation' | 'always'
 
-/** A standing "always allow": the hands in one app (`computer_app:<app>`), given on a permission card, revocable on the Permissions page. */
+/**
+ * A standing "always allow": the hands in one app (`computer_app:<app>`), given on a permission
+ * card, revocable on the Permissions page. With `sessionId` it holds in that conversation only
+ * (*Always in this chat*): a scheduled task asks in the same conversation every time.
+ */
 export interface Grant {
   id: string
   /** `computer_app:Safari` — the kind and the app the card showed when it was given. */
   target: string
   at: number
+  /** The conversation it is limited to; absent for every conversation. */
+  sessionId?: string
+  /** That conversation's title when the grant was given, for the lists. */
+  sessionTitle?: string
+}
+
+/** Whether a grant lets the hands act in `app` without asking, in the conversation `sessionId`. */
+export function grantCovers(grants: readonly Grant[], app: string, sessionId: string): boolean {
+  return Boolean(app) && grants.some((g) => g.target === `computer_app:${app}` && (!g.sessionId || g.sessionId === sessionId))
+}
+
+/** The grants with one more for `app` (everywhere, or in one conversation), replacing the same one given before; the newest 64 kept. */
+export function withGrant(grants: readonly Grant[], grant: Grant): Grant[] {
+  const next = grants.filter((g) => !(g.target === grant.target && (g.sessionId ?? '') === (grant.sessionId ?? '')))
+  next.push(grant)
+  return next.slice(-64)
 }
 
 /** The app of a window title as the hands report it (`Safari — Apple` → `Safari`). */
@@ -66,6 +88,9 @@ export interface StandingGrant {
   tier: GrantTier
   /** The app, the device's name, or '' for the switch. */
   target: string
+  /** For `computer_app`: the conversation it is limited to, and its title; absent for every conversation. */
+  sessionId?: string
+  sessionTitle?: string
   /** When it was given; 0 when the store does not say (the switch). */
   at: number
 }
@@ -78,7 +103,7 @@ export function standingGrants(input: { grants?: readonly Grant[]; trusted?: rea
   const out: StandingGrant[] = []
   if (input.remoteControl === true) out.push({ id: REMOTE_CONTROL_GRANT_ID, kind: 'remote_control', tier: 'highest', target: '', at: 0 })
   for (const d of input.trusted ?? []) out.push({ id: `${DEVICE_GRANT_PREFIX}${d.id}`, kind: 'device', tier: 'confirm', target: d.name || d.id, at: d.at })
-  for (const g of input.grants ?? []) out.push({ id: g.id, kind: 'computer_app', tier: 'confirm', target: g.target.replace(/^computer_app:/, ''), at: g.at })
+  for (const g of input.grants ?? []) out.push({ id: g.id, kind: 'computer_app', tier: 'confirm', target: g.target.replace(/^computer_app:/, ''), at: g.at, ...(g.sessionId ? { sessionId: g.sessionId, sessionTitle: g.sessionTitle ?? '' } : {}) })
   return out
 }
 
@@ -133,10 +158,12 @@ export class ApprovalDesk {
   /**
    * @param changed - called when the list moves.
    * @param granted - whether a standing grant covers the request (a hands step in an app allowed with "always").
+   * @param appFor - the app a hands step would act in, for the card's *Always in <app>*; '' for any other tool.
    */
   constructor(
     private readonly changed: () => void,
     private readonly granted: (req: ApprovalRequestEvent) => boolean = () => false,
+    private readonly appFor: (req: ApprovalRequestEvent) => string = () => '',
   ) {}
 
   list(): PendingApproval[] {
@@ -161,6 +188,7 @@ export class ApprovalDesk {
       summary: String(req.displayReason?.en ?? req.reason ?? '').trim().slice(0, 400),
       summaryZh: String(req.displayReason?.zh ?? req.displayReason?.['zh-CN'] ?? '').trim().slice(0, 400),
       purpose: String(req.reason ?? '').trim().slice(0, 400),
+      app: this.appFor(req),
       status: 'pending',
       at: Date.now(),
     }

@@ -3,7 +3,7 @@
 // grants — with the tier each belongs to, and the grouping by tier the page draws.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { DEVICE_GRANT_PREFIX, GRANT_TIERS, groupGrants, REMOTE_CONTROL_GRANT_ID, standingGrants } from '../lib/desk.js'
+import { DEVICE_GRANT_PREFIX, GRANT_TIERS, grantCovers, groupGrants, REMOTE_CONTROL_GRANT_ID, standingGrants, withGrant } from '../lib/desk.js'
 
 test('the three tiers, highest first, are the contract', () => {
   assert.deepEqual([...GRANT_TIERS], ['highest', 'confirm', 'notice'])
@@ -50,4 +50,38 @@ test('groups come in tier order, newest first inside, empty tiers left out', () 
   assert.deepEqual(groups[1].grants.map((g) => g.id), ['device:x', 'g-new', 'g-old'])
   // only the card tier: one group
   assert.deepEqual(groupGrants(standingGrants({ grants: [{ id: 'g-1', target: 'computer_app:Safari', at: 1 }] })).map((g) => g.tier), ['confirm'])
+})
+
+test('a grant in one conversation covers that conversation only; one for every conversation covers all', () => {
+  const grants = [
+    { id: 'g-chat', target: 'computer_app:WeChat', at: 1, sessionId: 's-morning', sessionTitle: 'Morning message' },
+    { id: 'g-all', target: 'computer_app:Safari', at: 2 },
+  ]
+  assert.equal(grantCovers(grants, 'WeChat', 's-morning'), true)
+  assert.equal(grantCovers(grants, 'WeChat', 's-other'), false)
+  assert.equal(grantCovers(grants, 'Safari', 's-other'), true)
+  assert.equal(grantCovers(grants, 'Mail', 's-morning'), false)
+  // no app in front: nothing is covered
+  assert.equal(grantCovers(grants, '', 's-morning'), false)
+})
+
+test('giving the same grant again replaces it; the conversation and everywhere are kept apart', () => {
+  let grants = withGrant([], { id: 'g-1', target: 'computer_app:WeChat', at: 1, sessionId: 's1', sessionTitle: 'A' })
+  grants = withGrant(grants, { id: 'g-2', target: 'computer_app:WeChat', at: 2, sessionId: 's1', sessionTitle: 'A' })
+  assert.deepEqual(grants.map((g) => g.id), ['g-2'])
+  grants = withGrant(grants, { id: 'g-3', target: 'computer_app:WeChat', at: 3 })
+  grants = withGrant(grants, { id: 'g-4', target: 'computer_app:WeChat', at: 4, sessionId: 's2', sessionTitle: 'B' })
+  assert.deepEqual(grants.map((g) => g.id), ['g-2', 'g-3', 'g-4'])
+  // the newest 64 are kept
+  for (let i = 0; i < 70; i++) grants = withGrant(grants, { id: `g-x${i}`, target: `computer_app:App${i}`, at: 10 + i })
+  assert.equal(grants.length, 64)
+  assert.equal(grants.at(-1).id, 'g-x69')
+})
+
+test('a grant limited to a conversation carries it into the list', () => {
+  const list = standingGrants({ grants: [{ id: 'g-c', target: 'computer_app:WeChat', at: 5, sessionId: 's1', sessionTitle: 'Morning message' }, { id: 'g-a', target: 'computer_app:Mail', at: 6 }] })
+  assert.deepEqual(list, [
+    { id: 'g-c', kind: 'computer_app', tier: 'confirm', target: 'WeChat', at: 5, sessionId: 's1', sessionTitle: 'Morning message' },
+    { id: 'g-a', kind: 'computer_app', tier: 'confirm', target: 'Mail', at: 6 },
+  ])
 })

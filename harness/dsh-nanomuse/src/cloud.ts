@@ -27,7 +27,7 @@
  */
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { ApprovalDesk, appOf, checkForUpdate, compareVersions, DEVICE_GRANT_PREFIX, HoldDesk, modelFor, pickChatModel, pickHandsModel, REMOTE_CONTROL_GRANT_ID, sharedConnectors, standingGrants, takesImages, UPDATE_RETRY_MS, updateCacheFresh, type Grant, type Hold, type HoldTool, type PendingApproval, type StandingGrant, type UpdateInfo } from './desk.ts'
+import { ApprovalDesk, appOf, checkForUpdate, compareVersions, DEVICE_GRANT_PREFIX, grantCovers, HoldDesk, modelFor, pickChatModel, pickHandsModel, REMOTE_CONTROL_GRANT_ID, sharedConnectors, standingGrants, takesImages, UPDATE_RETRY_MS, updateCacheFresh, withGrant, type Grant, type Hold, type HoldTool, type PendingApproval, type StandingGrant, type UpdateInfo } from './desk.ts'
 import { arch, homedir, hostname, release, type, userInfo } from 'node:os'
 import { dirname, join } from 'node:path'
 import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto'
@@ -652,7 +652,7 @@ export default class NanomuseCloud extends Service {
    */
   private readonly logCache = new Map<string, { title?: { at: number; title: string }; lines?: SessionLine[]; prompts?: Array<{ key: string; time: number }> }>()
   /** Approvals the stage may answer (C2) and holds of the hands (C1). */
-  private readonly approvalDesk = new ApprovalDesk(() => this.deskMoved(), (req) => this.granted(req.toolName))
+  private readonly approvalDesk = new ApprovalDesk(() => this.deskMoved(), (req) => this.granted(req.toolName, String(req.agent.session.id)), (req) => this.handsApp(req.toolName))
   private readonly holdDesk = new HoldDesk(() => this.deskMoved())
   /** Sessions the other devices were last told are waiting on a card or a hold here (0.31). */
   private waitingSessions = new Set<string>()
@@ -1289,25 +1289,31 @@ export default class NanomuseCloud extends Service {
   decideApproval(id: string, approved: boolean, scope: 'once' | 'conversation' | 'always'): boolean {
     const row = this.approvalDesk.list().find((a) => a.id === id)
     const ok = this.approvalDesk.decide(id, approved, scope)
-    // "Always" on a hands step: the app in front is allowed from now on, until revoked on the Permissions page.
-    if (ok && approved && scope === 'always' && row && isHandsTool(row.toolName)) {
-      const app = appOf(this.stage.title)
-      if (app) void this.grant(`computer_app:${app}`).catch((error: unknown) => this.ctx.logger.warn('nanomuse cloud: grant not kept: %s', message(error)))
+    // "Always" on a hands step: the app it asked in is allowed from now on, in every conversation
+    // ("always") or in this one only ("conversation"), until revoked on the Permissions page.
+    if (ok && approved && scope !== 'once' && row?.app) {
+      const sessionId = scope === 'conversation' ? row.sessionId : undefined
+      void this.grant(`computer_app:${row.app}`, sessionId).catch((error: unknown) => this.ctx.logger.warn('nanomuse cloud: grant not kept: %s', message(error)))
     }
     return ok
   }
 
-  /** Whether a standing grant covers a request right now: a hands step while the granted app is in front. */
-  private granted(toolName: string): boolean {
-    if (!isHandsTool(toolName) || !toolName.startsWith('mcp__nanomuse__')) return false
-    const app = appOf(this.stage.title)
-    return Boolean(app) && (this.state.grants ?? []).some((g) => g.target === `computer_app:${app}`)
+  /** The app a hands step of ours would act in: the one in front; '' for any other tool. */
+  private handsApp(toolName: string): string {
+    if (!isHandsTool(toolName) || !toolName.startsWith('mcp__nanomuse__')) return ''
+    return appOf(this.stage.title)
   }
 
-  private async grant(target: string): Promise<void> {
-    const grants = (this.state.grants ?? []).filter((g) => g.target !== target)
-    grants.push({ id: `g-${randomBytes(4).toString('hex')}`, target, at: Date.now() })
-    this.state = { ...this.state, grants: grants.slice(-64) }
+  /** Whether a standing grant covers a request right now: a hands step while the granted app is in front, in a conversation the grant holds in. */
+  private granted(toolName: string, sessionId: string): boolean {
+    return grantCovers(this.state.grants ?? [], this.handsApp(toolName), sessionId)
+  }
+
+  private async grant(target: string, sessionId?: string): Promise<void> {
+    const ctx = this.sessionCtx
+    const sessionTitle = sessionId && ctx ? await this.sessionTitle(ctx, sessionId as SessionId, Date.now()) : ''
+    const grant: Grant = { id: `g-${randomBytes(4).toString('hex')}`, target, at: Date.now(), ...(sessionId ? { sessionId, sessionTitle } : {}) }
+    this.state = { ...this.state, grants: withGrant(this.state.grants ?? [], grant) }
     await this.writeState()
     this.broadcast()
   }
@@ -3454,7 +3460,7 @@ export default class NanomuseCloud extends Service {
         ...(typeof raw.deviceName === 'string' && raw.deviceName ? { deviceName: raw.deviceName } : {}),
         ...(typeof raw.handsModel === 'string' && raw.handsModel ? { handsModel: raw.handsModel } : {}),
         // a grant 0.1.37 kept for the "app" "Done. Screen now:" (the mis-read head line) names nothing — dropped
-        ...(Array.isArray(raw.grants) ? { grants: (raw.grants as Grant[]).filter((g) => g && typeof g.id === 'string' && typeof g.target === 'string' && !MISREAD_GRANT.test(g.target)).map((g) => ({ id: g.id, target: g.target, at: Number(g.at) || 0 })) } : {}),
+        ...(Array.isArray(raw.grants) ? { grants: (raw.grants as Grant[]).filter((g) => g && typeof g.id === 'string' && typeof g.target === 'string' && !MISREAD_GRANT.test(g.target)).map((g) => ({ id: g.id, target: g.target, at: Number(g.at) || 0, ...(typeof g.sessionId === 'string' && g.sessionId ? { sessionId: g.sessionId, sessionTitle: String(g.sessionTitle ?? '') } : {}) })) } : {}),
         ...(raw.update && typeof raw.update === 'object' && typeof (raw.update as UpdateInfo).checkedAt === 'number' ? { update: updateForThisVersion(raw.update as UpdateInfo) } : {}),
         ...(raw.remoteControl === true ? { remoteControl: true } : {}),
         ...(raw.trusted && typeof raw.trusted === 'object' ? { trusted: trustedOf(raw.trusted) } : {}),
