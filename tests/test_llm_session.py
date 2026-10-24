@@ -129,13 +129,16 @@ async def test_the_responses_client_sends_it_as_well(wire: Wire):
     assert wire.headers("x-opencode-session") == ["t"]
 
 
-async def test_other_vendors_get_neither_header(wire: Wire):
+async def test_other_vendors_get_no_session_header_but_are_told_the_name(wire: Wire):
+    """nanoMuse Cloud answers the nanoMuse clients only (relay 0.28) and reads the user
+    agent for it, so the runtime names itself to every vendor, as the phones do; the
+    conversation id goes only where a vendor asks for one."""
     for provider, base_url in (("opencode-zen", None), ("deepseek", None), ("openai", None)):
         llm = create_llm(slot(provider=provider, base_url=base_url))
         with session.conversation("t"):
             await llm.ask([Message.user("hi")])
     assert wire.headers("x-opencode-session") == [None, None, None]
-    assert not any((ua or "").startswith("nanoMuse/") for ua in wire.headers("user-agent"))
+    assert wire.headers("user-agent") == [f"nanoMuse/{__version__}"] * 3
 
 
 async def test_a_user_agent_the_person_set_stands(wire: Wire):

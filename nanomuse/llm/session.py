@@ -28,7 +28,7 @@ _conversation: ContextVar[str | None] = ContextVar("nanomuse_conversation", defa
 _HEADER_SAFE = re.compile(r"^[\x21-\x7e]{1,128}$")
 _NAMESPACE = uuid.UUID("5b0f7c1e-3a52-4f4e-9d0e-6e616e6f4d75")
 
-#: the user agent nanoMuse names itself with where a vendor asks for the client's own
+#: the user agent nanoMuse names itself with on every model call, as the phone apps do
 USER_AGENT = f"nanoMuse/{__version__}"
 
 
@@ -64,12 +64,14 @@ def session_id(fallback: str) -> str:
     return raw if _HEADER_SAFE.match(raw) else str(uuid.uuid5(_NAMESPACE, raw))
 
 
-def client_headers(extra: dict[str, str] | None, session_header: str) -> dict[str, str]:
+def client_headers(extra: dict[str, str] | None, session_header: str = "") -> dict[str, str]:
     """The headers a client sends on every request: the slot's ``extra_headers``, plus
-    nanoMuse's own user agent for a vendor that wants the client named (one the person set
-    in ``extra_headers`` stands)."""
+    nanoMuse's own user agent (one the person set in ``extra_headers`` stands). Every vendor
+    is told the client's name, as the phone apps and the desktop tell it: nanoMuse Cloud
+    answers the nanoMuse clients only and would take the SDK's own string for a script, and
+    a vendor with a session header (OpenCode Go) asks for the name outright."""
     headers = dict(extra or {})
-    if session_header and not any(k.lower() == "user-agent" for k in headers):
+    if not any(k.lower() == "user-agent" for k in headers):
         headers["User-Agent"] = USER_AGENT
     return headers
 
