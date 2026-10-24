@@ -67,7 +67,7 @@ struct NanoMuseCloudAccount: Codable, Equatable, Sendable {
         return String(format: AppLocalized("%@ left"), left)
     }
 
-    init(channel: String, hint: String, granted: Int64, used: Int64, usedToday: Int64, dailyCap: Int64, checkedAt: Date, unlimited: Bool = false, id: String = "", grantCny: Double? = nil, leftCny: Double? = nil) {
+    init(channel: String, hint: String, granted: Int64, used: Int64, usedToday: Int64, dailyCap: Int64, checkedAt: Date, unlimited: Bool = false, id: String = "", grantCny: Double? = nil, leftCny: Double? = nil, recordOn: Bool? = nil) {
         self.channel = channel
         self.hint = hint
         self.granted = granted
@@ -79,9 +79,10 @@ struct NanoMuseCloudAccount: Codable, Equatable, Sendable {
         self.id = id
         self.grantCny = grantCny
         self.leftCny = leftCny
+        self.recordOn = recordOn
     }
 
-    // `unlimited` and `id` came later; an account cached by an earlier build decodes without them.
+    // `unlimited`, `id` and `recordOn` came later; an account cached by an earlier build decodes without them.
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         channel = try c.decode(String.self, forKey: .channel)
@@ -95,6 +96,7 @@ struct NanoMuseCloudAccount: Codable, Equatable, Sendable {
         id = try c.decodeIfPresent(String.self, forKey: .id) ?? ""
         grantCny = try c.decodeIfPresent(Double.self, forKey: .grantCny)
         leftCny = try c.decodeIfPresent(Double.self, forKey: .leftCny)
+        recordOn = try c.decodeIfPresent(Bool.self, forKey: .recordOn)
     }
 }
 
