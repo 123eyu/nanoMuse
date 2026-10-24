@@ -388,7 +388,9 @@ def create_app(
                 log.info("analytics: %d calls of the last hour read back", warmed)
         except Exception:
             log.exception("analytics warm-up")
-        swept_at = 0.0
+        # None, not 0.0: time.monotonic() counts from boot on Linux, so on a machine up for
+        # less than an hour a zero start would hold the first sweep back until it is
+        swept_at: float | None = None
         while True:
             try:
                 if not analytics.backfill_done:
@@ -397,7 +399,7 @@ def create_app(
                         log.info("analytics: %d kept turns described so far", analytics.backfill_rows)
                     await asyncio.sleep(0.5 if n else 60)
                     continue
-                if time.monotonic() - swept_at > 3600:
+                if swept_at is None or time.monotonic() - swept_at > 3600:
                     swept_at = time.monotonic()
                     gone = await asyncio.to_thread(cloud.db.sweep_calls, int(time.time()) - max(1, settings.calls_keep_days) * 86400)
                     if gone:
