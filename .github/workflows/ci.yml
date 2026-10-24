@@ -53,7 +53,7 @@ jobs:
       # and pages.yml for the site; pnpm-lock.yaml records integrity hashes, not URLs.
       - name: Lock files resolve against the public registry only
         run: |
-          if grep -HoE '"resolved": "https?://[^/]+' web/package-lock.json harness/desktop/package-lock.json website/package-lock.json | grep -v 'registry.npmjs.org'; then
+          if grep -HoE '"resolved": "https?://[^/]+' web/package-lock.json harness/desktop/package-lock.json website/package-lock.json cloud/console/package-lock.json | grep -v 'registry.npmjs.org'; then
             echo "a package-lock.json resolves packages from a host other than registry.npmjs.org (a private mirror leaked in); regenerate it against the public registry" >&2
             exit 1
           fi
@@ -183,6 +183,32 @@ jobs:
       - name: Tests
         if: env.RUN == 'true'
         run: uv run python -m pytest -q
+
+      # The admin console (cloud/console, Vite + React) is built into
+      # nanomuse_cloud/console/admin and committed; the build must match the sources.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: env.RUN == 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: cloud/console/package-lock.json
+
+      - name: Admin console · install, check, build
+        if: env.RUN == 'true'
+        working-directory: cloud/console
+        run: |
+          npm ci
+          npm run check
+          npm run build
+
+      - name: Admin console build is committed
+        if: env.RUN == 'true' && github.actor != 'dependabot[bot]'
+        run: |
+          if [ -n "$(git status --porcelain nanomuse_cloud/console/admin)" ]; then
+            echo "cloud/nanomuse_cloud/console/admin is out of date: run 'cd cloud/console && npm run build' and commit the result"
+            git status --porcelain nanomuse_cloud/console/admin
+            exit 1
+          fi
 
   web:
     name: web app build

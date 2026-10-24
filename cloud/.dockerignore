@@ -16,3 +16,6 @@ tests/
 **/.ruff_cache
 **/.mypy_cache
 **/*.egg-info
+# the admin console's sources and dependencies: the image ships the built files under
+# nanomuse_cloud/console/admin only
+console/

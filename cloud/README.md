@@ -192,6 +192,7 @@ for the full list. The ones that matter:
 | `UPSTREAM_TIMEOUT_S` | 180 | how long one call to the provider may take (connecting has 20 s of its own); a reservation that outlives it by two minutes is dropped |
 | `CHAT_CONCURRENCY` | 12 | chat requests at the provider at once across all accounts (0 = off); the rest wait at the relay, so a burst does not overload one shared deployment |
 | `CHAT_RETRIES` | 2 | retries after an upstream 429 or 5xx received before any chat output starts (0 = off; capped at 5) |
+| `CALLS_KEEP_DAYS` | 90 | how long the per-call telemetry rows (`calls`: timings, outcome, shape, platform; never content) are kept before the hourly sweep removes them (0.28) |
 | `CHAT_RETRY_BASE_S` | 0.5 | first retry pause in seconds; each later pause doubles |
 | `TRUSTED_PROXIES` | empty | whose `X-Forwarded-For` to believe, comma-separated addresses or networks (`*` for every peer); empty = every loopback, private, link-local and shared address (Caddy on this box or the compose network, a tailnet). Set, it is the whole list: a non-global peer not on it is not believed either |
 | `PASSWORD_MIN_LEN` | 8 | the shortest password the relay accepts (`400 password_short` below it) |
@@ -691,6 +692,42 @@ drawer, which used to stay over it. *Activity* reads on past its first page
 *Stats* page opens with every metric's name as a jump to its panel; a KPI's
 second figure wraps under the first instead of being cut off.
 
+From 0.28 the console is rebuilt as a small React application (`cloud/console`,
+Vite + TypeScript; `npm run build` writes `nanomuse_cloud/console/admin/`
+under fixed names, and CI fails when the committed build differs from the
+sources). Every answer is cached by URL and refreshed in the background, so a
+page the operator has seen opens at once; the period (7 to 365 days), the
+language and the theme are remembered; every filter, tab and open drawer lives
+in the hash. The navigation is in three groups. **Insight**: *Overview*;
+*Live* (`GET /v1/admin/live`, every 3 s): the provider gate (`CHAT_CONCURRENCY`
+slots in use, how many wait), the requests under way with their phase (queued,
+awaiting the first token, streaming) and age, the last hour by minute with
+outcomes, latency percentiles and output tokens, the newest finished calls,
+and a verdict (smooth, busy, saturated) from the last ten minutes' queue share
+and queue P95; *Usage* (`/v1/admin/analytics/usage`): the day × model matrix
+by requests, cost, tokens or accounts, and a click on a day opens it
+(`/v1/admin/analytics/day`): hours × models, platforms, outcomes by model,
+latency by hour, the provider's error reasons, the top accounts; *Platforms*
+(`/v1/admin/analytics/platforms`): Android, iOS, desktop, the runtime, the
+browser and the rest side by side with versions, call telemetry, the hub's
+devices, and the models people configured themselves (from the hello's
+`device.llm`); *Retention* (`/v1/admin/analytics/cohorts`): how much of the free
+allowance is used, how fast it ran out, what the exhausted did next, who likely
+runs their own key (synced model replies without a cloud request), and weekly
+retention by sign-up week; *Screen operation* (`/v1/admin/analytics/hands`):
+turns that carried the operator's tools, by day, platform, tool and account;
+*Data quality* (`/v1/admin/analytics/quality`): the kept turns' shape, trivial
+and repeated prompts, accounts scored into high, medium and low tiers, likely
+scripted accounts, the prompts repeated most (as hashes); *Non-app traffic*
+(`/v1/admin/analytics/abuse`): client families that are not the apps, their
+share of requests and cost, the heaviest accounts on them, addresses shared by
+many accounts. **Operations**: *People* (filters, charts, batch pool changes,
+CSV, the account drawer with every action), *Invites*, *Places*, *Activity*,
+*Showcase*, *Data and sync*. **System**: *Health*, *Site and GitHub*, *Model
+catalog*, *Statistics*, *Controls*, *Settings*. Every string is in 简体中文 and
+English (`src/lib/locales.ts`; a test keeps the two tables in step), and the
+operator's name typed at the top goes out as `X-Admin-Actor`.
+
 **Every operator route**, each under `X-Admin-Token` (401 `admin` without it;
 `X-Admin-Actor` names who did it for the audit log, else `console`). An account
 is named by `account_id` or by `identifier` (the number or address itself):
@@ -720,6 +757,14 @@ GET    /v1/admin/github          ?days=30        → stars, forks, watchers, ope
 POST   /v1/admin/github/refresh                  → read GitHub now
 GET    /v1/admin/stats           ?days=30        → every figure of the Stats page with how it is computed
 GET    /v1/admin/stats/{id}      ?days=30        → one figure as rows;  GET /v1/admin/stats/{id}.csv the same as CSV
+GET    /v1/admin/live                            → the model endpoint now (0.28): gate, requests under way, the last hour by minute, latency percentiles, newest calls
+GET    /v1/admin/analytics/usage ?days=30        → day × model: requests, tokens, cost, accounts
+GET    /v1/admin/analytics/day   ?day=<utc ts>   → one day: hours × models, platforms, outcomes, latency, error reasons, top accounts
+GET    /v1/admin/analytics/platforms ?days=30    → the apps side by side, versions, call telemetry, hub devices, reported own models
+GET    /v1/admin/analytics/cohorts ?days=30      → the free pool, exhaustion, what came after, own-key accounts, weekly retention
+GET    /v1/admin/analytics/hands ?days=30        → screen-operation turns by day, platform, tool and account
+GET    /v1/admin/analytics/quality ?days=30      → the kept turns' shape, accounts scored and tiered, repeated prompts (hashes)
+GET    /v1/admin/analytics/abuse ?days=30        → client families that are not the apps, sign-ins by client, shared addresses
 GET    /v1/admin/settings                        → the runtime settings in force, the environment's, which are overridden
 POST   /v1/admin/settings        {allowance_cny?, invite_bonus_cny?, signup_open?}   → the same; null puts a value back on its default
 POST   /v1/admin/allowance/apply                 → {accounts, allowance_cny}; the raised allowance reaches the accounts below it
@@ -921,3 +966,18 @@ cd cloud && pip install -e ".[dev]" && pytest
 The suite runs the whole app in-process against a fake upstream: sign-up and
 throttling, model listing, charged chat (non-stream and stream), running out of
 tokens and topping up, key revocation, and the image translation.
+
+The admin console has its own checks and build:
+
+```bash
+cd cloud/console && npm ci && npm run check && npm run build
+```
+
+`npm run check` is the type check, the lint and the locale tests; `npm run
+build` writes `nanomuse_cloud/console/admin/` (`index.html`, `admin.js`,
+`admin.css`), which is committed with the change, and `npm run dev` serves the
+sources on `:5174` against a relay on `127.0.0.1:8787` (`NANOMUSE_RELAY=host:port`
+for another). The
+relay's `test_console.py` reads the sources too: every route the console asks
+for must be one the relay serves, every event kind the relay writes must have a
+name in both languages.

@@ -90,6 +90,26 @@ The relay is the code in [`cloud/`](../cloud/README.md). It stores:
 - the password, if you set one, as an scrypt hash, never the password;
 - per request: the kind (chat, picture, video), the model, the token counts
   and the amount charged;
+- since relay 0.28, per chat request, how it went (the `calls` table): how
+  long it waited for a slot at the provider, the time to the first token and
+  the whole, how it ended (ok, a provider error or timeout, a content-check
+  refusal, a broken connection, an allowance refusal), how many messages and
+  pictures the request carried, which tools the client offered and which the
+  reply called (names only), whether it was a screen-operation turn, and the
+  client platform. Never a word of the conversation. Rows older than
+  `CALLS_KEEP_DAYS` (90) are removed, and the operator's *Live* and *Usage*
+  pages read these rows in aggregate (how busy the model endpoint is, how
+  fast it answers, which platforms queue);
+- since relay 0.28, beside each kept turn (*Help improve*, below) a shape row
+  (`sample_stats`): message count, character counts, tool calls, pictures,
+  whether the prompt was trivially short, and a hash of the person's message
+  so repeats can be counted. The quality page reads the shapes, not the turns;
+  deleting the turns deletes the shapes;
+- since relay 0.28, a device may say in its hub hello which model it runs on
+  (`llm {provider, model}`, the two ids and nothing else: never a key, an
+  address or a setting), so the operator can see which providers people
+  configure for themselves. The apps of 1.0.6 and earlier say nothing, and a
+  later app says it only when the person runs their own key;
 - a timeline of account events (signed in, failed sign-in, password set or
   changed, signed out, refused for budget, upstream error) with a
   device name, a model or an error code as the detail, never message content;

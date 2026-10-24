@@ -166,7 +166,9 @@ JSON text frames over `WS /v1/hub`, `Authorization: Bearer nm_…` (browsers put
 the key in `hello` instead).
 
 ```
-→ hello    {device:{id,name,kind,os,version,actions[]}}     kind: phone | computer | web
+→ hello    {device:{id,name,kind,os,version,actions[],llm?}}   kind: phone | computer | web
+           llm (relay 0.28, optional): {provider, model} — the ids the device runs its model under ("cloud",
+           "openrouter", a model id); plain ids only, never a key or a URL; kept on the device row for the operator
 ← welcome  {device_id, devices:[…], server:{version,frame_limit,time}}
 ← devices  {devices:[{id,name,kind,os,version,actions[],online,last_seen,controllable,ip}]}
 

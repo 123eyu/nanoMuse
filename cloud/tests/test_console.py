@@ -1,6 +1,8 @@
 """The console's files as the relay serves them (after 0.22): revalidated on every load, so a
-deploy reaches the next reload; and the web console's error table knows every code the
-relay can answer a signed-in person with, in both languages."""
+deploy reaches the next reload; the web console's error table knows every code the relay
+can answer a signed-in person with, in both languages; and the admin console (0.28: built
+from cloud/console with Vite, committed under nanomuse_cloud/console/admin) keeps its two
+locales in step, its copy plain, and reads routes the relay serves."""
 
 from __future__ import annotations
 
@@ -9,7 +11,10 @@ from pathlib import Path
 
 from test_accounts import make
 
-CONSOLE = Path(__file__).resolve().parents[1] / "nanomuse_cloud" / "console"
+CLOUD = Path(__file__).resolve().parents[1]
+CONSOLE = CLOUD / "nanomuse_cloud" / "console"
+ADMIN_SRC = CLOUD / "console" / "src"
+LOCALES = ADMIN_SRC / "lib" / "locales.ts"
 
 # what a signed-in person can get from the relay since 0.22 (service.py, api.py), by code
 CODES_0_22 = [
@@ -81,102 +86,148 @@ def test_web_console_is_one_hub_device_per_tab():
     assert "device: { id: webId," in source
 
 
-def test_console_copy_has_no_dashes_in_sentences():
+def test_web_console_copy_has_no_dashes_in_sentences():
     """The house rule: what a person reads carries no em dash. Checked on the two string
-    tables (`const T = zh ? {...} : {...}`) of each console; the one-character placeholder
+    tables (`const T = zh ? {...} : {...}`) of the web console; the one-character placeholder
     for an empty cell (`none: "—"`, `"—"`) is a glyph, not a sentence, and is let through."""
-    for path in (CONSOLE / "app.js", CONSOLE / "admin" / "admin.js"):
-        source = path.read_text(encoding="utf-8")
-        m = re.search(r"const T = zh \? \{(.*?)\n  \};", source, flags=re.S)
-        assert m, f"{path.name}: the T tables were not found"
-        tables = m.group(1).replace('"—"', "")
-        for line in tables.splitlines():
-            assert "—" not in line, f"{path.name}: an em dash in a sentence: {line.strip()[:80]}"
+    source = (CONSOLE / "app.js").read_text(encoding="utf-8")
+    m = re.search(r"const T = zh \? \{(.*?)\n  \};", source, flags=re.S)
+    assert m, "app.js: the T tables were not found"
+    tables = m.group(1).replace('"—"', "")
+    for line in tables.splitlines():
+        assert "—" not in line, f"app.js: an em dash in a sentence: {line.strip()[:80]}"
 
 
-def test_admin_console_names_the_star_card_text_in_both_languages():
-    """The star asks card (after relay 0.22) has the two text inputs and their hint, in the
-    简体中文 table and in the English one, and the panel draws them."""
-    source = (CONSOLE / "admin" / "admin.js").read_text(encoding="utf-8")
-    for key in ("ndTextEn", "ndTextZh", "ndTextHint", "ndTextLeft"):
-        assert source.count(f"{key}:") == 2, f"{key} is in one table only"
-    assert 'ndTextEn: "卡片文字（英文）"' in source and 'ndTextEn: "Card text (English)"' in source
-    assert 'ndTextZh: "卡片文字（中文）"' in source and 'ndTextZh: "Card text (中文)"' in source
-    assert "留空时各端显示自己的句子。最多 200 字。" in source
-    assert "Empty: each app shows its own sentence. At most 200 characters." in source
-    panel = source[source.index("function nudgesPanel()") : source.index("function settingsView()")]
-    assert 'cardText("text")' in panel and 'cardText("text_zh"' in panel
+# -- the admin console (0.28): cloud/console, built into nanomuse_cloud/console/admin ------------
 
 
-def test_admin_console_has_the_invites_view_in_both_languages():
-    """The Invites view (who brought whom, the inviters that brought most first) is in the
-    side navigation, reads `/v1/admin/invites`, and every string it draws is in the 简体中文
-    table and in the English one; the account drawer names the inviter and lists the people
-    brought."""
-    source = (CONSOLE / "admin" / "admin.js").read_text(encoding="utf-8")
-    assert '"invites"' in source[source.index("const VIEWS = ") : source.index("const PAGE = ")]
-    assert "invites: invitesView" in source and 'invites: () => "/v1/admin/invites?' in source
-    keys = (
-        "invNote",
-        "invSearch",
-        "invNone",
-        "invNoMatch",
-        "invKpiCode",
-        "invKpiInviters",
-        "invKpiInvited",
-        "invKpiActive",
-        "invKpiSameIp",
-        "invThWho",
-        "invThInvited",
-        "invThActive",
-        "invThSameIp",
-        "invThSpent",
-        "invThEarned",
-        "invThLast",
-        "invSort",
-        "invRecorded",
-        "invSameIp",
-        "invGone",
-        "invSeeRanking",
-        "invMore",
-        "invSameIpNote",
-        "invitedList",
-        "invEarnedLine",
-        "invNewest",
-        "invPill",
-        "invPending",
-        "invPendingPill",
-        "invSettledPill",
-        "invAbuseDisable",
-        "invAbuseDelete",
-        "invAbuseGo",
-        "invAbuseConfirm",
-        "invAbuseDone",
-    )
-    for key in keys:
-        assert source.count(f"{key}:") == 2, f"{key} is in one table only"
-    assert 'invites: "邀请"' in source and 'invites: "Invites"' in source
-    assert 'invThWho: "邀请人"' in source and 'invThWho: "Inviter"' in source
-    # the first KPI is the account count, not "made a code": every account has a code
-    assert 'invKpiCode: "账号总数"' in source and 'invKpiCode: "accounts"' in source
-    for key in keys:
-        assert f"T.{key}" in source, f"nothing draws {key}"
-    view = source[source.index("function invitesView()") : source.index("function placesView()")]
-    assert 'need("invites")' in view and "T.invSameIpNote" in view and "INV_OPEN" in view
-    # the pending sub-figure under Brought and the abuse action row under each unfolded inviter
-    assert "T.invPending(x.invited_pending)" in view and "inviteAbuseRow(x" in view
-    drawer = source[source.index("function drawDrawer()") : source.index("function ledgerLine(")]
-    assert "a.inviter" in drawer and "T.invitedList(" in drawer and "inviteeRow(i, a)" in drawer
-    assert "inviteAbuseRow(a" in drawer
-    # the action posts to the abuse route with both flags, asks first, and refreshes the view
-    action = source[source.index("async function doInviteAbuse(") : source.index("function inviteAbuseRow(")]
-    assert '"/v1/admin/invites/abuse"' in action and "delete_unused" in action and "confirm(" in action
-    assert 'forget("invites")' in action and "T.invAbuseDone(" in action
-    # new event kinds are named in both tables of both consoles
-    for kind in ("invite.settled", "invite.clawback", "signup.domain_limited"):
-        assert source.count(f'"{kind}":') == 2, kind
-    app_js = (CONSOLE / "app.js").read_text(encoding="utf-8")
-    assert app_js.count('"invite.settled":') == 2
+def _locale_tables() -> tuple[str, str]:
+    source = LOCALES.read_text(encoding="utf-8")
+    zh_start = source.index("export const zh = {")
+    en_start = source.index("export const en: Strings = {")
+    return source[zh_start:en_start], source[en_start:]
+
+
+def _keys(table: str) -> set[str]:
+    """(section, key) pairs of one locale table: sections are the two-space keys, their
+    strings the four-space ones; the inline maps (`{ a: "x", b: "y" }`) count as one key."""
+    out: set[str] = set()
+    section = ""
+    for line in table.splitlines():
+        m = re.match(r"^  ([a-zA-Z_]+): ", line)
+        if m:
+            section = m.group(1)
+            out.add((section, ""))
+            continue
+        m = re.match(r"^    ([a-zA-Z_\"'.]+): ", line)
+        if m and section:
+            out.add((section, m.group(1).strip("\"'")))
+    return out
+
+
+def test_admin_console_has_every_string_in_both_languages():
+    """locales.ts carries 简体中文 first and English second with the same sections and keys
+    (locales.test.ts checks the nested maps and the function arities under vitest; this is
+    the same promise kept where the Python checks run)."""
+    zh, en = _locale_tables()
+    zk, ek = _keys(zh), _keys(en)
+    assert zk - ek == set(), f"keys only in 简体中文: {sorted(zk - ek)[:10]}"
+    assert ek - zk == set(), f"keys only in English: {sorted(ek - zk)[:10]}"
+    assert len(zk) > 400, "the locale table looks truncated"
+
+
+def test_admin_console_copy_has_no_dashes_or_exclamation_marks():
+    """No em dash and no exclamation mark in any string literal of the admin console's
+    locales (the glyph placeholders are a middle dot, never a dash)."""
+    source = LOCALES.read_text(encoding="utf-8")
+    literals = re.findall(r'"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`', source)
+    bad = [s for s in literals if re.search(r"[—!！]", s)]
+    assert bad == [], bad[:5]
+
+
+def test_admin_console_build_is_the_committed_one():
+    """The build lands under nanomuse_cloud/console/admin as exactly index.html, admin.js and
+    admin.css under fixed names, and index.html loads them from /app/admin/ (the relay's
+    mount); CI rebuilds and fails on a difference, so the committed files are the source's."""
+    out = CONSOLE / "admin"
+    assert sorted(p.name for p in out.iterdir()) == ["admin.css", "admin.js", "index.html"]
+    html = (out / "index.html").read_text(encoding="utf-8")
+    assert 'src="/app/admin/admin.js"' in html and 'href="/app/admin/admin.css"' in html
+    assert '<div id="app"></div>' in html and 'content="noindex' in html
+    js = (out / "admin.js").read_text(encoding="utf-8")
+    # the build is the console in this tree: a string only the new locales carry
+    assert "模型接口此刻" in js and "The model endpoint now" in js
+
+
+def test_admin_console_reads_routes_the_relay_serves():
+    """Every /v1/admin route the console's sources name has a handler in api.py, and the
+    0.28 analytics routes are read by a page each."""
+    api = (CLOUD / "nanomuse_cloud" / "api.py").read_text(encoding="utf-8")
+    served = set(re.findall(r'@app\.(?:get|post|put|delete)\("(/v1/admin[^"]*)"', api))
+    served_prefixes = {s.split("{")[0].rstrip("/") for s in served}
+    sources = "\n".join(p.read_text(encoding="utf-8") for p in ADMIN_SRC.rglob("*.ts*"))
+    named = set(re.findall(r'"(/v1/admin/[a-z_/.-]+)', sources)) | set(re.findall(r"`(/v1/admin/[a-z_/.-]+)", sources))
+    for route in sorted(named):
+        base = route.rstrip("/")
+        assert base in served_prefixes or any(base.startswith(p + "/") for p in served_prefixes), (
+            f"the console reads {route}, which api.py does not serve"
+        )
+    for route in (
+        "live",
+        "analytics/usage",
+        "analytics/day",
+        "analytics/platforms",
+        "analytics/cohorts",
+        "analytics/hands",
+        "analytics/quality",
+        "analytics/abuse",
+    ):
+        assert f"/v1/admin/{route}" in served, route
+        assert f"/v1/admin/{route}" in sources, f"no page reads /v1/admin/{route}"
+
+
+def test_admin_console_names_every_event_kind_the_relay_writes():
+    """The timeline and the feed show an event's kind by a sentence in both languages: each
+    kind the relay writes (db.add_event and cloud.note in service.py, api.py, hub.py, sync.py)
+    has one."""
+    kinds: set[str] = set()
+    for name in ("service.py", "api.py", "hub.py", "sync.py", "controls.py"):
+        text = (CLOUD / "nanomuse_cloud" / name).read_text(encoding="utf-8")
+        for call in re.findall(r"(?:add_event|\.note)\((.*?)\)", text, flags=re.S):
+            kinds.update(re.findall(r'"([a-z_]+\.[a-z_.]+)"', call))
+        kinds.update(re.findall(r'kind = "([a-z_]+\.[a-z_.]+)" if', text))
+        kinds.update(re.findall(r'if [a-z_]+ else "([a-z_]+\.[a-z_.]+)"', text))
+        for a, b in re.findall(r'return "([a-z_]+\.[a-z_.]+)" if .*? else "([a-z_]+\.[a-z_.]+)"', text):
+            kinds.update((a, b))
+    assert {"account.created", "budget.refused", "upstream.error", "content.rejected", "invite.clawback", "credit.granted"} <= kinds
+    zh, en = _locale_tables()
+    for kind in sorted(kinds):
+        assert f'"{kind}": ' in zh, f"{kind} has no Chinese name"
+        assert f'"{kind}": ' in en, f"{kind} has no English name"
+
+
+def test_admin_console_edits_the_star_card_text_in_both_languages():
+    """The nudges editor (relay 0.22's policy) has the two text inputs, English and 简体中文,
+    named in both locales, and saves the whole policy with its version through PUT."""
+    settings = (ADMIN_SRC / "pages" / "Settings.tsx").read_text(encoding="utf-8")
+    assert "star({ text: e.target.value })" in settings and "star({ text_zh: e.target.value })" in settings
+    assert 'put("/v1/admin/nudges", body)' in settings and "{ reset: true }" in settings
+    zh, en = _locale_tables()
+    assert 'nuText: "英文文案"' in zh and 'nuTextZh: "中文文案"' in zh
+    assert 'nuText: "Text (English)"' in en and 'nuTextZh: "Text (中文)"' in en
+
+
+def test_admin_console_invites_page_reclaims_through_the_relay():
+    """The Invites page lists the inviters with the same-address warning and sends the
+    operator to the drawer's reclaim, which posts to /v1/admin/invites/abuse with both flags
+    after asking."""
+    invites = (ADMIN_SRC / "pages" / "Invites.tsx").read_text(encoding="utf-8")
+    assert '"/v1/admin/invites?' in invites and "invited_same_ip" in invites and "T.in.sameIpWarn" in invites
+    drawer = (ADMIN_SRC / "pages" / "AccountDrawer.tsx").read_text(encoding="utf-8")
+    assert '"/v1/admin/invites/abuse"' in drawer and "delete_unused" in drawer and "disable" in drawer
+    assert "T.ac.abuseConfirm(" in drawer and "T.ac.abuseResult(" in drawer
+    zh, en = _locale_tables()
+    assert 'abuse: "收回邀请奖励"' in zh and 'abuse: "Reclaim invite credit"' in en
 
 
 def test_web_console_prints_the_relays_code_lifetime_and_password_length():
@@ -191,58 +242,45 @@ def test_web_console_prints_the_relays_code_lifetime_and_password_length():
     assert "code_ttl_s: 600" in source and "password_min_len: 8" in source
 
 
-def test_admin_console_searches_and_filters_further():
-    """0.26: the People search reaches more fields and takes several words, three filters
-    joined it, the drawer's statement and timeline filter through the relay (`?kind=&q=`),
-    the Activity feed pages with `before`, the Demo and Data tables search, and every new
-    string is in the 简体中文 table and in the English one. A new page closes the drawer."""
-    source = (CONSOLE / "admin" / "admin.js").read_text(encoding="utf-8")
-    keys = (
-        "searchHint",
-        "searchKeys",
-        "fJoined",
-        "joinedIn",
-        "fSource",
-        "cameVia",
-        "fVersion",
-        "lgCredits",
-        "lgSearch",
-        "tlSearch",
-        "noRequestsYet",
-        "dvSearch",
-        "bSearch",
-        "feedLoaded",
-    )
-    for key in keys:
-        assert source.count(f"{key}:") == 2, f"{key} is in one table only"
-        assert f"T.{key}" in source, f"nothing draws {key}"
-    assert 'fJoined: "注册时间"' in source and 'fJoined: "Joined"' in source
-    people = source[source.index("function peopleView()") : source.index("function exportCsv(")]
-    # the search: every word, anywhere in the account's text, which includes the devices and the inviter
-    assert "matches(haystack(a), ts)" in people and 'class: "toolbar lead"' in people and 'class: "search wide"' in people
-    hay = source[source.index("const haystack = ") : source.index("const terms = ")]
-    for field in ("a.identifier", "a.id", "a.first_ip", "a.last_ip", "a.last_version", "d.name", "a.invite_code", "identOf(a.invited_by"):
+def test_admin_console_people_page_searches_and_filters_in_the_address_bar():
+    """The People page: the search reaches the identifier, the addresses, the version, the
+    devices and the inviter and takes several words; the filters and the sort live in the
+    hash so a view can be shared and survives a reload; the drawer's statement and timeline
+    page through the relay with `before`, filtered by kind and text."""
+    people = (ADMIN_SRC / "pages" / "People.tsx").read_text(encoding="utf-8")
+    assert "matches(haystack(a), ts)" in people
+    hay = people[people.index("const haystack = ") : people.index("const base = useMemo(")]
+    for field in (
+        "a.identifier",
+        "a.id",
+        "a.first_ip",
+        "a.last_ip",
+        "a.last_version",
+        "d.name",
+        "d.llm_model",
+        "a.invite_code",
+        "a.invited_by",
+    ):
         assert field in hay, f"the search does not reach {field}"
-    assert "joinedOf(a) === f.joined" in people and "sourceOk(a, f.source)" in people and "f.version" in people
-    for key in ("joined", "source", "version"):
-        assert f'{key}: g("{key}")' in source, f"{key} is not a hash parameter"
-    assert '"invited_by"' in source[source.index("function exportCsv(") :] and '"version"' in source[source.index("function exportCsv(") :]
-    # the drawer's lists filter on the relay, and the filter outlives a redraw
-    drawer = source[source.index("function drawDrawer()") : source.index("function ledgerLine(")]
-    assert "filteredList(`${a.id}:ledger`" in drawer and "filteredList(`${a.id}:events`" in drawer
-    assert "/ledger?limit=200&before=${before}&kind=${encodeURIComponent(kind)}&q=${encodeURIComponent(q)}" in drawer
-    assert "/events?limit=200&before=${before}&kind=${encodeURIComponent(kind)}&q=${encodeURIComponent(q)}" in drawer
-    assert "T.noRequestsYet" in drawer
-    assert (
-        "const LISTF = new Map()" in source
-        and "LISTF.clear()" in source[source.index("function closeDrawer()") : source.index("function closeDrawer()") + 200]
-    )
-    # a new view closes the drawer; "/" starts a search
-    assert 'window.addEventListener("hashchange", () => { closeDrawer(); route(); draw(); })' in source
-    assert 'e.key !== "/"' in source
-    # the Activity feed reads on with before=
-    assert "/v1/admin/events?limit=200&kind=${encodeURIComponent(filter)}&before=${last}" in source
-    # the Demo visitors and the Data by-account tables search
-    assert 'params.get("dq")' in source and 'params.get("bq")' in source
+    for key in ("country", "province", "channel", "status", "joined", "activity", "spend", "source", "platform", "version", "sort"):
+        assert f'p.get("{key}")' in people, f"{key} is not a hash parameter"
+    drawer = (ADMIN_SRC / "pages" / "AccountDrawer.tsx").read_text(encoding="utf-8")
+    assert "/ledger" in drawer and "/events" in drawer and "before" in drawer and "kind" in drawer
+    activity = (ADMIN_SRC / "pages" / "Activity.tsx").read_text(encoding="utf-8")
+    assert "/v1/admin/events" in activity and "before" in activity
     # the Stats page's jump list
-    assert "p.id = `st-${m.id}`" in source and "scrollIntoView" in source
+    stats = (ADMIN_SRC / "pages" / "Stats.tsx").read_text(encoding="utf-8")
+    assert "`m-${m.id}`" in stats and "scrollIntoView" in stats
+
+
+def test_admin_console_live_page_judges_the_endpoint_on_the_last_ten_minutes():
+    """The Live page's verdict: saturated when over a quarter of the last ten minutes'
+    requests queued or the queue's P95 passes two seconds (or the gate is full with a
+    queue), busy at a twentieth or half a second; the thresholds in the code are the ones
+    the sentence under the verdict tells the operator."""
+    live = (ADMIN_SRC / "pages" / "Live.tsx").read_text(encoding="utf-8")
+    assert "waited_share > 0.25" in live and "p95_wait_ms > 2000" in live
+    assert "waited_share > 0.05" in live and "p95_wait_ms > 500" in live
+    zh, en = _locale_tables()
+    assert "25%" in zh and "2 秒" in zh and "5%" in zh and "500 毫秒" in zh
+    assert "25%" in en and "2 s" in en and "5%" in en and "500 ms" in en

@@ -441,6 +441,9 @@ class Settings:
     chat_concurrency: int = field(default_factory=lambda: _int("CHAT_CONCURRENCY", 12))
     chat_retries: int = field(default_factory=lambda: _int("CHAT_RETRIES", 2))
     chat_retry_base_s: float = field(default_factory=lambda: float(_env("CHAT_RETRY_BASE_S", "0.5")))
+    # 0.28: how long the per-request telemetry rows (`calls`: timings, how a request ended,
+    # its shape — never its words) are kept for the console's live page and drill-downs.
+    calls_keep_days: int = field(default_factory=lambda: _int("CALLS_KEEP_DAYS", 90))
     # Pictures: DashScope allows an account only a couple of image tasks at a time and
     # answers 429 past that, so the relay draws at most IMAGE_CONCURRENCY pictures at once
     # for everyone together (the rest queue) and, on a 429 or 5xx, tries again up to
