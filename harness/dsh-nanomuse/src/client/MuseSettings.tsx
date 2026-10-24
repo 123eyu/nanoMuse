@@ -125,7 +125,7 @@ function SettingsPanel({ t, rows, renderSlot, activeId, from, onSelect, onBack, 
   const searching = queryWords(query).length > 0
   // the pages whose title answers the query, in the order the nav lists them
   const pageHits = filterPages([...primary, ...advanced], query)
-  const matching = new Set(pageHits.map((row) => row.id))
+  const matching = new Set(searching ? pageHits.map((row) => row.id) : [])
 
   // the query on the page that is open: the words that match are marked where they
   // stand and listed under the field, so a setting is found by its own words
