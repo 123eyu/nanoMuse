@@ -2,8 +2,8 @@
 
 DuckDuckGo needs no key and is the default, but it is scraped, not served: it rate-limits
 and breaks now and then. When that matters, pick a provider with an API — Brave, Tavily or
-Serply with a key, You.com with or without one (keyless, 100 searches a day), or a
-SearXNG instance you run yourself — in ``[connectors.search]`` or from *Connections →
+Serply with a key, You.com with or without one (keyless, 100 searches a day), Parallel's
+Search MCP with or without one, or a SearXNG instance you run yourself — in ``[connectors.search]`` or from *Connections →
 Web search*. Whatever is picked, a failed search falls back to DuckDuckGo once, with a
 note in the result, so a lapsed key does not stop a task.
 """
@@ -11,6 +11,8 @@ note in the result, so a lapsed key does not stop a task.
 from __future__ import annotations
 
 import asyncio
+import json
+import uuid
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlparse
@@ -51,11 +53,22 @@ PROVIDERS: dict[str, dict[str, Any]] = {
         "keyed_host": "ydc-index.io",
         "keys_url": "https://you.com/platform/api-keys",
     },
+    # Parallel's Search MCP: anonymous (free, Fast mode, lower limits) or with a key as a
+    # Bearer token for higher ones; the same endpoint either way.
+    "parallel": {
+        "label": "Parallel",
+        "needs_key": False,
+        "optional_key": True,
+        "host": "search.parallel.ai",
+        "keys_url": "https://platform.parallel.ai/",
+    },
     "searxng": {"label": "SearXNG", "needs_key": False, "host": ""},
 }
 TIMEOUT = 20.0
 # On You.com requests only, at the vendor's request, so they can tell nanoMuse's traffic apart.
 YOU_USER_AGENT = "youdotcom-integration/nano-muse-nanomuse"
+PARALLEL_MCP_URL = "https://search.parallel.ai/mcp"
+MCP_PROTOCOL_VERSION = "2025-06-18"
 
 
 def _client() -> httpx.AsyncClient:
@@ -92,6 +105,8 @@ class WebSearchProvider:
     def __init__(self, settings: SearchSettings, vault: CredentialVault | None = None):
         self.settings = settings
         self.vault = vault
+        # Parallel counts its free tier per session: one id for the life of this provider.
+        self.session_id = uuid.uuid4().hex
 
     @property
     def name(self) -> str:
@@ -134,6 +149,8 @@ class WebSearchProvider:
             return f"SearXNG at {self.settings.base_url or '(no URL set)'}"
         if self.name == "you" and not self.api_key():
             return "You.com (no key: 100 searches a day)"
+        if self.name == "parallel" and not self.api_key():
+            return "Parallel (no key: free, lower limits)"
         return f"{self.label} ({'key set' if self.api_key() else 'no key'})"
 
     async def search(
@@ -204,6 +221,8 @@ class WebSearchProvider:
             return await self._serply(query, max_results, region)
         if self.name == "you":
             return await self._you(query, max_results, region)
+        if self.name == "parallel":
+            return await self._parallel(query, max_results)
         if self.name == "searxng":
             return await self._searxng(query, max_results, region)
         return await self._ddg(query, max_results, region)
@@ -331,6 +350,66 @@ class WebSearchProvider:
             for r in rows[:max_results]
         ]
 
+    async def _parallel(self, query: str, max_results: int) -> list[SearchResult]:
+        """Parallel: the ``web_search`` tool of its Search MCP, one ``tools/call`` over
+        Streamable HTTP. The server takes a call without the ``initialize`` handshake, so a
+        search is one request. A tool error comes back as ``isError`` with a sentence."""
+        key = self.api_key()
+        headers = {
+            "Accept": "application/json, text/event-stream",
+            "Content-Type": "application/json",
+            "MCP-Protocol-Version": MCP_PROTOCOL_VERSION,
+        }
+        if key:
+            headers["Authorization"] = f"Bearer {key}"
+        call = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {
+                "name": "web_search",
+                "arguments": {
+                    "objective": query,
+                    "search_queries": [query],
+                    "session_id": self.session_id,
+                },
+            },
+        }
+        async with _client() as client:
+            resp = await client.post(PARALLEL_MCP_URL, json=call, headers=headers)
+        if not key and resp.status_code == 429:
+            raise SearchError("the free limit is reached for now (HTTP 429)")
+        if resp.status_code >= 400:
+            _raise_for(resp)
+        reply = _mcp_reply(resp)
+        if error := reply.get("error"):
+            raise SearchError(f"MCP error: {str(error.get('message') or error)[:160]}")
+        result = reply.get("result") or {}
+        text = "".join(
+            c.get("text") or "" for c in result.get("content") or [] if c.get("type") == "text"
+        )
+        if result.get("isError"):
+            raise SearchError(text.strip()[:160] or "the search tool reported an error")
+        found = result.get("structuredContent")
+        if not isinstance(found, dict):
+            try:
+                found = json.loads(text)
+            except ValueError as exc:
+                raise SearchError("the reply carried no search results") from exc
+        rows = found.get("results") if isinstance(found, dict) else None
+        if not isinstance(rows, list):
+            raise SearchError("the reply carried no search results")
+        return [
+            SearchResult(
+                title=r.get("title") or "",
+                url=r.get("url") or "",
+                # Excerpts are markdown over several lines; one line keeps the list readable.
+                snippet=" ".join(" ".join(_strings(r.get("excerpts"))).split())[:400],
+            )
+            for r in rows[:max_results]
+            if isinstance(r, dict)
+        ]
+
     async def _searxng(self, query: str, max_results: int, region: str) -> list[SearchResult]:
         country, lang = _region(region)
         params: dict[str, Any] = {"q": query, "format": "json"}
@@ -353,11 +432,33 @@ class WebSearchProvider:
         ]
 
 
+def _strings(items: Any) -> list[str]:
+    """The strings of a list, else none."""
+    return [i for i in items if isinstance(i, str)] if isinstance(items, list) else []
+
+
 def _first(snippets: Any) -> str:
     """The first entry of a list of strings, else nothing."""
     if isinstance(snippets, list) and snippets and isinstance(snippets[0], str):
         return snippets[0]
     return ""
+
+
+def _mcp_reply(resp: httpx.Response) -> dict[str, Any]:
+    """The JSON-RPC answer of a Streamable HTTP reply: a JSON body, or the last ``data:``
+    message of an event stream."""
+    if resp.headers.get("content-type", "").startswith("text/event-stream"):
+        data = [ln[5:].strip() for ln in resp.text.splitlines() if ln.startswith("data:")]
+        body = data[-1] if data else ""
+    else:
+        body = resp.text
+    try:
+        reply = json.loads(body)
+    except ValueError as exc:
+        raise SearchError("the reply was not JSON-RPC (is the URL an MCP server?)") from exc
+    if not isinstance(reply, dict):
+        raise SearchError("the reply was not JSON-RPC (is the URL an MCP server?)")
+    return reply
 
 
 def _raise_for(resp: httpx.Response) -> None:

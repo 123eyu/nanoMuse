@@ -276,7 +276,7 @@ class EmbeddingsBody(BaseModel):
 
 
 class SearchBody(BaseModel):
-    provider: str | None = None  # duckduckgo | brave | tavily | serply | you | searxng
+    provider: str | None = None  # duckduckgo | brave | tavily | serply | you | parallel | searxng
     api_key: str | None = None  # into the vault; "" removes it; None keeps it
     base_url: str | None = None  # SearXNG instance
 
