@@ -14,6 +14,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Android
 
+- **A scheduled task can fire at several times a day.** The editor adds a row per time under the first one, the task list shows the times on one row, `minis-scheduled create` takes `--time` more than once and prints `times` for such a task, and each run record names the time it was scheduled for. Tasks saved before this change keep their one time.
+
 ### iOS
 
 ### Project

@@ -15,12 +15,20 @@ data class ScheduledRun(
     val sessionId: String?,
     val preview: String?,
     val ok: Boolean,
+    // nanoMuse: [GH#557] the trigger instant this firing was armed for, so
+    // the run history can show which of a task's times a run belongs to.
+    // Null for runs started by hand (Run now, the CLI's run) and for rows
+    // written before the field existed. Additive in the JSON, like the
+    // optional fields above.
+    val scheduledForMs: Long? = null,
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
         put("firedAt", firedAt)
         if (sessionId != null) put("sessionId", sessionId)
         if (preview != null) put("preview", preview)
         put("ok", ok)
+        // nanoMuse: [GH#557]
+        if (scheduledForMs != null) put("scheduledForMs", scheduledForMs)
     }
 
     companion object {
@@ -29,6 +37,8 @@ data class ScheduledRun(
             sessionId = if (o.has("sessionId")) o.optString("sessionId", null) else null,
             preview = if (o.has("preview")) o.optString("preview", null) else null,
             ok = o.optBoolean("ok", true),
+            // nanoMuse: [GH#557]
+            scheduledForMs = if (o.has("scheduledForMs")) o.optLong("scheduledForMs") else null,
         )
     }
 }
@@ -141,7 +151,27 @@ data class ScheduledTask(
     val hidden: Boolean = false,
     val goalId: String? = null,
     val intervalMinutes: Int? = null,
+    // nanoMuse: [GH#557] further times of day the task fires at, on top of
+    // the primary [timeOfDayHour] / [timeOfDayMinute]. Appended last with a
+    // default so every existing construction compiles unchanged. Additive
+    // in the JSON as a "times" array of "HH:MM" strings (see toJson); rows
+    // written before the field existed read back with none.
+    val additionalTimes: List<Pair<Int, Int>> = emptyList(),
 ) {
+
+    /**
+     * nanoMuse: [GH#557] Every time of day this task fires at, earliest
+     * first: the primary time plus [additionalTimes], duplicates removed.
+     * A task with no additional times has exactly one entry, as before.
+     */
+    val timesOfDay: List<Pair<Int, Int>>
+        get() = (listOf(timeOfDayHour to timeOfDayMinute) + additionalTimes)
+            .distinct()
+            .sortedWith(compareBy<Pair<Int, Int>> { it.first }.thenBy { it.second })
+
+    /** nanoMuse: [GH#557] "08:00" for one time, "08:00, 14:00, 20:00" for several. */
+    fun timesLabel(): String =
+        timesOfDay.joinToString(", ") { (h, m) -> "%02d:%02d".format(h, m) }
 
     /**
      * Wall-clock ms of the next firing time for this task, taking
@@ -168,40 +198,47 @@ data class ScheduledTask(
         // a task created today with a future startDate wait until that day.
         val floor = maxOf(now, startDateMs ?: Long.MIN_VALUE)
 
-        val cal = Calendar.getInstance().apply {
+        // nanoMuse: [GH#557] the next firing is the nearest of the task's
+        // times. Scan forward from the floor's day: a day counts when it
+        // matches the repeat rule, and the first of the day's times at or
+        // after the floor wins. With one time this walks exactly as the old
+        // single-candidate code did, including the week-long reach for a
+        // CUSTOM day that only matches today. Interval tasks returned
+        // above and never reach here.
+        if (repeatMode == ScheduledRepeatMode.CUSTOM && customDays.isEmpty()) return null
+        val day = Calendar.getInstance().apply {
             timeInMillis = floor
-            set(Calendar.HOUR_OF_DAY, timeOfDayHour)
-            set(Calendar.MINUTE, timeOfDayMinute)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
         }
-
-        val candidate: Long = when (repeatMode) {
-            ScheduledRepeatMode.ONCE, ScheduledRepeatMode.DAILY -> {
-                if (cal.timeInMillis < floor) cal.add(Calendar.DAY_OF_YEAR, 1)
-                cal.timeInMillis
+        var candidate: Long? = null
+        for (offset in 0..8) {
+            if (offset > 0) day.add(Calendar.DAY_OF_YEAR, 1)
+            val dow = day.get(Calendar.DAY_OF_WEEK)
+            val dayMatches = when (repeatMode) {
+                ScheduledRepeatMode.ONCE, ScheduledRepeatMode.DAILY -> true
+                ScheduledRepeatMode.WEEKDAYS ->
+                    dow != Calendar.SATURDAY && dow != Calendar.SUNDAY
+                ScheduledRepeatMode.CUSTOM -> dow in customDays
             }
-            ScheduledRepeatMode.WEEKDAYS -> {
-                if (cal.timeInMillis < floor) cal.add(Calendar.DAY_OF_YEAR, 1)
-                var safety = 8
-                while (safety-- > 0 && cal.get(Calendar.DAY_OF_WEEK).let {
-                        it == Calendar.SATURDAY || it == Calendar.SUNDAY
-                    }) {
-                    cal.add(Calendar.DAY_OF_YEAR, 1)
+            if (!dayMatches) continue
+            for ((h, m) in timesOfDay) {
+                val at = (day.clone() as Calendar).apply {
+                    set(Calendar.HOUR_OF_DAY, h)
+                    set(Calendar.MINUTE, m)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }.timeInMillis
+                if (at >= floor) {
+                    candidate = at
+                    break
                 }
-                cal.timeInMillis
             }
-            ScheduledRepeatMode.CUSTOM -> {
-                if (customDays.isEmpty()) return null
-                if (cal.timeInMillis < floor) cal.add(Calendar.DAY_OF_YEAR, 1)
-                var safety = 8
-                while (safety-- > 0 && cal.get(Calendar.DAY_OF_WEEK) !in customDays) {
-                    cal.add(Calendar.DAY_OF_YEAR, 1)
-                }
-                if (safety < 0) return null
-                cal.timeInMillis
-            }
+            if (candidate != null) break
         }
+        if (candidate == null) return null
 
         // Respect the end-of-window: endDateMs is the start-of-day of the last
         // allowed day, so the task may fire any time up to end-of-that-day.
@@ -244,46 +281,93 @@ data class ScheduledTask(
         if (hidden) put("hidden", true)
         if (goalId != null) put("goalId", goalId)
         if (intervalMinutes != null) put("intervalMinutes", intervalMinutes)
+        // nanoMuse: [GH#557] every time of day, "HH:MM", earliest first.
+        // "hour"/"minute" above stay the first time, so a reader that
+        // predates this field still fires the task, once a day at it.
+        if (additionalTimes.isNotEmpty()) {
+            put("times", JSONArray().apply {
+                timesOfDay.forEach { (h, m) -> put("%02d:%02d".format(h, m)) }
+            })
+        }
     }
 
     companion object {
         /** Max recorded executions kept per task. */
         const val MAX_RUN_HISTORY = 50
 
-        fun fromJson(o: JSONObject): ScheduledTask = ScheduledTask(
-            id = o.getString("id"),
-            label = o.optString("label", ""),
-            timeOfDayHour = o.optInt("hour", 9),
-            timeOfDayMinute = o.optInt("minute", 0),
-            repeatMode = runCatching {
-                ScheduledRepeatMode.valueOf(o.optString("repeatMode", "ONCE"))
-            }.getOrDefault(ScheduledRepeatMode.ONCE),
-            customDays = o.optString("customDays", "")
-                .split(',').mapNotNull { it.trim().toIntOrNull() }.toSet(),
-            prompt = o.optString("prompt", ""),
-            targetMode = ScheduledTargetMode.decode(o.optString("targetMode", null)),
-            modelId = if (o.has("modelId")) o.optString("modelId", null) else null,
-            modelBinding = if (o.has("modelBinding")) o.optString("modelBinding", null) else null,
-            enabled = o.optBoolean("enabled", true),
-            createdAt = o.optLong("createdAt", System.currentTimeMillis()),
-            startDateMs = if (o.has("startDateMs")) o.optLong("startDateMs") else null,
-            endDateMs = if (o.has("endDateMs")) o.optLong("endDateMs") else null,
-            lastFiredAt = if (o.has("lastFiredAt")) o.optLong("lastFiredAt") else null,
-            lastResultPreview = if (o.has("lastResultPreview"))
-                o.optString("lastResultPreview", null) else null,
-            lastResultSessionId = if (o.has("lastResultSessionId"))
-                o.optString("lastResultSessionId", null) else null,
-            runHistory = o.optJSONArray("runHistory")?.let { arr ->
-                buildList {
-                    for (i in 0 until arr.length()) {
-                        arr.optJSONObject(i)?.let { add(ScheduledRun.fromJson(it)) }
-                    }
+        /** nanoMuse: [GH#557] "HH:MM" → (hour, minute); anything else → null. */
+        fun parseTimeOfDay(raw: String): Pair<Int, Int>? {
+            val parts = raw.trim().split(":")
+            if (parts.size != 2) return null
+            val h = parts[0].toIntOrNull()?.takeIf { it in 0..23 } ?: return null
+            val m = parts[1].toIntOrNull()?.takeIf { it in 0..59 } ?: return null
+            return h to m
+        }
+
+        /**
+         * nanoMuse: [GH#557] The times beyond the first, from the "times"
+         * array a multi-time row writes. Absent (rows from before the
+         * field) → none. The "hour"/"minute" fields stay the first time;
+         * entries in the array that repeat it, do not parse or fall out of
+         * range are dropped, as customDays are below.
+         */
+        private fun additionalTimesFromJson(
+            o: JSONObject,
+            hour: Int,
+            minute: Int,
+        ): List<Pair<Int, Int>> {
+            val arr = o.optJSONArray("times") ?: return emptyList()
+            return buildList {
+                for (i in 0 until arr.length()) {
+                    parseTimeOfDay(arr.optString(i, ""))?.let { add(it) }
                 }
-            } ?: emptyList(),
-            // nanoMuse
-            hidden = o.optBoolean("hidden", false),
-            goalId = if (o.has("goalId")) o.optString("goalId", null) else null,
-            intervalMinutes = if (o.has("intervalMinutes")) o.optInt("intervalMinutes") else null,
-        )
+            }.distinct()
+                .filterNot { it.first == hour && it.second == minute }
+                .sortedWith(compareBy<Pair<Int, Int>> { it.first }.thenBy { it.second })
+        }
+
+        fun fromJson(o: JSONObject): ScheduledTask {
+            // nanoMuse: [GH#557] read the primary time first; the "times"
+            // array is resolved against it by additionalTimesFromJson.
+            val hour = o.optInt("hour", 9)
+            val minute = o.optInt("minute", 0)
+            return ScheduledTask(
+                id = o.getString("id"),
+                label = o.optString("label", ""),
+                timeOfDayHour = hour,
+                timeOfDayMinute = minute,
+                repeatMode = runCatching {
+                    ScheduledRepeatMode.valueOf(o.optString("repeatMode", "ONCE"))
+                }.getOrDefault(ScheduledRepeatMode.ONCE),
+                customDays = o.optString("customDays", "")
+                    .split(',').mapNotNull { it.trim().toIntOrNull() }.toSet(),
+                prompt = o.optString("prompt", ""),
+                targetMode = ScheduledTargetMode.decode(o.optString("targetMode", null)),
+                modelId = if (o.has("modelId")) o.optString("modelId", null) else null,
+                modelBinding = if (o.has("modelBinding")) o.optString("modelBinding", null) else null,
+                enabled = o.optBoolean("enabled", true),
+                createdAt = o.optLong("createdAt", System.currentTimeMillis()),
+                startDateMs = if (o.has("startDateMs")) o.optLong("startDateMs") else null,
+                endDateMs = if (o.has("endDateMs")) o.optLong("endDateMs") else null,
+                lastFiredAt = if (o.has("lastFiredAt")) o.optLong("lastFiredAt") else null,
+                lastResultPreview = if (o.has("lastResultPreview"))
+                    o.optString("lastResultPreview", null) else null,
+                lastResultSessionId = if (o.has("lastResultSessionId"))
+                    o.optString("lastResultSessionId", null) else null,
+                runHistory = o.optJSONArray("runHistory")?.let { arr ->
+                    buildList {
+                        for (i in 0 until arr.length()) {
+                            arr.optJSONObject(i)?.let { add(ScheduledRun.fromJson(it)) }
+                        }
+                    }
+                } ?: emptyList(),
+                // nanoMuse
+                hidden = o.optBoolean("hidden", false),
+                goalId = if (o.has("goalId")) o.optString("goalId", null) else null,
+                intervalMinutes = if (o.has("intervalMinutes")) o.optInt("intervalMinutes") else null,
+                // nanoMuse: [GH#557]
+                additionalTimes = additionalTimesFromJson(o, hour, minute),
+            )
+        }
     }
 }

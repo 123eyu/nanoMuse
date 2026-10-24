@@ -133,6 +133,9 @@
     <string name="nm_routine_paused">Désactivée</string>
     <!-- The chat row a routine sent: its label and the clock time it fired -->
     <string name="nm_routine_wake_caption">Routine · %1$s · %2$s</string>
+    <!-- One scheduled task, several times a day (GH#557) -->
+    <string name="nm_scheduled_task_add_time">Ajouter un autre horaire</string>
+    <string name="nm_scheduled_task_runs_scheduled_for">Programmé pour %1$s</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">Idées</string>

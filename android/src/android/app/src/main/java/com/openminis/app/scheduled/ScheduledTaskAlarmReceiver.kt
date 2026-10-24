@@ -33,6 +33,11 @@ class ScheduledTaskAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ScheduledTaskManager.ACTION_FIRE) return
         val taskId = intent.getStringExtra(ScheduledTaskManager.EXTRA_TASK_ID) ?: return
+        // nanoMuse: [GH#557] the instant this firing was armed for, put on
+        // the intent by the manager; absent on intents from before the
+        // field existed, which the run record then leaves unset.
+        val triggerAtMs = intent.getLongExtra(ScheduledTaskManager.EXTRA_TRIGGER_AT_MS, -1L)
+            .takeIf { it > 0 }
 
         AppLogger.info(TAG, "fire received: task=$taskId")
 
@@ -79,7 +84,16 @@ class ScheduledTaskAlarmReceiver : BroadcastReceiver() {
                     // completion notification are finished off ScheduledAgent-
                     // Runner's app-scoped bgScope, which outlives this
                     // receiver.
-                    ScheduledAgentRunner.run(appContext, task, waitForCompletion = false)
+                    // nanoMuse: [GH#557] firedTriggerAtMs attributes the run
+                    // to the armed time; rescheduleNext above has already
+                    // re-armed, and because that is computed after the fired
+                    // instant, the next trigger is the next of the times.
+                    ScheduledAgentRunner.run(
+                        appContext,
+                        task,
+                        waitForCompletion = false,
+                        firedTriggerAtMs = triggerAtMs,
+                    )
                 }
             } catch (t: Throwable) {
                 // Includes TimeoutCancellationException. The task stays

@@ -94,13 +94,28 @@ class ScheduledTaskManager(private val context: Context) {
         registerAlarm(t)
     }
 
-    fun markFired(taskId: String, sessionId: String?, resultPreview: String?, ok: Boolean = true) {
+    // nanoMuse: [GH#557] scheduledForMs is the trigger instant the alarm
+    // was armed for (null when the run was started by hand); it lands on
+    // the run record so the history can name the time a run belongs to.
+    fun markFired(
+        taskId: String,
+        sessionId: String?,
+        resultPreview: String?,
+        ok: Boolean = true,
+        scheduledForMs: Long? = null,
+    ) {
         val t = store.get(taskId) ?: return
         val now = System.currentTimeMillis()
         // [T-android-scheduled-tasks-run-records] Prepend a run record
         // (newest-first), capped at MAX_RUN_HISTORY. lastResult* are kept in
         // sync for back-compat but are no longer surfaced in the list UI.
-        val run = ScheduledRun(firedAt = now, sessionId = sessionId, preview = resultPreview, ok = ok)
+        val run = ScheduledRun(
+            firedAt = now,
+            sessionId = sessionId,
+            preview = resultPreview,
+            ok = ok,
+            scheduledForMs = scheduledForMs,
+        )
         val history = (listOf(run) + t.runHistory).take(ScheduledTask.MAX_RUN_HISTORY)
         store.upsert(
             t.copy(
@@ -117,7 +132,9 @@ class ScheduledTaskManager(private val context: Context) {
             AppLogger.warning(TAG, "task ${task.id} has no next trigger — skipping register")
             return
         }
-        val pi = buildPendingIntent(task.id)
+        // nanoMuse: [GH#557] the armed instant rides the intent so the
+        // receiver can attribute the run to one of the task's times.
+        val pi = buildPendingIntent(task.id, triggerAt)
         try {
             alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
             AppLogger.info(TAG, "registered task=${task.id} label=\"${task.label}\" triggerAt=$triggerAt")
@@ -142,10 +159,14 @@ class ScheduledTaskManager(private val context: Context) {
         pi.cancel()
     }
 
-    private fun buildPendingIntent(taskId: String): PendingIntent {
+    // nanoMuse: [GH#557] triggerAtMs is an intent extra only: extras do
+    // not take part in PendingIntent matching, so cancelAlarm's extra-less
+    // intent still cancels the armed one.
+    private fun buildPendingIntent(taskId: String, triggerAtMs: Long? = null): PendingIntent {
         val intent = Intent(context, ScheduledTaskAlarmReceiver::class.java).apply {
             action = ACTION_FIRE
             putExtra(EXTRA_TASK_ID, taskId)
+            if (triggerAtMs != null) putExtra(EXTRA_TRIGGER_AT_MS, triggerAtMs)
         }
         val requestCode = taskId.hashCode() and 0x7FFFFFFF
         val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -170,6 +191,8 @@ class ScheduledTaskManager(private val context: Context) {
         private const val TAG = "ScheduledTaskManager"
         const val ACTION_FIRE = "com.openminis.app.scheduled.FIRE"
         const val EXTRA_TASK_ID = "task_id"
+        // nanoMuse: [GH#557]
+        const val EXTRA_TRIGGER_AT_MS = "trigger_at_ms"
         const val CHANNEL_ID = "minis_scheduled_tasks"
         private const val CHANNEL_NAME = "Scheduled Tasks"
     }
