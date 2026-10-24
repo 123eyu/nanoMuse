@@ -181,8 +181,14 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   → 上游的 `MCPOAuthController`）、key / 打开 / 自动三类服务，以及对那八个不支持注册客户端
   的服务，询问 client id 并给出可复制的回调地址。原来叫 *MCP 集成* 的设置行现在是**连接器**；
   末尾的 *你自己的服务器* 是上游的 MCP 页面。
-- **数据控制**（`NanoMuseDataControls.swift`）：中继的开关、保留的回合数、隐私页、带确认的
-  删除。**Reach**（`NanoMuseReach.swift`）：账号下每台设备一个面板（打开链接、发一条便条、
+- **数据控制**（`NanoMuseDataControls.swift`）：中继的记录里有这个账号的什么（多少轮、其中多少轮用自己的 key、
+  多少张图片、这个中继保留多久；中继 0.29 起）、训练集开关和它的计数、隐私页、一次带确认的删除，记录和训练轮次一起删。
+  1.0.7 起手机自己也参与记录（[cloud.md](cloud.md#the-record)）：发给账号的聊天请求带
+  `X-NanoMuse-Device` 和 `X-NanoMuse-Conversation`（`NanoMuseCloudHeaders.swift`），用自己 key 答完的一轮事后连图片
+  （作为文件）一起上传（`NanoMuseOwnTurns.swift`，包在 agent provider 外面；从不带 key 和 base URL），hub 的 hello
+  说明新对话由什么模型回答（`device.llm`），头像的短片随头像经 profile 的 `clips` 走（`NanoMuseProfile.swift`：
+  这里画出的短片传上去给其他设备，它们的落到本机的 motion 目录，一个头像每个账号只动画一次）。
+  **Reach**（`NanoMuseReach.swift`）：账号下每台设备一个面板（打开链接、发一条便条、
   跑一行 shell、截一张图），都通过 hub。
   **交给另一台设备的任务**（`NanoMuseDeviceMention.swift`、`NanoMuseRemoteApproval.swift`）：
   以 `@〈设备〉` 开头的消息作为 hub 的 `task` 发给那台设备的 Muse（消息开头打 `@` 时，菜单在文件

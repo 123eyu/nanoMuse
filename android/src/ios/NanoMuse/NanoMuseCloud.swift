@@ -34,6 +34,10 @@ struct NanoMuseCloudAccount: Codable, Equatable, Sendable {
     /// nil from an older relay, from the sign-in reply, or when the account has no pool.
     var grantCny: Double? = nil
     var leftCny: Double? = nil
+    /// `contribute.record.on` of `/v1/me` (relay 0.29): the relay keeps the account's turns in
+    /// full, and turns on the person's own key are sent up to join them (NanoMuseOwnTurns).
+    /// nil until the first `/v1/me` answer, or from an older relay: nothing is sent.
+    var recordOn: Bool? = nil
 
     var remaining: Int64 { max(granted - used, 0) }
     /// The relay prices in money and this account has a pool to run out of: the Settings row
@@ -398,6 +402,8 @@ enum NanoMuseCloud {
         if after != before {
             await NanoMuseAccountData.shared.leave(account: before, keep: true)
             await NanoMuseAccountData.shared.enter(account: after)
+            // the profile cursors were `before`'s; `after` starts from the relay's answer
+            NanoMuseProfileSync.shared.forget()
         }
         await MainActor.run { NanoMuseHub.shared.restart() } // the new key joins the hub
         NanoMuseSync.shared.accountChanged() // C10: another account's conversations are not this one's to show or push
@@ -605,6 +611,7 @@ enum NanoMuseCloud {
         let account = reply["account"] as? [String: Any] ?? [:]
         let tokens = reply["tokens"] as? [String: Any] ?? [:]
         let spend = reply["spend"] as? [String: Any] ?? [:]
+        let record = (reply["contribute"] as? [String: Any])?["record"] as? [String: Any]
         func int64(_ value: Any?) -> Int64 {
             if let n = value as? NSNumber { return n.int64Value }
             if let s = value as? String { return Int64(s) ?? 0 }
@@ -626,7 +633,8 @@ enum NanoMuseCloud {
             unlimited: (tokens["unlimited"] as? Bool) ?? ((tokens["unlimited"] as? NSNumber)?.boolValue ?? false),
             id: account["id"] as? String ?? "",
             grantCny: money(spend["grant"]),
-            leftCny: money(spend["left"])
+            leftCny: money(spend["left"]),
+            recordOn: record.map { ($0["on"] as? Bool) ?? (($0["on"] as? NSNumber)?.boolValue ?? false) }
         )
     }
 
