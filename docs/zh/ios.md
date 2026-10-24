@@ -124,7 +124,7 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   目标房间里有进度、步骤、暂停 / 现在检查 / 完成 / 删除，下面是例程。
 - **动态（0.1.34）**（`NanoMuseFeed.swift`，对应 Android `feed/`）：一条每日例程从记忆、日记和
   目标里写几条短帖子到 `feed/<day>/<n>.md`，带 front matter；模型通过 ` ```nanomuse-feed `
-  围栏把它们交出来。动态房间按天显示，*讨论* 就这条帖子开一个旁聊，滑出的面板里放着动态
+  围栏把它们交出来。动态房间按天显示、一天之内最新的一批在前，*讨论* 就这条帖子开一个旁聊，滑出的面板里放着动态
   写什么、什么时候写、开关和 *现在写一版*。**点子** 在 *发到聊天* 旁边多了 *创建例程*（按
   点子的时间安排，打开编辑器）和 *开始这个目标*。
 - **第一次打开和设置（0.1.34）**（`NanoMuseFirstRun.swift`、`NanoMuseSettings.swift`、
