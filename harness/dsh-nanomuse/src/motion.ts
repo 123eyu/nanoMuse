@@ -6,13 +6,15 @@
  * four seconds, the same prompts, word for word.
  *
  * Clips live next to the account's pictures, under `$DSH_HOME/nanomuse/avatar/motion/
- * <mood>.mp4`, and are this computer's alone (the relay keeps stills, not clips). The
- * browser plays whichever exists for the current mood from
- * `/nanomuse/avatar/motion/<mood>.mp4?v=<mtime>` and falls back to the still. A new face —
- * drawn here or arriving from the account — throws the old clips away and, when the person
+ * <mood>.mp4`. The browser plays whichever exists for the current mood from
+ * `/nanomuse/avatar/motion/<mood>.mp4?v=<mtime>` and falls back to the still. A new face,
+ * drawn here or arriving from the account, throws the old clips away and, when the person
  * has not switched the animation off and a video model is set, draws them again, one after
- * another (each takes a few minutes and costs per second). The built-in dragon has its
- * clips in `assets/` and never comes through here.
+ * another (each takes a few minutes and costs per second). Since relay 0.29 the clips travel
+ * with the face: a clip drawn here is handed to `share` (the service puts it up and names it
+ * in the account's profile), and clips another device made are taken in by `adopt` instead
+ * of being drawn again. The built-in dragon has its clips in `assets/` and never comes
+ * through here.
  */
 import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { createReadStream } from 'node:fs'
@@ -95,6 +97,8 @@ export interface MotionDeps {
   log(level: 'info' | 'warn', text: string): void
   /** The clip maker; the tests pass a fake. */
   generate?: typeof imageToVideo
+  /** A clip drawn here, for the account's other devices (relay 0.29); a failure is the service's to log. */
+  share?(mood: MotionMood, bytes: Uint8Array): Promise<void>
 }
 
 const MARKER = 'motion.json'
@@ -231,6 +235,7 @@ export class AvatarMotion {
           await writeFile(tmp, bytes)
           await rename(tmp, file)
           await this.rescan()
+          if (this.deps.share) void this.deps.share(mood, bytes).catch((error: unknown) => this.deps.log('warn', `avatar motion: clip ${mood} not shared with the account: ${error instanceof Error ? error.message : String(error)}`))
         } catch (error: unknown) {
           if (abort.signal.aborted) break
           const text = error instanceof Error ? error.message : String(error)
@@ -248,6 +253,41 @@ export class AvatarMotion {
     })
     this.run = { abort, promise }
     return true
+  }
+
+  /**
+   * Clips another device made of the worn face (the account's profile names them): the moods
+   * this computer has no clip for are fetched and kept as if drawn here, so nothing is drawn
+   * twice. Nothing happens while a run is drawing, for a face other than the worn one, or
+   * for a mood that already has a clip. Returns how many clips were taken in.
+   */
+  async adopt(face: string, clips: Partial<Record<MotionMood, () => Promise<Uint8Array | undefined>>>): Promise<number> {
+    if (!face || face !== this.deps.faceId() || this.run) return 0
+    if (face !== this.clipsFace) await this.clear()
+    let taken = 0
+    for (const mood of ANIMATED) {
+      const fetch = clips[mood]
+      if (!fetch || this.clips[mood]) continue
+      try {
+        const bytes = await fetch()
+        if (!bytes?.length) continue
+        if (this.run || this.deps.faceId() !== face) break
+        await mkdir(this.deps.dir, { recursive: true })
+        if (!taken && this.clipsFace !== face) {
+          this.clipsFace = face
+          await writeFile(join(this.deps.dir, MARKER), JSON.stringify({ faceId: face, from: 'account', at: Date.now() }, null, 2) + '\n').catch(() => undefined)
+        }
+        const file = this.clipFile(mood)
+        const tmp = `${file}.tmp`
+        await writeFile(tmp, bytes)
+        await rename(tmp, file)
+        taken += 1
+      } catch (error: unknown) {
+        this.deps.log('warn', `avatar motion: clip ${mood} from the account not kept: ${error instanceof Error ? error.message : String(error)}`)
+      }
+    }
+    if (taken) await this.rescan()
+    return taken
   }
 
   /** Stop drawing after the current clip; what is on disk stays. */

@@ -215,3 +215,41 @@ test('serveClip: the worn face only, mp4 with a long cache when the URL carries 
     }
   })
 })
+
+test('a clip drawn here is handed to `share`; clips the account lists are adopted for the moods missing, never for another face or during a run', async () => {
+  await withDir(async (dir) => {
+    const shared = []
+    const h = harness({ share: async (mood, bytes) => { shared.push({ mood, size: bytes.length }) } })
+    h.deps.dir = join(dir, 'motion')
+    const motion = new AvatarMotion(h.deps)
+    await motion.init()
+    assert.equal(await motion.animateAll(), true)
+    await motion.settled()
+    assert.deepEqual(shared.map((s) => s.mood), ['idle', 'working', 'waiting', 'happy'])
+    assert.ok(shared.every((s) => s.size === 8))
+
+    // another device's clips for a new face: only the moods not on disk are fetched
+    const fetched = []
+    const clip = (mood) => async () => { fetched.push(mood); return new Uint8Array([9, 9, 9, mood.length]) }
+    h.setFace('def456')
+    assert.equal(await motion.adopt('abc123', { idle: clip('idle') }), 0, 'clips of a face not worn are not taken')
+    assert.deepEqual(fetched, [])
+    assert.equal(await motion.adopt('def456', { idle: clip('idle'), waiting: clip('waiting'), happy: async () => undefined }), 2)
+    assert.deepEqual(fetched, ['idle', 'waiting'])
+    const view = motion.view()
+    assert.equal(view.faceId, 'def456', 'the clips on disk now belong to the new face')
+    assert.deepEqual(Object.keys(view.clips).sort(), ['idle', 'waiting'])
+    assert.equal((await readFile(join(dir, 'motion', 'idle.mp4'))).length, 4)
+    assert.equal(JSON.parse(await readFile(join(dir, 'motion', 'motion.json'), 'utf8')).from, 'account')
+    // a second listing adds only what is missing; an existing clip is not fetched again
+    fetched.length = 0
+    assert.equal(await motion.adopt('def456', { idle: clip('idle'), working: clip('working') }), 1)
+    assert.deepEqual(fetched, ['working'])
+    // what the account did not have is drawn, and only that
+    h.made.length = 0
+    assert.equal(await motion.animateAll(), true)
+    await motion.settled()
+    assert.deepEqual(h.made.map((m) => m.mood), ['happy'])
+    assert.equal(await motion.animateAll(), false, 'all four are here now')
+  })
+})

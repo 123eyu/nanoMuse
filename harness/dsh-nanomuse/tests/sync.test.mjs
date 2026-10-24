@@ -25,7 +25,7 @@ async function until(pred, ms = 2000) {
 
 /** The relay's /v1/sync/* with the contract's rules, behind a fetch. */
 function fakeRelay() {
-  const r = { enabled: true, seq: 0, convs: new Map(), msgs: new Map(), pushes: [], calls: [], gets: [], refuse: null, working: [], refuseWorking: false, presence: new Map() }
+  const r = { enabled: true, seq: 0, convs: new Map(), msgs: new Map(), pushes: [], calls: [], gets: [], refuse: null, refusePush: null, refuseAll413: 0, working: [], refuseWorking: false, presence: new Map() }
   const next = () => ++r.seq
   const json = (status, body) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
   const state = () => ({ enabled: r.enabled, cursor: r.seq, counts: { conversations: [...r.convs.values()].filter((c) => !c.deleted).length, messages: r.msgs.size }, limits: {}, working: [...r.presence.values()] })
@@ -91,6 +91,12 @@ function fakeRelay() {
     if (path === '/v1/sync/changes' && method === 'POST') {
       const body = JSON.parse(init.body)
       r.pushes.push(body)
+      if (r.refusePush) {
+        const { status, code } = r.refusePush
+        r.refusePush = null
+        return json(status, { error: { code, message: code } })
+      }
+      if (r.refuseAll413 && (body.messages ?? []).some((m) => m.text === 'x'.repeat(10))) return json(413, { error: { code: 'too_large', message: 'too large' } })
       let accepted = 0
       const rejected = []
       const redirected = new Map()
@@ -427,6 +433,44 @@ test('signed out, nothing moves; a 0.1.36 state with mirrors pulls again from ze
   // the relay's errors keep their code
   const r = new SyncRelay('https://relay.test', async () => new Response(JSON.stringify({ error: { code: 'sync_off', message: 'off' } }), { status: 409 }))
   await assert.rejects(r.changes('k', 0), (err) => err instanceof RelayError && err.code === 'sync_off' && err.status === 409)
+})
+
+test('a push the relay or the network refused keeps its lines for the next push; a round refused as too large goes up in halves, a single message so refused stays here', async () => {
+  const relay = fakeRelay()
+  const sessions = fakeSessions()
+  sessions.add('s-main', 'Hello there', [{ id: 'u1', role: 'user', text: 'hi there', at: 1738000000000 }])
+  const { engine: e, saved } = engine(relay, sessions)
+  assert.equal(await e.setMain('s-main'), 's-main')
+  // the relay is down for the first push: nothing is lost, the next push carries the line
+  relay.refusePush = { status: 503, code: 'down' }
+  e.messageSent('s-main')
+  await until(() => relay.pushes.length === 1)
+  await tick(30)
+  assert.equal(relay.msgs.size, 0)
+  assert.equal(relay.pushes.length, 1)
+  sessions.lines.get('s-main').push({ id: 'a1', role: 'assistant', text: 'Hello from the desk', at: 1738000001000 })
+  e.turnEnded('s-main')
+  await until(() => relay.msgs.size === 2)
+  assert.deepEqual([...relay.msgs.values()].map((m) => [m.role, m.text]), [['user', 'hi there'], ['assistant', 'Hello from the desk']])
+  // four new lines refused as one round: the engine halves the round until the relay takes it
+  for (let i = 0; i < 4; i++) sessions.lines.get('s-main').push({ id: `b${i}`, role: 'user', text: `line ${i}`, at: 1738000002000 + i })
+  const before = relay.pushes.length
+  relay.refusePush = { status: 413, code: 'too_large' }
+  e.turnEnded('s-main')
+  await until(() => relay.msgs.size === 6)
+  assert.equal(relay.pushes[before].messages.length, 4)
+  assert.equal(relay.pushes[before + 1].messages.length, 2)
+  // one message the relay will not take at any size is marked refused, not sent again and again
+  sessions.lines.get('s-main').push({ id: 'huge', role: 'user', text: 'x'.repeat(10), at: 1738000010000 })
+  relay.refuseAll413 = 1
+  e.turnEnded('s-main')
+  await until(() => saved().mids.huge === 'refused:too_large')
+  assert.equal(relay.msgs.size, 6)
+  const pushes = relay.pushes.length
+  e.turnEnded('s-main')
+  await tick(30)
+  assert.equal(relay.pushes.length, pushes)
+  e.stop()
 })
 
 test('the other devices’ turns live in the host’s own store, not the session log: kept once, in time order, written whole, forgotten on a tombstone; the note to the model is bounded', async () => {

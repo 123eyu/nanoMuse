@@ -154,13 +154,24 @@ export function statusWords(t: Translate, record: ActivityRecord): string {
   // where the tool takes one, else the kind of step and what it is on ("Reading · ctrip.com")
   const title = (record.current?.title ?? '').trim()
   if (title && record.current?.own) return title
-  const kind = stepKind(t, base)
+  const kind = stepKind(t, base) ?? toolWords(name, base)
   if (title) return `${kind} · ${title.length > 40 ? `${title.slice(0, 39)}…` : title}`
   return kind
 }
 
-/** The kind of step a tool name stands for, in the agent's words. */
-function stepKind(t: Translate, base: string): string {
+/**
+ * A tool the kinds above do not name, in its own words rather than a state of mind:
+ * "12306 · get tickets" for `mcp__12306__get-tickets`, "fetch weather" for `fetch_weather`.
+ */
+export function toolWords(name: string, base: string): string {
+  const words = (s: string): string => s.replace(/[_-]+/g, ' ').trim()
+  const mcp = /^mcp__(.+?)__(.+)$/.exec(name)
+  if (mcp) return `${words(mcp[1] ?? '')} · ${words(mcp[2] ?? '')}`
+  return words(base) || words(name)
+}
+
+/** The kind of step a tool name stands for, in the agent's words; nothing for a tool it does not know. */
+function stepKind(t: Translate, base: string): string | undefined {
   if (/screen|look|see|observe/i.test(base)) return t('statusLooking')
   if (/computer|act|click|type|key|mouse|press|open_app/i.test(base)) return t('statusComputer')
   if (/web_search|search/i.test(base)) return t('statusSearching')
@@ -170,7 +181,7 @@ function stepKind(t: Translate, base: string): string {
   if (/ask_user|question/i.test(base)) return t('statusAsking')
   if (/draw|image|studio/i.test(base)) return t('statusDrawing')
   if (/schedule|remind/i.test(base)) return t('statusScheduling')
-  return t('statusWorking')
+  return undefined
 }
 
 /** "On it: <the request, briefly>" — its first line, folded, cut at a word; "Hard at work" without one. */

@@ -824,13 +824,24 @@ export class SyncEngine {
     const known = this.working.get(w.cid)
     if (known && known.from === w.from && known.at >= at) return false
     this.working.set(w.cid, { from: w.from, deviceName: w.device_name, at })
-    // the line goes away by itself 10 minutes after the last `at`
+    this.armWorkingTimer()
+    return tell
+  }
+
+  /** Each line goes away by itself 10 minutes after its last `at`: the one timer is set for
+   * the earliest of them, and re-armed for the next when it fires, so a line of one
+   * conversation is not kept up by a later frame of another. */
+  private armWorkingTimer(): void {
     if (this.workingTimer) clearTimeout(this.workingTimer)
+    this.workingTimer = undefined
+    let earliest = Infinity
+    for (const w of this.working.values()) earliest = Math.min(earliest, w.at)
+    if (earliest === Infinity) return
     this.workingTimer = setTimeout(() => {
       this.workingTimer = undefined
       if (this.expireWorking()) this.changed()
-    }, Math.max(0, at + WORKING_TTL_MS - Date.now()) + 50)
-    return tell
+      this.armWorkingTimer()
+    }, Math.max(0, earliest + WORKING_TTL_MS - Date.now()) + 50)
   }
 
   private expireWorking(): boolean {
@@ -983,6 +994,25 @@ export class SyncEngine {
     // oldest first: a history going up in full arrives in the order it was lived
     const ids = [...this.dirty].sort((a, b) => (sessions.get(a)?.createdAt ?? 0) - (sessions.get(b)?.createdAt ?? 0))
     this.dirty.clear()
+    try {
+      await this.pushRounds(token, device, sessions, ids)
+    } finally {
+      // what a failed round (the network, the relay) did not take stays dirty for the next push
+      for (const sid of ids) this.dirty.add(sid)
+    }
+    if (ids.length > 0) {
+      // a very long history: the rest goes after the next debounce
+      this.pushSoon(this.options.pushDelayMs ?? PUSH_DELAY_MS)
+    }
+    // our rows come back on the next pull (known by device, no change) and the cursor catches up
+    void this.pullQuietly()
+  }
+
+  /** The rounds of one push; `ids` is left holding the sessions that still have lines to send. */
+  private async pushRounds(token: string, device: string, sessions: Map<string, SessionInfo>, ids: string[]): Promise<void> {
+    // a round the relay refused as too large (413) is tried again with half the messages; a single
+    // message it refuses is marked refused and not sent again
+    let batch = MAX_POST_MESSAGES
     for (let round = 0; round < 50 && ids.length > 0; round++) {
       const conversations: Record<string, unknown>[] = []
       const messages: Record<string, unknown>[] = []
@@ -1002,7 +1032,7 @@ export class SyncEngine {
         const lines = await this.options.sessions.lines(sessionId)
         for (const line of lines) {
           if (this.state.mids[line.id]) continue
-          if (messages.length >= MAX_POST_MESSAGES) {
+          if (messages.length >= batch) {
             again.add(sessionId)
             break
           }
@@ -1011,7 +1041,7 @@ export class SyncEngine {
           pending.push({ sessionId, line, mid })
         }
         touched.push(sessionId)
-        if (messages.length >= MAX_POST_MESSAGES) break
+        if (messages.length >= batch) break
       }
       if (conversations.length === 0 && messages.length === 0) {
         // nothing new in these sessions: they are done, not dirty again
@@ -1019,7 +1049,20 @@ export class SyncEngine {
         ids.splice(0, ids.length, ...ids.filter((sid) => again.has(sid)))
         break
       }
-      const out = await this.options.relay.push(token, device, conversations, messages)
+      let out: PushResult
+      try {
+        out = await this.options.relay.push(token, device, conversations, messages)
+      } catch (error: unknown) {
+        if (!(error instanceof RelayError) || error.status !== 413) throw error
+        if (messages.length > 1) {
+          batch = Math.max(1, Math.floor(messages.length / 2))
+          continue
+        }
+        for (const p of pending) this.state.mids[p.line.id] = `refused:${error.code || 'too_large'}`
+        await this.save()
+        this.log('warn', `nanomuse sync: a message the relay refused as too large stays on this device (${error.code})`)
+        continue
+      }
       // the relay took the round: an ownerless session is the signed-in account's from now on (C10)
       for (const sid of touched) this.adopt(sid)
       const redirect = new Map<string, string>()
@@ -1061,13 +1104,6 @@ export class SyncEngine {
       for (const sid of touched) if (!again.has(sid)) this.tellWorking(token, sid)
       ids.splice(0, ids.length, ...ids.filter((sid) => again.has(sid)))
     }
-    if (ids.length > 0) {
-      // a very long history: the rest goes after the next debounce
-      for (const sid of ids) this.dirty.add(sid)
-      this.pushSoon(this.options.pushDelayMs ?? PUSH_DELAY_MS)
-    }
-    // our rows come back on the next pull (known by device, no change) and the cursor catches up
-    void this.pullQuietly()
   }
 
   private cidFor(sessionId: string): string {

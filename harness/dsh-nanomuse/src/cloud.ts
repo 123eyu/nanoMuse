@@ -30,7 +30,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { ApprovalDesk, appOf, checkForUpdate, compareVersions, DEVICE_GRANT_PREFIX, HoldDesk, modelFor, pickChatModel, pickHandsModel, REMOTE_CONTROL_GRANT_ID, sharedConnectors, standingGrants, takesImages, UPDATE_RETRY_MS, updateCacheFresh, type Grant, type Hold, type HoldTool, type PendingApproval, type StandingGrant, type UpdateInfo } from './desk.ts'
 import { arch, homedir, hostname, release, type, userInfo } from 'node:os'
 import { dirname, join } from 'node:path'
-import { createHmac, randomBytes, randomUUID } from 'node:crypto'
+import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto'
 import { Service, type Context } from '@deepseek-ai/cordis'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import type {} from '@deepseek-ai/dsh-host-webserver'
@@ -45,7 +45,7 @@ import z from '@deepseek-ai/schemastery'
 import { mountGuarded } from './admit.ts'
 import { brief, REMOTE_ACTIONS, run as runAction, type RemoteAction } from './actions.ts'
 import { CODING_ACTIONS, CodingService, codingBrief, GATED_CODING_ACTIONS } from './coding.ts'
-import { HubClient, HubError, type Caller, type HubDevice } from './hub.ts'
+import { helloLlm, HubClient, HubError, type Caller, type HubDevice } from './hub.ts'
 import { ProfileStore, type Profile } from './profile.ts'
 import { cloudOffFailure, relayFailure, transportFailure, type RelayRefusal } from './refusals.ts'
 import { Relay, RelayError, type Account, type Estimate, type Invite, type ProfileWrite, type RelayModel, type SignIn } from './relay.ts'
@@ -55,6 +55,7 @@ import { SCREEN_RUN_IDLE_MS, ScreenRuns, Trajectory, type ScreenRun, type StepAc
 import { RemoteStore, SyncEngine, SyncRelay, type RemoteLine, type SessionInfo, type SessionLine, type SyncState } from './sync.ts'
 import { AvatarMotion, ANIMATED, type MotionMood, type MotionView } from './motion.ts'
 import { OwnClip, isOwnClipMood, type OwnClipMood, type OwnClipView } from './own-clip.ts'
+import { OwnTurns } from './record.ts'
 import { DEFAULT_VIDEO_MODEL, hostOf, KNOWN_DASHSCOPE_MODELS, looksLikeVideoModel, probe as probeVideoModel, speaksDashScope, type VideoEndpoint } from './video.ts'
 import { editImage as ownEditImage, generateImage as ownGenerateImage, imageShapeOf, type ImageEndpoint } from './images.ts'
 import { checkMove, checkScreenshot, displayInfo, isBlack, runtimeInfo, screenHead, type MoveCheck, type RuntimeInfo, type ScreenshotCheck } from './hands-check.ts'
@@ -652,6 +653,8 @@ export default class NanomuseCloud extends Service {
   readonly motion: AvatarMotion
   /** The person's own clip as the face (#324), this computer's alone. */
   readonly ownClip: OwnClip
+  /** Turns run on a key of the person's own, sent up to the account's record afterwards (relay 0.29). */
+  readonly ownTurns: OwnTurns
   private blackScreenAt = 0
   private handsMount: HandsMount = { at: 0, ok: true, reason: '' }
   /** The own-key catalogue (C11), from `assets/providers.json`. */
@@ -683,22 +686,46 @@ export default class NanomuseCloud extends Service {
       still: (mood) => this.faceStill(mood),
       onChange: () => this.broadcast(),
       log: (level, text) => this.ctx.logger[level](text),
+      share: (mood, bytes) => this.shareClip(mood, bytes),
     })
     this.ownClip = new OwnClip({
       dir: join(this.dir(), 'avatar'),
       onChange: () => this.broadcast(),
     })
+    this.ownTurns = new OwnTurns({
+      enabled: () => this.recordOwnTurns(),
+      readImage: (ref) => this.ctx.attachments.readImage(ref),
+      hasBlob: async (sha256) => this.relay.hasBlob((await this.token()) ?? '', sha256),
+      putBlob: async (file) => this.relay.putBlob((await this.token()) ?? '', file.sha256, file.mime, file.data),
+      postTurn: async (turn) => {
+        const token = await this.token()
+        if (!token) return
+        try {
+          await this.relay.postTurn(token, turn as unknown as Record<string, unknown>, this.state.deviceId ?? '')
+        } catch (error: unknown) {
+          // a relay that keeps no record (RECORD_TURNS=0, or an older one): stop sending until the account is read again
+          if (error instanceof RelayError && error.status === 404) this.recordOff = true
+          throw error
+        }
+      },
+      providerName: (route) => this.state.providers?.[route]?.provider ?? route,
+      log: (level, text) => this.ctx.logger[level](text),
+    })
     this.hub = new HubClient({
       url: this.relay.hubURL,
       key: () => this.token(),
-      device: () => ({
-        id: this.state.deviceId ?? '',
-        name: this.deviceName(),
-        kind: 'computer',
-        os: `${type()} ${release()}`.trim(),
-        version: VERSION,
-        actions: this.actions(),
-      }),
+      device: () => {
+        const llm = this.helloLlm()
+        return {
+          id: this.state.deviceId ?? '',
+          name: this.deviceName(),
+          kind: 'computer',
+          os: `${type()} ${release()}`.trim(),
+          version: VERSION,
+          actions: this.actions(),
+          ...(llm ? { llm } : {}),
+        }
+      },
       log: (level, text) => this.ctx.logger[level](text),
     })
     this.coding = new CodingService({
@@ -998,7 +1025,9 @@ export default class NanomuseCloud extends Service {
     const cloud = this
     this.ctx.inject(['llm'], (ctx) => {
       ctx.on('llm/stream', function (options, next) {
-        if (options.provider !== PROVIDER_ID) return next()
+        // a key of the person's own: the turn is let through as it is and, when the account is signed
+        // in and the relay keeps a record, sent up afterwards so the record is whole (docs/cloud.md)
+        if (options.provider !== PROVIDER_ID) return cloud.recordOwnTurns() ? cloud.ownTurns.watch(options, next()) : next()
         if (!cloud.cloudModels() && !(options.sessionId && cloud.cloudOnce.has(String(options.sessionId)))) {
           const own = options.purpose ? cloud.ownChatChoice() : undefined
           if (own) {
@@ -1117,6 +1146,19 @@ export default class NanomuseCloud extends Service {
     }
   }
 
+  /** Set when the relay answered that it keeps no record; cleared when the account is read again. */
+  private recordOff = false
+
+  /**
+   * Whether a turn run on a key of the person's own goes up to the account's record: signed in,
+   * the relay said it keeps one (`contribute.record.on`, relay 0.29), and it has not refused
+   * since. Nothing of the kind on an older relay or when signed out.
+   */
+  recordOwnTurns(): boolean {
+    if (!this.signedInCache || !this.state.account || this.recordOff) return false
+    return this.state.account.contribute?.record?.on === true
+  }
+
   /**
    * Whether nanoMuse Cloud is one of the model sources: signed in and not switched off under
    * Settings › Models. Every slot's order and list, the side calls and the studio read this one
@@ -1189,6 +1231,7 @@ export default class NanomuseCloud extends Service {
       if (!token || !this.state.account) return
       const account = await this.relay.me(token)
       this.state = { ...this.state, account }
+      this.recordOff = false
       await this.writeState()
     }).then(() => this.broadcast()).catch((error: unknown) => this.ctx.logger.debug('nanomuse cloud: allowance not re-read: %s', message(error)))
   }
@@ -2015,6 +2058,20 @@ export default class NanomuseCloud extends Service {
   }
 
   /** The chat model new chats answer through and where it lives: the account, an own row, or something else of dsh's (`provider` then names it, `model` empty). */
+  /**
+   * The ids this computer runs its chats under, for `hello` (relay 0.28): `cloud` and the
+   * model when the chat slot is the account's models; the catalogue id of the own row and
+   * its model when it is a key of the person's own; nothing when the slot is unset or names
+   * a provider this plugin does not know. Plain ids only, never the URL or the key.
+   */
+  private helloLlm(): { provider: string; model: string } | undefined {
+    const chat = this.chatChoice()
+    if (!chat.provider || !chat.model) return undefined
+    if (chat.provider === PROVIDER_ID) return helloLlm('cloud', chat.model)
+    const row = this.state.providers?.[chat.provider]
+    return row ? helloLlm(row.provider, chat.model) : undefined
+  }
+
   chatChoice(): { provider: string; model: string } {
     try {
       const current = this.defaultModelService()?.currentSelection()
@@ -2553,15 +2610,59 @@ export default class NanomuseCloud extends Service {
 
   // ---- Settings → Media: the video model and the face's clips (desk-b) -------------------
 
-  /** A face arrived (drawn here or on another device): its clips, when the setting and a video model allow; one line in the log when not. */
+  /**
+   * A face arrived (drawn here or on another device): the clips another device made of it are
+   * taken from the account first (relay 0.29); what is still missing is drawn when the setting
+   * and a video model allow; one line in the log when not.
+   */
   private async animateNewFace(): Promise<void> {
     const face = this.faceId()
     const before = this.motion.view().faceId
+    const adopted = await this.adoptAccountClips()
+    if (adopted) this.ctx.logger.info('nanomuse: avatar motion: %d clip(s) of the face taken from the account', adopted)
     const started = await this.motion.faceChanged()
     if (started) this.ctx.logger.info('nanomuse: avatar motion: drawing the clips of the new face')
-    else if (face && face !== before && this.state.media?.animate !== false && !(await this.videoEndpoint())) {
+    else if (face && face !== before && !adopted && this.state.media?.animate !== false && !(await this.videoEndpoint())) {
       this.ctx.logger.info('nanomuse: avatar motion: no video model (the account lists none and no Model Studio key is set; OpenRouter and the like have no video) — the face keeps still')
     }
+  }
+
+  /** The clips the account lists for the worn face, downloaded for the moods this computer has none of; how many came. */
+  private async adoptAccountClips(): Promise<number> {
+    const face = this.faceId()
+    const listed = this.profile.accountClips()
+    const token = face && listed ? await this.token() : undefined
+    if (!face || !listed || !token) return 0
+    const fetchers: Partial<Record<MotionMood, () => Promise<Uint8Array | undefined>>> = {}
+    for (const mood of ANIMATED) {
+      const clip = listed[mood]
+      if (!clip) continue
+      fetchers[mood] = async () => {
+        const { data, mime } = await this.relay.getBlob(token, clip.sha256)
+        if (!mime.startsWith('video/') && !clip.mime.startsWith('video/')) return undefined
+        if (createHash('sha256').update(data).digest('hex') !== clip.sha256) return undefined
+        return data
+      }
+    }
+    return this.motion.adopt(face, fetchers)
+  }
+
+  /**
+   * A clip drawn here goes to the account for its other devices (relay 0.29): the file by its
+   * hash, then the profile's `clips` with this mood added to what the account already lists.
+   * Signed out, or on a relay that keeps no files, nothing is sent; the clip stays here.
+   */
+  private async shareClip(mood: MotionMood, bytes: Uint8Array): Promise<void> {
+    const token = await this.token()
+    const face = this.faceId()
+    if (!token || !this.state.account || !face || !this.state.account.contribute?.record?.on) return
+    const sha256 = createHash('sha256').update(bytes).digest('hex')
+    if (!(await this.relay.hasBlob(token, sha256))) await this.relay.putBlob(token, sha256, 'video/mp4', bytes)
+    // the face may have moved on while the clip was drawn: then it is not this face's clip any more
+    if (this.faceId() !== face) return
+    const clips = { ...(this.profile.accountClips() ?? {}), [mood]: { sha256, mime: 'video/mp4', bytes: bytes.length } }
+    await this.relay.putProfileClips(token, clips, this.writerId())
+    this.profile.rememberClips(face, clips)
   }
 
   /** The id of the face worn now; empty for the dragon or an emoji. */
@@ -2825,6 +2926,8 @@ export default class NanomuseCloud extends Service {
         style: style.slice(0, 20),
         description: description.slice(0, 200),
         face,
+        // the clips on the account were of the old face
+        clips: null,
       }
       await this.relay.putProfile(token, write, this.writerId())
       await this.profile.pull(token, true)
@@ -2845,6 +2948,7 @@ export default class NanomuseCloud extends Service {
         if (!sameModels(models, this.state.models ?? []) || !this.providerPresent() || !this.providerBudgetCurrent()) await this.writeProvider(models)
         await this.adoptDefaultModel(models)
         this.state = { ...this.state, account, models }
+        this.recordOff = false
         await this.writeState()
         await this.writeHands().catch((error: unknown) => this.ctx.logger.warn('nanomuse cloud: hands model not written: %s', message(error)))
         await this.profile.pull(token).catch((error: unknown) => this.ctx.logger.warn('nanomuse: profile pull failed: %s', message(error)))
@@ -2867,7 +2971,9 @@ export default class NanomuseCloud extends Service {
       const token = await this.token()
       if (!token || !this.state.account) return this.status()
       const contribute = await this.relay.setContribute(token, on)
-      this.state = { ...this.state, account: { ...this.state.account, contribute } }
+      // a relay before 0.30 answers the flip without the record's figures: the ones read with the account stay
+      const record = contribute.record ?? this.state.account.contribute?.record
+      this.state = { ...this.state, account: { ...this.state.account, contribute: { ...contribute, ...(record ? { record } : {}) } } }
       await this.writeState()
       return this.status()
     })
@@ -2881,7 +2987,9 @@ export default class NanomuseCloud extends Service {
       const deleted = await this.relay.deleteSamples(token)
       const previous = this.state.account.contribute
       if (previous) {
-        this.state = { ...this.state, account: { ...this.state.account, contribute: { ...previous, samples: 0 } } }
+        // the record went with the training turns: its figures read zero until the account is read again
+        const record = previous.record ? { ...previous.record, turns: 0, own: 0, files: 0, mediaBytes: 0 } : undefined
+        this.state = { ...this.state, account: { ...this.state.account, contribute: { ...previous, samples: 0, ...(record ? { record } : {}) } } }
         await this.writeState()
       }
       return { ...(await this.status()), deleted }
@@ -2984,7 +3092,7 @@ export default class NanomuseCloud extends Service {
    * budget) and each is scaled to the pixel budget before it is encoded.
    */
   providerRow(models: RelayModel[]): Record<string, unknown> {
-    return providerRowFor(this.relay.openaiBase, models)
+    return providerRowFor(this.relay.openaiBase, models, this.state.deviceId ?? '')
   }
 
   private async writeProvider(models: RelayModel[]): Promise<void> {
@@ -3876,14 +3984,20 @@ export default class NanomuseCloud extends Service {
   }
 }
 
-/** The `nanomuse` provider row for a relay's OpenAI root and its model list (see `providerRow`). */
-export function providerRowFor(openaiBase: string, models: RelayModel[]): Record<string, unknown> {
+/**
+ * The `nanomuse` provider row for a relay's OpenAI root and its model list (see `providerRow`).
+ * `deviceId` rides on every chat call as `X-NanoMuse-Device` (relay 0.29, docs/cloud.md), so
+ * the record says which device a turn came from; the adapter sends a provider's headers as
+ * they are, so the device is named here once rather than per request.
+ */
+export function providerRowFor(openaiBase: string, models: RelayModel[], deviceId = ''): Record<string, unknown> {
   const chat = models.filter((m) => modelFor(m).includes('chat'))
   return {
     displayName: 'nanoMuse Cloud',
     api: 'openai-completions',
     baseURL: openaiBase,
     apiKeyEnv: TOKEN_REF,
+    ...(deviceId ? { headers: { 'x-nanomuse-device': deviceId } } : {}),
     ...IMAGE_BUDGET,
     models: chat.map((m) => ({
       id: m.id,

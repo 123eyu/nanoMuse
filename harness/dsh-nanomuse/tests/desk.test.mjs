@@ -252,4 +252,7 @@ test('the provider row carries the image budget of a request through the relay (
   assert.ok(row.maxRequestImageBytes < 6 * 1024 * 1024)
   assert.deepEqual(row.models.map((m) => m.id), ['deepseek-v4.1'])
   assert.deepEqual(row.models[0].input, ['text', 'image'])
+  assert.equal(row.headers, undefined, 'no device id, no header')
+  const named = providerRowFor('https://relay.test/v1', [], 'pc-dsh-0a1b2c3d4e5f')
+  assert.deepEqual(named.headers, { 'x-nanomuse-device': 'pc-dsh-0a1b2c3d4e5f' }, 'the device rides on every chat call for the record')
 })
