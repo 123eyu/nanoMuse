@@ -637,7 +637,13 @@ async def test_the_analytics_loop_warms_the_meter_sweeps_old_calls_and_backfills
     with TestClient(app):
         meter = app.state.meter
         deadline = time.time() + 5
-        while time.time() < deadline and (not app.state.analytics.backfill_done or cloud.db.calls_count() > 1):
+
+        # the events sweep follows the calls sweep in the same tick: wait for both (a slow runner
+        # can be between the two when the calls are already gone)
+        def events_left() -> int:
+            return int(cloud.db._conn.execute("SELECT COUNT(*) FROM events").fetchone()[0])
+
+        while time.time() < deadline and (not app.state.analytics.backfill_done or cloud.db.calls_count() > 1 or events_left() > 2):
             time.sleep(0.05)
         assert meter.summary(now - 3600)["requests"] == 1  # the recent row, back in the meter
         assert app.state.analytics.backfill_done is True and cloud.db.sample_stats_count() == 1
