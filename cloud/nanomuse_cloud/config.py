@@ -458,6 +458,14 @@ class Settings:
     media_dir: str = field(default_factory=lambda: _env("MEDIA_DIR", ""))
     media_max_gb: float = field(default_factory=lambda: float(_env("MEDIA_MAX_GB", "50")))
     blob_max_bytes: int = field(default_factory=lambda: _int("BLOB_MAX_BYTES", 32 * 1024 * 1024))
+    # 0.30: what one account may put up — files referenced by its turns, profile and
+    # uploads together (MEDIA_ACCOUNT_MAX_MB; 0 = no cap short of MEDIA_MAX_GB), and how
+    # many own-key turns and files a minute (RECORD_UPLOADS_PER_MINUTE; 0 = no limit). A
+    # device catching up after a day offline sends a few hundred turns; a script filling
+    # the disk sends thousands. Past the store's cap nothing more is taken until the
+    # hourly trim has run, whoever asks.
+    media_account_max_mb: int = field(default_factory=lambda: _int("MEDIA_ACCOUNT_MAX_MB", 2048))
+    record_uploads_per_minute: int = field(default_factory=lambda: _int("RECORD_UPLOADS_PER_MINUTE", 120))
     # Pictures: DashScope allows an account only a couple of image tasks at a time and
     # answers 429 past that, so the relay draws at most IMAGE_CONCURRENCY pictures at once
     # for everyone together (the rest queue) and, on a 429 or 5xx, tries again up to
