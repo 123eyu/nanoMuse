@@ -444,6 +444,10 @@ class Settings:
     # 0.28: how long the per-request telemetry rows (`calls`: timings, how a request ended,
     # its shape — never its words) are kept for the console's live page and drill-downs.
     calls_keep_days: int = field(default_factory=lambda: _int("CALLS_KEEP_DAYS", 90))
+    # how long the timelines' lines (`events`: sign-ins, devices joining, errors, refusals;
+    # never content) are kept; the `account.deleted` lines stay, the statistics count them.
+    # The ledger is the account's money and is never swept.
+    events_keep_days: int = field(default_factory=lambda: _int("EVENTS_KEEP_DAYS", 365))
     # 0.29: the record (record.py) — every chat turn in full, with its pictures as files
     # under MEDIA_DIR (next to the database when unset). RECORD_TURNS=0 keeps none of it;
     # RECORD_KEEP_DAYS=0 keeps a turn until the person deletes it; past MEDIA_MAX_GB the

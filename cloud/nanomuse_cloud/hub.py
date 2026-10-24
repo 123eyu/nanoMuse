@@ -116,7 +116,7 @@ class Connection:
     connected_at: int = field(default_factory=now)
     closed: bool = False
     # the outbound queue: send() appends, the writer task drains in order
-    queue: deque[str] = field(default_factory=deque)
+    queue: deque[tuple[str, int]] = field(default_factory=deque)  # (frame, its UTF-8 size)
     queued_bytes: int = 0
     wake: asyncio.Event = field(default_factory=asyncio.Event)
     writer: asyncio.Task | None = None
@@ -159,7 +159,10 @@ class Connection:
         if self.closed:
             return
         text = json.dumps(frame, ensure_ascii=False, separators=(",", ":"))
-        if len(self.queue) >= SEND_QUEUE_FRAMES or self.queued_bytes + len(text) > SEND_QUEUE_BYTES:
+        # bytes on the wire, not characters: a Chinese or emoji frame is three to four times
+        # its character count in UTF-8, and the limits are stated in bytes
+        size = len(text.encode("utf-8"))
+        if len(self.queue) >= SEND_QUEUE_FRAMES or self.queued_bytes + size > SEND_QUEUE_BYTES:
             log.warning(
                 "hub: %s is not reading (%d frames, %d bytes waiting); closing", self.device_id[:12], len(self.queue), self.queued_bytes
             )
@@ -167,8 +170,8 @@ class Connection:
             self.stop()
             asyncio.get_running_loop().create_task(self._close(4009, "slow_consumer"))
             return
-        self.queue.append(text)
-        self.queued_bytes += len(text)
+        self.queue.append((text, size))
+        self.queued_bytes += size
         self.wake.set()
 
     async def _drain(self) -> None:
@@ -177,8 +180,8 @@ class Connection:
                 self.wake.clear()
                 await self.wake.wait()
                 continue
-            text = self.queue.popleft()
-            self.queued_bytes -= len(text)
+            text, size = self.queue.popleft()
+            self.queued_bytes -= size
             try:
                 await self.ws.send_text(text)
             except Exception as e:  # the socket went away under us; the receive loop notices too
@@ -402,10 +405,11 @@ class Hub:
                     # is JSON text (docs/hub.md); below it is answered with bad_frame and the
                     # socket stays open — it still counts towards the flood limit.
                     raw = None
-                if raw is not None and len(raw) > self.frame_limit:
+                size = len(raw.encode("utf-8")) if raw is not None else 0
+                if raw is not None and size > self.frame_limit:
                     await conn.send({"type": "error", "code": "too_large", "message": f"Frames are capped at {self.frame_limit} bytes"})
                     continue
-                if conn.over_rate(len(raw or "")):
+                if conn.over_rate(size):
                     self.dropped_total += 1
                     if conn.dropped >= FLOOD_CLOSE_AFTER:
                         self.flood_closes += 1
@@ -608,6 +612,12 @@ class Hub:
             await conn.send({"type": "error", "id": call_id, "code": "self_call", "message": "That is this device"})
             return
         await self._sweep()
+        if (conn.account_id, call_id) in self.pending:
+            # the id of a call still waiting: a second one would take its place and the first
+            # answer would land on the wrong call (or on none). Ids are the caller's to make
+            # unique; this one is refused and the first call goes on.
+            await conn.send({"type": "error", "id": call_id, "code": "duplicate_call", "message": "A call with that id is still waiting"})
+            return
         self.pending[(conn.account_id, call_id)] = Pending(call_id=call_id, caller=conn.device_id, target=to, account_id=conn.account_id)
         args = frame.get("args") if isinstance(frame.get("args"), dict) else {}
         await target.send({"type": "call", "id": call_id, "from": conn.brief(), "action": action, "args": args})

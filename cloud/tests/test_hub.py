@@ -347,6 +347,36 @@ def test_accounts_are_separate_and_frames_are_capped(client):
         assert pa.receive_json()["code"] == "device_offline"
         pa.send_text(json.dumps({"type": "ping", "pad": "x" * 5000}))
         assert pa.receive_json()["code"] == "too_large"
+        # the cap is in bytes on the wire: 1500 Chinese characters are 4500 bytes of UTF-8
+        pa.send_text(json.dumps({"type": "ping", "pad": "文" * 1500}, ensure_ascii=False))
+        assert pa.receive_json()["code"] == "too_large"
+        pa.send_text(json.dumps({"type": "ping", "pad": "文" * 1000}, ensure_ascii=False))
+        assert pa.receive_json()["type"] == "pong"
+
+
+def test_a_call_id_still_waiting_is_not_taken_twice(client):
+    key = sign_up(client, "13800138000")
+    pc_key = sign_up(client, "13800138000")
+    with connect(client, key) as phone, connect(client, pc_key) as pc:
+        phone.send_json(hello("phone", "phone-1", "Pixel"))
+        phone.receive_json()
+        phone.receive_json()
+        pc.send_json(hello("computer", "pc-1", "desk"))
+        pc.receive_json()
+        pc.receive_json()
+        phone.receive_json()
+        phone.send_json({"type": "call", "id": "c1", "to": "pc-1", "action": "info", "args": {}})
+        assert pc.receive_json()["id"] == "c1"
+        phone.send_json({"type": "call", "id": "c1", "to": "pc-1", "action": "shell", "args": {"command": "rm"}})
+        dup = phone.receive_json()
+        assert dup["type"] == "error" and dup["code"] == "duplicate_call" and dup["id"] == "c1"
+        # the first call is still the one waiting: its answer reaches the phone
+        pc.send_json({"type": "result", "id": "c1", "ok": True, "body": {"os": "linux"}})
+        res = phone.receive_json()
+        assert res["type"] == "result" and res["body"] == {"os": "linux"}
+        # and once it is answered the id is free again
+        phone.send_json({"type": "call", "id": "c1", "to": "pc-1", "action": "info", "args": {}})
+        assert pc.receive_json()["action"] == "info"
 
 
 def test_device_credentials_are_bound_and_older_keys_cannot_claim_them(client):
@@ -784,6 +814,10 @@ def test_connectors_are_merged_by_device_and_never_hold_a_secret(client):
         [{"id": "x", "auth": "oauth", "Authorization": "Bearer t"}],
         [{"id": "x", "auth": "open", "extra": {"password": "p"}}],
         [{"id": "x", "auth": "open", "extra": [{"client_secret": "s"}]}],
+        # the address itself: a query, a user info or a fragment is where a key rides
+        [{"id": "x", "auth": "key", "url": "https://mcp.example.net/sse?key=sk-abc"}],
+        [{"id": "x", "auth": "key", "url": "https://user:sk-abc@mcp.example.net/sse"}],
+        [{"id": "x", "auth": "key", "url": "https://mcp.example.net/sse#sk-abc"}],
     ):
         r = client.put("/v1/me/profile", headers=auth, json={"device": "desk-1", "connectors": leak})
         assert r.status_code == 400 and r.json()["error"]["code"] == "no_secrets_in_profile", leak

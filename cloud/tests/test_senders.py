@@ -66,10 +66,13 @@ def test_dysms_keeps_the_old_send_sms_request(monkeypatch):
     assert sender.endpoint == "https://dysmsapi.aliyuncs.com/"
     fake = FakeGet({"Code": "OK"})
     monkeypatch.setattr(senders.httpx, "get", fake)
-    sender.send(parse("+85212345678"), "111222")  # non-mainland is fine here, country code and no plus
+    sender.send(parse("13800138000"), "111222")
     q = dict(urllib.parse.parse_qsl(fake.urls[0].split("?", 1)[1]))
-    assert q["Action"] == "SendSms" and q["PhoneNumbers"] == "85212345678"
+    assert q["Action"] == "SendSms" and q["PhoneNumbers"] == "13800138000"
     assert json.loads(q["TemplateParam"]) == {"code": "111222"}
+    with pytest.raises(SendError):  # 短信服务 would take it; the relay keeps to the mainland
+        sender.send(parse("+85212345678"), "111222")
+    assert len(fake.urls) == 1
 
 
 def test_the_signature_is_the_rpc_hmac_sha1_over_the_sorted_query():
@@ -149,7 +152,9 @@ def test_senders_say_up_front_whom_they_can_reach():
     assert not dypns.accepts(parse("+85212345678"))  # 号码认证: mainland only
     assert not dypns.accepts(parse("dev-a@example.com"))
     dysms = AliyunSmsSender(aliyun_settings(aliyun_sms_api="dysms"))
-    assert dysms.accepts(parse("+85212345678")) and not dysms.accepts(parse("dev-a@example.com"))
+    assert dysms.accepts(parse("13800138000"))
+    assert not dysms.accepts(parse("+85212345678"))  # 短信服务 could, but the relay keeps to the mainland
+    assert not dysms.accepts(parse("dev-a@example.com"))
     mail = SmtpSender(aliyun_settings(sender="smtp", smtp_host="smtp.test", smtp_from="nanoMuse <no-reply@test>"))
     assert mail.accepts(parse("dev-a@example.com")) and not mail.accepts(parse("13800138000"))
     both = BothSender(mail, dypns)

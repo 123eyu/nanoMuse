@@ -402,6 +402,7 @@ def create_app(
         # None, not 0.0: time.monotonic() counts from boot on Linux, so on a machine up for
         # less than an hour a zero start would hold the first sweep back until it is
         swept_at: float | None = None
+        repaired_at: float | None = None
         while True:
             try:
                 if not analytics.backfill_done:
@@ -410,11 +411,20 @@ def create_app(
                         log.info("analytics: %d kept turns described so far", analytics.backfill_rows)
                     await asyncio.sleep(0.5 if n else 60)
                     continue
+                if repaired_at is None or time.monotonic() - repaired_at > 86400:
+                    # once a day: the kept turns whose shape row never got written
+                    repaired_at = time.monotonic()
+                    fixed = await asyncio.to_thread(analytics.describe_missing, 500)
+                    if fixed:
+                        log.info("analytics: %d kept turns described late", fixed)
                 if swept_at is None or time.monotonic() - swept_at > 3600:
                     swept_at = time.monotonic()
                     gone = await asyncio.to_thread(cloud.db.sweep_calls, int(time.time()) - max(1, settings.calls_keep_days) * 86400)
                     if gone:
                         log.info("analytics: %d call rows older than %d days swept", gone, settings.calls_keep_days)
+                    gone = await asyncio.to_thread(cloud.db.sweep_events, int(time.time()) - max(1, settings.events_keep_days) * 86400)
+                    if gone:
+                        log.info("analytics: %d timeline lines older than %d days swept", gone, settings.events_keep_days)
                     # 0.29: the record's retention and the media store's cap
                     swept = await asyncio.to_thread(cloud.sweep_record)
                     if any(swept.values()):

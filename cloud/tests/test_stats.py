@@ -167,3 +167,20 @@ def test_cli_controls_talk_to_the_admin_api(monkeypatch, capsys):
         out = capsys.readouterr().out
         assert "cli:tester" in out and "budget" in out
         assert c.get("/healthz").json()["paused"] == ["free_allowance"]
+
+
+async def test_the_historical_total_counts_the_accounts_deleted_since():
+    """An account opened yesterday and deleted today was there at yesterday's end: the total
+    for that day says so (the `account.deleted` line outlives the account)."""
+    app, client, sender, up, cloud, settings = make()
+    a = await sign_up(client, sender, "13800138000", "pixel")
+    await sign_up(client, sender, "dev-a@example.com", "mac")
+    today = utc_day(int(time.time()))
+    with cloud.db.tx() as c:
+        c.execute("UPDATE accounts SET created_at=? WHERE id=?", (today - 86400 + 3600, a["account"]["id"]))
+    assert (await client.post("/v1/admin/delete", headers=ADMIN, json={"account_id": a["account"]["id"]})).status_code == 204
+    r = await client.get("/v1/admin/stats?days=3", headers=ADMIN)
+    acc = {r["day"]: r for r in next(m for m in r.json()["metrics"] if m["id"] == "accounts_daily")["rows"]}
+    assert acc[today]["total"] == 1 and acc[today]["deleted"] == 1 and acc[today]["new"] == 1
+    assert acc[today - 86400]["total"] == 1 and acc[today - 86400]["new"] == 1
+    assert acc[today - 2 * 86400]["total"] == 0

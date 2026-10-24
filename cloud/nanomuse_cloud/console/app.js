@@ -290,6 +290,11 @@
   function signOut(expired) {
     if (!expired && key) api("POST", "/v1/auth/sign-out", {}, key).catch(() => {});
     key = ""; hint = ""; LS.removeItem("nm.key"); LS.removeItem("nm.hint");
+    // the chats typed here belong to the account that just left: nothing of them stays
+    // for the next person at this browser
+    chats.clear();
+    for (const k of Object.keys(LS)) if (/^nm\.(chat|conv)\./.test(k) || k === "nm.selected") LS.removeItem(k);
+    selected = "";
     if (ws) { try { ws.onclose = null; ws.close(); } catch (_) { /* ignore */ } ws = null; }
     closeSheet();
     renderSignIn();

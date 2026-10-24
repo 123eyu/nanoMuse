@@ -703,7 +703,7 @@ export const zh = {
   plc: {
     title: (n: number) => `地区 · 近 ${n} 天`,
     metric: { accounts: "账号（按最近地址）", requests: "请求", signins: "登录", new_accounts: "新账号", demo_visitors: "体验访客" } as Record<string, string>,
-    noGeo: "IP 地理库没有启用（GEO_ENABLED），只能看地址，看不到地区。",
+    noGeo: "IP 地理库没有启用（CLOUD_GEOIP=0），只能看地址，看不到地区。",
     fetching: "地理库正在下载，稍后再看。",
     country: "国家 / 地区",
     province: "省份",
@@ -1687,7 +1687,7 @@ export const en: Strings = {
   plc: {
     title: (n: number) => `Places, last ${n} days`,
     metric: { accounts: "Accounts (by last address)", requests: "Requests", signins: "Sign-ins", new_accounts: "New accounts", demo_visitors: "Showcase visitors" },
-    noGeo: "The IP database is off (GEO_ENABLED); addresses only, no places.",
+    noGeo: "The IP database is off (CLOUD_GEOIP=0); addresses only, no places.",
     fetching: "The database is downloading; look again shortly.",
     country: "Country / region",
     province: "Province",
