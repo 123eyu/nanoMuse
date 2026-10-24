@@ -2,7 +2,7 @@ import { KeyRound, Loader2, MessageSquareText } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { api } from "../api";
 import { useT } from "../i18n";
-import { isMainland, looksLikeForeignNumber } from "../region";
+import { isMainland } from "../region";
 import { cx } from "../util";
 import { markFirstSignIn } from "./FirstSignInSteps";
 import { inputCls, primaryBtn, secondaryBtn } from "./Form";
@@ -173,7 +173,8 @@ export function SignIn({
           placeholder={isMainland() ? t("138 0000 0000 or you@example.com") : "you@example.com"}
           className={cx(inputCls, "mt-1")}
         />
-        {mode === "code" && !sent && (!isMainland() || looksLikeForeignNumber(identifier)) && (
+        {/* said everywhere, not only abroad: the field accepts an e-mail from anyone (AGENTS.md) */}
+        {mode === "code" && !sent && (
           <p className="mt-1.5 text-[12px] text-muted">{t("Text-message codes reach mainland-China numbers only. Use an e-mail address instead.")}</p>
         )}
       </div>
