@@ -622,6 +622,15 @@ enum NanoMuseCloud {
             if let s = value as? String { return Double(s) }
             return nil
         }
+        func flag(_ value: Any?) -> Bool {
+            if let b = value as? Bool { return b }
+            if let n = value as? NSNumber { return n.boolValue }
+            return false
+        }
+        // the two flags are read before the initializer: inline, their `??` chains made the
+        // whole call too slow for the type checker
+        let unlimited = flag(tokens["unlimited"])
+        let recordOn: Bool? = record.map { flag($0["on"]) }
         return Account(
             channel: account["channel"] as? String ?? "",
             hint: account["hint"] as? String ?? "",
@@ -630,11 +639,11 @@ enum NanoMuseCloud {
             usedToday: int64(tokens["used_today"]),
             dailyCap: int64(tokens["daily_cap"]),
             checkedAt: Date(),
-            unlimited: (tokens["unlimited"] as? Bool) ?? ((tokens["unlimited"] as? NSNumber)?.boolValue ?? false),
+            unlimited: unlimited,
             id: account["id"] as? String ?? "",
             grantCny: money(spend["grant"]),
             leftCny: money(spend["left"]),
-            recordOn: record.map { ($0["on"] as? Bool) ?? (($0["on"] as? NSNumber)?.boolValue ?? false) }
+            recordOn: recordOn
         )
     }
 
