@@ -422,6 +422,8 @@ url                = "http://localhost:8000/mcp"   # streamable HTTP; falls back
 risk               = "sensitive"
 egress             = true         # counts as network egress for taint tracking
 reads_private_data = true         # taints the conversation when called
+connect_timeout_s  = 30           # the handshake (connect, initialize, the tool list); over it the server is skipped
+call_timeout_s     = 120          # one call; over it the call fails and the run goes on
 
 # one tool of a server may differ from the server's defaults
 [mcp.servers.tools.list_events]
@@ -430,6 +432,8 @@ risk               = "moderate"
 risk               = "sensitive"
 reads_private_data = false
 ```
+
+`egress` left out is read from the address: a `url` on another host sends every argument of a call there, so it counts as egress to that host (taint tracking asks before a call that follows private data, unless the host is on `egress_allowlist`); a `command` or a loopback address does not. Set `egress` to say otherwise. The approval card and the audit log name the tool and the shape of its arguments (a string's length, a list's length, an object's keys), never their values.
 
 `tools` is optional and per tool name (without the `<server>__` prefix); anything not set falls back to the server's values. It is how the phone's own tools get their defaults: on a phone the app's capabilities appear as the server `device` without any configuration ([device.md](device.md)), with the per-tool table from `nanomuse/runtime.py`.
 

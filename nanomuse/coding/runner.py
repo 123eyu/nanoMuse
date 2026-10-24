@@ -498,6 +498,7 @@ async def start_run(
         saw_done = False
         stderr_tail = ""
         last_error = ""
+        err_task: asyncio.Task[None] | None = None
         try:
             async with asyncio.timeout(timeout_s):
                 assert proc.stdout is not None and proc.stderr is not None
@@ -549,6 +550,19 @@ async def start_run(
             run.status, run.error, run.ended_at = "failed", "the agent took too long", time.time()
             await emit(RunEvent("error", run.error))
             return run
+        except asyncio.CancelledError:
+            # the chat that waited for this was stopped, or the service is closing: the
+            # agent and the helpers it forked do not outlive the run, and nothing of ours
+            # keeps reading its pipes
+            run.stop()
+            if err_task is not None and not err_task.done():
+                err_task.cancel()
+            with contextlib.suppress(BaseException):
+                await asyncio.shield(_wait_exit(proc, grace_s=5))
+            if run.status != "stopped":
+                run.status = "stopped"
+            run.ended_at = time.time()
+            raise
         if run.status == "stopped":
             run.ended_at = time.time()
             await emit(RunEvent("error", "stopped", extra={"stopped": True}))

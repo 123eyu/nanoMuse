@@ -237,10 +237,28 @@ class HubService:
             on_state=self._hub_state_changed,
             on_profile=self.profile.on_frame,
             on_sync=self.svc.sync.on_frame,
+            llm=self.llm_ids,
         )
         self.client.start()
         self._sync_tools(True)
         self.publish()
+
+    def llm_ids(self) -> tuple[str, str]:
+        """The ids this device runs its chat model under, for `hello` (relay 0.28): the
+        provider is ``cloud`` when the slot is the relay's models, else the catalogue entry
+        the slot means (``bailian``, ``openrouter``) or its protocol; then the model id.
+        Plain ids, never the URL or the key."""
+        llm = self.svc.settings.llm
+        provider = llm.provider
+        if llm.base_url and llm.base_url.rstrip("/") == model_url(self.cloud.base_url):
+            provider = "cloud"
+        else:
+            connections = getattr(self.svc, "connections", None)
+            catalogue_id = (
+                connections._catalogue_id(llm.provider, llm.base_url) if connections else ""
+            )
+            provider = catalogue_id or provider
+        return provider, llm.model
 
     async def leave(self) -> None:
         client, self.client = self.client, None
