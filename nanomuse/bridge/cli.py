@@ -16,6 +16,7 @@ import urllib.request
 from typing import Any
 
 from nanomuse.bridge.tokens import BRIDGE_TOKEN_ENV, BRIDGE_URL_ENV
+from nanomuse.local_http import local_open
 
 NOT_HERE = (
     "nanoMuse's bridge is not here: this program works inside a command the agent runs "
@@ -49,7 +50,7 @@ class BridgeClient:
             headers={"Content-Type": "application/json", "X-Nanomuse-Bridge": self.token},
         )
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:  # noqa: S310 — 127.0.0.1
+            with local_open(req, timeout=self.timeout) as resp:
                 return json.loads(resp.read().decode() or "{}")
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode(errors="replace")

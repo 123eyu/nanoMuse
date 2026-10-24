@@ -238,6 +238,17 @@ def test_operator_hands_speak_the_contract(operator: FakeOperator) -> None:
     assert operator.shots[-1] == {"format": "png", "quality": 80, "max_pixels": 0}
 
 
+def test_the_operator_is_reached_without_the_environment_s_proxy(
+    operator: FakeOperator, dead_proxy: str
+) -> None:
+    """The operator answers the runtime on this machine, behind a bearer token. A proxy in
+    the environment used to be consulted for that call: it read the token, and a proxy that
+    does not forward loopback turned a running operator into "not reachable"."""
+    hands = op.OperatorHands.from_env()
+    hands.click(10, 20)
+    assert operator.executed[-1] == {"action": "click", "x": 10, "y": 20}
+
+
 def test_operator_env_and_token(operator: FakeOperator, monkeypatch: pytest.MonkeyPatch) -> None:
     assert op.operator_env() == (operator.url, TOKEN)
     monkeypatch.setenv(op.TOKEN_ENV, "wrong")

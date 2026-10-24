@@ -60,6 +60,32 @@ def _own_environment(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture()
+def dead_proxy(monkeypatch: pytest.MonkeyPatch) -> str:
+    """A proxy nothing answers on, in the variables a proxy client reads.
+
+    The requests these tests make are to ``127.0.0.1``, and a client that consults the
+    environment's proxy sends them there instead: with this one every such call fails, so a
+    test that passes proves the call went straight to the loopback. ``NO_PROXY`` is cleared
+    first, since a developer's shell may carry one that would hide the bug again.
+    """
+    names = (
+        "HTTP_PROXY",
+        "HTTPS_PROXY",
+        "ALL_PROXY",
+        "NO_PROXY",
+        "http_proxy",
+        "https_proxy",
+        "all_proxy",
+        "no_proxy",
+    )
+    for name in names:
+        monkeypatch.delenv(name, raising=False)
+    for name in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"):
+        monkeypatch.setenv(name, "http://127.0.0.1:9")
+    return "http://127.0.0.1:9"
+
+
+@pytest.fixture()
 def settings(tmp_path: Path) -> Settings:
     s = Settings()
     s.data_dir = tmp_path / "data"

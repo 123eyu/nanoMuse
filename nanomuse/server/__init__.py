@@ -59,11 +59,12 @@ def port_taken(host: str, port: int, timeout: float = 0.5) -> str | None:
     except OSError:
         return None
     import json
-    import urllib.request
+
+    from nanomuse.local_http import local_open
 
     base = f"http://[{where}]:{port}" if ":" in where else f"http://{where}:{port}"
     try:
-        with urllib.request.urlopen(f"{base}/api/health", timeout=timeout * 4) as response:  # noqa: S310
+        with local_open(f"{base}/api/health", timeout=timeout * 4) as response:
             health = json.loads(response.read().decode("utf-8"))
     except Exception:  # noqa: BLE001 - not HTTP, not JSON, not answering: not ours
         return "another program"
