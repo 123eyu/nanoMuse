@@ -15,6 +15,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Desktop
 
+- **Remote task `stop` and `approve` actions verify caller identity.** A device on the hub can no longer stop a task or decide an approval card belonging to another device. `stop {call}` cancels a run only when the calling device started that call, and `approve {approval_id}` accepts decisions only from the device that originated the task run, matching the hub specification and the runtime and Android implementations.
+
 ### Android
 
 - **A scheduled task can fire at several times a day.** The editor adds a row per time under the first one, the task list shows the times on one row, `minis-scheduled create` takes `--time` more than once and prints `times` for such a task, and each run record names the time it was scheduled for. Tasks saved before this change keep their one time.

@@ -803,7 +803,7 @@ export default class NanomuseCloud extends Service {
         'nanomuse cloud: task',
       )
       ctx.effect(() => this.hub.handle('stop', (args, call) => runner.stop(args, call)), 'nanomuse cloud: stop')
-      ctx.effect(() => this.hub.handle('approve', (args) => runner.approve(args)), 'nanomuse cloud: approve')
+      ctx.effect(() => this.hub.handle('approve', (args, call) => runner.approve(args, call)), 'nanomuse cloud: approve')
       ctx.effect(() => () => {
         this.tasks = undefined
       }, 'nanomuse cloud: tasks off')
