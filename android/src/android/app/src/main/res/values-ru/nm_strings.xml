@@ -1177,4 +1177,13 @@
     <string name="nm_font_scale_medium">Средний</string>
     <string name="nm_font_scale_large">Крупный</string>
     <string name="nm_font_scale_extra_large">Очень крупный</string>
+
+    <!-- nanoMuse: backup choices and the headless run (#560, #561) -->
+    <string name="nm_backup_chat_files">Файлы в чатах</string>
+    <string name="nm_backup_chat_files_on">Каждое вложение, выгруженный файл и файл рабочей области уходят вместе с сообщениями.</string>
+    <string name="nm_backup_chat_files_off">Только сообщения. Файлы перечисляются, но не включаются; восстановление вернёт чаты без них. Пакет остаётся небольшим для сервера, который отклоняет крупные загрузки.</string>
+    <string name="nm_backup_hint_too_large">Сервер отклонил пакет из-за размера. Чаще всего это его лимит загрузки (nginx: client_max_body_size); увеличьте его или сохраните чаты без файлов.</string>
+    <string name="nm_backup_delivery_failed">Доставка не удалась.</string>
+    <string name="nm_backup_run_needs_passphrase">Шифрование включено, а пароль вводится на странице резервного копирования; запуск из оболочки не может его запросить. Начните резервное копирование на странице или выключите там шифрование.</string>
+    <string name="nm_backup_run_started">Резервное копирование запущено из оболочки.</string>
 </resources>

@@ -109,16 +109,22 @@ class BackupBlobStore(stagingRoot: File, private val maxFileBytes: Long?) {
      * Offer a file on disk to the package. [logicalPath] is only recorded in
      * the index — the blob's location is derived purely from its content hash.
      */
-    fun addFile(file: File, logicalPath: String, sessionId: String? = null): Outcome {
+    fun addFile(
+        file: File,
+        logicalPath: String,
+        sessionId: String? = null,
+        // nanoMuse: a caller may cap one tree tighter than the package (chats without their files, #561)
+        capBytes: Long? = maxFileBytes,
+    ): Outcome {
         val size = file.length()
 
         // Cap check FIRST — before hashing or copying. A skipped 2GB file must
         // cost a stat, not a full read.
-        if (maxFileBytes != null && size > maxFileBytes) {
+        if (capBytes != null && size > capBytes) {
             skippedFiles += 1
             skippedBytes += size
             skippedPaths.add(SkippedPath(logicalPath, size))
-            AppLogger.info(TAG, "[Backup] skip (size cap) $logicalPath size=$size > $maxFileBytes")
+            AppLogger.info(TAG, "[Backup] skip (size cap) $logicalPath size=$size > $capBytes")
             return Outcome.SkippedTooLarge(size)
         }
 

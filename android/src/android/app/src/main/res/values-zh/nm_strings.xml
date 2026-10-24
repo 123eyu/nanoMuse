@@ -1142,4 +1142,13 @@
     <string name="nm_font_scale_medium">中</string>
     <string name="nm_font_scale_large">大</string>
     <string name="nm_font_scale_extra_large">特大</string>
+
+    <!-- nanoMuse: backup choices and the headless run (#560, #561) -->
+    <string name="nm_backup_chat_files">对话里的文件</string>
+    <string name="nm_backup_chat_files_on">每个附件、卸载文件和工作区文件都随消息一起备份。</string>
+    <string name="nm_backup_chat_files_off">只备份消息。文件只列出、不带走；恢复后对话回来，文件不回来。包会小很多，适合拒收大文件的服务器。</string>
+    <string name="nm_backup_hint_too_large">服务器因为体积拒收了这个包。多半是它的上传上限（nginx 的 client_max_body_size）；调大它，或者备份对话时不带文件。</string>
+    <string name="nm_backup_delivery_failed">发送失败。</string>
+    <string name="nm_backup_run_needs_passphrase">加密已开启，口令要在备份页上输入，从命令行发起的备份拿不到它。请在备份页上开始备份，或在那里关掉加密。</string>
+    <string name="nm_backup_run_started">从命令行发起的备份已开始。</string>
 </resources>

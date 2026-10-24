@@ -1165,4 +1165,13 @@
     <string name="nm_font_scale_medium">중간</string>
     <string name="nm_font_scale_large">크게</string>
     <string name="nm_font_scale_extra_large">매우 크게</string>
+
+    <!-- nanoMuse: backup choices and the headless run (#560, #561) -->
+    <string name="nm_backup_chat_files">대화 속 파일</string>
+    <string name="nm_backup_chat_files_on">첨부 파일, 오프로드, 작업 공간 파일이 메시지와 함께 백업됩니다.</string>
+    <string name="nm_backup_chat_files_off">메시지만 백업합니다. 파일은 목록에만 남고 담기지 않으며, 복원하면 대화만 돌아옵니다. 큰 업로드를 거부하는 서버에 맞게 패키지가 작아집니다.</string>
+    <string name="nm_backup_hint_too_large">서버가 크기 때문에 패키지를 거부했습니다. 대개 서버의 업로드 한도(nginx의 client_max_body_size)입니다. 한도를 올리거나 대화를 파일 없이 백업하세요.</string>
+    <string name="nm_backup_delivery_failed">전송에 실패했습니다.</string>
+    <string name="nm_backup_run_needs_passphrase">암호화가 켜져 있고 암호 구문은 백업 화면에서 입력합니다. 셸에서 시작한 백업은 그것을 물어볼 수 없습니다. 화면에서 백업을 시작하거나 거기서 암호화를 끄세요.</string>
+    <string name="nm_backup_run_started">셸에서 백업을 시작했습니다.</string>
 </resources>

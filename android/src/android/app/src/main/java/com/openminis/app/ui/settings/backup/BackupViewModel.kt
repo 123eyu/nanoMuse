@@ -55,6 +55,11 @@ class BackupViewModel(app: Application) : AndroidViewModel(app) {
     private val _maxFileSizeMB = MutableStateFlow(prefs.getInt(KEY_MAX_FILE_MB, MAX_FILE_UNLIMITED))
     val maxFileSizeMB: StateFlow<Int> = _maxFileSizeMB.asStateFlow()
 
+    // nanoMuse: whether the Chats category carries each conversation's files, or the messages
+    // alone (#561). Persisted like the other export choices; read by the headless run too.
+    private val _chatFiles = MutableStateFlow(prefs.getBoolean(KEY_CHAT_FILES, true))
+    val chatFiles: StateFlow<Boolean> = _chatFiles.asStateFlow()
+
     private val _isRunning = MutableStateFlow(false)
     val isRunning: StateFlow<Boolean> = _isRunning.asStateFlow()
 
@@ -200,6 +205,12 @@ class BackupViewModel(app: Application) : AndroidViewModel(app) {
         prefs.edit().putInt(KEY_MAX_FILE_MB, value).apply()
     }
 
+    // nanoMuse: see chatFiles
+    fun setChatFiles(on: Boolean) {
+        _chatFiles.value = on
+        prefs.edit().putBoolean(KEY_CHAT_FILES, on).apply()
+    }
+
     /** Convert the MB sentinel tag to BackupExporter.Options.maxFileBytes:
      *  unlimited(0) → null, no-files(-1) → 0 bytes (tombstones only), else MB. */
     private fun maxFileBytesOption(): Long? = when (val mb = _maxFileSizeMB.value) {
@@ -273,6 +284,7 @@ class BackupViewModel(app: Application) : AndroidViewModel(app) {
                         BackupExporter.Options(
                             categories = cats,
                             maxFileBytes = maxFileBytesOption(),
+                            chatFiles = _chatFiles.value, // nanoMuse: messages only when off (#561)
                             // Unconditional — see the KDoc above. Only the
                             // passphrase tracks `encrypting`.
                             includeCredentials = true,
@@ -517,7 +529,9 @@ class BackupViewModel(app: Application) : AndroidViewModel(app) {
                 AppLogger.error(TAG, "[Backup] delivery to ${remote.name} failed: ${e.message}")
                 outcomes.add(
                     BackupHistory.DestinationOutcome(
-                        remote.name, succeeded = false, detail = e.message ?: "failed",
+                        remote.name, succeeded = false,
+                        // nanoMuse: a 413 names the server's upload limit and the way around it (#561)
+                        detail = io.github.nanomuse.backup.BackupHints.delivery(getApplication(), e.message),
                         kind = remote.backend, path = remote.path,
                     ),
                 )
@@ -978,6 +992,7 @@ class BackupViewModel(app: Application) : AndroidViewModel(app) {
         const val STOPPED_MARKER = "stopped"
 
         private const val KEY_CATEGORIES = "selectedCategories"
+        private const val KEY_CHAT_FILES = "chatFiles" // nanoMuse
         private const val KEY_ENCRYPT = "encrypt"
         private const val KEY_MAX_FILE_MB = "maxFileSizeMB"
     }

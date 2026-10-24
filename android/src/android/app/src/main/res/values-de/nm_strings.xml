@@ -1169,4 +1169,13 @@
     <string name="nm_font_scale_medium">Mittel</string>
     <string name="nm_font_scale_large">Groß</string>
     <string name="nm_font_scale_extra_large">Sehr groß</string>
+
+    <!-- nanoMuse: backup choices and the headless run (#560, #561) -->
+    <string name="nm_backup_chat_files">Dateien in den Chats</string>
+    <string name="nm_backup_chat_files_on">Jeder Anhang, jede Offload- und Arbeitsbereichsdatei reist mit den Nachrichten.</string>
+    <string name="nm_backup_chat_files_off">Nur Nachrichten. Die Dateien werden aufgelistet, aber nicht mitgenommen; eine Wiederherstellung bringt die Chats ohne sie zurück. Hält das Paket klein für einen Server, der große Uploads ablehnt.</string>
+    <string name="nm_backup_hint_too_large">Der Server hat das Paket wegen seiner Größe abgelehnt. Meist ist das sein Upload-Limit (nginx: client_max_body_size); erhöhe es, oder sichere die Chats ohne ihre Dateien.</string>
+    <string name="nm_backup_delivery_failed">Zustellung fehlgeschlagen.</string>
+    <string name="nm_backup_run_needs_passphrase">Die Verschlüsselung ist an, und die Passphrase wird auf der Backup-Seite eingegeben; ein Lauf aus der Shell kann nicht danach fragen. Starte das Backup auf der Seite oder schalte die Verschlüsselung dort aus.</string>
+    <string name="nm_backup_run_started">Backup aus der Shell gestartet.</string>
 </resources>

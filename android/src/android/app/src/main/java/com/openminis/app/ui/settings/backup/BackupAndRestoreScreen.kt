@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Attachment // nanoMuse: the chat files row
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ErrorOutline
@@ -277,6 +278,7 @@ private fun BackupTab(
         footer = includeFooter,
     ) {
         val cats = BackupCategory.backupable
+        val chatFiles by vm.chatFiles.collectAsState() // nanoMuse: #561
         cats.forEachIndexed { i, cat ->
             CategorySwitchRow(
                 title = stringResource(categoryNameRes(cat)),
@@ -287,6 +289,21 @@ private fun BackupTab(
                 enabled = !running,
                 showDivider = i < cats.lastIndex || hasFileTree,
             )
+            // nanoMuse: the conversations' files are a choice of their own, since they are what
+            // makes a chats backup large (#561). Shown under Chats while Chats is on.
+            if (cat == BackupCategory.CHATS && cat in selected) {
+                CategorySwitchRow(
+                    title = stringResource(R.string.nm_backup_chat_files),
+                    subtitle = stringResource(
+                        if (chatFiles) R.string.nm_backup_chat_files_on else R.string.nm_backup_chat_files_off,
+                    ),
+                    icon = Icons.Outlined.Attachment,
+                    iconColor = categoryTint(cat).copy(alpha = 0.7f),
+                    checked = chatFiles,
+                    onCheckedChange = { vm.setChatFiles(it) },
+                    enabled = !running,
+                )
+            }
         }
         // Max Per-File Size picker — only when a file-carrying category is on.
         if (hasFileTree) {

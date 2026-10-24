@@ -209,6 +209,7 @@ object DeepLinkHandler {
             "profile" -> DeepLinkAction.OpenSettingsScreen(io.github.nanomuse.ui.profile.ROUTE_AGENT_PROFILE) // nanoMuse: the face links here
             "network", "proxy" -> DeepLinkAction.OpenSettingsScreen(io.github.nanomuse.ui.net.ROUTE_NETWORK) // nanoMuse: the proxy for own providers
             "background" -> DeepLinkAction.OpenSettingsScreen(Routes.BACKGROUND)
+            "backup" -> DeepLinkAction.OpenSettingsScreen(Routes.BACKUP) // nanoMuse: Settings → Backup and restore (#560)
             "about" -> DeepLinkAction.OpenSettingsScreen(Routes.ABOUT)
             "permissions" -> DeepLinkAction.OpenPermissionSettings
             // mirrors live as a section inside Rootfs management — no

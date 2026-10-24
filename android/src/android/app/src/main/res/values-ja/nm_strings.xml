@@ -1165,4 +1165,13 @@
     <string name="nm_font_scale_medium">中</string>
     <string name="nm_font_scale_large">大きい</string>
     <string name="nm_font_scale_extra_large">とても大きい</string>
+
+    <!-- nanoMuse: backup choices and the headless run (#560, #561) -->
+    <string name="nm_backup_chat_files">チャット内のファイル</string>
+    <string name="nm_backup_chat_files_on">添付ファイル、オフロード、ワークスペースのファイルもメッセージと一緒に保存します。</string>
+    <string name="nm_backup_chat_files_off">メッセージのみ。ファイルは一覧に残りますが中身は含まれず、復元してもチャットだけが戻ります。大きなアップロードを拒否するサーバー向けにパッケージが小さくなります。</string>
+    <string name="nm_backup_hint_too_large">サーバーがサイズを理由にパッケージを拒否しました。多くはサーバーのアップロード上限（nginx の client_max_body_size）です。上限を上げるか、チャットをファイルなしでバックアップしてください。</string>
+    <string name="nm_backup_delivery_failed">送信に失敗しました。</string>
+    <string name="nm_backup_run_needs_passphrase">暗号化がオンで、パスフレーズはバックアップ画面で入力するものです。シェルからの実行では尋ねられません。画面からバックアップを開始するか、そこで暗号化をオフにしてください。</string>
+    <string name="nm_backup_run_started">シェルからバックアップを開始しました。</string>
 </resources>
