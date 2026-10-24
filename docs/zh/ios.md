@@ -20,17 +20,17 @@ Mac runner 上构建后交给 TestFlight。这一页说的是：源码树里有�
 可用的关键。
 
 ```
-android/src/ios/                 the Xcode project: Minis.xcodeproj, app, extensions, tests
-android/src/ios/NanoMuse/        ours: nanoMuse Cloud client and screens (a synchronized folder
-                                 of the Minis target; drop a .swift file in, it is compiled)
-android/src/ios/fastlane/        the TestFlight lane
-android/deps/build_lame.sh       LAME → FFmpeg → iSH → Alpine rootfs → rclone, in that order
+android/src/ios/                 Xcode 工程：Minis.xcodeproj、App、扩展、测试
+android/src/ios/NanoMuse/        我们的：nanoMuse Cloud 客户端和各个页面（Minis target 的同步
+                                 文件夹；放进一个 .swift 文件就会被编译）
+android/src/ios/fastlane/        TestFlight 的 lane
+android/deps/build_lame.sh       LAME → FFmpeg → iSH → Alpine rootfs → rclone，按这个顺序
 android/deps/build_ffmpeg.sh
 android/deps/build_ish.sh
 android/deps/prepare_alpine_rootfs.sh
 android/deps/build_rclone_ios.sh
-scripts/rebrand.py               the `ios()` step: ids, names, versions, strings, links, colours
-scripts/gen-ios-icons.py         the app icon and the four alternates, from assets/brand/
+scripts/rebrand.py               其中的 `ios()` 一步：id、名字、版本、字符串、链接、颜色
+scripts/gen-ios-icons.py         App 图标和四款备选图标，来自 assets/brand/
 .github/workflows/ios-testflight.yml
 ```
 
@@ -65,6 +65,10 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
 
 我们自己的，在 `NanoMuse/` 里：
 
+- **对缓存稳定的智能体指令。** 系统提示把固定的工具和安全说明放在一个不变的前缀里，后面
+  再接模型能力、技能和 MCP 元数据、记忆、`USER.md` 和对话引导，最后是当前时间、语言和
+  可用模型数，作为一段确定的易变后缀。写一条记忆或每小时刷新一次时间，不再让支持前缀缓存
+  的服务商把静态指令作废；回退模型按同样的布局重建。
 - **nanoMuse Cloud。** *服务商* 页第一行就是「nanoMuse Cloud」：手机号或邮箱地址、验证码，
   然后中继（[cloud.md](cloud.md)）就成了 App 里一个普通的 OpenAI 兼容服务商，自带一个模型组，
   没有默认时它就是默认。和 Android 客户端（`io.github.nanomuse.cloud`）同样的线上格式、同样
