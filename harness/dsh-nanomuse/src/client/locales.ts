@@ -1164,6 +1164,8 @@ export const en = {
   stageDoneBtn: 'Done',
   stageTakeIt: 'I’ll take it',
   stageAllowOnce: 'Allow once',
+  stageAlwaysChat: 'Always in this chat',
+  stageAlwaysApp: 'Always in {app}',
   stageDeny: 'Deny',
   stageYourTurnDetail: 'Do your part on the screen, then press Done.',
   // About and the update check (0.1.34)
@@ -2656,6 +2658,8 @@ export const zh: typeof en = {
   stageDoneBtn: '好了',
   stageTakeIt: '我来接手',
   stageAllowOnce: '允许一次',
+  stageAlwaysChat: '本对话中始终允许',
+  stageAlwaysApp: '在 {app} 中始终允许',
   stageDeny: '拒绝',
   stageYourTurnDetail: '在屏幕上做完你的部分，然后按「好了」。',
   // About and the update check (0.1.34)
