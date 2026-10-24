@@ -95,7 +95,7 @@ jobs:
       # a file a mirror can leak into.
       - name: Lock files resolve against the public registry only
         run: |
-          if grep -HoE '"resolved": "https?://[^/]+' harness/desktop/package-lock.json web/package-lock.json website/package-lock.json | grep -v 'registry.npmjs.org'; then
+          if grep -HoE '"resolved": "https?://[^/]+' harness/desktop/package-lock.json web/package-lock.json website/package-lock.json cloud/console/package-lock.json | grep -v 'registry.npmjs.org'; then
             echo "a package-lock.json resolves packages from a host other than registry.npmjs.org (a private mirror leaked in); regenerate it against the public registry" >&2
             exit 1
           fi

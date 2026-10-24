@@ -36,6 +36,7 @@ ssh "$host" "sudo chown -R 10001:10001 $remote/data"
 rsync -az --delete \
 	--exclude '.env' --exclude 'data/' --exclude 'tests/' --exclude '__pycache__/' \
 	--exclude '.pytest_cache/' --exclude '.ruff_cache/' --exclude 'deploy/' \
+	--exclude '.venv/' --exclude 'console/node_modules/' --exclude 'console/dist/' \
 	"$cloud/" "$host:$remote/src/"
 rsync -az "$here/docker-compose.yml" "$here/backup.sh" "$here/selfcheck.sh" "$host:$remote/"
 units="nanomuse-relay-backup.service nanomuse-relay-backup.timer nanomuse-relay-selfcheck.service nanomuse-relay-selfcheck.timer"
