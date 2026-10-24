@@ -25,6 +25,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from . import __version__
+from .analytics import sample_shape
 from .client import client_version, platform_of
 from .config import ModelSpec, Settings, menu_warnings
 from .controls import Controls
@@ -2215,15 +2216,14 @@ class Cloud:
         meta = dict(meta or {})
         if cut or len(response) > self.SAMPLE_MAX_CHARS:
             meta["truncated"] = True
-        self.db.add_sample(
-            caller.account_id,
-            model,
-            request,
-            response[: self.SAMPLE_MAX_CHARS],
-            prompt_tokens,
-            completion_tokens,
-            json.dumps(meta, ensure_ascii=False),
-        )
+        meta_json = json.dumps(meta, ensure_ascii=False)
+        response = response[: self.SAMPLE_MAX_CHARS]
+        sid = self.db.add_sample(caller.account_id, model, request, response, prompt_tokens, completion_tokens, meta_json)
+        # 0.28: the turn's shape beside it (analytics.py), so the quality page never reads the turn
+        try:
+            self.db.add_sample_stats([sample_shape(sid, caller.account_id, now(), model, request, response, meta_json)])
+        except Exception:  # the shape is a convenience; the turn is kept either way
+            log.exception("sample_stats row")
 
     def admin_samples(
         self, account_id: str | None = None, since: int = 0, limit: int = 100, before: int = 0, before_id: str = ""
@@ -2718,6 +2718,25 @@ class Cloud:
             "devices": [dict(d) for d in self.db.devices_for(account_id)],
             "recent": ledger["rows"],
             "events": events["rows"],
+            # 0.28: how this account's chats went in the period (the telemetry rows, never a word)
+            "calls": self._calls_summary(account_id, since),
+        }
+
+    def _calls_summary(self, account_id: str, since: int) -> dict:
+        r = self.db.calls_for_account(account_id, since)
+        n = int(r["n"] or 0)
+        return {
+            "n": n,
+            "ok": int(r["ok"] or 0),
+            "errors": int(r["errors"] or 0),
+            "refused": int(r["refused"] or 0),
+            "hands": int(r["hands"] or 0),
+            "images": int(r["images"] or 0),
+            "with_tools": int(r["with_tools"] or 0),
+            "avg_ttft_ms": round(float(r["avg_ttft_ms"] or 0)),
+            "avg_total_ms": round(float(r["avg_total_ms"] or 0)),
+            "avg_wait_ms": round(float(r["avg_wait_ms"] or 0)),
+            "last_ts": int(r["last_ts"]) if r["last_ts"] else None,
         }
 
     def _account_label(self, account_id: str) -> dict | None:

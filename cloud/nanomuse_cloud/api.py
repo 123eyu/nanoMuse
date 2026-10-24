@@ -73,6 +73,14 @@
     GET  /v1/admin/catalog    X-Admin-Token                     → the provider's models under the operator's key and what the probes found
     GET  /v1/admin/github     X-Admin-Token  ?days=30           → stars, forks, watchers, issues, release downloads by day;  POST …/github/refresh reads now
     GET  /v1/admin/stats      X-Admin-Token  ?days=30           → every figure of the Stats page;  GET …/stats/{id} one figure, …/stats/{id}.csv as CSV
+    GET  /v1/admin/live       X-Admin-Token                     → 0.28: the model endpoint now — the provider gate, requests under way, the last hour by minute, latency percentiles, the newest calls
+    GET  /v1/admin/analytics/usage     X-Admin-Token ?days=30   → 0.28: requests, tokens, money and accounts per local day and model (the matrix)
+    GET  /v1/admin/analytics/day       X-Admin-Token ?day=<ts>  → one local day: by hour and model, by platform, how the calls went and how long they took, the errors' reasons, the top accounts
+    GET  /v1/admin/analytics/platforms X-Admin-Token ?days=30   → the apps side by side: requests, accounts, money, latency, screen operation, versions, devices, reported own models
+    GET  /v1/admin/analytics/cohorts   X-Admin-Token ?days=14   → the free pool and what came after it, who runs a key of their own, weekly retention
+    GET  /v1/admin/analytics/hands     X-Admin-Token ?days=30   → screen operation: turns and accounts by day and platform, the tools called, operable devices
+    GET  /v1/admin/analytics/quality   X-Admin-Token ?days=30   → the kept turns' shape and quality: trivial and repeated shares, accounts scored and tiered (never a text)
+    GET  /v1/admin/analytics/abuse     X-Admin-Token ?days=30   → clients that are not the apps: user-agent families, sign-ins by client, the heaviest such accounts, shared addresses
     GET  /v1/admin/settings   X-Admin-Token                     → the runtime settings in force (0.15);  POST …/settings {allowance_cny?, invite_bonus_cny?, signup_open?} sets them
     POST /v1/admin/allowance/apply X-Admin-Token                → the raised allowance reaches the accounts below it
     POST /v1/admin/credit-all X-Admin-Token  {cny, note?}       → the same credit into every limited pool
@@ -114,6 +122,16 @@ from starlette.requests import ClientDisconnect
 
 from . import __version__
 from . import client as client_info
+from .analytics import (
+    Analytics,
+    InFlightCall,
+    LiveMeter,
+    delta_tool_names,
+    is_hands_tool,
+    join_tool_names,
+    reply_tool_names,
+    request_shape,
+)
 from .catalog import Catalog
 from .config import ModelSpec, Settings
 from .controls import ControlError
@@ -155,6 +173,12 @@ class UpstreamGate:
 
     def snapshot(self) -> dict[str, int]:
         return {"active": self.active, "waiting": self.waiting, "limit": self.limit}
+
+
+def _broken_status(e: httpx.HTTPError) -> str:
+    """How a transport failure is kept in `calls`: a timeout of any kind apart from the rest
+    (a connection refused, a stream cut), since the two point at different remedies."""
+    return "upstream_timeout" if isinstance(e, httpx.TimeoutException) else "broken"
 
 
 def error_response(status: int, code: str, message: str, extra: dict | None = None) -> JSONResponse:
@@ -352,6 +376,38 @@ def create_app(
             except Exception:
                 log.exception("settle_video_tasks")
 
+    async def _analytics_loop() -> None:
+        # 0.28: the live meter's last hour is read back from `calls` after a restart; the
+        # shape rows of older kept turns are filled in a page at a time (the turns are read
+        # once, off the loop, in small batches so no request waits on the lock); rows past
+        # CALLS_KEEP_DAYS are swept once an hour
+        analytics = app.state.analytics
+        try:
+            warmed = await asyncio.to_thread(lambda: analytics.meter.warm(cloud.db.calls_since(int(time.time()) - 3600)))
+            if warmed:
+                log.info("analytics: %d calls of the last hour read back", warmed)
+        except Exception:
+            log.exception("analytics warm-up")
+        swept_at = 0.0
+        while True:
+            try:
+                if not analytics.backfill_done:
+                    n = await asyncio.to_thread(analytics.backfill_step, 200)
+                    if n and analytics.backfill_rows % 20000 < 200:
+                        log.info("analytics: %d kept turns described so far", analytics.backfill_rows)
+                    await asyncio.sleep(0.5 if n else 60)
+                    continue
+                if time.monotonic() - swept_at > 3600:
+                    swept_at = time.monotonic()
+                    gone = await asyncio.to_thread(cloud.db.sweep_calls, int(time.time()) - max(1, settings.calls_keep_days) * 86400)
+                    if gone:
+                        log.info("analytics: %d call rows older than %d days swept", gone, settings.calls_keep_days)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                log.exception("analytics loop")
+            await asyncio.sleep(60)
+
     @asynccontextmanager
     async def lifespan(_: FastAPI):
         geo.ensure()
@@ -359,13 +415,15 @@ def create_app(
             collector.start()
         rules_task = asyncio.create_task(_rules_loop(), name="control-rules")
         video_task = asyncio.create_task(_video_loop(), name="video-settle")
+        analytics_task = asyncio.create_task(_analytics_loop(), name="analytics")
         try:
             yield
         finally:
             rules_task.cancel()
             video_task.cancel()
-            # waited for, so neither cancellation lands after the database is closed
-            await asyncio.gather(rules_task, video_task, return_exceptions=True)
+            analytics_task.cancel()
+            # waited for, so no cancellation lands after the database is closed
+            await asyncio.gather(rules_task, video_task, analytics_task, return_exceptions=True)
             await collector.stop()
             await http.aclose()
 
@@ -846,14 +904,68 @@ def create_app(
         log.warning("chat upstream HTTP %s; retry %s/%s", status, attempt + 1, chat_retry_limit)
         await asyncio.sleep(max(0.0, settings.chat_retry_base_s) * (2**attempt))
 
-    async def chat_post(url: str, headers: dict[str, str], payload: bytes) -> httpx.Response:
-        """One non-streaming turn, queued globally and retried before an answer exists."""
+    # 0.28: what each chat request looked like and how it went (analytics.py) — timings,
+    # the way it ended, its shape; never its words. The live page reads the meter, the
+    # drill-downs read the rows.
+    meter = LiveMeter()
+    analytics = Analytics(cloud, meter, lambda: getattr(app.state, "hub", None), chat_gate.snapshot)
+    app.state.analytics = analytics
+    app.state.meter = meter
+
+    def record_call(
+        call: InFlightCall,
+        status: str,
+        detail: str = "",
+        *,
+        prompt_tokens: int = 0,
+        completion_tokens: int = 0,
+        called: list[str] | None = None,
+        retries: int = 0,
+        request_id: str = "",
+    ) -> None:
+        now_m = time.monotonic()
+        slot_at = call.slot_at or now_m
+        first_at = call.first_at or now_m
+        shape = call.shape
+        names = called or []
+        row = {
+            "ts": call.ts,
+            "account_id": call.account_id,
+            "model": call.model,
+            "platform": call.platform,
+            "family": call.family,
+            "status": status,
+            "detail": str(detail or "")[:120],
+            "stream": 1 if call.stream else 0,
+            "wait_ms": max(0, int((slot_at - call.started) * 1000)),
+            "ttft_ms": max(0, int((first_at - slot_at) * 1000)) if call.slot_at else 0,
+            "total_ms": max(0, int((now_m - call.started) * 1000)),
+            "prompt_tokens": int(prompt_tokens or 0),
+            "completion_tokens": int(completion_tokens or 0),
+            "messages": int(shape.get("messages", 0)),
+            "images": int(shape.get("images", 0)),
+            "tools": int(shape.get("tools", 0)),
+            "tool_names": join_tool_names(names),
+            "hands": 1 if (shape.get("hands") or any(is_hands_tool(n) for n in names)) else 0,
+            "retries": int(retries or 0),
+            "request_id": request_id,
+        }
+        meter.finish(call, row)
+        try:
+            cloud.db.add_call(row)
+        except Exception:  # telemetry must never fail a chat
+            log.exception("calls row")
+
+    async def chat_post(url: str, headers: dict[str, str], payload: bytes, call: InFlightCall) -> tuple[httpx.Response, int]:
+        """One non-streaming turn, queued globally and retried before an answer exists;
+        answers the response and how many times it was retried."""
         async with chat_gate.slot():
+            meter.slot(call)
             attempt = 0
             while True:
                 r = await http.post(url, headers=headers, content=payload)
                 if not chat_retryable(r.status_code) or attempt >= chat_retry_limit:
-                    return r
+                    return r, attempt
                 await chat_retry_pause(attempt, r.status_code)
                 attempt += 1
 
@@ -865,11 +977,18 @@ def create_app(
         # settled would count against the account's in-flight limit until it timed out
         headers = upstream_headers()
         request_id = uuid.uuid4().hex[:16]
+        stream = bool(body.get("stream"))
+        who = client_info.current()
+        call = meter.start(caller.account_id, spec.id, who.platform, stream, request_shape(body))
+        call.family = client_info.ua_family(who.ua)
         # held at a typical turn's price while it runs; settled when the reply is in
-        cloud.check_budget(caller, request_id=request_id, hold_uy=cloud.chat_reserve_uy(spec), place=client_place(request))
+        try:
+            cloud.check_budget(caller, request_id=request_id, hold_uy=cloud.chat_reserve_uy(spec), place=client_place(request))
+        except CloudError as e:
+            record_call(call, "refused", e.code, request_id=request_id)
+            raise
         body["model"] = spec.upstream
         apply_chat_defaults(body, settings.chat_defaults)
-        stream = bool(body.get("stream"))
         if stream:
             opts = body.get("stream_options") if isinstance(body.get("stream_options"), dict) else {}
             opts["include_usage"] = True
@@ -896,22 +1015,30 @@ def create_app(
         sample_messages = body.get("messages") if caller.contribute and isinstance(body.get("messages"), list) else []
 
         if not stream:
+            retries = 0
             try:
                 try:
-                    r = await chat_post(url, headers, request_body)
+                    r, retries = await chat_post(url, headers, request_body, call)
                 except httpx.HTTPError as e:
                     log.warning("upstream error: %s", e)
+                    record_call(call, _broken_status(e), type(e).__name__, retries=retries, request_id=request_id)
                     raise CloudError(502, "upstream", "The model provider did not answer") from e
+                meter.first(call)
                 if r.status_code >= 400:
-                    cloud.note(
-                        caller.account_id,
-                        upstream_event_kind(r.status_code, r.content),
-                        upstream_detail("chat", r.status_code, spec.id, r.content),
+                    event_kind = upstream_event_kind(r.status_code, r.content)
+                    cloud.note(caller.account_id, event_kind, upstream_detail("chat", r.status_code, spec.id, r.content))
+                    record_call(
+                        call,
+                        "content_rejected" if event_kind == "content.rejected" else "upstream_error",
+                        str(r.status_code),
+                        retries=retries,
+                        request_id=request_id,
                     )
                     return _relay_error(r, request)
                 try:
                     obj = r.json()
                 except ValueError as e:
+                    record_call(call, "broken", "unreadable reply", retries=retries, request_id=request_id)
                     raise CloudError(502, "upstream", "The model provider sent an unreadable reply") from e
                 usage = usage_from_json(obj)
                 text = _reply_text(obj)
@@ -920,6 +1047,15 @@ def create_app(
                 charged = cloud.charge_chat(caller, spec, usage.prompt, usage.completion, request_id, cached_tokens=usage.cached)
             finally:
                 cloud.settle(caller, request_id)
+            record_call(
+                call,
+                "ok",
+                prompt_tokens=usage.prompt,
+                completion_tokens=usage.completion,
+                called=reply_tool_names(obj),
+                retries=retries,
+                request_id=request_id,
+            )
             if sample_meta is not None:
                 cloud.keep_sample(caller, spec.id, sample_messages, text, usage.prompt, usage.completion, sample_meta)
             if isinstance(obj, dict):
@@ -937,9 +1073,15 @@ def create_app(
             # account nothing; a stream that broke off midway is charged for what arrived.
             failed = False
             accepted = False
+            # how it ended, for the telemetry row: set at every exit; still None in `finally`
+            # when the generator was closed under us, which is the client going away
+            status: str | None = None
+            detail = ""
+            called: list[str] = []
+            attempt = 0
             try:
                 async with chat_gate.slot():
-                    attempt = 0
+                    meter.slot(call)
                     while True:
                         retry_status = 0
                         async with http.stream("POST", url, headers=headers, content=request_body) as r:
@@ -948,12 +1090,11 @@ def create_app(
                                 if chat_retryable(r.status_code) and attempt < chat_retry_limit:
                                     retry_status = r.status_code
                                 else:
-                                    cloud.note(
-                                        caller.account_id,
-                                        upstream_event_kind(r.status_code, raw),
-                                        upstream_detail("chat", r.status_code, spec.id, raw),
-                                    )
+                                    event_kind = upstream_event_kind(r.status_code, raw)
+                                    cloud.note(caller.account_id, event_kind, upstream_detail("chat", r.status_code, spec.id, raw))
                                     failed = True
+                                    status = "content_rejected" if event_kind == "content.rejected" else "upstream_error"
+                                    detail = str(r.status_code)
                                     err = relay_error_body(r.status_code, raw)
                                     # The 200 has left; count the embedded stream error here.
                                     cloud.db.daily_add("error", str(err["error"]["code"]))
@@ -966,6 +1107,7 @@ def create_app(
                                     if line.startswith("data:"):
                                         payload = line[5:].strip()
                                         if payload and payload != "[DONE]":
+                                            meter.first(call)
                                             try:
                                                 obj = json.loads(payload)
                                             except ValueError:
@@ -979,6 +1121,8 @@ def create_app(
                                                     if isinstance(d, dict) and isinstance(d.get("content"), str):
                                                         text_len += len(d["content"])
                                                         reply.append(d["content"])
+                                                        call.tokens_out += 1
+                                                called.extend(delta_tool_names(obj))
                                                 obj["model"] = spec.id
                                                 payload = dumps(obj)
                                         yield f"data: {payload}\n\n".encode()
@@ -986,13 +1130,16 @@ def create_app(
                                         continue
                                     else:
                                         yield (line + "\n").encode()
+                                status = "ok"
                                 return
                         await chat_retry_pause(attempt, retry_status)
                         attempt += 1
+                        call.retries = attempt
             except httpx.HTTPError as e:
                 log.warning("upstream stream error: %s %s", type(e).__name__, e)
                 cloud.note(caller.account_id, "upstream.error", f"chat stream broke {spec.id}: {type(e).__name__}")
                 failed = usage is None and text_len == 0
+                status, detail = _broken_status(e), type(e).__name__
                 err = {"error": {"message": "The model provider stopped answering", "type": "nanomuse_cloud", "code": "upstream"}}
                 yield f"data: {dumps(err)}\n\n".encode()
                 yield b"data: [DONE]\n\n"
@@ -1004,6 +1151,16 @@ def create_app(
                     if sample_meta is not None:
                         cloud.keep_sample(caller, spec.id, sample_messages, "".join(reply), usage.prompt, usage.completion, sample_meta)
                 cloud.settle(caller, request_id)
+                record_call(
+                    call,
+                    status or "client_gone",
+                    detail,
+                    prompt_tokens=usage.prompt if usage else 0,
+                    completion_tokens=usage.completion if usage else 0,
+                    called=called,
+                    retries=attempt,
+                    request_id=request_id,
+                )
 
         return StreamingResponse(
             gen(),
@@ -1813,6 +1970,48 @@ def create_app(
         if m is None:
             raise CloudError(404, "not_found", "No such metric")
         return stats.build(m, max(1, min(days, 365)))
+
+    # -- 0.28: the live view and the analytics pages (analytics.py) --------------------------------
+
+    @app.get("/v1/admin/live", dependencies=[Depends(admin_dep)])
+    async def admin_live() -> dict:
+        """The model endpoint right now: the provider gate (active, waiting, limit), the
+        requests under way with their phase and age, the hub, per-minute throughput and
+        latency for the last hour, the last ten minutes and the hour in summary, the newest
+        calls. Memory only; the page polls it every few seconds."""
+        return analytics.live()
+
+    @app.get("/v1/admin/analytics/usage", dependencies=[Depends(admin_dep)])
+    async def admin_analytics_usage(days: int = 30) -> dict:
+        """Per local day and model: requests, tokens, money, accounts (the matrix)."""
+        return await asyncio.to_thread(analytics.usage, max(1, min(days, 365)))
+
+    @app.get("/v1/admin/analytics/day", dependencies=[Depends(admin_dep)])
+    async def admin_analytics_day(day: int = 0) -> dict:
+        """One local day in full (`day` is any UNIX time in it; now by default): by hour and
+        model, by platform, how the calls went and how long they took, the errors' reasons,
+        the accounts that cost most."""
+        return await asyncio.to_thread(analytics.day, int(day) if day else int(time.time()))
+
+    @app.get("/v1/admin/analytics/platforms", dependencies=[Depends(admin_dep)])
+    async def admin_analytics_platforms(days: int = 30) -> dict:
+        return await asyncio.to_thread(analytics.platforms, max(1, min(days, 365)))
+
+    @app.get("/v1/admin/analytics/cohorts", dependencies=[Depends(admin_dep)])
+    async def admin_analytics_cohorts(days: int = 14) -> dict:
+        return await asyncio.to_thread(analytics.cohorts, max(1, min(days, 365)))
+
+    @app.get("/v1/admin/analytics/hands", dependencies=[Depends(admin_dep)])
+    async def admin_analytics_hands(days: int = 30) -> dict:
+        return await asyncio.to_thread(analytics.hands, max(1, min(days, 365)))
+
+    @app.get("/v1/admin/analytics/quality", dependencies=[Depends(admin_dep)])
+    async def admin_analytics_quality(days: int = 30) -> dict:
+        return await asyncio.to_thread(analytics.quality, max(1, min(days, 365)))
+
+    @app.get("/v1/admin/analytics/abuse", dependencies=[Depends(admin_dep)])
+    async def admin_analytics_abuse(days: int = 30) -> dict:
+        return with_places(await asyncio.to_thread(analytics.abuse, max(1, min(days, 365))))
 
     @app.get("/v1/admin/nudges", dependencies=[Depends(admin_dep)])
     async def admin_nudges_get() -> dict:

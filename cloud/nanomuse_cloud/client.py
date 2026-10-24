@@ -116,19 +116,69 @@ def from_headers(headers: Mapping[str, str], peer_host: str | None, trusted: Tru
     )
 
 
+# the user agents the apps send, by the product token they start with
+_APP_TOKENS = (
+    ("nanoMuse-Android", "android"),
+    ("nanoMuse-iOS", "ios"),
+    ("nanoMuse-Desktop", "desktop"),  # the Electron shell
+    ("deepseek-harness", "desktop"),  # the dsh plugin's own calls
+    ("Minis/", "minis"),  # the upstream OpenMinis app, unbranded
+)
+
+# what the phones' runtime user agent names in brackets: ``nanoMuse/1.0.6 (iOS 26.1; iPhone)``
+_SYSTEMS = (
+    ("ios", "ios"),
+    ("iphone", "ios"),
+    ("ipad", "ios"),
+    ("android", "android"),
+    ("windows", "windows"),
+    ("darwin", "macos"),
+    ("macos", "macos"),
+    ("mac os", "macos"),
+    ("linux", "linux"),
+)
+
+PLATFORMS = ("android", "ios", "desktop", "windows", "macos", "linux", "runtime", "browser", "minis", "other")
+
+
 def platform_of(ua: str) -> str:
     """The app behind a request, from the user agent the clients send: the Android app,
-    the runtime on each system (which serves the web app, the desktop and the harness),
-    a browser, or something else."""
+    the iPhone app, the desktop app (the Electron shell or the dsh plugin), the Python
+    runtime on each system (which serves the web app and the desktop's hands), a browser,
+    the unbranded upstream app, or something else. The phones' model calls go out as
+    ``nanoMuse/<version> (<system> <release>; <device>)``, so the bracket decides."""
     ua = str(ua or "")
-    if ua.startswith("nanoMuse-Android"):
-        return "android"
+    for token, platform in _APP_TOKENS:
+        if ua.startswith(token):
+            return platform
     if ua.startswith("nanoMuse/"):
         system = ua[ua.find("(") + 1 : ua.find(")")].lower() if "(" in ua and ")" in ua else ""
-        return {"windows": "windows", "darwin": "macos", "linux": "linux"}.get(system, "runtime")
+        for mark, platform in _SYSTEMS:
+            if system.startswith(mark):
+                return platform
+        return "runtime"
     if ua.startswith("Mozilla/"):
         return "browser"
     return "other"
+
+
+def is_app(platform: str) -> bool:
+    """Whether the platform is one of ours (the apps, the runtime, the console in a browser)
+    rather than a script, a pool worker or an SDK talking to the relay directly."""
+    return platform != "other"
+
+
+def ua_family(ua: str) -> str:
+    """The product behind a user agent, for telling the apps from scripts and pools: the
+    first token up to its slash (``python-requests``, ``Go-http-client``, ``nanoMuse-Android``),
+    ``(empty)`` for none. The version is left out so a family is one row whatever it runs."""
+    ua = str(ua or "").strip()
+    if not ua:
+        return "(empty)"
+    head = ua.split(" ", 1)[0]
+    if head.startswith("Mozilla/"):
+        return "Mozilla"
+    return head.split("/", 1)[0][:40] or "(empty)"
 
 
 def client_version(ua: str) -> str:

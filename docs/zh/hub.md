@@ -65,7 +65,9 @@ hub 上传递两类请求：
 `WS /v1/hub` 上的 JSON 文本帧，`Authorization: Bearer nm_…`（浏览器则把 key 放在 `hello` 里）。
 
 ```
-→ hello    {device:{id,name,kind,os,version,actions[]}}     kind: phone | computer | web
+→ hello    {device:{id,name,kind,os,version,actions[],llm?}}   kind: phone | computer | web
+           llm（中继 0.28，可选）：{provider, model}，这台设备跑模型所用的标识（"cloud"、"openrouter"、某个模型 id）；
+           只收纯标识，key 和 URL 一律丢弃；记在设备行上，供运营者查看
 ← welcome  {device_id, devices:[…], server:{version,frame_limit,time}}
 ← devices  {devices:[{id,name,kind,os,version,actions[],online,last_seen,controllable,ip}]}
 
