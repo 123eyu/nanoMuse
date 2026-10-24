@@ -1383,11 +1383,16 @@ class Analytics:
             self.backfill_done = True
         return len(rows)
 
+    #: how far back the daily repair looks for a kept turn without its shape row
+    REPAIR_WINDOW_S = 3 * 86400
+
     def describe_missing(self, batch: int = 500) -> int:
-        """Give a shape row to kept turns that have none: the turn and its row are two writes,
-        and when the second failed (logged, the request unaffected) the turn stayed outside
-        the quality figures for good. Returns how many were written; a daily pass."""
-        rows = self.db.samples_without_stats(batch)
+        """Give a shape row to kept turns of the last days that have none: the turn and its
+        row are two writes, and when the second failed (logged, the request unaffected) the
+        turn stayed outside the quality figures for good. Returns how many were written; a
+        daily pass, bounded to `REPAIR_WINDOW_S` so it never walks the whole table (older
+        turns were described by the backfill, which pages)."""
+        rows = self.db.samples_without_stats(batch, int(time.time()) - self.REPAIR_WINDOW_S)
         if not rows:
             return 0
         self.db.add_sample_stats(

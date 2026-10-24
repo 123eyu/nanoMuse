@@ -2947,16 +2947,18 @@ class Database:
             )
         return len(rows)
 
-    def samples_without_stats(self, limit: int) -> list[sqlite3.Row]:
-        """Kept turns that have no shape row (the row's write failed once, after the turn was
-        kept): the newest first. One pass over the ts index with a lookup per turn, so it is
-        asked once a day, not on every tick."""
+    def samples_without_stats(self, limit: int, since: int) -> list[sqlite3.Row]:
+        """Kept turns since `since` that have no shape row (the row's write failed once, after
+        the turn was kept): the newest first. The window matters: the walk is a lookup per
+        turn, and over every turn ever kept it ran for a minute and a half on a cold page cache
+        with the database lock held, which froze the relay (every handler waits on that lock).
+        A missing row is at most a day old when the daily pass looks, so a few days suffice."""
         with self._lock:
             return self._conn.execute(
                 """SELECT s.rowid, s.id, s.account_id, s.ts, s.model, s.request, s.response, s.meta FROM samples s
-                   LEFT JOIN sample_stats t ON t.sample_id=s.id WHERE t.sample_id IS NULL
+                   LEFT JOIN sample_stats t ON t.sample_id=s.id WHERE s.ts>=? AND t.sample_id IS NULL
                    ORDER BY s.ts DESC LIMIT ?""",
-                (limit,),
+                (since, limit),
             ).fetchall()
 
     def samples_page_before(self, before_ts: int, before_rowid: int, limit: int) -> list[sqlite3.Row]:

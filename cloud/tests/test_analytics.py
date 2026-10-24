@@ -593,6 +593,14 @@ async def test_kept_turns_get_a_shape_row_and_older_ones_are_backfilled(stack):
     assert cloud.db.sample_count() == 1 and cloud.db.sample_stats_count() == 0
     assert fresh.describe_missing() == 1 and cloud.db.sample_stats_count() == 1
     assert fresh.describe_missing() == 0
+    # the pass looks a few days back only (older turns are the paged backfill's): a turn
+    # without its row from before the window is left alone, so the walk stays short
+    cloud.db.add_sample(aid, "qwen3.8-27b", json.dumps([{"role": "user", "content": "An old one"}]), "Yes", 5, 5, "{}")
+    with cloud.db.tx() as c:
+        c.execute(
+            "UPDATE samples SET ts=? WHERE id NOT IN (SELECT sample_id FROM sample_stats)", (int(time.time()) - fresh.REPAIR_WINDOW_S - 60,)
+        )
+    assert cloud.db.sample_count() == 2 and fresh.describe_missing() == 0
 
 
 async def test_the_analytics_loop_warms_the_meter_sweeps_old_calls_and_backfills():
