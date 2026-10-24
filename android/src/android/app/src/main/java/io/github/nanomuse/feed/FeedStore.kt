@@ -25,7 +25,7 @@ object FeedStore {
     private lateinit var appContext: Context
 
     private val _posts = MutableStateFlow<List<FeedPost>>(emptyList())
-    /** Newest day first, then by index. */
+    /** Newest day first; inside a day the newest batch first, each batch in the model's order. */
     val posts: StateFlow<List<FeedPost>> = _posts
 
     private val _preferences = MutableStateFlow("")
@@ -43,9 +43,8 @@ object FeedStore {
     fun reload() {
         val all = root.listFiles()?.filter(FeedPost::isDayDir)
             ?.sortedByDescending { it.name }
-            ?.flatMap { day ->
-                day.listFiles()?.mapNotNull(FeedPost::parse)?.sortedBy { it.index }.orEmpty()
-            }.orEmpty()
+            ?.flatMap { day -> day.listFiles()?.mapNotNull(FeedPost::parse).orEmpty().sortedWith(DAY_ORDER) }
+            .orEmpty()
         _posts.value = all
         _preferences.value = runCatching { prefsFile.takeIf { it.exists() }?.readText() }.getOrNull()
             ?.trim().orEmpty().ifEmpty { defaultPreferences() }
@@ -123,4 +122,12 @@ object FeedStore {
     )
 
     private val DAY = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+
+    /**
+     * The order of one day's posts on the page. A batch is written in one go, so its posts share
+     * a `created` time: the newest batch (the evening's) comes first, and inside a batch the posts
+     * keep their numbering, which is the model's order, most important first. Sorting the whole
+     * day by index put the morning's batch on top and the newest one at the bottom (#555).
+     */
+    val DAY_ORDER: Comparator<FeedPost> = compareByDescending<FeedPost> { it.createdAt }.thenBy { it.index }
 }

@@ -9,6 +9,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 ### Runtime
 
 - **A thinking model's reasoning shows while it thinks, not only after the answer.** With `agent.show_thinking = true`, the reasoning a provider streams (`reasoning_content` on Chat Completions chunks, the Responses API's reasoning deltas, the ChatGPT sign-in's stream) reaches the screen as it arrives: the console prints it as a dim `⌗` line ahead of the reply, and the web console's bubble shows a live *Thinking…* fold that closes once the answer starts, where before both sat on a blank pause and showed the thinking only in *Show thinking* after the turn. A new `reasoning_delta` frame on the web console's WebSocket carries it; nothing is stored until the reply, which keeps the full reasoning as before. By @mongo027 ([#484](https://github.com/nano-muse/nanoMuse/pull/484)).
+- **Cheaper Inference is in the own-key catalogue.** An OpenAI-compatible gateway at `https://api.cheaperinference.com/v1`, a key from [cheaperinference.com/signup](https://cheaperinference.com/signup); one key reaches models from several labs. The default model is `gpt-5.4-mini`, and any id from its public `/v1/models` list can be set instead. Chat only, on the OpenAI shape. `providers.json` lists twenty-two providers now, and the desktop, the phones, the relay and the web console carry the same file.
 
 ### Web
 
@@ -17,8 +18,11 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 ### Android
 
 - **A scheduled task can fire at several times a day.** The editor adds a row per time under the first one, the task list shows the times on one row, `minis-scheduled create` takes `--time` more than once and prints `times` for such a task, and each run record names the time it was scheduled for. Tasks saved before this change keep their one time.
+- **The Feed shows a day's newest batch first.** Inside one day the posts were in file order, so the morning's batch stayed on top and the evening's, the newest, sat at the bottom of the day; now the newest batch comes first and each batch keeps the model's order, most important first. The day's title names the part of the day of that newest batch ([#555](https://github.com/nano-muse/nanoMuse/issues/555)).
 
 ### iOS
+
+- **The Feed shows a day's newest batch first,** as on Android ([#555](https://github.com/nano-muse/nanoMuse/issues/555)).
 
 ### Project
 
