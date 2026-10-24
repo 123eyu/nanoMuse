@@ -45,7 +45,8 @@ https://github.com/user-attachments/assets/c7694d5a-9450-4f99-9254-5d70560d7565
 
 ## 🗞️ Novedades
 
-- `2026-10-13` ⭐ 1.000 estrellas en GitHub, dieciocho días después de la primera versión, con cuatro días en la lista Swift de GitHub Trending por el camino ([Trendshift](https://trendshift.io/repositories/286894): séptimo el 7 de octubre, cuarto el 10 de octubre). Gracias por cada prueba, cada aviso y cada pull request. Seguimos: una versión cada pocos días, y la [hoja de ruta](../roadmap.md) dice lo que viene.
+- `2026-10-21` ⭐ 2.000 estrellas en GitHub y primer puesto en la lista Swift de GitHub Trending ([Trendshift](https://trendshift.io/repositories/286894): tercero el 20 de octubre, primero el 21 de octubre), veintiséis días después de la primera versión. Gracias por cada prueba, cada aviso y cada pull request; seguimos: una versión cada pocos días, y la [hoja de ruta](../roadmap.md) dice lo que viene.
+- `2026-10-13` ⭐ 1.000 estrellas en GitHub, dieciocho días después de la primera versión.
 - `2026-10-09` 🚀 Ya está la versión [1.0.0 Keel](https://github.com/nano-muse/nanoMuse/releases/tag/v1.0.0), para el teléfono, el ordenador y el navegador; se instala sobre la anterior conservando tus datos, y sus notas de la versión recogen cada cambio.
 - `2026-10-08` 🤗 Nuestro artículo está en [Hugging Face Daily Papers](https://huggingface.co/papers/2610.08699), tercero en la lista del 8 de octubre; las preguntas y los comentarios son bienvenidos en la página del artículo.
 - `2026-10-07` 📄 Nuestro artículo está disponible en [arXiv](https://arxiv.org/abs/2610.08699): *nanoMuse: An Open-Source Personal Agent for Every Device You Own*, de Guangyi Liu, Yong Liu y Jiangning Zhang (Universidad de Zhejiang); la cita está al final de esta página.

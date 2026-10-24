@@ -45,7 +45,8 @@ https://github.com/user-attachments/assets/bf0ec2ae-59aa-4358-9dd0-c9d045ee7bee
 
 ## 🗞️ 最新消息
 
-- `2026-10-13` ⭐ GitHub 上 1000 個 star，距首發十八天，期間連續四天進入 GitHub Trending 的 Swift 榜（[Trendshift](https://trendshift.io/repositories/286894) 的記錄：10 月 7 日第七，10 月 10 日第四）。謝謝每一次試用、每一個問題回報和每一個 pull request。我們會繼續做下去：每隔幾天一個版本，下一步做什麼寫在[路線圖](../roadmap.md)裡。
+- `2026-10-21` ⭐ GitHub 上 2000 個 star，並登上 GitHub Trending Swift 榜第一（[Trendshift](https://trendshift.io/repositories/286894) 的記錄：10 月 20 日第三，10 月 21 日第一），距首發二十六天。謝謝每一次試用、每一個問題回報和每一個 pull request；我們會繼續做下去：每隔幾天一個版本，下一步做什麼寫在[路線圖](../roadmap.md)裡。
+- `2026-10-13` ⭐ GitHub 上 1000 個 star，距首發十八天。
 - `2026-10-09` 🚀 版本 [1.0.0 Keel](https://github.com/nano-muse/nanoMuse/releases/tag/v1.0.0) 發布，手機、電腦和瀏覽器都有；安裝在上一版之上，資料保留，每一處改動都寫在發布說明裡。
 - `2026-10-08` 🤗 我們的論文登上 [Hugging Face Daily Papers](https://huggingface.co/papers/2610.08699)，在 10 月 8 日的榜單上排第三；歡迎到論文頁提問和留言。
 - `2026-10-07` 📄 我們的論文已發布在 [arXiv](https://arxiv.org/abs/2610.08699)：《nanoMuse: An Open-Source Personal Agent for Every Device You Own》，作者 Guangyi Liu、Yong Liu、Jiangning Zhang（浙江大學）；引用格式見本頁末尾。

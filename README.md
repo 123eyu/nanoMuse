@@ -45,7 +45,8 @@ https://github.com/user-attachments/assets/c7694d5a-9450-4f99-9254-5d70560d7565
 
 ## 🗞️ News
 
-- `2026-10-13` ⭐ 1,000 stars on GitHub, eighteen days after the first release, with four days on GitHub Trending's Swift list on the way ([Trendshift](https://trendshift.io/repositories/286894): seventh on October 7, fourth on October 10). Thank you for every try, every report and every pull request. We keep going: a version every few days, and the [roadmap](docs/roadmap.md) says what comes next.
+- `2026-10-21` ⭐ 2,000 stars on GitHub and first on GitHub Trending's Swift list ([Trendshift](https://trendshift.io/repositories/286894): third on October 20, first on October 21), twenty-six days after the first release. Thank you for every try, every report and every pull request; we keep going, a version every few days, and the [roadmap](docs/roadmap.md) says what comes next.
+- `2026-10-13` ⭐ 1,000 stars on GitHub, eighteen days after the first release.
 - `2026-10-09` 🚀 Version [1.0.0 Keel](https://github.com/nano-muse/nanoMuse/releases/tag/v1.0.0) is out, for the phone, the desktop and the browser; it installs over the version before and keeps your data, and its release notes list every change.
 - `2026-10-08` 🤗 Our paper is on [Hugging Face Daily Papers](https://huggingface.co/papers/2610.08699), ranked third on the list for October 8; questions and comments are welcome on the paper page.
 - `2026-10-07` 📄 Our paper is available on [arXiv](https://arxiv.org/abs/2610.08699): *nanoMuse: An Open-Source Personal Agent for Every Device You Own*, by Guangyi Liu, Yong Liu and Jiangning Zhang (Zhejiang University); the citation is at the end of this page.
