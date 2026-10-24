@@ -8,6 +8,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Runtime
 
+- **A thinking model's reasoning shows while it thinks, not only after the answer.** With `agent.show_thinking = true`, the reasoning a provider streams (`reasoning_content` on Chat Completions chunks, the Responses API's reasoning deltas, the ChatGPT sign-in's stream) reaches the screen as it arrives: the console prints it as a dim `⌗` line ahead of the reply, and the web console's bubble shows a live *Thinking…* fold that closes once the answer starts, where before both sat on a blank pause and showed the thinking only in *Show thinking* after the turn. A new `reasoning_delta` frame on the web console's WebSocket carries it; nothing is stored until the reply, which keeps the full reasoning as before. By @mongo027 ([#484](https://github.com/nano-muse/nanoMuse/pull/484)).
+
 ### Web
 
 ### Desktop

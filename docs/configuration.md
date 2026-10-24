@@ -133,7 +133,7 @@ Small models bend the protocol in predictable ways, and nanoMuse meets them half
 
 Set `max_tokens` to what the model can produce in one turn (4096 is fine for these) and keep `agent.max_context_messages` modest: a local 8B model with an 8k context window fills up fast once tool results start coming back.
 
-Models that emit `<think>…</think>` inside the content are handled: the reasoning is separated and shown only with `agent.show_thinking = true`.
+Models that emit `<think>…</think>` inside the content are handled: the reasoning is separated and shown only with `agent.show_thinking = true`. With that switch on, reasoning a provider streams (`reasoning_content` on a Chat Completions chunk, the reasoning deltas of the Responses API) is shown while the model thinks, in the console under a dim `⌗` line and in the web console's bubble, and folds into *Show thinking* once the answer begins; only the finished reasoning is kept with the reply.
 
 ## `[image]` and `[video]`
 

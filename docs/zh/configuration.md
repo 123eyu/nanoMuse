@@ -133,7 +133,7 @@ Ollama 在 `http://localhost:11434/v1` 提供 OpenAI 兼容的 API；带工具�
 
 把 `max_tokens` 设成模型一轮能产出的量（对这些模型 4096 就够），`agent.max_context_messages` 别太大：一个 8k 上下文窗口的本地 8B 模型，工具结果一开始回传，很快就满了。
 
-在内容里输出 `<think>…</think>` 的模型也有处理：推理部分被单独分出来，只在 `agent.show_thinking = true` 时显示。
+在内容里输出 `<think>…</think>` 的模型也有处理：推理部分被单独分出来，只在 `agent.show_thinking = true` 时显示。开着这个开关时，服务商流式送来的推理（Chat Completions 分块里的 `reasoning_content`，Responses API 的推理增量）会在模型思考的当下就显示出来：控制台里是一行暗色的 `⌗`，网页控制台里在气泡中；回答一开始，它就收进「显示思考」的折叠里，随回复保存的只有完整的推理。
 
 ## `[image]` 和 `[video]` {#image-and-video}
 

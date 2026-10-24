@@ -298,7 +298,7 @@ The client's first frame is `{"kind": "auth", "token": "…"}` (within ten secon
 | `update` | fields changed on an existing event (a tool finished, an approval was decided, a browser card got a new frame) |
 | `event_removed` | `{thread, id}`; an event left the timeline: a message deleted on another device of the account (conversation sync) |
 | `working` | `{thread, cid, device, device_name, working, at}`: another device of the account started (`true`) or finished (`false`) a turn in a synced conversation; the app shows *{device} is working…* under the last message while `true`, and drops it when the reply arrives or after ten minutes. The `hello` state lists the live ones under `working` |
-| `stream_start` / `delta` / `stream_end` | the assistant reply being generated; `stream_end` carries `discard: true` when what streamed turned out not to be a reply (a prompt-mode tool call, a quiet background pass) |
+| `stream_start` / `delta` / `reasoning_delta` / `stream_end` | the assistant reply being generated; `reasoning_delta` is the model's thinking as it streams, sent only with `show_thinking` on and never stored on its own (the final `assistant` event carries the whole of it); `stream_end` carries `discard: true` when what streamed turned out not to be a reply (a prompt-mode tool call, a quiet background pass) |
 | `status` | idle / working / waiting, with a short detail line |
 | `thread`, `thread_cleared`, `thread_deleted` | thread list changes |
 | `firstrun` | `{firstrun}`; the first conversation moved on (*Start*, the model's `nanomuse-naming` block, a pick, a dismissal): the same view as `GET /api/firstrun` without `intro`; the chat redraws its chooser. The `hello` state carries it under `firstrun` |
