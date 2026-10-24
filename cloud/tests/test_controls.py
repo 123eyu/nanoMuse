@@ -388,6 +388,11 @@ def test_deferred_notices_are_queued_then_flushed_in_order():
             break
         time.sleep(0.02)
     assert [m["Subject"].endswith(f"3 accounts: rule #{i} fired") for i, m in enumerate(sent, 1)] == [True, True]
+    # the second mail is out before its audit line is written: let the thread finish before the
+    # database goes (close() waits on the lock too; this keeps the test's own order plain)
+    for t in threading.enumerate():
+        if t.name == "nm-notices":
+            t.join(2.0)
     assert ctl.flush_notices() == 0 and ctl.flush_notices_later() is False
     db.close()
 

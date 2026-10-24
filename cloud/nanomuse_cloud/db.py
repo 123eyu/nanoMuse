@@ -880,7 +880,16 @@ class Database:
                 self._conn.execute("COMMIT")
 
     def close(self) -> None:
-        self._conn.close()
+        """Close the connection(s) once whatever holds the lock is done: a transaction on
+        another thread (the notices' flush, a backfill page) must not have the connection
+        closed under it, which sqlite answers with a crash rather than an error."""
+        reader = self._reader if self._reader is not self else None
+        if reader is not None:
+            with reader._lock:
+                reader._conn.close()
+            self._reader = None
+        with self._lock:
+            self._conn.close()
 
     # -- codes -------------------------------------------------------------
 
