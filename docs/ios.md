@@ -146,7 +146,7 @@ Ours, in `NanoMuse/`:
   with progress, steps, pause / check now / done / delete, and the routines beneath.
 - **Feed (0.1.34)** (`NanoMuseFeed.swift`, Android `feed/`): a daily routine writes a few short
   posts from the memory, the diary and the goals into `feed/<day>/<n>.md` with front matter; the
-  ` ```nanomuse-feed ` fence is how the model hands them over. The Feed room shows them by day,
+  ` ```nanomuse-feed ` fence is how the model hands them over. The Feed room shows them by day, a day's newest batch first,
   *Discuss* opens a side chat on the post, the sliders hold what the feed is about, the time, the
   switch and *Write it now*. **Ideas** gained *Create routine* (scheduled at the idea's time, the
   editor opens) and *Start goal* beside *Send to chat*.

@@ -17,8 +17,11 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 ### Android
 
 - **A scheduled task can fire at several times a day.** The editor adds a row per time under the first one, the task list shows the times on one row, `minis-scheduled create` takes `--time` more than once and prints `times` for such a task, and each run record names the time it was scheduled for. Tasks saved before this change keep their one time.
+- **The Feed shows a day's newest batch first.** Inside one day the posts were in file order, so the morning's batch stayed on top and the evening's, the newest, sat at the bottom of the day; now the newest batch comes first and each batch keeps the model's order, most important first. The day's title names the part of the day of that newest batch ([#555](https://github.com/nano-muse/nanoMuse/issues/555)).
 
 ### iOS
+
+- **The Feed shows a day's newest batch first,** as on Android ([#555](https://github.com/nano-muse/nanoMuse/issues/555)).
 
 ### Project
 

@@ -190,7 +190,11 @@ final class NanoMuseFeedStore: ObservableObject {
                 let modified = (try? fm.attributesOfItem(atPath: url.path)[.modificationDate] as? Date) ?? Date()
                 if let post = NanoMusePost.parse(text: text, day: day, index: index, file: url, modified: modified) { ofDay.append(post) }
             }
-            all.append(contentsOf: ofDay.sorted { $0.index < $1.index })
+            // A batch is written in one go and shares a `created` time: the newest batch first,
+            // and inside a batch the model's order, most important first (#555).
+            all.append(contentsOf: ofDay.sorted { a, b in
+                a.createdAt != b.createdAt ? a.createdAt > b.createdAt : a.index < b.index
+            })
         }
         posts = all
         let saved = ((try? String(contentsOf: preferencesFile, encoding: .utf8)) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
