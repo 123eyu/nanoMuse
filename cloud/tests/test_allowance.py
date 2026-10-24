@@ -21,6 +21,9 @@ from nanomuse_cloud.db import Database
 from nanomuse_cloud.senders import LogSender
 from nanomuse_cloud.service import Cloud, Usage, estimate_tokens, usage_from_json
 
+# the tests call the models as one of the apps would; `apps_only` (0.28) refuses other software
+APP_UA = {"User-Agent": "nanoMuse/0.0 (tests)"}
+
 ADMIN = {"X-Admin-Token": "admin"}
 # 2026-10-07T15:00:00Z is 23:00 in Beijing: inside DeepSeek's idle hours (22:00 to 8:00)
 IDLE_HOUR = 1791385200
@@ -48,7 +51,7 @@ def make(**overrides):
     sender = LogSender()
     cloud = Cloud(settings, Database(":memory:"), sender)
     app = create_app(settings, cloud, upstream_transport=httpx.ASGITransport(app=up))
-    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://cloud.test")
+    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://cloud.test", headers=APP_UA)
     return app, client, sender, up, cloud
 
 

@@ -33,7 +33,7 @@ async def test_switches_start_on_and_flip_with_an_audit_line():
     r = await client.get("/v1/admin/controls", headers=ADMIN)
     assert r.status_code == 200, r.text
     view = r.json()
-    assert set(view["switches"]) == {"free_allowance", "signups", "cloud_service", "sync", "hub"}
+    assert set(view["switches"]) == {"free_allowance", "signups", "cloud_service", "sync", "hub", "apps_only"}
     assert all(s["enabled"] for s in view["switches"].values()) and view["audit"] == []
 
     r = await client.post("/v1/admin/controls/signups", json={"enabled": False, "note": "launch day"}, headers=ADMIN)
@@ -114,6 +114,78 @@ async def test_free_allowance_off_refuses_limited_accounts_in_the_exhausted_shap
     cloud.controls.set("free_allowance", True, actor="ops")
     r = await client.post("/v1/chat/completions", json=CHAT, headers=auth(person["api_key"]))
     assert r.status_code == 200, r.text
+
+
+async def test_apps_only_refuses_other_software_at_the_models_and_nothing_else():
+    """0.28: with the switch on (the default) a pool worker, an SDK or the unbranded upstream
+    app on a nanoMuse key is refused the models with a 403 that names the client and says
+    where to go; the apps, the runtime, the browser console and members are answered; the
+    sign-in, the account page and the allowance are untouched; the refusal is one `calls`
+    row and one timeline event, never a budget refusal. Off, everything is answered."""
+    app, client, sender, up, cloud, settings = make(allowed_identifiers="13800138000")
+    member = await sign_up(client, sender, "13800138000", "pixel")
+    person = await sign_up(client, sender, "dev-a@example.com", "mac")
+    key = auth(person["api_key"])
+    for ua in (
+        "Go-http-client/1.1",
+        "nanoMuse-Pool-Worker/1.0",
+        "OpenAI/Python 1.5",
+        "python-requests/2.32",
+        "",
+        "Minis/1.14 (iOS 26; iPhone)",
+    ):
+        r = await client.post("/v1/chat/completions", json=CHAT, headers={**key, "User-Agent": ua})
+        assert r.status_code == 403, (ua, r.text)
+        err = r.json()["error"]
+        assert err["code"] == "client_not_supported" and "nanoMuse apps" in err["message"] and "key of your own" in err["message"]
+        assert err["client"] == (ua.split("/")[0] or "(empty)")
+    # the refusals cost nothing and the account page still answers the refused client
+    me = (await client.get("/v1/me", headers={**key, "User-Agent": "Go-http-client/1.1"})).json()
+    assert me["spend"]["total"] == 0 and me["paused"] == []
+    # the apps, the runtime and the web console in a browser are answered
+    for ua in (
+        "nanoMuse/1.0.6 (Android 15; Pixel 9)",
+        "nanoMuse/1.0.6 (iOS 26.1; iPhone)",
+        "nanoMuse-Android/1.0.6",
+        "deepseek-harness/1.2.0",
+        "nanoMuse-Desktop/1.0.6",
+        "nanoMuse/1.0.6",
+        "AsyncOpenAI/Python 1.109.1",  # the runtime of 1.0.6 and earlier
+        "Mozilla/5.0 (Macintosh) AppleWebKit/605 Safari/605",
+    ):
+        r = await client.post("/v1/chat/completions", json=CHAT, headers={**key, "User-Agent": ua})
+        assert r.status_code == 200, (ua, r.text)
+    # a member may call from whatever they like
+    r = await client.post("/v1/chat/completions", json=CHAT, headers={**auth(member["api_key"]), "User-Agent": "Go-http-client/1.1"})
+    assert r.status_code == 200, r.text
+    # a refusal is its own event, never a budget refusal
+    events = (await client.get("/v1/me/events", headers=key)).json()["events"]
+    kinds = [e["kind"] for e in events]
+    assert kinds.count("client.refused") == 6 and "budget.refused" not in kinds
+    assert [e["detail"] for e in events if e["kind"] == "client.refused"][-1] == "Go-http-client"
+    refused = [c for c in cloud.db.calls_since(0) if c["status"] == "refused"]
+    assert len(refused) == 6 and {c["detail"] for c in refused} == {"client_not_supported"}
+    assert all(c["prompt_tokens"] == 0 for c in refused)
+    # the Non-app traffic page shows whom the switch turned away, by family
+    abuse = (await client.get("/v1/admin/analytics/abuse?days=1", headers=ADMIN)).json()
+    assert abuse["apps_only"] is True
+    assert {(r["family"], r["requests"], r["accounts"]) for r in abuse["refused"]} == {
+        ("Go-http-client", 1, 1),
+        ("nanoMuse-Pool-Worker", 1, 1),
+        ("OpenAI", 1, 1),
+        ("python-requests", 1, 1),
+        ("(empty)", 1, 1),
+        ("Minis", 1, 1),
+    }
+    # the switch is a policy, not a pause: the health check does not list it
+    assert (await client.get("/healthz")).json()["paused"] == []
+    # off: any client with a valid key is answered
+    r = await client.post("/v1/admin/controls/apps_only", json={"enabled": False, "note": "a developer's week"}, headers=ADMIN)
+    assert r.status_code == 200, r.text
+    assert (await client.get("/healthz")).json()["paused"] == []
+    r = await client.post("/v1/chat/completions", json=CHAT, headers={**key, "User-Agent": "Go-http-client/1.1"})
+    assert r.status_code == 200, r.text
+    assert (await client.get("/v1/admin/analytics/abuse?days=1", headers=ADMIN)).json()["apps_only"] is False
 
 
 async def test_cloud_service_off_answers_503_everywhere_but_the_console():

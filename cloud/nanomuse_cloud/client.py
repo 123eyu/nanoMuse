@@ -122,6 +122,10 @@ _APP_TOKENS = (
     ("nanoMuse-iOS", "ios"),
     ("nanoMuse-Desktop", "desktop"),  # the Electron shell
     ("deepseek-harness", "desktop"),  # the dsh plugin's own calls
+    # the Python runtime of 1.0.6 and earlier made its model calls with the OpenAI SDK's own
+    # string (its sign-ins said nanoMuse/<version> (<system>)); the runtime names itself since
+    # 1.0.7. Those installs keep working; a script on the same SDK passes with them, for now
+    ("AsyncOpenAI/Python", "runtime"),
     ("Minis/", "minis"),  # the upstream OpenMinis app, unbranded
 )
 
@@ -166,6 +170,15 @@ def is_app(platform: str) -> bool:
     """Whether the platform is one of ours (the apps, the runtime, the console in a browser)
     rather than a script, a pool worker or an SDK talking to the relay directly."""
     return platform != "other"
+
+
+def is_nanomuse_client(platform: str) -> bool:
+    """Whether the platform is nanoMuse itself, the software the free allowance is for: the
+    phone apps, the desktop app, the Python runtime, the web console in a browser. Not the
+    unbranded upstream app and not a script, an SDK or a pool worker (the ``apps_only``
+    switch, 0.28, refuses those at the models). A user agent is a claim, not a proof: this
+    tells the honest apart, it does not stop a client that copies an app's string."""
+    return platform not in ("other", "minis")
 
 
 def ua_family(ua: str) -> str:

@@ -30,6 +30,24 @@ export function Abuse({ days }: PageProps) {
               <Kpi label={T.ab.shared} value={fmt(d.shared_addresses.length)} sub={T.ab.sharedSub} small />
               <Kpi label={T.ab.suspects} value={fmt(d.suspects.length)} small />
             </Kpis>
+            <Panel title={T.ab.refused} sub={d.apps_only ? T.ab.refusedOn : T.ab.refusedOff} right={<a href="#controls" className="btn sm">{T.nav.controls} →</a>} pad={false}>
+              {d.refused.length === 0 ? (
+                <div className="hint px-4 py-3">{T.ab.refusedNone}</div>
+              ) : (
+                <DataTable
+                  rows={d.refused}
+                  rowKey={(r) => r.family}
+                  defaultSort="requests"
+                  limit={30}
+                  columns={[
+                    { key: "family", label: T.ab.family, render: (r) => <code>{r.family}</code> },
+                    { key: "requests", label: T.g.requests, num: true, render: (r) => fmt(r.requests) },
+                    { key: "accounts", label: T.g.accounts, num: true, render: (r) => fmt(r.accounts) },
+                    { key: "last_ts", label: T.g.last, num: true, render: (r) => <Ago ts={r.last_ts} /> },
+                  ]}
+                />
+              )}
+            </Panel>
             <Panel title={T.ab.families} pad={false}>
               <DataTable
                 rows={d.families}

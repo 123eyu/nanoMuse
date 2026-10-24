@@ -63,6 +63,25 @@ updates:
       prefix: chore
       include: scope
 
+  # the relay's admin console (cloud/console), built into the relay package the same way the
+  # web app is built into the runtime: a bump that changes the committed build under
+  # cloud/nanomuse_cloud/console/admin gets its rebuild right after, as for /web
+  - package-ecosystem: npm
+    directory: /cloud/console
+    schedule:
+      interval: monthly
+    groups:
+      console:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    labels: ["dependencies"]
+    commit-message:
+      prefix: chore
+      include: scope
+
   - package-ecosystem: github-actions
     directory: /
     schedule:

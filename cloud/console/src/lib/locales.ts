@@ -181,6 +181,7 @@ export const zh = {
     "sign_in.failed": "登录失败",
     "account.created": "新账号",
     "budget.refused": "额度拒绝",
+    "client.refused": "非 nanoMuse 客户端被拒",
     "upstream.error": "上游错误",
     "content.rejected": "内容拒绝",
     "call.ended": "通话结束",
@@ -521,6 +522,10 @@ export const zh = {
     appTag: "App",
     scriptTag: "脚本",
     disabledN: (n: number) => `${n} 已停用`,
+    refused: "被「只服务 nanoMuse 客户端」挡下的",
+    refusedOn: "开关已打开：这些客户端请求模型时收到 HTTP 403（client_not_supported），不进账本，登录和额度照旧。",
+    refusedOff: "开关已关闭：任何持有效 key 的客户端都会被回答；下面是它打开期间挡下的。",
+    refusedNone: "这段时间没有被挡下的请求。",
   },
 
   pe: {
@@ -859,15 +864,20 @@ export const zh = {
   ct: {
     title: "控制",
     intro: "每个开关立即生效、重启后保持、写入审计。关闭前先看清它管什么。",
-    names: { free_allowance: "免费额度", signups: "开放注册", cloud_service: "云服务", sync: "对话同步", hub: "设备通道" } as Record<string, string>,
+    names: { free_allowance: "免费额度", signups: "开放注册", cloud_service: "云服务", sync: "对话同步", hub: "设备通道", apps_only: "只服务 nanoMuse 客户端" } as Record<string, string>,
     what: {
       free_allowance: "关闭后：没有自己模型 key 的受限账号请求模型会被拒（HTTP 429，code allowance_exhausted，附 paused: true）；成员不受影响；登录、设备、同步照常。",
       signups: "关闭后：还没有账号的手机号 / 邮箱申请验证码或登录会被拒（HTTP 403，code signup_closed）；已有账号照常登录和使用。",
       cloud_service: "关闭后：除健康检查、/v1/config 和这个控制台以外的所有 API 返回 HTTP 503（code service_paused），设备通道的连接全部断开（4003 hub_paused）；数据原样保留。",
       sync: "关闭后：对话同步的推送和拉取返回 HTTP 503（code sync_paused）；已存的内容保留，设备各自继续工作。",
       hub: "关闭后：设备通道拒绝新连接并断开现有连接（4003 hub_paused），/v1/devices 返回 503；设备各自继续工作。",
+      apps_only:
+        "打开时（默认）：模型只回答 nanoMuse 的手机 App、桌面 App、运行时和网页控制台；号池、SDK、脚本和未改名的上游 App 拿着 nanoMuse 的 key 来调模型会被拒（HTTP 403，code client_not_supported），登录和额度都保留，回到 App 里照常用；成员不受限。关闭后：任何持有效 key 的客户端都会被回答。它看的是 User-Agent，挡得住诚实的程序，挡不住冒充 App 的；1.0.6 及更早的运行时以 OpenAI SDK 的名字调用，按运行时放行。「非 App 流量」页能看到被拒的来源。",
     } as Record<string, string>,
-    confirm: (name: string, on: boolean, what: string) => (on ? `打开「${name}」？它管的一切恢复工作。` : `关闭「${name}」？\n\n${what}`),
+    whatOn: {
+      apps_only: "打开后：模型只回答 nanoMuse 的手机 App、桌面 App、运行时和网页控制台，其他软件被拒（HTTP 403，code client_not_supported）；成员不受限。",
+    } as Record<string, string>,
+    confirm: (name: string, on: boolean, what: string) => (on ? `打开「${name}」？${what ? `\n\n${what}` : "它管的一切恢复工作。"}` : `关闭「${name}」？\n\n${what}`),
     why: "原因（可选）",
     by: (who: string, t: string) => `${who} · ${t}`,
     rules: "阈值规则",
@@ -1138,6 +1148,7 @@ export const en: Strings = {
     "sign_in.failed": "Sign-in failed",
     "account.created": "New account",
     "budget.refused": "Allowance refused",
+    "client.refused": "Non-nanoMuse client refused",
     "upstream.error": "Upstream error",
     "content.rejected": "Content refused",
     "call.ended": "Call ended",
@@ -1478,6 +1489,10 @@ export const en: Strings = {
     appTag: "App",
     scriptTag: "Script",
     disabledN: (n: number) => `${n} disabled`,
+    refused: "Turned away by nanoMuse clients only",
+    refusedOn: "The switch is on: these clients get HTTP 403 (client_not_supported) at the models, nothing reaches the ledger, and the sign-in and the allowance stay as they are.",
+    refusedOff: "The switch is off: any client with a valid key is answered; below is what it turned away while it was on.",
+    refusedNone: "Nothing was turned away in this period.",
   },
 
   pe: {
@@ -1816,15 +1831,20 @@ export const en: Strings = {
   ct: {
     title: "Controls",
     intro: "Each switch takes effect at once, survives a restart and is written to the audit log. Read what it governs before turning it off.",
-    names: { free_allowance: "Free allowance", signups: "Sign-ups", cloud_service: "Cloud service", sync: "Conversation sync", hub: "Device hub" },
+    names: { free_allowance: "Free allowance", signups: "Sign-ups", cloud_service: "Cloud service", sync: "Conversation sync", hub: "Device hub", apps_only: "nanoMuse clients only" },
     what: {
       free_allowance: "Off: a limited account without a model key of its own is refused the models (HTTP 429, code allowance_exhausted with paused: true). Members are unaffected; sign-in, devices and sync keep working.",
       signups: "Off: a phone number or e-mail address without an account is refused a code and a sign-in (HTTP 403, code signup_closed). Existing accounts sign in and work as before.",
       cloud_service: "Off: every API call but the health check, /v1/config and this console answers HTTP 503 (code service_paused); every hub socket is closed (4003 hub_paused). Nothing is deleted.",
       sync: "Off: conversation sync pushes and pulls answer HTTP 503 (code sync_paused); what is stored stays, each device keeps working on its own.",
       hub: "Off: the device hub refuses new sockets and closes the open ones (4003 hub_paused); /v1/devices answers 503. Each device keeps working on its own.",
+      apps_only:
+        "On (the default): the models answer the nanoMuse phone apps, the desktop app, the runtime and the web console only; a pool worker, an SDK, a script or the unbranded upstream app on a nanoMuse key is refused (HTTP 403, code client_not_supported), with the sign-in and the allowance kept for the apps; members are exempt. Off: any client with a valid key is answered. It reads the User-Agent, so it tells the honest apart and does not stop a client that copies an app's string; the runtime of 1.0.6 and earlier, which calls under the OpenAI SDK's name, is answered as the runtime. Non-app traffic shows what was refused.",
     },
-    confirm: (name: string, on: boolean, what: string) => (on ? `Turn ${name} on? Everything it governs works again.` : `Turn ${name} off?\n\n${what}`),
+    whatOn: {
+      apps_only: "On: the models answer the nanoMuse phone apps, the desktop app, the runtime and the web console only; other software is refused (HTTP 403, code client_not_supported). Members are exempt.",
+    } as Record<string, string>,
+    confirm: (name: string, on: boolean, what: string) => (on ? `Turn ${name} on?${what ? `\n\n${what}` : " Everything it governs works again."}` : `Turn ${name} off?\n\n${what}`),
     why: "Why (optional)",
     by: (who: string, t: string) => `${who} · ${t}`,
     rules: "Thresholds",

@@ -1516,4 +1516,15 @@ class Analytics:
             "accounts_by_last_client": last_rows,
             "suspects": suspects,
             "shared_addresses": addresses,
+            # 0.28: what the `apps_only` switch turned away; these never reach the ledger
+            "apps_only": self.cloud.controls.on("apps_only"),
+            "refused": [
+                {
+                    "family": str(r["family"]) or "(empty)",
+                    "requests": int(r["n"]),
+                    "accounts": int(r["accounts"]),
+                    "last_ts": int(r["last_ts"] or 0),
+                }
+                for r in self.db.calls_refused_by_family(since)
+            ],
         }

@@ -45,7 +45,8 @@ https://github.com/user-attachments/assets/c7694d5a-9450-4f99-9254-5d70560d7565
 
 ## 🗞️ 소식
 
-- `2026-10-13` ⭐ GitHub 스타 1000개를 넘었습니다. 첫 공개 후 18일 만이며, 그 사이 GitHub Trending의 Swift 목록에 나흘 동안 올랐습니다([Trendshift](https://trendshift.io/repositories/286894) 기록: 10월 7일 7위, 10월 10일 4위). 써 보신 분, 문제를 알려 주신 분, pull request를 보내 주신 분 모두 고맙습니다. 계속 이어갑니다: 며칠에 한 번씩 새 버전을 내고, 다음에 할 일은 [로드맵](../roadmap.md)에 적어 두었습니다.
+- `2026-10-21` ⭐ GitHub 스타 2000개를 넘었고, GitHub Trending의 Swift 목록에서 1위에 올랐습니다([Trendshift](https://trendshift.io/repositories/286894) 기록: 10월 20일 3위, 10월 21일 1위). 첫 공개 후 26일 만입니다. 써 보신 분, 문제를 알려 주신 분, pull request를 보내 주신 분 모두 고맙습니다. 계속 이어갑니다: 며칠에 한 번씩 새 버전을 내고, 다음에 할 일은 [로드맵](../roadmap.md)에 적어 두었습니다.
+- `2026-10-13` ⭐ GitHub 스타 1000개를 넘었습니다. 첫 공개 후 18일 만입니다.
 - `2026-10-09` 🚀 버전 [1.0.0 Keel](https://github.com/nano-muse/nanoMuse/releases/tag/v1.0.0)이 나왔습니다. 휴대폰과 데스크톱과 브라우저 모두를 위한 버전입니다; 이전 버전 위에 설치되어 데이터가 그대로 남고, 릴리스 노트에 모든 변경 사항이 적혀 있습니다.
 - `2026-10-08` 🤗 저희 논문이 [Hugging Face Daily Papers](https://huggingface.co/papers/2610.08699)에 올라 10월 8일 목록에서 3위를 차지했습니다; 질문과 의견은 논문 페이지에 남겨 주세요.
 - `2026-10-07` 📄 저희 논문이 [arXiv](https://arxiv.org/abs/2610.08699)에 공개되었습니다: 『nanoMuse: An Open-Source Personal Agent for Every Device You Own』, 저자 Guangyi Liu, Yong Liu, Jiangning Zhang(저장대학교); 인용 정보는 이 페이지 끝에 있습니다.
@@ -148,7 +149,10 @@ VPS 한 대, 한 시간: [docs/self-hosting.md](../self-hosting.md). 세 가지 
 <a href="https://github.com/aliabbas6622"><img src="https://avatars.githubusercontent.com/u/193962983?v=4&s=48" width="48" height="48" alt="aliabbas6622"></a>
 <a href="https://github.com/isHeSatoshi"><img src="https://avatars.githubusercontent.com/u/83160620?v=4&s=48" width="48" height="48" alt="isHeSatoshi"></a>
 <a href="https://github.com/henrikdukefoss"><img src="https://avatars.githubusercontent.com/u/76407537?v=4&s=48" width="48" height="48" alt="henrikdukefoss"></a>
+<a href="https://github.com/mongo027"><img src="https://avatars.githubusercontent.com/u/275146281?v=4&s=48" width="48" height="48" alt="mongo027"></a>
+<a href="https://github.com/aiapienthusiast"><img src="https://avatars.githubusercontent.com/u/327629069?v=4&s=48" width="48" height="48" alt="aiapienthusiast"></a>
 <a href="https://github.com/cypggs"><img src="https://avatars.githubusercontent.com/u/3694954?v=4&s=48" width="48" height="48" alt="cypggs"></a>
+<a href="https://github.com/takiAA"><img src="https://avatars.githubusercontent.com/u/119551932?v=4&s=48" width="48" height="48" alt="takiAA"></a>
 </p>
 <!-- contributors:end -->
 

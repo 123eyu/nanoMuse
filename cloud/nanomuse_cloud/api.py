@@ -983,6 +983,19 @@ def create_app(
         who = client_info.current()
         call = meter.start(caller.account_id, spec.id, who.platform, stream, request_shape(body))
         call.family = client_info.ua_family(who.ua)
+        # 0.28 `apps_only`: the allowance is for nanoMuse; a pool worker, an SDK or another
+        # app on a nanoMuse key is told where to go instead. Members are on the operator's
+        # own bill by choice and may call from whatever they like.
+        if cloud.controls.on("apps_only") and not caller.member and not client_info.is_nanomuse_client(who.platform):
+            record_call(call, "refused", "client_not_supported", request_id=request_id)
+            cloud.note(caller.account_id, "client.refused", call.family)
+            raise CloudError(
+                403,
+                "client_not_supported",
+                "nanoMuse Cloud answers the nanoMuse apps only. In other software, use a model key of your own; "
+                "your sign-in and your allowance are kept for the apps.",
+                {"client": call.family},
+            )
         # held at a typical turn's price while it runs; settled when the reply is in
         try:
             cloud.check_budget(caller, request_id=request_id, hold_uy=cloud.chat_reserve_uy(spec), place=client_place(request))

@@ -98,6 +98,7 @@ Errors carry a stable `code` the app can turn into a sentence:
 | 503 | `service_paused` | the *Cloud service* switch is off (0.22): every call but `/healthz`, `/v1/config`, `/app` and `/v1/admin/*`; `paused: true` in the body |
 | 503 | `sync_paused` | the *Conversation sync* switch is off (0.22): `/v1/sync/*` except `GET /v1/sync/state`, which answers with `paused: true` |
 | 503 | `hub_paused` | the *Device hub* switch is off (0.22): `GET /v1/devices`; the hub socket itself closes with `4003 hub_paused` |
+| 403 | `client_not_supported` | the *nanoMuse clients only* switch is on (0.28, the default) and the `User-Agent` is not one of the nanoMuse apps, the runtime or a browser: a pool worker, an SDK, a script, the unbranded upstream app; `client` in the body names the family. Members are answered from anything; the sign-in, the account and the allowance are untouched |
 
 ## Run it
 
@@ -305,17 +306,33 @@ relay's own numbers.
 
 ### Controls (0.22)
 
-Five switches the operator flips without a restart or a deploy, from the
+Six switches the operator flips without a restart or a deploy, from the
 *Controls* page of the console, the command line or `POST
 /v1/admin/controls/{key}`: `free_allowance`, `signups`, `cloud_service`,
-`sync`, `hub`. Each is on by default, kept in the `controls` table so a
-restart keeps it, and applies to the next request. What each one refuses when
-off is in the error table above and, from the app's side, in
-[docs/cloud.md › Controls](../docs/cloud.md#controls); the console says the
-same thing in the row and again in the confirmation before it flips. Turning
-`cloud_service` or `hub` off closes every open hub socket (`4003 hub_paused`)
-and the answer says how many. The switches that are off are listed under
-`paused` in `/healthz`, `/v1/config`, `/v1/me` and `GET /v1/admin/settings`.
+`sync`, `hub` and, since 0.28, `apps_only`. Each is on by default, kept in the
+`controls` table so a restart keeps it, and applies to the next request. What
+each one refuses when off is in the error table above and, from the app's
+side, in [docs/cloud.md › Controls](../docs/cloud.md#controls); the console
+says the same thing in the row and again in the confirmation before it flips.
+Turning `cloud_service` or `hub` off closes every open hub socket (`4003
+hub_paused`) and the answer says how many. The five that pause a part of the
+service are listed under `paused` in `/healthz`, `/v1/config`, `/v1/me` and
+`GET /v1/admin/settings` while they are off.
+
+`apps_only` is the one switch that refuses while it is *on*: the models answer
+the nanoMuse apps, the desktop app, the Python runtime and the web console in
+a browser, and turn away everything else on a nanoMuse key with `403
+client_not_supported` (a pool worker, an SDK, a script, the unbranded upstream
+app; `client` in the body names the family, the message says to use a key of
+one's own in other software). It reads the `User-Agent`, so it stops honest
+programs and not impostors; the runtime of 1.0.6 and earlier, which called the
+models with the OpenAI SDK's own string (`AsyncOpenAI/Python`), is answered as
+the runtime it is, and so is a script on that SDK; members are exempt; the
+sign-in, the account page, sync and the hub do not look at it. A refusal is a `calls` row (`refused`,
+`client_not_supported`) and a `client.refused` line on the account's timeline,
+costs nothing and never counts as a budget refusal; the *Non-app traffic* page
+of the console lists what was turned away, by family. Off, any client with a
+valid key is answered, as before 0.28.
 
 Every change is a row in `control_audit` — who (`X-Admin-Actor` from the
 console's *Your name* field or the CLI's `--actor`, else `console` / `cli:<user>`

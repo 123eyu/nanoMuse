@@ -45,7 +45,8 @@ https://github.com/user-attachments/assets/c7694d5a-9450-4f99-9254-5d70560d7565
 
 ## 🗞️ Новости
 
-- `2026-10-13` ⭐ 1000 звёзд на GitHub, через восемнадцать дней после первого выпуска, и по пути четыре дня в списке Swift на GitHub Trending ([Trendshift](https://trendshift.io/repositories/286894): седьмое место 7 октября, четвёртое 10 октября). Спасибо за каждую попытку, каждое сообщение об ошибке и каждый pull request. Мы продолжаем: новая версия раз в несколько дней, а [дорожная карта](../roadmap.md) говорит, что дальше.
+- `2026-10-21` ⭐ 2000 звёзд на GitHub и первое место в списке Swift на GitHub Trending ([Trendshift](https://trendshift.io/repositories/286894): третье место 20 октября, первое 21 октября), через двадцать шесть дней после первого выпуска. Спасибо за каждую попытку, каждое сообщение об ошибке и каждый pull request; мы продолжаем: новая версия раз в несколько дней, а [дорожная карта](../roadmap.md) говорит, что дальше.
+- `2026-10-13` ⭐ 1000 звёзд на GitHub, через восемнадцать дней после первого выпуска.
 - `2026-10-09` 🚀 Вышла версия [1.0.0 Keel](https://github.com/nano-muse/nanoMuse/releases/tag/v1.0.0), для телефона, компьютера и браузера; она ставится поверх предыдущей с сохранением ваших данных, а в заметках к выпуску перечислено каждое изменение.
 - `2026-10-08` 🤗 Наша статья попала в [Hugging Face Daily Papers](https://huggingface.co/papers/2610.08699) и заняла третье место в списке за 8 октября; вопросы и комментарии можно оставить на странице статьи.
 - `2026-10-07` 📄 Наша статья доступна на [arXiv](https://arxiv.org/abs/2610.08699): *nanoMuse: An Open-Source Personal Agent for Every Device You Own*, авторы Guangyi Liu, Yong Liu и Jiangning Zhang (Чжэцзянский университет); ссылка для цитирования в конце этой страницы.
@@ -148,7 +149,10 @@ https://github.com/user-attachments/assets/c7694d5a-9450-4f99-9254-5d70560d7565
 <a href="https://github.com/aliabbas6622"><img src="https://avatars.githubusercontent.com/u/193962983?v=4&s=48" width="48" height="48" alt="aliabbas6622"></a>
 <a href="https://github.com/isHeSatoshi"><img src="https://avatars.githubusercontent.com/u/83160620?v=4&s=48" width="48" height="48" alt="isHeSatoshi"></a>
 <a href="https://github.com/henrikdukefoss"><img src="https://avatars.githubusercontent.com/u/76407537?v=4&s=48" width="48" height="48" alt="henrikdukefoss"></a>
+<a href="https://github.com/mongo027"><img src="https://avatars.githubusercontent.com/u/275146281?v=4&s=48" width="48" height="48" alt="mongo027"></a>
+<a href="https://github.com/aiapienthusiast"><img src="https://avatars.githubusercontent.com/u/327629069?v=4&s=48" width="48" height="48" alt="aiapienthusiast"></a>
 <a href="https://github.com/cypggs"><img src="https://avatars.githubusercontent.com/u/3694954?v=4&s=48" width="48" height="48" alt="cypggs"></a>
+<a href="https://github.com/takiAA"><img src="https://avatars.githubusercontent.com/u/119551932?v=4&s=48" width="48" height="48" alt="takiAA"></a>
 </p>
 <!-- contributors:end -->
 

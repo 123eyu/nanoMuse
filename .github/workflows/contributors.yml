@@ -1,0 +1,76 @@
+name: Contributors
+
+# The *Community Contributors* avatars in the ten READMEs follow GitHub's contributors list.
+# Every night, after every push to main and on request, this runs scripts/readme-contributors.py;
+# when a README is behind it rewrites the ten and opens, or refreshes, one pull request on the
+# branch chore/readme-contributors. A pull request opened with the workflow's own token starts
+# no other workflow, so its checks stay empty: a READMEs-only change needs none, and a maintainer
+# merges it from the pull request page. With a CONTRIBUTORS_TOKEN secret (a fine-grained token
+# with contents and pull-requests write on this repository) the checks run and the pull request
+# merges itself once they pass.
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: contributors
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: README avatars follow GitHub
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.repository == 'nano-muse/nanoMuse'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          token: ${{ secrets.CONTRIBUTORS_TOKEN || github.token }}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Rewrite the ten READMEs
+        id: refresh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python scripts/readme-contributors.py
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Open or refresh the pull request
+        if: steps.refresh.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.CONTRIBUTORS_TOKEN || github.token }}
+          AUTO_MERGE: ${{ secrets.CONTRIBUTORS_TOKEN != '' }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          branch=chore/readme-contributors
+          title="docs(readme): refresh the community contributors"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -q -B "$branch"
+          git add README.md docs/readme
+          git commit -q -s -m "$title" \
+            -m "GitHub's contributors list changed: scripts/readme-contributors.py rewrote the avatars in README.md and the nine translations under docs/readme/."
+          git push -q --force origin "$branch"
+          if [ -z "$(gh pr list --repo "$REPO" --head "$branch" --state open --json number --jq '.[].number')" ]; then
+            gh pr create --repo "$REPO" --head "$branch" --base main --title "$title" \
+              --label documentation \
+              --body "GitHub's contributors list changed. \`scripts/readme-contributors.py\` rewrote the *Community Contributors* avatars in \`README.md\` and the nine translations under \`docs/readme/\`; nothing else is touched. Opened by the *Contributors* workflow."
+          fi
+          if [ "$AUTO_MERGE" = "true" ]; then
+            gh pr merge --repo "$REPO" "$branch" --merge --auto
+          fi
