@@ -14,7 +14,12 @@
     DELETE /v1/me/sessions/{prefix}                             → 204 (sign one device out)
     GET  /v1/me/events                                          → the account's own timeline (sign-ins, password changes…)
     POST /v1/me/contribute {on}                                 → Data controls: "help improve nanoMuse's AI models" — keep the text of my chat turns (the default for new accounts is IMPROVE_DEFAULT)
-    DELETE /v1/me/samples                                       → delete every turn kept from me
+    DELETE /v1/me/samples                                       → delete every turn kept from me: the training turns and (0.29) the record, files included → {deleted, turns, files}
+    GET  /v1/turns            ?since=&limit=&before=&before_id=&conversation= → 0.29: the account's record — every turn in full, newest first (pictures as blob:sha256 references)
+    GET  /v1/turns/{id}                                         → one turn
+    POST /v1/turns            {model, messages, response{message, usage?}, provider?, ts?, conversation?, id?} → 201 {id, ts}: a turn run on the app's own key, kept beside the Cloud ones
+    PUT  /v1/blobs/{sha256}   raw body + Content-Type           → {sha256, bytes, mime, known}: a picture, audio or clip, stored once by its hash (HEAD first saves the upload)
+    HEAD /v1/blobs/{sha256}  /  GET /v1/blobs/{sha256}          → the file, for an account that holds a reference to it (a turn, the profile's clips, an upload of its own)
     GET  /v1/sync/state                                         → 0.19: {enabled, cursor, counts, limits, working[]} — conversation sync between the account's devices
     PUT  /v1/sync/state       {enabled}                         → the switch; off deletes everything stored
     GET  /v1/sync/changes     ?since=&limit=&scope=&tail=       → conversations and messages after a cursor, in seq order (0.20: scope=all|main, tail=K with since=0)
@@ -27,7 +32,7 @@
     POST /v1/auth/session-key {device?, ttl_s?}                 → {api_key, expires_at} (a key that lapses on its own; nanoMuse Web's containers)
     POST /v1/auth/delete                                        → 204 (the whole account, every key)
     GET  /v1/me/profile       ?face=false                       → the agent's name, look and connectors, shared by the account's devices
-    PUT  /v1/me/profile       {device, name?, avatar?, face?, connectors?} → {rev, device}; partial since 0.25
+    PUT  /v1/me/profile       {device, name?, avatar?, face?, clips?, connectors?} → {rev, device}; partial since 0.25; clips (0.29) name files put up with PUT /v1/blobs
     DELETE /v1/me/profile                                       → 204
     GET  /v1/models                                             → OpenAI list, with modalities; for a member, the usable models under the operator's key after the menu (catalog: true)
     GET  /v1/models/{id}      ?kind=chat                        → one model, or a member's typed id checked (listed, priced_as)
@@ -67,6 +72,10 @@
     GET  /v1/admin/data       X-Admin-Token  ?days=30           → Data controls: accounts with the switch on, kept turns by day / model / app / account, switches on and off, the newest turns
     GET  /v1/admin/samples    X-Admin-Token  ?account_id=&limit=&since=&before=&before_id= → kept turns (accounts with the switch on only)
     GET  /v1/admin/samples/export X-Admin-Token ?since=&account_id= → the same as JSON lines, without account ids or addresses
+    GET  /v1/admin/turns      X-Admin-Token  ?account_id=&limit=&since=&before=&before_id=&conversation= → 0.29: the record, whole turns, newest first
+    GET  /v1/admin/turns/export X-Admin-Token ?since=&account_id= → the record as JSON lines (account ids included: it is the account's data, not the training set)
+    GET  /v1/admin/record     X-Admin-Token  ?days=30           → what the record holds: turns and files in all and per day, the store against MEDIA_MAX_GB
+    GET  /v1/admin/blobs/{sha256} X-Admin-Token                 → one file of the record
     GET  /v1/admin/sync       X-Admin-Token                     → conversation sync in aggregate: accounts on / off, conversations, messages, bytes (never a text)
     GET  /v1/admin/health     X-Admin-Token                     → aggregates only: requests under way, the hub, the last hour, the database, problems (what selfcheck.sh reads)
     GET  /v1/admin/places     X-Admin-Token  ?days=30           → accounts, sign-ins, requests and demo visitors by country and province
@@ -102,6 +111,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import hashlib
 import json
 import logging
 import math
@@ -116,7 +126,7 @@ from urllib.parse import urlsplit
 
 import httpx
 from fastapi import Depends, FastAPI, File, Form, Header, Request, Response, UploadFile, WebSocket
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.requests import ClientDisconnect
 
@@ -139,6 +149,7 @@ from .geo import Geo, collect_ips, group_places
 from .github_stats import GitHubCollector
 from .hub import Hub
 from .identifiers import BadIdentifier, parse
+from .record import StreamAssembler, is_sha256
 from .service import Caller, Cloud, CloudError, Usage, dumps, estimate_tokens, prompt_chars, usage_from_json
 from .stats import Stats, api_group
 from .sync import DEFAULT_PAGE, SyncStore
@@ -404,6 +415,10 @@ def create_app(
                     gone = await asyncio.to_thread(cloud.db.sweep_calls, int(time.time()) - max(1, settings.calls_keep_days) * 86400)
                     if gone:
                         log.info("analytics: %d call rows older than %d days swept", gone, settings.calls_keep_days)
+                    # 0.29: the record's retention and the media store's cap
+                    swept = await asyncio.to_thread(cloud.sweep_record)
+                    if any(swept.values()):
+                        log.info("record: %(turns)d turns swept, %(files)d files with them, %(trimmed)d trimmed over the cap", swept)
             except asyncio.CancelledError:
                 raise
             except Exception:
@@ -679,7 +694,94 @@ def create_app(
 
     @app.delete("/v1/me/samples")
     async def me_delete_samples(caller: Caller = Depends(caller_dep)) -> dict:
-        return {"deleted": cloud.delete_samples(caller)}
+        """Data controls' delete: the training turns and (0.29) the record, files included."""
+        return cloud.delete_samples(caller)
+
+    # -- 0.29: the record and its files (docs/cloud.md, "The record") ------------------------
+
+    def _turn_meta(request: Request) -> dict:
+        return {
+            "ua": (request.headers.get("user-agent") or "")[:120],
+            "lang": (request.headers.get("accept-language") or "")[:40],
+            "ip": client_ip(request),
+        }
+
+    @app.get("/v1/turns")
+    async def my_turns(
+        since: int = 0,
+        limit: int = 50,
+        before: int = 0,
+        before_id: str = "",
+        conversation: str = "",
+        caller: Caller = Depends(caller_dep),
+    ) -> dict:
+        """The account's record, newest first, for a device reading it back: each turn's
+        request (pictures as `blob:sha256:` references, files at GET /v1/blobs/{sha256})
+        and the answer. Pages with `before` (the last row's ts) and `before_id` (its id)."""
+        return {"turns": cloud.my_turns(caller, since, max(1, limit), max(0, before), before_id[:96], conversation)}
+
+    @app.get("/v1/turns/{turn_id}")
+    async def my_turn(turn_id: str, caller: Caller = Depends(caller_dep)) -> dict:
+        turn = cloud.my_turn(caller, turn_id)
+        if turn is None:
+            raise CloudError(404, "not_found", "No such turn on this account")
+        return turn
+
+    @app.post("/v1/turns", status_code=201)
+    async def post_turn(request: Request, caller: Caller = Depends(caller_dep)) -> dict:
+        """A turn the app ran on a key of its own, kept beside the Cloud ones (1.0.7 on):
+        `model`, `messages`, `response: {message, usage?}`, and `provider`, `ts`,
+        `conversation`, `id` as the app has them. Files first: PUT /v1/blobs/{sha256}, then
+        `blob:sha256:<hex>` where the picture was; or inline as data URLs within
+        MAX_REQUEST_BYTES."""
+        body = await _json(request)
+        return cloud.add_own_turn(caller, body, meta=_turn_meta(request), device=(request.headers.get("x-nanomuse-device") or "")[:80])
+
+    async def _raw(request: Request, limit: int) -> bytes:
+        declared = request.headers.get("content-length", "")
+        if declared.isdigit() and int(declared) > limit:
+            raise _too_large(int(declared))
+        chunks: list[bytes] = []
+        size = 0
+        try:
+            async for chunk in request.stream():
+                size += len(chunk)
+                if size > limit:
+                    raise _too_large(int(declared) if declared.isdigit() else None)
+                chunks.append(chunk)
+        except ClientDisconnect as e:
+            raise CloudError(400, "client_disconnected", "The request ended before its body") from e
+        return b"".join(chunks)
+
+    @app.put("/v1/blobs/{sha256}")
+    async def put_blob(sha256: str, request: Request, caller: Caller = Depends(caller_dep)) -> dict:
+        """A picture, an audio clip or a video, raw in the body with its `Content-Type`,
+        named by its SHA-256 (checked). Stored once however many devices send it; answers
+        `known: true` when it already was. HEAD first saves the upload."""
+        if not is_sha256(sha256.lower()):
+            raise CloudError(400, "bad_request", "the path is the file's hex SHA-256")
+        data = await _raw(request, settings.blob_max_bytes)
+        if hashlib.sha256(data).hexdigest() != sha256.lower():
+            raise CloudError(400, "hash_mismatch", "the body's SHA-256 is not the one in the path")
+        return cloud.put_blob(caller, data, request.headers.get("content-type") or "")
+
+    @app.head("/v1/blobs/{sha256}")
+    async def head_blob(sha256: str, caller: Caller = Depends(caller_dep)) -> Response:
+        found = cloud.blob_for(sha256.lower(), caller)
+        if found is None:
+            raise CloudError(404, "not_found", "No such file on this account")
+        path, mime = found
+        return Response(status_code=200, media_type=mime, headers={"Content-Length": str(path.stat().st_size)})
+
+    @app.get("/v1/blobs/{sha256}")
+    async def get_blob(sha256: str, caller: Caller = Depends(caller_dep)) -> Response:
+        """The file, for an account that holds a reference to it (one of its turns, its
+        profile's clips, an upload of its own). Immutable: cache it for good."""
+        found = cloud.blob_for(sha256.lower(), caller)
+        if found is None:
+            raise CloudError(404, "not_found", "No such file on this account")
+        path, mime = found
+        return FileResponse(path, media_type=mime, headers={"Cache-Control": "private, max-age=31536000, immutable"})
 
     @app.get("/v1/me/sessions")
     async def me_sessions(caller: Caller = Depends(caller_dep)) -> dict:
@@ -958,6 +1060,28 @@ def create_app(
         except Exception:  # telemetry must never fail a chat
             log.exception("calls row")
 
+    # the record's writes in flight, held so the loop does not drop them half-way (and so
+    # a test can wait for them: app.state.record_tasks)
+    record_tasks: set[asyncio.Task] = set()
+    app.state.record_tasks = record_tasks
+
+    def record_later(*args: Any, **kwargs: Any) -> None:
+        """The turn's record (service.record_turn) written off the loop after the answer
+        has left — the pictures are decoded, hashed and written to disk there, and the
+        row after them. A failure is logged; it is never the person's problem."""
+        if not settings.record_turns:
+            return
+
+        async def run() -> None:
+            try:
+                await asyncio.to_thread(cloud.record_turn, *args, **kwargs)
+            except Exception:
+                log.exception("record turn")
+
+        task = asyncio.create_task(run(), name="record-turn")
+        record_tasks.add(task)
+        task.add_done_callback(record_tasks.discard)
+
     async def chat_post(url: str, headers: dict[str, str], payload: bytes, call: InFlightCall) -> tuple[httpx.Response, int]:
         """One non-streaming turn, queued globally and retried before an answer exists;
         answers the response and how many times it was retried."""
@@ -1018,16 +1142,19 @@ def create_app(
         # For an account that opted in, the turn is kept once it is answered (service.keep_sample)
         # with the platform and language hints from the headers and, since 0.10, the address
         # (the export for training drops the address along with the account id).
-        sample_meta = (
-            {
-                "ua": (request.headers.get("user-agent") or "")[:120],
-                "lang": (request.headers.get("accept-language") or "")[:40],
-                "ip": client_ip(request),
-            }
-            if caller.contribute
-            else None
-        )
+        turn_meta = {
+            "ua": (request.headers.get("user-agent") or "")[:120],
+            "lang": (request.headers.get("accept-language") or "")[:40],
+            "ip": client_ip(request),
+        }
+        sample_meta = dict(turn_meta) if caller.contribute else None
         sample_messages = body.get("messages") if caller.contribute and isinstance(body.get("messages"), list) else []
+        # 0.29: the record keeps the whole turn once it is answered (service.record_turn, off
+        # the loop); a 1.0.7 app names the device and the conversation the turn belongs to
+        turn_where = {
+            "device": (request.headers.get("x-nanomuse-device") or "")[:80],
+            "conversation": (request.headers.get("x-nanomuse-conversation") or "")[:80],
+        }
 
         if not stream:
             retries = 0
@@ -1073,6 +1200,7 @@ def create_app(
             )
             if sample_meta is not None:
                 cloud.keep_sample(caller, spec.id, sample_messages, text, usage.prompt, usage.completion, sample_meta)
+            record_later(caller, spec.id, body, _reply_message(obj), usage, request_id=request_id, meta=turn_meta, **turn_where)
             if isinstance(obj, dict):
                 obj["model"] = spec.id
                 obj.setdefault("nanomuse", {})["charged"] = charged
@@ -1082,8 +1210,9 @@ def create_app(
             usage: Usage | None = None
             text_len = 0
             # the assistant's words: the estimate when the provider sends no usage, and the
-            # kept turn of a contributing account
+            # kept turn of a contributing account; the whole message, for the record
             reply: list[str] = []
+            assembler = StreamAssembler()
             # A request the provider refused, or dropped before a single token, costs the
             # account nothing; a stream that broke off midway is charged for what arrived.
             failed = False
@@ -1131,6 +1260,7 @@ def create_app(
                                                 u = usage_from_json(obj)
                                                 if u is not None:
                                                     usage = u
+                                                assembler.feed(obj)
                                                 for ch in obj.get("choices") or []:
                                                     d = ch.get("delta") if isinstance(ch, dict) else None
                                                     if isinstance(d, dict) and isinstance(d.get("content"), str):
@@ -1165,6 +1295,17 @@ def create_app(
                     cloud.charge_chat(caller, spec, usage.prompt, usage.completion, request_id, cached_tokens=usage.cached)
                     if sample_meta is not None:
                         cloud.keep_sample(caller, spec.id, sample_messages, "".join(reply), usage.prompt, usage.completion, sample_meta)
+                    record_later(
+                        caller,
+                        spec.id,
+                        body,
+                        assembler.message(),
+                        usage,
+                        request_id=request_id,
+                        meta=turn_meta,
+                        status="ok" if status == "ok" else "partial",
+                        **turn_where,
+                    )
                 cloud.settle(caller, request_id)
                 record_call(
                     call,
@@ -1789,6 +1930,42 @@ def create_app(
             }
         )
 
+    @app.get("/v1/admin/turns", dependencies=[Depends(admin_dep)])
+    async def admin_turns(
+        account_id: str = "", limit: int = 50, since: int = 0, before: int = 0, before_id: str = "", conversation: str = ""
+    ) -> dict:
+        """The record (0.29): whole turns, newest first, with the same paging as samples."""
+        return with_places(
+            {
+                "turns": cloud.admin_turns(account_id or None, since, limit, before, before_id[:96], conversation),
+                "total": cloud.db.turn_count(account_id or None),
+            }
+        )
+
+    @app.get("/v1/admin/turns/export", dependencies=[Depends(admin_dep)])
+    async def admin_turns_export(since: int = 0, account_id: str = "") -> Response:
+        """The record as JSON lines, account ids included (it is the account's data, not the
+        training set); pictures stay references, fetched by hash from /v1/admin/blobs."""
+        name = f"nanomuse-turns-{account_id[:8]}-{since}" if account_id else f"nanomuse-turns-{since}"
+        return StreamingResponse(
+            cloud.export_turns(since, account_id or None),
+            media_type="application/x-ndjson",
+            headers={"Content-Disposition": f'attachment; filename="{name}.jsonl"', "Cache-Control": "no-store"},
+        )
+
+    @app.get("/v1/admin/record", dependencies=[Depends(admin_dep)])
+    async def admin_record(days: int = 30) -> dict:
+        """What the record holds: turns and files in all and per day, the store against its cap."""
+        return cloud.admin_record(max(1, min(days, 365)))
+
+    @app.get("/v1/admin/blobs/{sha256}", dependencies=[Depends(admin_dep)])
+    async def admin_blob(sha256: str) -> Response:
+        found = cloud.blob_for(sha256.lower())
+        if found is None:
+            raise CloudError(404, "not_found", "No such file")
+        path, mime = found
+        return FileResponse(path, media_type=mime, headers={"Cache-Control": "private, max-age=31536000, immutable"})
+
     @app.get("/v1/admin/samples/export", dependencies=[Depends(admin_dep)])
     async def admin_samples_export(since: int = 0, account_id: str = "") -> Response:
         """The training set as JSON lines (one turn per line, no account ids, no addresses);
@@ -2111,6 +2288,19 @@ def create_app(
         if not isinstance(obj, dict):
             raise CloudError(400, "bad_request", "Body must be a JSON object")
         return obj
+
+    def _reply_message(obj: object) -> dict:
+        """The assistant's message of a non-streamed reply, whole (content, reasoning, tool
+        calls, finish_reason) — what the record keeps."""
+        if isinstance(obj, dict):
+            for ch in obj.get("choices") or []:
+                msg = ch.get("message") if isinstance(ch, dict) else None
+                if isinstance(msg, dict):
+                    out = dict(msg)
+                    if ch.get("finish_reason"):
+                        out["finish_reason"] = str(ch["finish_reason"])
+                    return out
+        return {"role": "assistant", "content": _reply_text(obj)}
 
     def _reply_text(obj: object) -> str:
         """The assistant's words in a non-streamed reply (choices[].message.content)."""

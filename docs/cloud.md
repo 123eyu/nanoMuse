@@ -141,10 +141,25 @@ The relay is the code in [`cloud/`](../cloud/README.md). It stores:
   off deletes all of it; so does deleting the account. The section
   [Conversation sync](#conversation-sync) below has the shape.
 
-Images and tool results are never stored, and message content only as the
-*Data controls* and *Conversation sync* sections below say; with both switches off, nothing: the request
-is forwarded to the operator-configured upstream model and the reply is streamed
-back. The relay admits at most `CHAT_CONCURRENCY` chat requests to that shared
+- since relay 0.29, **the record**: every chat turn the relay answered, in
+  full — the request as the relay sent it to the model (every message: the
+  system prompt with your memory, SOUL and instructions, what you wrote, what
+  tools returned; the tool definitions; the sampling fields) and the answer as
+  the model gave it (content, reasoning, tool calls, finish reason, usage).
+  Pictures, audio and clips are taken out and kept once each as files named by
+  their SHA-256, a `blob:sha256:` reference standing where each was; a
+  screenshot the app resends with every turn of a screen operation is one
+  file. With the turn: the model, the platform, the device and conversation
+  the app named (`X-NanoMuse-Device`, `X-NanoMuse-Conversation`, 1.0.7 on),
+  the token counts, and the address and client software like every request.
+  It is the account's own data, so its devices can read it back and the
+  operator can see a problem whole; it does not depend on either switch
+  below. The section [The record](#the-record) says what is kept, who reads
+  it and how it goes.
+
+Message content is kept as *The record*, *Data controls* and *Conversation
+sync* below say, and not otherwise: the request is forwarded to the
+operator-configured upstream model and the reply is streamed back. The relay admits at most `CHAT_CONCURRENCY` chat requests to that shared
 deployment at once and retries a 429 or 5xx only before output starts; the
 remaining requests wait without duplicating a turn. Every response carries an
 `X-Nanomuse-Request` id so a problem report
@@ -174,7 +189,10 @@ the switch either way. On `cloud.nanomuse.cn` the switch is **on for accounts
 created from relay 0.9 on, until the person turns it off**: the privacy
 policy says so, the page says so next to the switch, and accounts from before
 keep the choice they had made; a self-hosted relay sets its own default with
-`IMPROVE_DEFAULT`. The operator sees the kept turns on the admin page's *Data
+`IMPROVE_DEFAULT`. Since relay 0.29 the switch decides only whether the
+training view of a turn joins the training set; the turn itself is in [the
+record](#the-record) either way, and the same delete tap removes both
+(`DELETE /v1/me/samples` answers `{deleted, turns, files}`). The operator sees the kept turns on the admin page's *Data
 controls* panel (how many accounts have it on, turns by day, model and app,
 the newest turns, every account's kept conversations in full) and exports them
 as JSON lines without account ids or addresses (`GET /v1/admin/samples/export`,
@@ -188,6 +206,75 @@ they are deleted with the account. From relay 0.11 the admin page also says
 where an address is (country, province, city), looked up in an offline copy
 of ip2region's database on the relay's own disk; no third party is asked, and
 nothing more is stored (the place is computed when the page is drawn).
+
+## The record
+
+Since relay 0.29 the relay keeps every chat turn it answered, in full, as the
+account's own data — so a person's devices show the same history with the
+screenshots in it, and so the operator can see a problem whole instead of
+guessing from counts. A turn is:
+
+- the request as the relay sent it to the model: every message (the system
+  prompt with your memory, SOUL and instructions; what you wrote; what tools
+  returned), the tool definitions, the sampling fields and the relay's
+  defaults, with the model named as the app knows it and the relay's own
+  `user` and `stream_options` left out;
+- the answer as the model gave it: the assistant's message whole — content,
+  reasoning, tool calls, finish reason — assembled from the stream when it
+  streamed, with the usage; a stream that broke off is kept with what arrived
+  and `status: partial`;
+- the pictures, audio and clips, taken out of the messages and written once
+  each to a file named by its SHA-256 (`MEDIA_DIR`, next to the database);
+  `blob:sha256:<hex>` stands where each was and the turn's `meta.media` lists
+  them with type and size. A screenshot that an app resends with every turn
+  of a screen operation is one file however many turns name it;
+- the model, the platform, the device and conversation the app named
+  (`X-NanoMuse-Device`, `X-NanoMuse-Conversation` on the chat request, 1.0.7
+  on), the token counts, the client software and language, and the address
+  the request came from (the operator's view only).
+
+It is written after the answer has left, off the request's path, and is never
+the reason a chat fails. It does not depend on *Help improve* (that switch is
+about the training set) or on *Sync conversations* (that is the apps' own
+copy of a chat); `RECORD_TURNS=0` on a relay you run keeps none of it.
+
+**Who reads it.** The account's devices: `GET /v1/turns` (newest first; paged
+with `before` and `before_id`; `conversation=` for one chat), `GET
+/v1/turns/{id}`, and the files at `GET /v1/blobs/{sha256}` — a file opens
+only for an account that holds a reference to it (one of its turns, its
+profile's clips, an upload of its own); knowing a hash opens nothing. The
+person's view leaves the address out. The operator: `GET /v1/admin/turns`,
+the export as JSON lines (`/v1/admin/turns/export`, account ids included —
+this is the account's data, not the training set, which stays
+`/v1/admin/samples/export` without them), one file at
+`/v1/admin/blobs/{sha256}`, and `GET /v1/admin/record` for the figures:
+turns and files in all and per day, the store against its cap.
+
+**Turns on your own key.** From 1.0.7 an app that ran a turn on a key of its
+own sends it up afterwards, so the record is whole wherever the model was:
+`PUT /v1/blobs/{sha256}` for each picture (raw body with its `Content-Type`;
+the hash is checked; `HEAD` first, or `known: true` in the answer, says
+another device already sent it), then `POST /v1/turns` with `model`,
+`messages` (references, or data URLs inline), `response: {message, usage?}`,
+and `provider`, `ts`, `conversation`, `id` and `status` as the app has
+them; the row says `source: own`. A reference to a file the account never put
+up is a 400 `unknown_blob`.
+
+**The face's clips.** The same files carry the drawn face's clips between
+devices: the device that animated it puts the clips up and names them in the
+profile (`clips: {mood: {sha256, mime, bytes}}` on `PUT /v1/me/profile`),
+the others download them instead of rendering their own. The clips go with
+the face: `clips: null`, another avatar or `DELETE /v1/me/profile` clears
+them.
+
+**How it goes.** *Settings → Data controls*' delete removes the record with
+the training turns — every turn of the account and every file only it
+referenced; deleting the account does the same; `RECORD_KEEP_DAYS` (0 on
+`cloud.nanomuse.cn`: kept until you delete it) sweeps older turns once an
+hour. The files are bounded by `MEDIA_MAX_GB`: past it the least recently
+used go first, the turns stay and show a reference to nothing where those
+pictures were. `/v1/me.contribute.record` tells the apps what is held:
+`{on, turns, own, files, media_bytes, keep_days}`.
 
 ## Conversation sync
 

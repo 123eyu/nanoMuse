@@ -6,7 +6,7 @@ import { download } from "../lib/api";
 import { bytes, compact, dateOf, fmt, nowS } from "../lib/format";
 import { useData } from "../lib/hooks";
 import { nameOf, useT } from "../lib/i18n";
-import type { DataView, Sync } from "../lib/types";
+import type { DataView, RecordView, Sync } from "../lib/types";
 import { Bars, Legend, Ranks, modelColor, platformColor } from "../ui/charts";
 import { Btn, DataTable, Grid, Kpi, Kpis, Note, Panel, Pill, useToast } from "../ui/primitives";
 import { Ago, Who } from "../ui/who";
@@ -18,7 +18,9 @@ export function Data({ days }: PageProps) {
   const toast = useToast();
   const q = useData<DataView>(`/v1/admin/data?days=${days}`, { poll: 120_000 });
   const sy = useData<Sync>("/v1/admin/sync", { poll: 300_000 });
+  const re = useData<RecordView>(`/v1/admin/record?days=${days}`, { poll: 300_000 });
   const exp = (since: number) => download(`/v1/admin/samples/export?since=${since}`, `nanomuse-samples-${since}.jsonl`).catch((e) => toast(String(e.message || e), "bad"));
+  const expRecord = (since: number) => download(`/v1/admin/turns/export?since=${since}`, `nanomuse-turns-${since}.jsonl`).catch((e) => toast(String(e.message || e), "bad"));
   return (
     <>
       <Loaded q={q}>
@@ -88,6 +90,45 @@ export function Data({ days }: PageProps) {
               </div>
             </Panel>
           </>
+        )}
+      </Loaded>
+      <Loaded q={re} title={T.da.reTitle}>
+        {(r) => (
+          <Panel
+            title={T.da.reTitle}
+            sub={r.on ? T.da.reNote : T.da.reOff}
+            right={
+              r.on ? (
+                <>
+                  <Btn size="sm" onClick={() => expRecord(nowS() - days * 86400)}>{T.da.reExportSince(days)}</Btn>
+                  <Btn size="sm" onClick={() => expRecord(0)}>{T.da.reExport}</Btn>
+                  <span className="hint">{T.da.reExportNote}</span>
+                </>
+              ) : null
+            }
+          >
+            {r.on && (
+              <>
+                <Kpis>
+                  <Kpi flat label={T.da.reTurns} value={fmt(r.period.n)} sub={T.da.reTurnsSub(r.totals.n, r.totals.accounts)} />
+                  <Kpi flat label={T.g.accounts} value={fmt(r.period.accounts)} sub={T.g.period(days)} />
+                  <Kpi flat label={T.da.reOwn} value={fmt(r.totals.own)} sub={T.da.reOwnSub} />
+                  <Kpi flat label={T.da.rePartial} value={fmt(r.totals.partial)} />
+                  <Kpi flat label={T.da.reFiles} value={fmt(r.totals.files)} sub={T.da.reFilesSub(r.totals.media)} />
+                  <Kpi flat label={T.da.reStore} value={bytes(r.totals.store_bytes)} sub={T.da.reStoreSub(bytes(r.media_cap_bytes))} tone={r.totals.store_bytes > 0.9 * r.media_cap_bytes ? "warn" : undefined} />
+                  <Kpi flat label={T.g.day} value={T.da.reKeep(r.keep_days)} small />
+                </Kpis>
+                <Bars
+                  series={[{ name: T.da.reLegend.turns, values: r.days.map((x) => x.turns), color: "var(--c2)" }]}
+                  lines={[{ name: T.da.reLegend.media, values: r.days.map((x) => x.media), color: "var(--c4)" }]}
+                  labels={dayLabels(r.days.map((x) => x.day))}
+                  titles={dayTitles(r.days.map((x) => x.day))}
+                  height={120}
+                />
+                <Legend className="mt-2" items={[{ name: T.da.reLegend.turns, color: "var(--c2)" }, { name: T.da.reLegend.media, color: "var(--c4)" }]} />
+              </>
+            )}
+          </Panel>
         )}
       </Loaded>
       <Loaded q={sy} title={T.da.syTitle}>
