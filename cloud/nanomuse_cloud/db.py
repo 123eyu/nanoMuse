@@ -322,6 +322,52 @@ CREATE TABLE IF NOT EXISTS sample_stats (
 CREATE INDEX IF NOT EXISTS sample_stats_account ON sample_stats(account_id, ts);
 CREATE INDEX IF NOT EXISTS sample_stats_ts ON sample_stats(ts);
 CREATE INDEX IF NOT EXISTS sample_stats_hash ON sample_stats(user_hash);
+-- 0.29: the record (record.py) — every chat turn the relay answered, in full: the request as
+-- the app sent it (the system prompt, the tools' results, every message; pictures, audio and
+-- clips as blob:sha256 references into `blobs`) and the answer as the model gave it. A turn
+-- a client ran on a key of its own and sent up afterwards (POST /v1/turns) is a row too,
+-- with source 'own'. The person's own data: read back by their devices, deleted from Data
+-- controls or with the account, swept after RECORD_KEEP_DAYS when the operator set one.
+CREATE TABLE IF NOT EXISTS turns (
+    id            TEXT PRIMARY KEY,            -- the request id the app saw (x-nanomuse-request)
+    account_id    TEXT NOT NULL,
+    ts            INTEGER NOT NULL,
+    model         TEXT NOT NULL DEFAULT '',
+    platform      TEXT NOT NULL DEFAULT '',    -- client.platform_of
+    device        TEXT NOT NULL DEFAULT '',    -- X-NanoMuse-Device when the app sent one
+    conversation  TEXT NOT NULL DEFAULT '',    -- X-NanoMuse-Conversation when the app sent one
+    source        TEXT NOT NULL DEFAULT 'cloud', -- cloud | own
+    status        TEXT NOT NULL DEFAULT 'ok',  -- ok | partial (the stream broke off; what arrived is kept)
+    request       BLOB NOT NULL,               -- record.pack: the request body, media detached
+    response      BLOB NOT NULL,               -- record.pack: {message, usage, finish_reason}
+    prompt_tokens INTEGER NOT NULL DEFAULT 0,
+    completion_tokens INTEGER NOT NULL DEFAULT 0,
+    media         INTEGER NOT NULL DEFAULT 0,  -- distinct pictures / clips referenced
+    media_bytes   INTEGER NOT NULL DEFAULT 0,
+    meta          TEXT NOT NULL DEFAULT '{}'   -- ua, lang, ip, provider (own), media [{sha256, mime, bytes}]
+);
+CREATE INDEX IF NOT EXISTS turns_account ON turns(account_id, ts);
+CREATE INDEX IF NOT EXISTS turns_ts ON turns(ts);
+CREATE INDEX IF NOT EXISTS turns_conversation ON turns(account_id, conversation, ts);
+-- 0.29: the files under MEDIA_DIR, one row each, and who may read which. A file is
+-- removed when its last reference goes (the account deleted its record) or when the
+-- store is over MEDIA_MAX_GB, oldest use first; the turn then keeps a reference to nothing.
+CREATE TABLE IF NOT EXISTS blobs (
+    sha256        TEXT PRIMARY KEY,
+    mime          TEXT NOT NULL DEFAULT '',
+    bytes         INTEGER NOT NULL,
+    created_at    INTEGER NOT NULL,
+    last_used_at  INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS blobs_used ON blobs(last_used_at);
+CREATE TABLE IF NOT EXISTS blob_refs (
+    sha256        TEXT NOT NULL,
+    account_id    TEXT NOT NULL,
+    owner         TEXT NOT NULL,                -- turn | profile | upload: one row per account and kind,
+                                                -- however many turns name the file (the turn's meta lists its own)
+    PRIMARY KEY (sha256, account_id, owner)
+);
+CREATE INDEX IF NOT EXISTS blob_refs_account ON blob_refs(account_id, sha256);
 """
 
 # How long a deleted account's key hashes are remembered. Long enough for every device of the
@@ -1003,6 +1049,10 @@ class Database:
             c.execute("DELETE FROM codes WHERE id_hash=?", (row["id_hash"],))
             c.execute("DELETE FROM samples WHERE account_id=?", (account_id,))
             c.execute("DELETE FROM sample_stats WHERE account_id=?", (account_id,))
+            # the record's rows go here; the files whose last reference this was are removed
+            # by the service (Cloud.delete_account → purge_record) before it gets here
+            c.execute("DELETE FROM turns WHERE account_id=?", (account_id,))
+            c.execute("DELETE FROM blob_refs WHERE account_id=?", (account_id,))
             c.execute("DELETE FROM calls WHERE account_id=?", (account_id,))
             c.execute("DELETE FROM events WHERE account_id=?", (account_id,))
             c.execute("DELETE FROM video_tasks WHERE account_id=?", (account_id,))
@@ -1102,6 +1152,230 @@ class Database:
         with self.tx() as c:
             c.execute("DELETE FROM sample_stats WHERE account_id=?", (account_id,))
             return c.execute("DELETE FROM samples WHERE account_id=?", (account_id,)).rowcount
+
+    # -- 0.29: the record (turns, blobs, blob_refs) -------------------------------------------
+
+    def add_turn(self, row: dict[str, Any], media: list[dict[str, Any]]) -> None:
+        """One turn and the files it references: a file's row is made on first sight and its
+        ``last_used_at`` moved on every later one (the sweep and the trim go by it); the
+        account's reference to it is written once, whether or not the file was known."""
+        t = int(row.get("ts") or now())
+        with self.tx() as c:
+            c.execute(
+                "INSERT OR REPLACE INTO turns(id, account_id, ts, model, platform, device, conversation, source, status, "
+                "request, response, prompt_tokens, completion_tokens, media, media_bytes, meta) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (
+                    row["id"],
+                    row["account_id"],
+                    t,
+                    row.get("model", ""),
+                    row.get("platform", ""),
+                    row.get("device", ""),
+                    row.get("conversation", ""),
+                    row.get("source", "cloud"),
+                    row.get("status", "ok"),
+                    row["request"],
+                    row["response"],
+                    int(row.get("prompt_tokens") or 0),
+                    int(row.get("completion_tokens") or 0),
+                    len(media),
+                    sum(int(m.get("bytes") or 0) for m in media),
+                    row.get("meta", "{}"),
+                ),
+            )
+            for m in media:
+                self._reference_blob(c, m, row["account_id"], "turn", t)
+
+    @staticmethod
+    def _reference_blob(c: sqlite3.Cursor, m: dict[str, Any], account_id: str, owner: str, t: int) -> None:
+        c.execute(
+            "INSERT INTO blobs(sha256, mime, bytes, created_at, last_used_at) VALUES (?,?,?,?,?) "
+            "ON CONFLICT(sha256) DO UPDATE SET last_used_at=MAX(last_used_at, excluded.last_used_at)",
+            (m["sha256"], str(m.get("mime") or ""), int(m.get("bytes") or 0), t, t),
+        )
+        c.execute("INSERT OR IGNORE INTO blob_refs(sha256, account_id, owner) VALUES (?,?,?)", (m["sha256"], account_id, owner))
+
+    def add_blob(self, sha256: str, mime: str, size: int, account_id: str, owner: str = "upload") -> None:
+        """A file a client put up on its own (PUT /v1/blobs), before the turn or profile
+        that names it: the account may read it back from now on."""
+        with self.tx() as c:
+            self._reference_blob(c, {"sha256": sha256, "mime": mime, "bytes": size}, account_id, owner, now())
+
+    def set_blob_refs(self, account_id: str, owner: str, shas: list[str]) -> None:
+        """The account's references under one owner (``profile``) replaced by ``shas``."""
+        with self.tx() as c:
+            c.execute("DELETE FROM blob_refs WHERE account_id=? AND owner=?", (account_id, owner))
+            for sha in shas:
+                c.execute("INSERT OR IGNORE INTO blob_refs(sha256, account_id, owner) VALUES (?,?,?)", (sha, account_id, owner))
+
+    def blob(self, sha256: str) -> sqlite3.Row | None:
+        with self._lock:
+            return self._conn.execute("SELECT * FROM blobs WHERE sha256=?", (sha256,)).fetchone()
+
+    def blob_readable(self, account_id: str, sha256: str) -> bool:
+        """Whether the account holds a reference to the file: one of its turns, its profile
+        or an upload of its own names it. A hash alone opens nothing."""
+        with self._lock:
+            r = self._conn.execute("SELECT 1 FROM blob_refs WHERE account_id=? AND sha256=? LIMIT 1", (account_id, sha256)).fetchone()
+            return r is not None
+
+    def turn(self, turn_id: str) -> sqlite3.Row | None:
+        with self._lock:
+            return self._conn.execute("SELECT * FROM turns WHERE id=?", (turn_id,)).fetchone()
+
+    def turns(
+        self,
+        account_id: str | None = None,
+        since: int = 0,
+        limit: int = 100,
+        before: int = 0,
+        before_id: str = "",
+        conversation: str = "",
+    ) -> list[sqlite3.Row]:
+        """Newest first; keyset paging on (ts, rowid) as ``samples`` does, so a page that ends
+        inside a busy second continues there. ``conversation`` narrows to one chat."""
+        q = "SELECT * FROM turns WHERE ts>=?"
+        args: list = [since]
+        if account_id is not None:
+            q += " AND account_id=?"
+            args.append(account_id)
+        if conversation:
+            q += " AND conversation=?"
+            args.append(conversation)
+        if before and before_id:
+            q += " AND (ts<? OR (ts=? AND rowid<(SELECT rowid FROM turns WHERE id=?)))"
+            args.extend([before, before, before_id])
+        elif before:
+            q += " AND ts<?"
+            args.append(before)
+        q += " ORDER BY ts DESC, rowid DESC LIMIT ?"
+        args.append(max(1, min(limit, 1000)))
+        with self._lock:
+            return self._conn.execute(q, args).fetchall()
+
+    def turn_count(self, account_id: str | None = None) -> int:
+        with self._lock:
+            if account_id is None:
+                return int(self._conn.execute("SELECT COUNT(*) FROM turns").fetchone()[0])
+            return int(self._conn.execute("SELECT COUNT(*) FROM turns WHERE account_id=?", (account_id,)).fetchone()[0])
+
+    def record_totals(self, since: int = 0, account_id: str | None = None) -> dict[str, int]:
+        """Turns, accounts, tokens and referenced media since ``since``, and the store's size
+        (every file once, whoever references it) — for Data controls and the operator's page."""
+        q = (
+            "SELECT COUNT(*) AS n, COUNT(DISTINCT account_id) AS accounts, SUM(prompt_tokens) AS prompt_tokens, "
+            "SUM(completion_tokens) AS completion_tokens, SUM(media) AS media, SUM(media_bytes) AS media_bytes, "
+            "SUM(CASE WHEN source='own' THEN 1 ELSE 0 END) AS own, "
+            "SUM(CASE WHEN status='partial' THEN 1 ELSE 0 END) AS partial FROM turns WHERE ts>=?"
+        )
+        args: list = [since]
+        if account_id is not None:
+            q += " AND account_id=?"
+            args.append(account_id)
+        with self._lock:
+            r = self._conn.execute(q, args).fetchone()
+            out = {k: int(r[k] or 0) for k in r.keys()}
+            if account_id is None:
+                s = self._conn.execute("SELECT COUNT(*) AS files, SUM(bytes) AS bytes FROM blobs").fetchone()
+            else:
+                s = self._conn.execute(
+                    "SELECT COUNT(*) AS files, SUM(b.bytes) AS bytes FROM blobs b "
+                    "WHERE EXISTS (SELECT 1 FROM blob_refs r WHERE r.sha256=b.sha256 AND r.account_id=?)",
+                    (account_id,),
+                ).fetchone()
+            out["files"] = int(s["files"] or 0)
+            out["store_bytes"] = int(s["bytes"] or 0)
+            return out
+
+    def turns_by_day(self, since: int, offset_s: int) -> list[sqlite3.Row]:
+        with self._lock:
+            return self._conn.execute(
+                f"""SELECT {self._DAY} AS day, COUNT(*) AS n, COUNT(DISTINCT account_id) AS accounts,
+                           SUM(media) AS media, SUM(media_bytes) AS media_bytes
+                    FROM turns WHERE ts>=? GROUP BY day ORDER BY day""",
+                (offset_s, offset_s, offset_s, since),
+            ).fetchall()
+
+    def delete_turns(self, account_id: str) -> tuple[int, list[str]]:
+        """The account's whole record: its turns and every reference it holds. Answers how
+        many turns went and the files nobody references any more (their rows are gone; the
+        caller removes the files)."""
+        with self.tx() as c:
+            held = [r[0] for r in c.execute("SELECT DISTINCT sha256 FROM blob_refs WHERE account_id=?", (account_id,)).fetchall()]
+            n = c.execute("DELETE FROM turns WHERE account_id=?", (account_id,)).rowcount
+            c.execute("DELETE FROM blob_refs WHERE account_id=?", (account_id,))
+            return n, self._drop_orphans(c, held)
+
+    def sweep_turns(self, before: int, limit: int = 5000) -> tuple[int, list[str]]:
+        """Turns older than ``before`` (RECORD_KEEP_DAYS), a page at a time; then the files
+        no turn younger than that names — a file's ``last_used_at`` moves with every turn
+        that names it, so one last used before ``before`` is referenced by swept turns only
+        — unless a profile wears it (the face's clips). Answers the turns gone and the
+        files to remove."""
+        with self.tx() as c:
+            ids = [r[0] for r in c.execute("SELECT id FROM turns WHERE ts<? ORDER BY ts LIMIT ?", (before, limit)).fetchall()]
+            n = 0
+            for i in range(0, len(ids), 500):
+                page = ids[i : i + 500]
+                n += c.execute(f"DELETE FROM turns WHERE id IN ({','.join('?' * len(page))})", page).rowcount
+            if len(ids) >= limit:
+                return n, []  # more turns to go first; the files follow on the last page
+            gone = [
+                r[0]
+                for r in c.execute(
+                    "SELECT sha256 FROM blobs b WHERE last_used_at<? "
+                    "AND NOT EXISTS (SELECT 1 FROM blob_refs r WHERE r.sha256=b.sha256 AND r.owner='profile') LIMIT ?",
+                    (before, limit),
+                ).fetchall()
+            ]
+            for i in range(0, len(gone), 500):
+                page = gone[i : i + 500]
+                marks = ",".join("?" * len(page))
+                c.execute(f"DELETE FROM blob_refs WHERE sha256 IN ({marks})", page)
+                c.execute(f"DELETE FROM blobs WHERE sha256 IN ({marks})", page)
+            return n, gone
+
+    @staticmethod
+    def _drop_orphans(c: sqlite3.Cursor, candidates: list[str]) -> list[str]:
+        """Of ``candidates``, the files nobody references any more: their rows removed, the
+        hashes answered so the caller can remove the files."""
+        gone: list[str] = []
+        for i in range(0, len(candidates), 500):
+            page = candidates[i : i + 500]
+            marks = ",".join("?" * len(page))
+            gone += [
+                r[0]
+                for r in c.execute(
+                    f"SELECT sha256 FROM blobs b WHERE sha256 IN ({marks}) "
+                    "AND NOT EXISTS (SELECT 1 FROM blob_refs r WHERE r.sha256=b.sha256)",
+                    page,
+                ).fetchall()
+            ]
+        for i in range(0, len(gone), 500):
+            page = gone[i : i + 500]
+            c.execute(f"DELETE FROM blobs WHERE sha256 IN ({','.join('?' * len(page))})", page)
+        return gone
+
+    def trim_blobs(self, max_bytes: int, limit: int = 2000) -> list[str]:
+        """Files beyond ``max_bytes`` in all, oldest use first, their rows and references
+        removed; the caller removes the files. At most ``limit`` per call."""
+        with self.tx() as c:
+            total = int(c.execute("SELECT COALESCE(SUM(bytes),0) FROM blobs").fetchone()[0])
+            if total <= max_bytes:
+                return []
+            gone: list[str] = []
+            for sha, size in c.execute("SELECT sha256, bytes FROM blobs ORDER BY last_used_at, rowid LIMIT ?", (limit,)).fetchall():
+                if total <= max_bytes:
+                    break
+                gone.append(sha)
+                total -= int(size)
+            for i in range(0, len(gone), 500):
+                page = gone[i : i + 500]
+                marks = ",".join("?" * len(page))
+                c.execute(f"DELETE FROM blob_refs WHERE sha256 IN ({marks})", page)
+                c.execute(f"DELETE FROM blobs WHERE sha256 IN ({marks})", page)
+            return gone
 
     def contributors(self) -> int:
         with self._lock:

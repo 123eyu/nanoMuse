@@ -828,5 +828,6 @@ def test_connectors_are_merged_by_device_and_never_hold_a_secret(client):
         "style": "",
         "description": "",
         "face": None,
+        "clips": None,
         "connectors": [],
     }

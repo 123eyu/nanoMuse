@@ -33,11 +33,12 @@ its base URL.
   up by HMAC-SHA256 hash, shown as a display hint (`138****8000`,
   `so***@example.com`), and kept AES-GCM-encrypted under a key derived from
   `CLOUD_SECRET` so the operator's page can tell accounts apart; the database
-  file on its own reveals none of them. Message content is forwarded, never
-  written to disk. The database holds: hashed and encrypted identifier, key
-  hashes, the keyed hash of a code still waiting to be used (six digits, so
-  hashing it plainly would be a table an attacker could work through), video
-  task ids, token counts per request, and the profile below.
+  file on its own reveals none of them. The database holds: hashed and
+  encrypted identifier, key hashes, the keyed hash of a code still waiting to
+  be used (six digits, so hashing it plainly would be a table an attacker could
+  work through), video task ids, token counts per request, the profile below
+  and, since 0.29, *the record* — each chat turn in full, the person's own data
+  (see *The record*; `RECORD_TURNS=0` keeps none of it).
 - **One look on every device.** `GET` / `PUT` / `DELETE /v1/me/profile` keep
   the agent's name and face for the account — the dragon, an emoji on a colour,
   or a face drawn in the avatar studio with its five small stills (WebP, 200 KB
@@ -194,6 +195,11 @@ for the full list. The ones that matter:
 | `CHAT_CONCURRENCY` | 12 | chat requests at the provider at once across all accounts (0 = off); the rest wait at the relay, so a burst does not overload one shared deployment |
 | `CHAT_RETRIES` | 2 | retries after an upstream 429 or 5xx received before any chat output starts (0 = off; capped at 5) |
 | `CALLS_KEEP_DAYS` | 90 | how long the per-call telemetry rows (`calls`: timings, outcome, shape, platform; never content) are kept before the hourly sweep removes them (0.28) |
+| `RECORD_TURNS` | `1` | the record (0.29): every chat turn kept in full — the request as sent, the answer as given, pictures as files — for the account's devices and the operator. `0` keeps none of it and answers 404 to `POST /v1/turns` and `PUT /v1/blobs` |
+| `RECORD_KEEP_DAYS` | 0 | how long a turn of the record stays; 0 = until the person deletes it (Data controls) or the account. The hourly sweep removes older turns and the files only they referenced |
+| `MEDIA_DIR` | `<database dir>/blobs` | where the record's files live, one per distinct picture, audio or clip, named by SHA-256 (`<aa>/<sha256>`); back it up with the database if you want the pictures back |
+| `MEDIA_MAX_GB` | 50 | the files' ceiling in all; past it the least recently used go first and their turns keep a reference to nothing (the words stay) |
+| `BLOB_MAX_BYTES` | 32 MiB | the largest file one `PUT /v1/blobs/{sha256}` may carry (a clip of the face, a picture) |
 | `CHAT_RETRY_BASE_S` | 0.5 | first retry pause in seconds; each later pause doubles |
 | `TRUSTED_PROXIES` | empty | whose `X-Forwarded-For` to believe, comma-separated addresses or networks (`*` for every peer); empty = every loopback, private, link-local and shared address (Caddy on this box or the compose network, a tailnet). Set, it is the whole list: a non-global peer not on it is not believed either |
 | `PASSWORD_MIN_LEN` | 8 | the shortest password the relay accepts (`400 password_short` below it) |
@@ -768,6 +774,10 @@ GET    /v1/admin/demo            ?days=30        → the phone in the browser: v
 GET    /v1/admin/data            ?days=30        → Data controls: switches on, kept turns by day / model / app / account, the newest turns
 GET    /v1/admin/samples         ?account_id=&limit=&since=&before=&before_id=   → kept turns
 GET    /v1/admin/samples/export  ?since=&account_id=    → the same as JSON lines, without account ids or addresses
+GET    /v1/admin/turns           ?account_id=&limit=&since=&before=&before_id=&conversation=   → the record (0.29): whole turns, newest first
+GET    /v1/admin/turns/export    ?since=&account_id=    → the record as JSON lines, account ids included (it is the account's data, not the training set)
+GET    /v1/admin/record          ?days=30        → what the record holds: turns and files in all and per day, the store against MEDIA_MAX_GB
+GET    /v1/admin/blobs/{sha256}                  → one file of the record
 GET    /v1/admin/sync                            → conversation sync in aggregate (never a text)
 GET    /v1/admin/catalog                         → the provider's models under the operator's key: which answer, which see, which were refused
 GET    /v1/admin/github          ?days=30        → stars, forks, watchers, open issues, release downloads by day
@@ -864,6 +874,64 @@ operator's page has a *Data controls* panel from `GET /v1/admin/data`: how many
 accounts have the switch on (and how many ever turned it off), turns kept by
 day, model and app, switches turned on / default-on / off / deleted by day,
 tokens, the newest turns, and the export.
+
+### The record (0.29)
+
+Beside the training view, the relay keeps **the record**: every chat turn it
+answered, in full, as the account's own data. A turn is the request as the
+relay sent it to the provider (every message — the system prompt, what the
+person wrote, what tools returned — the tool definitions and the sampling
+fields; the relay's own `user` and `stream_options` left out and the model
+named as the app knows it) and the answer as the model gave it (the assistant's
+message whole — content, reasoning, tool calls, finish reason — put together
+from the stream when it streamed, with the usage). Pictures, audio and clips
+are taken out of the messages and written once each under `MEDIA_DIR`, named
+by their SHA-256; a `blob:sha256:<hex>` reference stands where each was, and
+the turn's `meta.media` lists them with type and size. A screenshot the app
+resends with every turn of a screen operation is one file however many turns
+name it. The row holds the request and the answer zlib-compressed, with the
+model, platform, the device and conversation the app named
+(`X-NanoMuse-Device`, `X-NanoMuse-Conversation`, 1.0.7 on), token counts, and
+`status` `ok` or `partial` (a stream that broke off; what arrived is kept). It
+is written after the answer has left, off the request's path, and is never the
+reason a chat fails.
+
+The record does not depend on the *Help improve* switch: that switch decides
+whether the training view of a turn joins the training set; the record is the
+service's own copy of what it did for the account. The same tap deletes both
+(`DELETE /v1/me/samples` → `{deleted, turns, files}`), deleting the account
+deletes it, and `RECORD_KEEP_DAYS` sweeps older turns. `/v1/me.contribute.record`
+tells the apps what is held: `{on, turns, own, files, media_bytes, keep_days}`.
+
+The account's devices read it back: `GET /v1/turns` (newest first, paged with
+`before`/`before_id` like samples, narrowed with `conversation=`), `GET
+/v1/turns/{id}`, and the files at `GET /v1/blobs/{sha256}` — only for an
+account that holds a reference to the file (one of its turns, its profile's
+clips, an upload of its own); a hash alone opens nothing. The person's view
+leaves the address out; the operator's (`/v1/admin/turns`, the export, one
+file at `/v1/admin/blobs/{sha256}`) has everything.
+
+A client that ran a turn on a key of its own sends it up afterwards so the
+account's record is whole wherever the model was: `PUT /v1/blobs/{sha256}` for
+each picture first (raw body with its `Content-Type`; the hash is checked;
+`HEAD` tells whether another device already sent it; `known: true` in the
+answer says so too), then `POST /v1/turns` with `model`, `messages`
+(`blob:sha256:` references, or data URLs inline within `MAX_REQUEST_BYTES`),
+`response: {message, usage?}`, and `provider`, `ts`, `conversation`, `id`
+and `status` as the client has them; the row says `source: own`. A reference
+to a file the account never put up is a 400 `unknown_blob`. The same files
+carry the face's clips between devices: a device that animated the drawn face
+puts the clips up and names them in the profile (`clips: {mood: {sha256,
+mime, bytes}}`, `PUT /v1/me/profile`); the others download them instead of
+rendering their own. The clips go with the face (`clips: null`, another
+avatar, `DELETE /v1/me/profile`).
+
+Capacity: a turn's words compress to a few kilobytes; the pictures are the
+bulk. `MEDIA_MAX_GB` bounds them — the hourly sweep removes the least
+recently used files past it, the turns stay and the apps see a reference to
+nothing for those pictures — and `GET /v1/admin/record` shows the store
+against the cap, by day. The files are not in the SQLite backup; back
+`MEDIA_DIR` up alongside if you want them back.
 
 ## Operating
 

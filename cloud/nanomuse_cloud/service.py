@@ -22,6 +22,7 @@ from collections.abc import Callable
 from contextlib import closing
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from . import __version__
@@ -39,6 +40,7 @@ from .nudges import merge as nudges_merge
 from .nudges import validate as nudges_validate
 from .providers import exhausted_key_line, guidance
 from .providers import provider as catalogue_provider
+from .record import BLOB_PREFIX, MediaStore, detach_media, is_sha256, media_refs, pack, unpack
 from .senders import CodeSender, LogSender, SendError, make_sender
 
 log = logging.getLogger("nanomuse_cloud")
@@ -385,6 +387,12 @@ class Cloud:
         self.crypto = IdentifierCrypto(settings.identifier_key)
         # 0.22: the operator's switches and thresholds (settings table, applied at once)
         self.controls = Controls(self.db, settings)
+        # 0.29: the record's files — next to the database unless MEDIA_DIR says otherwise;
+        # a relay on an in-memory database (the tests) writes them to a temporary directory
+        media_dir = settings.media_dir
+        if not media_dir and settings.database != ":memory:":
+            media_dir = str(Path(settings.database).parent / "blobs")
+        self.media = MediaStore(media_dir or None)
         self._login_failures: dict[str, list[int]] = {}
         if settings.dev_mode:
             log.warning("CLOUD_SECRET is not set: development mode, identifiers hashed with a fixed key")
@@ -1307,6 +1315,7 @@ class Cloud:
         """The person's own request: every key stops working and nothing about them stays.
         The one line left is written across accounts (`account.deleted`, the id's first
         eight characters), which the statistics count as a deletion; it names nobody."""
+        self.purge_record(caller.account_id)
         self.db.delete_account(caller.account_id)
         self.db.add_event("", "account.deleted", f"{caller.account_id[:8]} by the person")
 
@@ -1558,6 +1567,9 @@ class Cloud:
                 "bonus_cny": 0,
                 "bonus_available": False,
                 "bonus_at": caller.contribute_bonus_at,
+                # 0.29: the record — every turn in full, whatever the switch says; the same
+                # tap deletes both
+                "record": self.record_view(caller),
             },
             "models": [m.to_public() for m in self.offered_models()],
             "base_url": self.s.public_base,
@@ -1856,6 +1868,7 @@ class Cloud:
                 "style": "",
                 "description": "",
                 "face": None,
+                "clips": None,
                 "connectors": [],
             }
         body = json.loads(row["body"] or "{}")
@@ -1873,6 +1886,8 @@ class Cloud:
             # the hash of the idle still: a device that already wears these pictures keeps
             # its own copy (and the clips it made) instead of downloading them again
             "face_id": self._face_id(row["face"]),
+            # 0.29: the face's clips as {mood: {sha256, mime, bytes}}, files at GET /v1/blobs/{sha256}
+            "clips": body.get("clips") if isinstance(body.get("clips"), dict) and body.get("clips") else None,
             # every device's connectors together (0.17); the credentials stay on each device
             "connectors": self._load_connectors(row["connectors"]),
         }
@@ -2044,13 +2059,46 @@ class Cloud:
             # 1.0.3 and before): the pictures go with the look, so no device reads `has_face`
             # as a face still worn
             face = ""
-        body = json.dumps(
-            {"name": name, "avatar": avatar, "emoji": emoji, "color": color, "style": style, "description": description},
-            ensure_ascii=False,
-        )
+        # 0.29: the clips a device made of the drawn face, as references to files it put up
+        # (PUT /v1/blobs), so the other devices download them instead of rendering their
+        # own. Absent keeps what is stored; null clears; they go with the face either way.
+        clips: dict | None
+        if "clips" in data:
+            clips = self._check_clips(caller, data["clips"]) if data["clips"] is not None else None
+        else:
+            clips = stored.get("clips") if isinstance(stored.get("clips"), dict) else None
+        if face == "" or avatar != "face":
+            clips = None
+        look = {"name": name, "avatar": avatar, "emoji": emoji, "color": color, "style": style, "description": description}
+        if clips:
+            look["clips"] = clips
+        body = json.dumps(look, ensure_ascii=False)
         rev = self.db.put_profile(caller.account_id, device, body, face, connectors)
+        self.db.set_blob_refs(caller.account_id, "profile", [c["sha256"] for c in (clips or {}).values()])
         self.note(caller.account_id, "profile.put", avatar)
         return {"rev": rev, "device": device}
+
+    def _check_clips(self, caller: Caller, raw: object) -> dict:
+        """``{mood: {sha256, mime, bytes}}`` — each a video the account put up itself."""
+        if not isinstance(raw, dict):
+            raise CloudError(400, "bad_request", "clips is a {mood: {sha256, mime, bytes}} map")
+        out: dict[str, dict] = {}
+        for mood, clip in raw.items():
+            if mood not in self.PROFILE_MOODS:
+                raise CloudError(400, "bad_request", f"clips has an unknown mood {str(mood)[:20]!r}")
+            if not isinstance(clip, dict):
+                raise CloudError(400, "bad_request", f"clips.{mood} is an object")
+            sha = str(clip.get("sha256") or "").lower()
+            if not is_sha256(sha):
+                raise CloudError(400, "bad_request", f"clips.{mood}.sha256 is a hex SHA-256")
+            if not self.db.blob_readable(caller.account_id, sha):
+                raise CloudError(400, "unknown_blob", f"clips.{mood} names no file this account put up")
+            row = self.db.blob(sha)
+            mime = str(clip.get("mime") or (row["mime"] if row else "") or "")[:80]
+            if not mime.startswith("video/"):
+                raise CloudError(400, "bad_request", f"clips.{mood} is not a video")
+            out[mood] = {"sha256": sha, "mime": mime, "bytes": int(row["bytes"]) if row else int(clip.get("bytes") or 0)}
+        return out
 
     def _check_face(self, face: object) -> str:
         if not isinstance(face, dict) or not face:
@@ -2078,6 +2126,7 @@ class Cloud:
 
     def delete_profile(self, caller: Caller) -> None:
         self.db.delete_profile(caller.account_id)
+        self.db.set_blob_refs(caller.account_id, "profile", [])
         self.note(caller.account_id, "profile.clear")
 
     def set_contribute(self, caller: Caller, on: bool) -> dict:
@@ -2100,10 +2149,306 @@ class Cloud:
             "bonus_at": caller.contribute_bonus_at,
         }
 
-    def delete_samples(self, caller: Caller) -> int:
+    def delete_samples(self, caller: Caller) -> dict:
+        """The one tap under Data controls: the training turns and, since 0.29, the record
+        with them — every turn kept of this account and every file only it referenced."""
         n = self.db.delete_samples(caller.account_id)
-        self.note(caller.account_id, "contribute.deleted", f"{n} conversations")
-        return n
+        turns, files = self.purge_record(caller.account_id)
+        self.note(caller.account_id, "contribute.deleted", f"{n} conversations, {turns} turns, {files} files")
+        return {"deleted": n, "turns": turns, "files": files}
+
+    # -- 0.29: the record — every turn in full, its pictures as files -------------------------
+
+    RECORD_SOURCES = ("cloud", "own")
+    #: an uploaded turn's `messages` and `response` together, as JSON characters
+    TURN_MAX_CHARS = 2_000_000
+    #: what a device may hand the relay as a file: pictures, audio and the avatar's clips
+    BLOB_MIMES = ("image/", "audio/", "video/")
+
+    def record_turn(
+        self,
+        caller: Caller,
+        model: str,
+        body: dict,
+        message: dict,
+        usage: Usage | None,
+        *,
+        request_id: str,
+        meta: dict | None,
+        status: str = "ok",
+        device: str = "",
+        conversation: str = "",
+        source: str = "cloud",
+        ts: int | None = None,
+    ) -> str | None:
+        """The turn as it happened, written after it is answered (api.py hands it to a thread:
+        the pictures are decoded, hashed and written to the store there). ``body`` is the
+        request as the relay sent it to the provider, less the relay's own fields (`user`,
+        `stream_options`) and with the model named as the app knows it; ``message`` is the
+        assistant's message, whole or put together from the stream. A no-op with
+        RECORD_TURNS=0. Answers the turn's id."""
+        if not self.s.record_turns:
+            return None
+        req = {k: v for k, v in body.items() if k not in ("user", "stream_options")}
+        req["model"] = model
+        media: list[dict] = []
+        if isinstance(req.get("messages"), list):
+            req["messages"], media = detach_media(req["messages"], self.media)
+            # files the client put up beforehand and named by reference (an own-key turn):
+            # counted with the turn and referenced by it like the ones taken out just now
+            known = {m["sha256"] for m in media}
+            for sha in sorted(media_refs(req["messages"]) - known):
+                row = self.db.blob(sha)
+                if row is not None:
+                    media.append({"sha256": sha, "mime": str(row["mime"]), "bytes": int(row["bytes"])})
+        meta = dict(meta or {})
+        if media:
+            meta["media"] = media
+        response = {"message": message}
+        if usage is not None:
+            response["usage"] = {"prompt_tokens": usage.prompt, "completion_tokens": usage.completion, "cached_tokens": usage.cached}
+        row = {
+            "id": request_id,
+            "account_id": caller.account_id,
+            "ts": ts or now(),
+            "model": model[:120],
+            "platform": platform_of(str(meta.get("ua") or "")),
+            "device": device[:80],
+            "conversation": conversation[:80],
+            "source": source if source in self.RECORD_SOURCES else "cloud",
+            "status": status,
+            "request": pack(req),
+            "response": pack(response),
+            "prompt_tokens": usage.prompt if usage else 0,
+            "completion_tokens": usage.completion if usage else 0,
+            "meta": json.dumps(meta, ensure_ascii=False),
+        }
+        self.db.add_turn(row, media)
+        return request_id
+
+    def add_own_turn(self, caller: Caller, data: dict, *, meta: dict, device: str) -> dict:
+        """A turn a client ran on a key of its own (1.0.7 on), sent up afterwards in the same
+        shape the relay keeps: ``model``, ``messages`` (pictures inline as data URLs, or as
+        ``blob:sha256:`` references to files put up with PUT /v1/blobs first), ``response``
+        (the assistant's message and, when known, the usage), and ``provider``, ``ts``,
+        ``conversation``, ``id`` as the client has them. 400 for a shape the relay cannot
+        keep; a reference to a file the account never put up is refused the same way."""
+        if not self.s.record_turns:
+            raise CloudError(404, "not_found", "This relay keeps no record of turns (RECORD_TURNS=0)")
+        model = str(data.get("model") or "").strip()
+        messages = data.get("messages")
+        response = data.get("response")
+        if not model or len(model) > 120:
+            raise CloudError(400, "bad_request", "model is required (at most 120 characters)")
+        if not isinstance(messages, list) or not messages or not all(isinstance(m, dict) for m in messages):
+            raise CloudError(400, "bad_request", "messages is a non-empty list of message objects")
+        if not isinstance(response, dict) or not isinstance(response.get("message"), dict):
+            raise CloudError(400, "bad_request", "response is an object with the assistant's `message`")
+        if len(json.dumps(messages, ensure_ascii=False)) + len(json.dumps(response, ensure_ascii=False)) > self.TURN_MAX_CHARS:
+            raise CloudError(413, "too_large", f"a turn is at most {self.TURN_MAX_CHARS} characters of JSON")
+        for sha in media_refs(messages) | media_refs(response):
+            if not self.db.blob_readable(caller.account_id, sha):
+                raise CloudError(400, "unknown_blob", f"{BLOB_PREFIX}{sha} names no file this account put up")
+        turn_id = str(data.get("id") or "").strip()
+        if not re.fullmatch(r"[A-Za-z0-9_.:-]{1,64}", turn_id):
+            turn_id = secrets.token_hex(8)
+        turn_id = f"own-{caller.account_id[:8]}-{turn_id}"[:96]
+        ts = data.get("ts")
+        t = int(ts) if isinstance(ts, (int, float)) and 0 < ts < 4_102_444_800 else now()
+        usage_in = response.get("usage") if isinstance(response.get("usage"), dict) else None
+        usage: Usage | None = None
+        if usage_in is not None:
+            usage = Usage(
+                max(0, int(usage_in.get("prompt_tokens") or 0)),
+                max(0, int(usage_in.get("completion_tokens") or 0)),
+                max(0, int(usage_in.get("cached_tokens") or 0)),
+            )
+        body = {k: v for k, v in data.items() if k not in ("response", "provider", "ts", "conversation", "id", "device")}
+        provider = str(data.get("provider") or "")[:60]
+        meta = {**meta, "provider": provider} if provider else dict(meta)
+        status = "partial" if data.get("status") == "partial" else "ok"
+        self.record_turn(
+            caller,
+            model,
+            body,
+            {k: v for k, v in response["message"].items() if k != "usage"},
+            usage,
+            request_id=turn_id,
+            meta=meta,
+            status=status,
+            device=device,
+            conversation=str(data.get("conversation") or "")[:80],
+            source="own",
+            ts=t,
+        )
+        return {"id": turn_id, "ts": t}
+
+    def put_blob(self, caller: Caller, data: bytes, mime: str) -> dict:
+        """A file a device puts up for a turn or the avatar's clips: stored once by its
+        hash, readable by this account from now on. Answers the hash, the size and whether
+        the file was already here (a device need not send what another one did)."""
+        if not self.s.record_turns:
+            raise CloudError(404, "not_found", "This relay keeps no files (RECORD_TURNS=0)")
+        mime = (mime or "").split(";")[0].strip().lower()[:80]
+        if not any(mime.startswith(p) for p in self.BLOB_MIMES):
+            raise CloudError(400, "bad_request", "a file is a picture, an audio clip or a video (Content-Type image/*, audio/*, video/*)")
+        if not data:
+            raise CloudError(400, "bad_request", "an empty file")
+        if len(data) > self.s.blob_max_bytes:
+            raise CloudError(413, "too_large", f"a file is at most {self.s.blob_max_bytes // (1024 * 1024)} MB")
+        sha, new = self.media.put(data)
+        self.db.add_blob(sha, mime, len(data), caller.account_id, "upload")
+        return {"sha256": sha, "bytes": len(data), "mime": mime, "known": not new}
+
+    def blob_for(self, sha: str, caller: Caller | None = None) -> tuple[Path, str] | None:
+        """The file's path and type — for the account that holds a reference to it, or for
+        the operator (no caller). None when it is unknown, unreadable to this account, or
+        trimmed from the store."""
+        if not is_sha256(sha):
+            return None
+        row = self.db.blob(sha)
+        if row is None or not self.media.has(sha):
+            return None
+        if caller is not None and not self.db.blob_readable(caller.account_id, sha):
+            return None
+        return self.media.path(sha), str(row["mime"] or "application/octet-stream")
+
+    def _turn_view(self, r: sqlite3.Row, with_hint: bool = False) -> dict:
+        meta = _load_meta(r["meta"])
+        d = {
+            "id": r["id"],
+            "account_id": r["account_id"],
+            "ts": int(r["ts"]),
+            "model": r["model"],
+            "platform": r["platform"] or platform_of(str(meta.get("ua") or "")),
+            "device": r["device"],
+            "conversation": r["conversation"],
+            "source": r["source"],
+            "status": r["status"],
+            "request": unpack(r["request"]),
+            "response": unpack(r["response"]),
+            "prompt_tokens": int(r["prompt_tokens"]),
+            "completion_tokens": int(r["completion_tokens"]),
+            "media": int(r["media"]),
+            "media_bytes": int(r["media_bytes"]),
+            "meta": meta,
+        }
+        return d
+
+    def my_turns(
+        self, caller: Caller, since: int = 0, limit: int = 50, before: int = 0, before_id: str = "", conversation: str = ""
+    ) -> list[dict]:
+        """The account's own record, newest first, for a device reading it back; the
+        address the operator sees is not part of it."""
+        out = []
+        for r in self.db.turns(caller.account_id, since, min(limit, 200), before, before_id, conversation[:80]):
+            d = self._turn_view(r)
+            d.pop("account_id", None)
+            d["meta"].pop("ip", None)
+            out.append(d)
+        return out
+
+    def my_turn(self, caller: Caller, turn_id: str) -> dict | None:
+        r = self.db.turn(turn_id[:96])
+        if r is None or r["account_id"] != caller.account_id:
+            return None
+        d = self._turn_view(r)
+        d.pop("account_id", None)
+        d["meta"].pop("ip", None)
+        return d
+
+    def record_view(self, caller: Caller) -> dict:
+        """Data controls' second line: what the record holds of this account."""
+        totals = self.db.record_totals(0, caller.account_id) if self.s.record_turns else {}
+        return {
+            "on": self.s.record_turns,
+            "turns": int(totals.get("n") or 0),
+            "own": int(totals.get("own") or 0),
+            "files": int(totals.get("files") or 0),
+            "media_bytes": int(totals.get("store_bytes") or 0),
+            "keep_days": self.s.record_keep_days,
+        }
+
+    def admin_turns(
+        self, account_id: str | None = None, since: int = 0, limit: int = 100, before: int = 0, before_id: str = "", conversation: str = ""
+    ) -> list[dict]:
+        return [self._turn_view(r) for r in self.db.turns(account_id, since, limit, before, before_id, conversation[:80])]
+
+    def admin_record(self, days: int = 30) -> dict:
+        """The operator's figures: turns and files in all and over ``days``, by day, and the
+        store against its cap."""
+        t = now()
+        off = self.s.day_offset_h * 3600
+        since = self.s.day_start(t) - 86400 * max(0, days - 1)
+        by_day = {int(r["day"]): r for r in self.db.turns_by_day(since, off)}
+        rows = []
+        for i in range(days):
+            d = since + i * 86400
+            s = by_day.get(d)
+            rows.append(
+                {
+                    "day": d,
+                    "turns": int(s["n"]) if s else 0,
+                    "accounts": int(s["accounts"]) if s else 0,
+                    "media": int(s["media"] or 0) if s else 0,
+                    "media_bytes": int(s["media_bytes"] or 0) if s else 0,
+                }
+            )
+        ever = self.db.record_totals(0)
+        period = self.db.record_totals(since)
+        return {
+            "on": self.s.record_turns,
+            "keep_days": self.s.record_keep_days,
+            "media_dir": str(self.media.root),
+            "media_cap_bytes": int(self.s.media_max_gb * 1024**3),
+            "totals": {
+                k: int(ever.get(k) or 0) for k in ("n", "accounts", "own", "partial", "media", "media_bytes", "files", "store_bytes")
+            },
+            "period": {"days": days, **{k: int(period.get(k) or 0) for k in ("n", "accounts", "own", "partial", "media", "media_bytes")}},
+            "days": rows,
+        }
+
+    def export_turns(self, since: int = 0, account_id: str | None = None):
+        """The record as JSON lines, the operator reading it whole (account ids included:
+        this is the account's data, not the training set — that export is export_samples).
+        The files are fetched by hash from GET /v1/admin/blobs/{sha256}."""
+        before, before_id = 0, ""
+        while True:
+            rows = self.db.turns(account_id, since, 500, before, before_id)
+            if not rows:
+                return
+            for r in rows:
+                yield json.dumps(self._turn_view(r), ensure_ascii=False) + "\n"
+            before, before_id = int(rows[-1]["ts"]), str(rows[-1]["id"])
+
+    def purge_record(self, account_id: str) -> tuple[int, int]:
+        """The account's record gone: rows first, then the files whose last reference it held."""
+        turns, orphans = self.db.delete_turns(account_id)
+        removed = sum(1 for sha in orphans if self.media.delete(sha))
+        return turns, removed
+
+    def sweep_record(self) -> dict[str, int]:
+        """Once an hour from the analytics loop: turns past RECORD_KEEP_DAYS (when set), then
+        files past MEDIA_MAX_GB, least recently used first. Answers what went."""
+        out = {"turns": 0, "files": 0, "trimmed": 0}
+        if not self.s.record_turns:
+            return out
+        if self.s.record_keep_days > 0:
+            before = now() - self.s.record_keep_days * 86400
+            for _ in range(20):
+                n, orphans = self.db.sweep_turns(before)
+                out["turns"] += n
+                out["files"] += sum(1 for sha in orphans if self.media.delete(sha))
+                if n == 0 and not orphans:
+                    break
+        cap = int(self.s.media_max_gb * 1024**3)
+        if cap > 0:
+            for _ in range(50):
+                gone = self.db.trim_blobs(cap)
+                if not gone:
+                    break
+                out["trimmed"] += sum(1 for sha in gone if self.media.delete(sha))
+        return out
 
     def admin_data(self, days: int = 30) -> dict:
         """The operator's view of Data controls: how many accounts have the switch on, how
@@ -2824,6 +3169,7 @@ class Cloud:
                 if not batch:
                     break
                 for invitee_id in batch:
+                    self.purge_record(invitee_id)
                     self.db.delete_account(invitee_id)
                     self.db.add_event("", "account.deleted", f"{invitee_id[:8]} by {actor} (invite abuse)"[:200])
                     deleted_ids.append(invitee_id)
@@ -3018,6 +3364,7 @@ class Cloud:
         written across accounts, where the activity page and the statistics read it."""
         if self.db.account(account_id) is None:
             raise CloudError(404, "no_account", "No such account")
+        self.purge_record(account_id)
         self.db.delete_account(account_id)
         self.db.add_event("", "account.deleted", f"{account_id[:8]} by {actor}"[:200])
         self.db.audit_add(actor, "account.delete", account_id[:8])

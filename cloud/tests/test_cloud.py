@@ -1894,9 +1894,15 @@ async def test_data_controls_keep_the_training_view_only_and_are_deletable(stack
     r = await client.post("/v1/chat/completions", headers=headers, json={"model": "qwen3.8-27b", "messages": msgs})
     assert (await client.get("/v1/admin/samples", headers=admin)).json()["total"] == 2
     assert (await client.get("/v1/me", headers=headers)).json()["contribute"]["samples"] == 2
+    # 0.29: the same tap deletes the record — every turn (the four made here, whatever the
+    # switch said) and the one picture only this account referenced
+    await asyncio.gather(*app.state.record_tasks)
+    me = (await client.get("/v1/me", headers=headers)).json()
+    assert me["contribute"]["record"] == {"on": True, "turns": 4, "own": 0, "files": 1, "media_bytes": 3, "keep_days": 0}
     r = await client.delete("/v1/me/samples", headers=headers)
-    assert r.json() == {"deleted": 2}
+    assert r.json() == {"deleted": 2, "turns": 4, "files": 1}
     assert (await client.get("/v1/me", headers=headers)).json()["contribute"]["samples"] == 0
+    assert (await client.get("/v1/me", headers=headers)).json()["contribute"]["record"]["turns"] == 0
     kinds = [e["kind"] for e in (await client.get("/v1/me/events", headers=headers)).json()["events"]]
     assert {"contribute.on", "contribute.off", "contribute.deleted"} <= set(kinds) and "contribute.default" not in kinds
     dv = (await client.get("/v1/admin/data?days=1", headers=admin)).json()

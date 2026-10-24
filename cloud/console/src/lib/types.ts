@@ -706,6 +706,16 @@ export interface DataView {
   by_account: { account_id: string; hint: string; channel: string; contribute: boolean; created_at: number; samples: number; prompt_tokens: number; completion_tokens: number; first_ts: number; last_ts: number; models: string[] }[];
   recent: Sample[];
 }
+/** The record (0.29): every turn in full, its pictures as files — GET /v1/admin/record. */
+export interface RecordView {
+  on: boolean;
+  keep_days: number;
+  media_dir: string;
+  media_cap_bytes: number;
+  totals: { n: number; accounts: number; own: number; partial: number; media: number; media_bytes: number; files: number; store_bytes: number };
+  period: { days: number; n: number; accounts: number; own: number; partial: number; media: number; media_bytes: number };
+  days: { day: number; turns: number; accounts: number; media: number; media_bytes: number }[];
+}
 export interface Sync {
   accounts_enabled: number;
   accounts_disabled: number;

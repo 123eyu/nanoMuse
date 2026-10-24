@@ -269,6 +269,15 @@ list those entries under the connectors catalogue as *Connected on \<device\>;
 sign in here to use it on this device*, and the usual local sign-in is the
 action.
 
+Since relay 0.29 the profile can also name the drawn face's **clips**: the
+device that animated the face puts each clip up as a file (`PUT
+/v1/blobs/{sha256}`, [cloud.md](cloud.md#the-record)) and writes `clips:
+{mood: {sha256, mime, bytes}}`; the other devices, told by the same `profile`
+frame, download the clips from `GET /v1/blobs/{sha256}` instead of rendering
+their own. The clips go with the face: `clips: null`, another avatar or
+`DELETE /v1/me/profile` clears them. The apps of 1.0.6 and earlier ignore the
+field.
+
 Since 0.1.36 the **conversations** travel too, by a different road: their text
 goes to the relay's sync store over REST (`/v1/sync/*`, [cloud.md](cloud.md#conversation-sync)),
 and the hub only carries the nudge. After a push that the relay accepted, or a
