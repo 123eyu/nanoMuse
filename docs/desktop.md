@@ -148,7 +148,8 @@ speaking as nanoMuse through the `nanomuse` preset, with:
   in one list, grouped under the three tiers the phone's Permissions page uses: *Runs
   without asking* (the remote-control switch: every device of the account may run things
   here), *Remembered from the card* (a device allowed with *always* on a remote-control
-  card; the hands in an app, from *Always in <app>* on a permission card), *Runs, then tells
+  card; the hands in an app, from *Always in <app>* on a permission card, or in that app
+  within one chat only, from *Always in this chat*), *Runs, then tells
   you* (nothing of the desktop's lands there today). Each row says what was allowed, for
   whom or where, when, and has *Revoke*; the empty state says that *always* on a card is
   what puts a row here. The Computer use page and the profile drawer keep their own shorter
@@ -631,8 +632,10 @@ warning in the iOS app fails its build: the helper is nanoMuse code.
   sensible picture (without one Electron's capturer can return a black frame; the runtime
   then falls back to its own capture). Steps that act on your behalf (Enter, a submit, heavy shortcuts, clicks on words
   from the sensitive list) wait for the card in the chat or on the capsule; *Allow once*
-  runs the step, *Always allow in <app>* keeps the hands going in that app until you revoke
-  it under Settings → Permissions. Text outside ASCII is typed through the clipboard
+  runs the step, *Always in this chat* keeps the hands going in that app in this chat only
+  (a scheduled task asks in the same chat every time, so this is how it stops asking), and
+  *Always in <app>* keeps them going in that app in every chat, until you revoke either
+  under Settings → Permissions. Text outside ASCII is typed through the clipboard
   (`xclip`/`xsel` are not needed; Electron's clipboard is used) and Ctrl+V; the previous
   clipboard content is put back afterwards.
 - The log is `~/.nanomuse/desktop/desktop.log` (each operator action is a line, `operator:

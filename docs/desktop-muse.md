@@ -223,14 +223,20 @@ and it cannot be looked back at.) The harness's approval card is restyled
 into the permission card (a shield, the headline, the detail, *Allow once* in blue
 first and *Reject* in grey), and every answer is written to the agent page's
 *Approvals* tab; the Sentinel's reasons ([sentinel.md](sentinel.md)) are in the
-headline. The same question, *Allow once*, *Always in <app>* (for the hands' tools; the
-app is the window title's first part), *Deny* (the host's `ApprovalDesk` sits first in
+headline. For a step of the hands, a strip above the card adds *Always in this chat* and
+*Always in <app>* (the harness's card has no room for them; the app is the window title's
+first part). The same question, *Allow once*, *Always in this chat*, *Always in <app>*,
+*Deny* (the host's `ApprovalDesk` sits first in
 the `approval/request` waterfall and answers for the card), is on the **capsule**, the
 small always-on-top pill the shell shows when the nanoMuse window is not in front, so
 you can answer from wherever you are.
 *Always in <app>* writes a `computer_app:<app>` grant: the hands' tools in that app are
 allowed without asking until you revoke the grant, on the agent page or under Settings →
-Computer use → *Always allowed*. Settings → **Computer use** shows the two macOS
+Computer use → *Always allowed*. *Always in this chat* writes the same grant with the
+chat's session id and title: it holds in that chat only, which is what a scheduled task
+needs (its runs land in the same chat), and the lists say *Only in the chat "<title>"*.
+The grant names the app, not the person or the words: in that chat, the hands may send
+anything to anyone in that app. Settings → **Computer use** shows the two macOS
 permissions with *Allow* and *Open System Settings* (through the desktop shell; the
 first time the hands are about to start, the shell asks for them in order with a word on
 why, the phone's and Codex's way: Accessibility, then Screen Recording for nanoMuse
@@ -315,7 +321,8 @@ shows the same in the trajectory card), and goes 220 ms after the run ends. When
 hands are about to click or drag under it, it moves to the bottom of the work area first
 (and back up next time), the way the phone's capsule dodges the finger. A hold turns it
 amber with **Your turn · <reason> · Done**; a question the agent asked before a step
-hangs under it as a card with *Allow once*, *Always in <app>*, *Deny*. The shell feeds it
+hangs under it as a card with *Allow once*, *Always in this chat* and *Always in <app>*
+(for a step of the hands), *Deny*. The shell feeds it
 over IPC from the main window (`nanomuse:overlay`, `{hands: {active, held, step, title,
 text, face, stop, take, x, y, kind}, cards}`) and its answers come back the same way.
 
