@@ -257,6 +257,9 @@ html[data-nm-platform='darwin']:not([data-nm-fullscreen]) .nm-col-top { height: 
    where no scroll reaches it (#261: a long thread from the phone could not be scrolled up at all);
    an auto margin takes the free space while there is some and is nothing once the thread is taller
    than the body, so the body scrolls from its first line. */
+/* The standing answers above the chat's approval card for a hands step (ApprovalScopes.ts). */
+.nm-ap-scope { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; box-sizing: border-box; width: min(var(--dsh-composer-card-max-width, 712px), 100%); margin: 0 auto 6px; padding: 0 var(--dsh-composer-side-clearance, 16px); }
+.nm-ap-scope-label { font-size: 13px; color: var(--dsw-alias-label-tertiary); margin-right: 2px; }
 [data-conversation-content][data-content-phase="hero"] > [data-conversation-scroll]:has(.nm-remote, .nm-traj) { justify-content: flex-start; }
 [data-conversation-content][data-content-phase="hero"] > [data-conversation-scroll] > .nm-remote { flex: 0 0 auto; width: min(var(--dsh-chat-content-width, 680px), 100%); align-self: center; box-sizing: border-box; padding: 0 var(--dsh-composer-side-clearance, 16px); }
 [data-conversation-content][data-content-phase="hero"] > [data-conversation-scroll] > :is(.nm-remote, .nm-traj):not(:is(.nm-remote, .nm-traj) ~ :is(.nm-remote, .nm-traj)) { margin-top: auto; padding-top: 16px; }
