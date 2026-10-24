@@ -2350,6 +2350,18 @@ class Database:
                 (since,),
             ).fetchall()
 
+    def calls_refused_by_family(self, since: int, limit: int = 30) -> list[sqlite3.Row]:
+        """The clients the `apps_only` switch turned away in the window, by family: calls,
+        accounts, the last one (what the Non-app traffic page shows once the switch is on and
+        the ledger no longer sees them)."""
+        with self._lock:
+            return self._conn.execute(
+                """SELECT family, COUNT(*) AS n, COUNT(DISTINCT account_id) AS accounts, MAX(ts) AS last_ts
+                   FROM calls WHERE ts>=? AND status='refused' AND detail='client_not_supported'
+                   GROUP BY family ORDER BY n DESC LIMIT ?""",
+                (since, limit),
+            ).fetchall()
+
     def calls_for_account(self, account_id: str, since: int) -> sqlite3.Row:
         """One account's calls in the window: how many, how they ended, how long they took."""
         with self._lock:

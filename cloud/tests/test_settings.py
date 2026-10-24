@@ -13,6 +13,9 @@ from nanomuse_cloud.db import Database
 from nanomuse_cloud.senders import LogSender
 from nanomuse_cloud.service import Cloud
 
+# the tests call the models as one of the apps would; `apps_only` (0.28) refuses other software
+APP_UA = {"User-Agent": "nanoMuse/0.0 (tests)"}
+
 ADMIN = {"X-Admin-Token": "admin"}
 
 
@@ -176,7 +179,7 @@ async def test_settings_survive_a_restart_and_a_bad_row_is_ignored():
     app, client, sender, up, cloud, settings = make(allowance_cny=25)
     cloud2 = Cloud(settings, db, LogSender())
     app2 = create_app(settings, cloud2)
-    c2 = httpx.AsyncClient(transport=httpx.ASGITransport(app=app2), base_url="http://cloud.test")
+    c2 = httpx.AsyncClient(transport=httpx.ASGITransport(app=app2), base_url="http://cloud.test", headers=APP_UA)
     r = await c2.post("/v1/admin/settings", headers=ADMIN, json={"allowance_cny": 12, "invite_bonus_cny": 2, "signup_open": False})
     assert r.status_code == 200
     db.settings_put("allowance_cny", "garbage")  # a hand-edited row: ignored, not fatal

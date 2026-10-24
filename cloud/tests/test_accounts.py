@@ -16,6 +16,9 @@ from nanomuse_cloud.identifiers import BadIdentifier, parse
 from nanomuse_cloud.senders import LogSender
 from nanomuse_cloud.service import Cloud, CloudError, check_password, hash_password
 
+# the tests call the models as one of the apps would; `apps_only` (0.28) refuses other software
+APP_UA = {"User-Agent": "nanoMuse/0.0 (tests)"}
+
 
 def make(**overrides):
     up = fake_upstream()
@@ -39,7 +42,7 @@ def make(**overrides):
     sender = LogSender()
     cloud = Cloud(settings, Database(":memory:"), sender)
     app = create_app(settings, cloud, upstream_transport=httpx.ASGITransport(app=up))
-    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://cloud.test")
+    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://cloud.test", headers=APP_UA)
     return app, client, sender, up, cloud, settings
 
 
@@ -543,7 +546,7 @@ async def test_an_operator_zero_survives_a_restart_and_old_rows_still_get_seeded
     cloud.db.close()
     cloud = Cloud(settings, Database(path), sender)
     app = create_app(settings, cloud, upstream_transport=httpx.ASGITransport(app=up))
-    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://cloud.test")
+    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://cloud.test", headers=APP_UA)
     a = await sign_up(client, sender, "dev-a@example.com", "pixel")
     b = await sign_up(client, sender, "dev-b@example.com", "mac")
     r = await client.post(

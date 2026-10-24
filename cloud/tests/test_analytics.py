@@ -16,11 +16,14 @@ from fastapi.testclient import TestClient
 
 from nanomuse_cloud import analytics as an
 from nanomuse_cloud.api import create_app
-from nanomuse_cloud.client import is_app, platform_of, ua_family
+from nanomuse_cloud.client import is_app, is_nanomuse_client, platform_of, ua_family
 from nanomuse_cloud.config import Settings
 from nanomuse_cloud.db import Database
 from nanomuse_cloud.senders import LogSender
 from nanomuse_cloud.service import Cloud
+
+# the tests call the models as one of the apps would; `apps_only` (0.28) refuses other software
+APP_UA = {"User-Agent": "nanoMuse/0.0 (tests)"}
 
 ADMIN = {"X-Admin-Token": "admin"}
 PHONE_UA = "nanoMuse/1.0.6 (iOS 27.2; iPhone)"
@@ -38,14 +41,18 @@ def test_platform_of_tells_the_apps_apart_and_names_the_rest():
     assert platform_of("nanoMuse/0.4.0 (darwin)") == "macos"
     assert platform_of("nanoMuse/0.4.0 (Windows 11)") == "windows"
     assert platform_of("nanoMuse/0.4.0") == "runtime"
+    # the runtime of 1.0.6 and earlier called the models with the OpenAI SDK's own string
+    assert platform_of("AsyncOpenAI/Python 1.109.1") == "runtime"
     assert platform_of("deepseek-harness/1.2.0-rc.2") == "desktop"
     assert platform_of("nanoMuse-Desktop/1.0.6 Electron") == "desktop"
     assert platform_of("Minis/1.14 (iPhone)") == "minis"
     assert platform_of("Mozilla/5.0 (Macintosh)") == "browser"
-    for ua in ("", "python-requests/2.32", "Go-http-client/1.1", "curl/8.4", "AsyncOpenAI/Python 1.5"):
+    for ua in ("", "python-requests/2.32", "Go-http-client/1.1", "curl/8.4", "OpenAI/Python 1.5", "nanoMuse-Pool-Worker/1.0"):
         assert platform_of(ua) == "other", ua
         assert not is_app(platform_of(ua))
     assert is_app("ios") and is_app("browser")
+    assert is_nanomuse_client("runtime") and is_nanomuse_client("browser")
+    assert not is_nanomuse_client("minis") and not is_nanomuse_client("other")
 
 
 def test_ua_family_groups_by_the_first_token():
@@ -303,7 +310,7 @@ def stack():
     sender = LogSender()
     cloud = Cloud(settings, Database(":memory:"), sender)
     app = create_app(settings, cloud, upstream_transport=httpx.ASGITransport(app=up))
-    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://cloud.test")
+    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://cloud.test", headers=APP_UA)
     return app, client, sender, up, cloud
 
 
@@ -436,6 +443,9 @@ async def test_the_analytics_pages_answer_from_the_rows(stack):
     phone, aid = await sign_up(client, sender)
     desk, _ = await sign_up(client, sender, "someone@example.com", ua="deepseek-harness/1.2.0")
     script, _ = await sign_up(client, sender, "13900139000", ua="python-requests/2.32")
+    # the script's calls are answered here so the pages have non-app rows to show; with the
+    # switch on (the default) they would be refused (test_controls)
+    cloud.controls.set("apps_only", False, actor="tests")
     tools = [{"type": "function", "function": {"name": "phone_tap"}}]
     for h, extra in ((phone, {"tools": tools}), (phone, {}), (desk, {"stream": True}), (script, {}), (script, {})):
         r = await client.post(

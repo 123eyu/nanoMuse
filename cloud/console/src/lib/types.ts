@@ -480,6 +480,9 @@ export interface Abuse {
     last_ts: number;
   })[];
   shared_addresses: { ip: string; accounts: number; disabled: number; first_at: number; last_at: number }[];
+  /** 0.28: whether the models answer nanoMuse clients only, and whom that turned away */
+  apps_only: boolean;
+  refused: { family: string; requests: number; accounts: number; last_ts: number }[];
 }
 
 // -- people ---------------------------------------------------------------------------------

@@ -13,6 +13,12 @@ environment) so a flip applies at once and survives a restart:
 - ``sync`` — off: the ``/v1/sync/*`` endpoints answer ``503 sync_paused``;
 - ``hub`` — off: ``/v1/hub`` closes with 4003 ``hub_paused``, ``/v1/devices`` answers 503.
 
+A sixth, ``apps_only`` (0.28), is a policy rather than a pause: on (the default), the models
+answer the nanoMuse apps, the runtime and the web console only, and a request from other
+software (a pool worker, an SDK, the unbranded upstream app) is refused with
+``403 client_not_supported``; members are exempt. Off, any client with a valid key is
+answered. It is not reported under ``paused`` (the apps are never affected by it).
+
 Thresholds: "when the number of accounts reaches N, do X" — several rules, each with N,
 an action (close sign-ups, pause the free allowance, pause sync, notify the operator by
 e-mail), enabled or not. A rule fires once (``last_fired_at``) until the operator re-arms
@@ -35,7 +41,9 @@ from .senders import SendError, compose_notice_mail, smtp_send
 
 log = logging.getLogger("nanomuse_cloud.controls")
 
-SWITCHES: tuple[str, ...] = ("free_allowance", "signups", "cloud_service", "sync", "hub")
+SWITCHES: tuple[str, ...] = ("free_allowance", "signups", "cloud_service", "sync", "hub", "apps_only")
+# the switches whose "off" pauses a part of the service, which the apps are told about
+PAUSABLE: tuple[str, ...] = ("free_allowance", "signups", "cloud_service", "sync", "hub")
 
 # a rule's action → the switch it turns off (None: notify only)
 ACTIONS: dict[str, str | None] = {
@@ -75,8 +83,9 @@ class Controls:
         return self._on.get(key, True)
 
     def paused(self) -> dict[str, bool]:
-        """What the apps may know: which switches are off, as ``{switch: true}``."""
-        return {k: not v for k, v in self._on.items()}
+        """What the apps may know: which parts of the service are off, as ``{switch: true}``.
+        ``apps_only`` is not among them: it never affects the apps."""
+        return {k: not self._on[k] for k in PAUSABLE}
 
     def state(self) -> dict[str, Any]:
         rows = self.db.controls_all()

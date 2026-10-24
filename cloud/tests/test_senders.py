@@ -16,6 +16,9 @@ from nanomuse_cloud.config import Settings
 from nanomuse_cloud.identifiers import parse
 from nanomuse_cloud.senders import AliyunSmsSender, BothSender, SendError, SmtpSender, make_sender
 
+# the tests call the models as one of the apps would; `apps_only` (0.28) refuses other software
+APP_UA = {"User-Agent": "nanoMuse/0.0 (tests)"}
+
 
 def aliyun_settings(**overrides) -> Settings:
     kw = dict(
@@ -170,7 +173,7 @@ def test_a_number_the_sender_cannot_reach_is_a_400_before_any_code_exists(monkey
     app = create_app(s, cloud)
 
     async def run():
-        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://cloud.test") as c:
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://cloud.test", headers=APP_UA) as c:
             r = await c.post("/v1/auth/code", json={"identifier": "+1 415 555 0100"})
             assert r.status_code == 400 and r.json()["error"]["code"] == "phone_region"
             assert "e-mail" in r.json()["error"]["message"]

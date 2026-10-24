@@ -20,6 +20,9 @@ from nanomuse_cloud.identifiers import BadIdentifier, parse
 from nanomuse_cloud.senders import LogSender
 from nanomuse_cloud.service import Cloud, CloudError
 
+# the tests call the models as one of the apps would; `apps_only` (0.28) refuses other software
+APP_UA = {"User-Agent": "nanoMuse/0.0 (tests)"}
+
 PNG_1PX = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==")
 
 
@@ -252,7 +255,7 @@ def stack():
     sender = LogSender()
     cloud = Cloud(settings, Database(":memory:"), sender)
     app = create_app(settings, cloud, upstream_transport=httpx.ASGITransport(app=up))
-    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://cloud.test")
+    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://cloud.test", headers=APP_UA)
     return app, client, sender, up, cloud
 
 
@@ -297,7 +300,7 @@ async def test_hosted_default_is_one_multimodal_chat_model_and_retires_media(mon
     sender = LogSender()
     cloud = Cloud(settings, Database(":memory:"), sender)
     app = create_app(settings, cloud, upstream_transport=httpx.ASGITransport(app=up))
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://cloud.test") as client:
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://cloud.test", headers=APP_UA) as client:
         me = await sign_up(client, sender)
         headers = {"Authorization": f"Bearer {me['api_key']}"}
         listed = (await client.get("/v1/models", headers=headers)).json()["data"]
@@ -359,7 +362,7 @@ async def test_retired_media_is_hidden_when_an_old_environment_still_lists_it():
     sender = LogSender()
     cloud = Cloud(settings, Database(":memory:"), sender)
     app = create_app(settings, cloud, upstream_transport=httpx.ASGITransport(app=up))
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://cloud.test") as client:
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://cloud.test", headers=APP_UA) as client:
         assert (await client.get("/healthz")).json()["models"] == expected
         signed_in = await sign_up(client, sender)
         headers = {"Authorization": f"Bearer {signed_in['api_key']}"}
@@ -785,7 +788,7 @@ def make_stack(**overrides):
     sender = LogSender()
     cloud = Cloud(settings, Database(":memory:"), sender)
     app = create_app(settings, cloud, upstream_transport=httpx.ASGITransport(app=up))
-    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://cloud.test")
+    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://cloud.test", headers=APP_UA)
     return app, client, sender, up, cloud
 
 
@@ -1065,7 +1068,7 @@ async def test_unlimited_relay_meters_but_never_refuses():
     sender = LogSender()
     cloud = Cloud(settings, Database(":memory:"), sender)
     app = create_app(settings, cloud, upstream_transport=httpx.ASGITransport(app=up))
-    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://cloud.test")
+    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://cloud.test", headers=APP_UA)
     data = await sign_up(client, sender)
     assert data["tokens"]["unlimited"] is True and data["tokens"]["granted"] == 0
     headers = {"Authorization": f"Bearer {data['api_key']}"}
@@ -1876,7 +1879,7 @@ async def test_data_controls_keep_the_training_view_only_and_are_deletable(stack
     assert dv["by_model"][0]["tokens"] == dv["period"]["prompt_tokens"] + dv["period"]["completion_tokens"] > 0
     assert sorted(dv["by_platform"], key=lambda x: x["platform"]) == [
         {"platform": "android", "samples": 1},
-        {"platform": "other", "samples": 1},
+        {"platform": "runtime", "samples": 1},
     ]
     assert [s["response"] for s in dv["recent"]] == ["你好，世界", "hi"] and dv["recent"][0]["hint"] == data["account"]["hint"]
     # the export has no account ids

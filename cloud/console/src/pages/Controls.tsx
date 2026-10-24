@@ -11,7 +11,7 @@ import { Btn, DataTable, Field, Grid, Note, Panel, Pill, Toggle, cx, useDialog, 
 import { IpChip } from "../ui/who";
 import { Loaded } from "./common";
 
-const SWITCHES = ["free_allowance", "signups", "cloud_service", "sync", "hub"];
+const SWITCHES = ["free_allowance", "signups", "cloud_service", "sync", "hub", "apps_only"];
 const ACTIONS = ["close_signups", "pause_allowance", "pause_sync", "notify"];
 
 export function Controls() {
@@ -44,7 +44,8 @@ export function Controls() {
   const flip = async (key: string, on: boolean) => {
     if (!needActor()) return;
     const name = nameOf(T.ct.names, key);
-    const r = await dialog({ title: name, body: <span className="whitespace-pre-line">{T.ct.confirm(name, on, T.ct.what[key] || "")}</span>, fields: [{ id: "note", label: T.ct.why, type: "text" }], danger: !on, okLabel: on ? T.g.on : T.g.off });
+    const what = on ? T.ct.whatOn[key] || "" : T.ct.what[key] || "";
+    const r = await dialog({ title: name, body: <span className="whitespace-pre-line">{T.ct.confirm(name, on, what)}</span>, fields: [{ id: "note", label: T.ct.why, type: "text" }], danger: !on, okLabel: on ? T.g.on : T.g.off });
     if (!r) return;
     await run(key, () => post(`/v1/admin/controls/${key}`, { enabled: on, note: String(r.note || "") }));
   };

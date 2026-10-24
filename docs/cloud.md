@@ -420,9 +420,9 @@ card changes; its title and buttons stay the app's. Apps built against relay
 The operator can pause parts of the relay without a restart or a deploy
 (relay 0.22, *Controls* on the admin console; `nanomuse-cloud admin controls
 …` on the command line; see [`cloud/README.md`](../cloud/README.md#controls-022)).
-Five switches, each on by default, each kept in the database so a restart
+Six switches, each on by default, each kept in the database so a restart
 keeps it, each with a line in an audit log saying who flipped it, when and
-why. What an app sees when one is off:
+why. What an app sees when one of the five pauses is off:
 
 | switch | what the app gets while it is off |
 |---|---|
@@ -437,6 +437,22 @@ The switches that are off are listed under `paused` in `/healthz`,
 before it tries. The apps handle the codes as any refusal: the phones and the
 console show the relay's sentence; the `allowance_exhausted` shape is the one
 they already draw a card for.
+
+The sixth switch, **nanoMuse clients only** (relay 0.28, on by default), works
+the other way round: while it is on, the models answer the nanoMuse apps, the
+desktop app, the Python runtime and the web console in a browser, and any
+other software calling `/v1/chat/completions` with a nanoMuse key (a pool
+worker, an SDK, a script, the unbranded upstream app) gets **403
+`client_not_supported`** with the client's name under `client` and a sentence
+saying to use a key of its own there. The relay reads the `User-Agent` for
+this, so it stops honest programs, not impostors. Members are answered from
+anything; sign-in, the account page, sync and the hub are not affected; a
+refusal costs nothing and is a `client.refused` line on the account's
+timeline. The apps never see this code: every one of them names itself, and
+the runtime of 1.0.6 and earlier, whose model calls carried the OpenAI SDK's
+own string, is recognised by that string (the runtime names itself from
+1.0.7). Off, the relay answers any client with a valid key, as it did before
+0.28.
 
 **Thresholds.** A rule says *when the account count reaches N, do one
 thing*: close sign-ups, pause the allowance, pause sync, or only notify. Rules
