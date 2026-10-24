@@ -130,8 +130,29 @@ def test_files_survive_a_folder_under_a_dotted_path(tmp_path: Path):
     (folder / "scripts" / ".hidden").write_text("")
     (folder / "references").mkdir()
     (folder / "references" / "rates.md").write_text("# rates\n")
+    (folder / "assets").mkdir()
+    (folder / "assets" / "logo.txt").write_text("logo\n")
     s = load_skill(folder)
-    assert s.files == [Path("scripts/total.py"), Path("references/rates.md")]
+    assert s.files == [
+        Path("scripts/total.py"),
+        Path("references/rates.md"),
+        Path("assets/logo.txt"),
+    ]
+
+
+def test_files_skip_a_dot_segment_inside_the_folder(tmp_path: Path):
+    """A dot segment below the skill folder still hides what is under it, so the fix
+    above does not turn the filter off: the name relative to the skill folder is the
+    only thing that decides, wherever the dot sits."""
+    folder = tmp_path / "expense-report"
+    folder.mkdir()
+    (folder / "SKILL.md").write_text(APPLE_STYLE)
+    (folder / "scripts" / ".draft").mkdir(parents=True)
+    (folder / "scripts" / ".draft" / "gen.py").write_text("print(2)")
+    (folder / "scripts" / "sub").mkdir()
+    (folder / "scripts" / "sub" / "ok.py").write_text("print(3)")
+    s = load_skill(folder)
+    assert s.files == [Path("scripts/sub/ok.py")]
 
 
 def test_builtin_skills_are_well_formed():
