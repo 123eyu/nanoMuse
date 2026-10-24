@@ -132,6 +132,9 @@
     <string name="nm_routine_paused">Naka-off</string>
     <!-- The chat row a routine sent: its label and the clock time it fired -->
     <string name="nm_routine_wake_caption">Routine · %1$s · %2$s</string>
+    <!-- One scheduled task, several times a day (GH#557) -->
+    <string name="nm_scheduled_task_add_time">Magdagdag ng isa pang oras</string>
+    <string name="nm_scheduled_task_runs_scheduled_for">Naka-iskedyul para sa %1$s</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">Mga Ideya</string>

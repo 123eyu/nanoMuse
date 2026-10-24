@@ -128,6 +128,9 @@
     <string name="nm_routine_paused">已关闭</string>
     <!-- The chat row a routine sent: its label and the clock time it fired -->
     <string name="nm_routine_wake_caption">例程 · %1$s · %2$s</string>
+    <!-- One scheduled task, several times a day (GH#557) -->
+    <string name="nm_scheduled_task_add_time">再加一个时间</string>
+    <string name="nm_scheduled_task_runs_scheduled_for">计划于 %1$s</string>
 
     <!-- 点子 -->
     <string name="nm_ideas_title">点子</string>

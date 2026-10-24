@@ -159,6 +159,18 @@ private fun RunRow(run: ScheduledRun, onOpenSession: (String) -> Unit) {
                 fontWeight = FontWeight.Medium,
                 fontSize = 14.sp,
             )
+            // nanoMuse: [GH#557] the time this run was scheduled for, when
+            // the firing carried one; runs started by hand carry none.
+            run.scheduledForMs?.let { scheduledFor ->
+                Text(
+                    text = stringResource(
+                        R.string.nm_scheduled_task_runs_scheduled_for,
+                        formatRunClock(scheduledFor),
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 12.sp,
+                )
+            }
             val preview = run.preview
             if (!preview.isNullOrBlank()) {
                 Text(
@@ -184,3 +196,7 @@ private fun RunRow(run: ScheduledRun, onOpenSession: (String) -> Unit) {
 
 private fun formatRunTime(ms: Long): String =
     SimpleDateFormat("MMM d, HH:mm:ss", Locale.getDefault()).format(Date(ms))
+
+// nanoMuse: [GH#557] the wall-clock time a run was scheduled for.
+private fun formatRunClock(ms: Long): String =
+    SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(ms))

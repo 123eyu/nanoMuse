@@ -21,7 +21,7 @@ import java.util.Calendar
  * AI actions from a prompt.
  *
  *   minis-scheduled list
- *   minis-scheduled create --label L --time HH:MM --prompt "..."
+ *   minis-scheduled create --label L --time HH:MM [--time HH:MM ...] --prompt "..."
  *                          [--repeat once|daily|weekdays|custom --days mon,tue,...]
  *                          [--target new|follow-up|rerun]
  *                          [--session <id>] [--message <id>]
@@ -79,8 +79,11 @@ class ScheduledTaskOffloadHandler(private val context: Context) : NativeOffloadH
 
     private fun handleCreate(args: OffloadArgs): NativeOffloadResult {
         val label = args.get("label", "l") ?: ""
-        val (hour, minute) = parseTime(args.get("time", "t")
-            ?: throw IllegalArgumentException("--time HH:MM required"))
+        // nanoMuse: [GH#557] --time may repeat: the first value is the
+        // task's primary time, the rest become its additional times.
+        val times = args.getAll("time", "t").map { parseTime(it) }
+        if (times.isEmpty()) throw IllegalArgumentException("--time HH:MM required")
+        val (hour, minute) = times.first()
         val repeat = parseRepeat(args.get("repeat", "r"))
         val customDays = if (repeat == ScheduledRepeatMode.CUSTOM) {
             parseDays(args.get("days") ?: throw IllegalArgumentException("--days required for custom repeat"))
@@ -94,6 +97,8 @@ class ScheduledTaskOffloadHandler(private val context: Context) : NativeOffloadH
             label = label,
             timeOfDayHour = hour,
             timeOfDayMinute = minute,
+            // nanoMuse: [GH#557]
+            additionalTimes = times.drop(1),
             repeatMode = repeat,
             customDays = customDays,
             prompt = prompt,
@@ -198,7 +203,15 @@ class ScheduledTaskOffloadHandler(private val context: Context) : NativeOffloadH
     private fun taskJson(t: ScheduledTask): JSONObject = JSONObject().apply {
         put("id", t.id)
         put("label", t.label)
-        put("time", "%02d:%02d".format(t.timeOfDayHour, t.timeOfDayMinute))
+        // nanoMuse: [GH#557] one time prints as "time", several as "times".
+        val taskTimes = t.timesOfDay
+        if (taskTimes.size > 1) {
+            put("times", JSONArray().apply {
+                taskTimes.forEach { (h, m) -> put("%02d:%02d".format(h, m)) }
+            })
+        } else {
+            put("time", "%02d:%02d".format(t.timeOfDayHour, t.timeOfDayMinute))
+        }
         put("repeat", t.repeatMode.name.lowercase())
         if (t.customDays.isNotEmpty()) put("days", JSONArray(t.customDays.toList()))
         put("prompt", t.prompt)
@@ -220,7 +233,7 @@ class ScheduledTaskOffloadHandler(private val context: Context) : NativeOffloadH
 
             (no subcommand)  Same as `list` (default subcommand)
             list
-            create --time HH:MM --prompt "..." [--label L]
+            create --time HH:MM [--time HH:MM ...] --prompt "..." [--label L]
                    [--repeat once|daily|weekdays|custom --days mon,tue,...]
                    [--target new|follow-up|rerun --session <id> --message <id>]
                    [--model <modelId>] [--start YYYY-MM-DD] [--end YYYY-MM-DD] [--disabled]
@@ -228,6 +241,10 @@ class ScheduledTaskOffloadHandler(private val context: Context) : NativeOffloadH
             enable  --id <taskId>
             disable --id <taskId>
             run     --id <taskId>          fire immediately, off-schedule
+
+            A task may fire at several times of day: repeat --time on create to
+            add more. list prints them as "times"; a task with one time keeps
+            printing it as "time".
 
             Target modes: new = run prompt in a fresh chat; follow-up = append prompt
             to an existing chat (--session); rerun = re-run a chat (--session) from a
