@@ -24,7 +24,7 @@ import type { ChatListState, ChatStatus } from './MuseChats.tsx'
 import { usePrefs } from './prefs.ts'
 import { useRooms, type ActivityRecord, type GoalAutomation } from './rooms.ts'
 import { TaskDetail } from './TaskDetail.tsx'
-import { ago, clockLabel, dayLabel } from './ui.tsx'
+import { ago, clockLabel, dayLabel, grantWhere } from './ui.tsx'
 import { win } from './win.ts'
 
 const COMPUTER_SECTION = 'nanomuse-computer'
@@ -242,7 +242,7 @@ function Activity({ t, name, stop, useSessions, open }: { t: Translate; name: st
         : h('span', { className: 'nm-pf-row-time' }, clockLabel(r.at, rooms.lang)))))))
 }
 
-function Approvals({ t, name, approvals, grants }: { t: Translate; name: string; approvals: { at: number; toolName: string; reason: string; outcome: 'allowed' | 'rejected' }[]; grants: { id: string; target: string; at: number }[] }): ReactNode {
+function Approvals({ t, name, approvals, grants }: { t: Translate; name: string; approvals: { at: number; toolName: string; reason: string; outcome: 'allowed' | 'rejected' }[]; grants: { id: string; target: string; at: number; sessionId?: string; sessionTitle?: string }[] }): ReactNode {
   const [openRow, setOpenRow] = useState<number | null>(null)
   const openPermissions = () => { profileBus.close(); settingsBus.openSection?.(COMPUTER_SECTION) }
   const manage = h('div', { className: 'nm-pf-row nm-clickable', role: 'button', tabIndex: 0, onClick: openPermissions, onKeyDown: (e: { key: string; preventDefault(): void }) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPermissions() } } },
@@ -257,7 +257,7 @@ function Approvals({ t, name, approvals, grants }: { t: Translate; name: string;
           h('span', { className: 'nm-pf-row-icon' }, h(IconCheck, { size: 18 })),
           h('div', { className: 'nm-pf-row-main' },
             h('div', { className: 'nm-pf-row-title' }, t('pfAlwaysAllowed', { target: g.target.replace(/^computer_app:/, '') })),
-            h('div', { className: 'nm-pf-row-sub' }, ago(t, g.at))),
+            h('div', { className: 'nm-pf-row-sub' }, [grantWhere(t, g), ago(t, g.at)].filter(Boolean).join(' · '))),
           h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', onClick: () => void call('grants/revoke', { id: g.id }).catch(() => undefined) }, t('pmRevoke')))))
     : h('p', { className: 'nm-pf-empty' }, t('pfApprovalsEmpty', { name }))
   if (approvals.length === 0) return h('div', { className: 'nm-pf-rows' }, standing, manage)

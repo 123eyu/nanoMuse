@@ -117,6 +117,12 @@ export function Empty({ icon, text, children }: { icon: ReactNode; text: string;
 }
 
 /** `2 min ago`-style, from the shared words. */
+/** Where a hands grant holds: '' for every conversation, else the one it was given in. */
+export function grantWhere(t: Translate, g: { sessionId?: string; sessionTitle?: string }): string {
+  if (!g.sessionId) return ''
+  return g.sessionTitle ? t('grantInChat', { chat: g.sessionTitle.slice(0, 40) }) : t('grantInOneChat')
+}
+
 export function ago(t: Translate, at: number): string {
   if (!at) return ''
   const delta = Math.max(0, Date.now() - at) / 1000

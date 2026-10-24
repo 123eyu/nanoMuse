@@ -1220,6 +1220,8 @@ export const en = {
   cnElsewhereSub: 'Connected on {device}. Sign in here to use it on this device.',
   cnAnotherDevice: 'another device',
   cuGrantSub: '{name} may click and type in this app without asking each time.',
+  grantInChat: 'Only in the chat “{chat}”',
+  grantInOneChat: 'Only in one chat',
   cuGrantsNone: 'None. “Always in <app>” on a permission card puts one here.',
   // desk-b: the face in motion (C3)
   moAnimating: 'Animating {n}/{total}…',
@@ -2715,6 +2717,8 @@ export const zh: typeof en = {
   cnElsewhereSub: '已在 {device} 上连接。在这里登录一次，这台设备也能用。',
   cnAnotherDevice: '另一台设备',
   cuGrantSub: '{name} 在这个应用里点按和输入时不再每次询问。',
+  grantInChat: '仅限对话「{chat}」',
+  grantInOneChat: '仅限一个对话',
   cuGrantsNone: '还没有。在权限卡片上选「在 <应用> 里始终允许」，就会记在这里。',
   // desk-b: the face in motion (C3)
   moAnimating: '正在生成动作 {n}/{total}…',

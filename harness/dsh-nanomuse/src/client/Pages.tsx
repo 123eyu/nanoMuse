@@ -17,7 +17,7 @@ import { DEVICES_PANEL } from './panels.ts'
 import { usePrefs } from './prefs.ts'
 import { CONNECTORS_SECTION, useConnectors } from './Connectors.tsx'
 import { roomsCall } from './rooms.ts'
-import { ago } from './ui.tsx'
+import { ago, grantWhere } from './ui.tsx'
 
 export const PERMISSIONS_SECTION = 'nanomuse-permissions'
 export const FILES_SECTION = 'nanomuse-files'
@@ -103,7 +103,7 @@ function StandingGrants({ t, live }: { t: Translate; live: Live }): ReactNode {
     switch (g.kind) {
       case 'remote_control': return { title: t('sgRemoteControl'), sub: t('sgRemoteControlSub'), icon: h(IconDevices, { size: 18 }) }
       case 'device': return { title: t('sgDevice', { name: g.target }), sub: `${t('sgDeviceSub')} · ${ago(t, g.at)}`, icon: h(IconDevices, { size: 18 }) }
-      case 'computer_app': return { title: t('sgHands', { app: g.target }), sub: `${t('sgHandsSub', { name })} · ${ago(t, g.at)}`, icon: h(IconHand, { size: 18 }) }
+      case 'computer_app': return { title: t('sgHands', { app: g.target }), sub: [grantWhere(t, g), t('sgHandsSub', { name }), ago(t, g.at)].filter(Boolean).join(' · '), icon: h(IconHand, { size: 18 }) }
     }
   }
   return h(Fragment, null,

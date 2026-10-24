@@ -19,6 +19,7 @@ import { useLive } from './live.ts'
 import { openStar } from './AccountPage.tsx'
 import { DOCS_URL, ISSUES_URL, REPO_URL } from './panels.ts'
 import { setPrefs, usePrefs } from './prefs.ts'
+import { grantWhere } from './ui.tsx'
 
 const SITE_URL = 'https://nanomuse.cn/'
 const DISCUSS_URL = 'https://github.com/nano-muse/nanoMuse/discussions'
@@ -105,7 +106,7 @@ export function makeComputerSection(t: Translate) {
             h('span', { className: 'nm-row-icon' }, h(IconShield, { size: 18 })),
             h('div', { className: 'nm-row-main' },
               h('span', { className: 'nm-row-title' }, t('pfAlwaysAllowed', { target: g.target.replace(/^computer_app:/, '') })),
-              h('span', { className: 'nm-row-sub' }, t('cuGrantSub', { name }))),
+              h('span', { className: 'nm-row-sub' }, [grantWhere(t, g), t('cuGrantSub', { name })].filter(Boolean).join(' · '))),
             h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', onClick: () => void call('grants/revoke', { id: g.id }).catch(() => undefined) }, t('pmRevoke')))))
         : h('p', null, t('cuGrantsNone')))
   }
