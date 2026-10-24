@@ -327,19 +327,21 @@ url  = "{{vault:CONTACTS_NEXTCLOUD}}"   # a link, kept in the vault: nanomuse va
 
 ### 网页搜索 {#web-search}
 
-谁来回答 `web_search`。DuckDuckGo 什么都不需要，是默认值，但它是抓网页而不是正规接口：会限流，时不时出问题。想要每次都能搜到，指定一家带 API 的服务商：带 key 的 [Brave Search](https://brave.com/search/api/)、[Tavily](https://app.tavily.com/) 或 [Serply](https://serply.io/)（Google 搜索结果），有没有 key 都行的 [You.com](https://you.com/platform/api-keys)，或者你自己跑的一个 [SearXNG](https://docs.searxng.org/) 实例（`search.formats` 里要有 `json`）。手机上同样的选项在「连接 → 网页搜索」，key 以 `SEARCH_API_KEY` 存进保险库，「测试」跑一次搜索。
+谁来回答 `web_search`。DuckDuckGo 什么都不需要，是默认值，但它是抓网页而不是正规接口：会限流，时不时出问题。想要每次都能搜到，指定一家带 API 的服务商：带 key 的 [Brave Search](https://brave.com/search/api/)、[Tavily](https://app.tavily.com/) 或 [Serply](https://serply.io/)（Google 搜索结果），有没有 key 都行的 [You.com](https://you.com/platform/api-keys) 和 [Parallel](https://docs.parallel.ai/integrations/mcp/search-mcp)，或者你自己跑的一个 [SearXNG](https://docs.searxng.org/) 实例（`search.formats` 里要有 `json`）。手机上同样的选项在「连接 → 网页搜索」，key 以 `SEARCH_API_KEY` 存进保险库，「测试」跑一次搜索。
 
 ```toml
 [connectors.search]
-provider = "duckduckgo"          # duckduckgo | brave | tavily | serply | you | searxng
-api_key  = "{{vault:SEARCH_API_KEY}}"   # brave / tavily / serply，以及有 key 的 you：nanomuse vault set SEARCH_API_KEY
+provider = "duckduckgo"          # duckduckgo | brave | tavily | serply | you | parallel | searxng
+api_key  = "{{vault:SEARCH_API_KEY}}"   # brave / tavily / serply，以及有 key 的 you 或 parallel：nanomuse vault set SEARCH_API_KEY
 base_url = ""                    # searxng: your instance, e.g. "http://127.0.0.1:8080"
 fallback = true                  # false：搜索失败就失败，不再转去 DuckDuckGo
 ```
 
 You.com 不带 key 时走 `api.you.com`，每个地址每天 100 次，不用注册；超出后搜索会说明原因，由 DuckDuckGo 补答一次。带 key 时走 `ydc-index.io`，也就是额度更高的付费 Search API；哨兵显示的是这次搜索真正去的主机。发往 You.com 的请求带 `youdotcom-integration/nano-muse-nanomuse` 这个 User-Agent，是应对方要求加的，方便他们认出来自 nanoMuse 的流量；除此之外不多发任何东西，其他服务商也不会收到它。
 
-不管选的是谁，一次失败的搜索（key 过期、被限流、实例挂了）都改由 DuckDuckGo 回答，只补这一次，并在结果顶上加一条说明，任务就能继续（这时查询词除了到你选的服务商，也会到 DuckDuckGo 的主机；不希望这样，就在 `[connectors.search]` 下设 `fallback = false`）；`nanomuse doctor` 会报告缺了必要配置的服务商。工具的 `region` 参数（`cn-zh`、`us-en`）按每家服务商自己的写法传过去。服务商的主机是你选定的目的地，所以读过私密数据之后再搜索，不像去一个陌生主机那样需要审批（见[污点追踪](sentinel.md#taint-tracking)）；对搜索结果做 `web_fetch` 仍然需要。
+Parallel 走的是它的 [Search MCP](https://docs.parallel.ai/integrations/mcp/search-mcp)（`search.parallel.ai`）里的 `web_search` 工具，每次搜索调用一次，查询词同时作为搜索目标和唯一的一条关键词。不带 key 时免费，用的是 Parallel 的 Fast 模式，限额较低，不用注册；运行时会带一个随机的会话 id，重启之前每次搜索都用同一个，Parallel 靠它统计免费用量。在 [platform.parallel.ai](https://platform.parallel.ai/) 拿到的 key 以 Bearer token 发送，限额更高。每条结果的摘要是它的几段摘录拼成的一行。Parallel 回了错误（工具报错、被限流、key 被拒、回复里没有结果）时，说明或失败信息里写的就是这个错误。
+
+不管选的是谁，一次失败的搜索（key 过期、被限流、实例挂了）都改由 DuckDuckGo 回答，只补这一次，并在结果顶上加一条说明，任务就能继续（这时查询词除了到你选的服务商，也会到 DuckDuckGo 的主机；不希望这样，就在 `[connectors.search]` 下设 `fallback = false`）；`nanomuse doctor` 会报告缺了必要配置的服务商。工具的 `region` 参数（`cn-zh`、`us-en`）按每家服务商自己的写法传给支持它的服务商；Tavily 和 Parallel 不接收这个参数。服务商的主机是你选定的目的地，所以读过私密数据之后再搜索，不像去一个陌生主机那样需要审批（见[污点追踪](sentinel.md#taint-tracking)）；对搜索结果做 `web_fetch` 仍然需要。
 
 ## `[triggers]` {#triggers}
 
