@@ -21,9 +21,8 @@
 #                               stay quiet below 14
 #   OUT_DIR                     where build/ goes
 #
-# Warnings: the compiler's output is kept and any `warning:` line is surfaced as a GitHub
-# annotation (::warning::) so it is seen without failing the release build; a NanoMuse Swift
-# file with a warning is treated as a failure by the project's rules — fix it.
+# Warnings: compiler output is kept, surfaced as a GitHub annotation and fails the build.
+# The helper is nanoMuse code, so the release cannot carry a warning from either architecture.
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 desktop="$(cd "$here/../.." && pwd)"
@@ -52,7 +51,8 @@ for arch in $archs; do
   fi
   if grep -q "warning:" "$log"; then
     cat "$log" >&2
-    echo "::warning file=harness/desktop/mac/computer-use/build.sh::Swift warnings in the $arch build of $name (see the step's log)"
+    echo "::error file=harness/desktop/mac/computer-use/build.sh::Swift warnings in the $arch build of $name (see the step's log)"
+    exit 1
   fi
   binaries+=("$out/obj/$arch")
 done

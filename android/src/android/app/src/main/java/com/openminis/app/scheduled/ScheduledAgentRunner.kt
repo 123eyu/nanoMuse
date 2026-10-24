@@ -60,6 +60,10 @@ object ScheduledAgentRunner {
      *   with every PRoot sandbox child. The alarm path passing the default
      *   `true` was exactly that bug. Waiting is only safe off a broadcast —
      *   e.g. the minis-scheduled CLI, which runs in its own offload thread.
+     * @param firedTriggerAtMs nanoMuse: [GH#557] the trigger instant the
+     *   alarm was armed for, recorded on the run so the history can show
+     *   which of the task's times it belongs to. Null for runs started by
+     *   hand (Run now, the CLI), which belong to no scheduled time.
      * @return the session id once the action has been DISPATCHED (resolved +
      *   prompt sent), or null when the runner couldn't even start (no provider,
      *   target chat gone, MinisApp not initialized).
@@ -68,6 +72,7 @@ object ScheduledAgentRunner {
         context: Context,
         task: ScheduledTask,
         waitForCompletion: Boolean = true,
+        firedTriggerAtMs: Long? = null,
     ): String? {
         // [T-android-scheduled-lateinit-crash-156] `as? MinisApp` only rules out
         // a null / wrong-type Application — it does NOT mean the Application is
@@ -121,7 +126,10 @@ object ScheduledAgentRunner {
             val result = dispatch(app, task, sessionId, wait = true)
             val preview = (result.responseText ?: "").take(200).ifBlank { "(no response)" }
             val ok = result.status != "Error" && result.status != "Timeout"
-            ScheduledTaskManager(app).markFired(task.id, sessionId, preview, ok = ok)
+            // nanoMuse: [GH#557] scheduledForMs carries the armed trigger through.
+            ScheduledTaskManager(app).markFired(
+                task.id, sessionId, preview, ok = ok, scheduledForMs = firedTriggerAtMs,
+            )
             postCompletionNotification(app, task, sessionId, preview)
             return sessionId
         }
@@ -136,7 +144,10 @@ object ScheduledAgentRunner {
             val result = dispatch(app, task, sessionId, wait = true)
             val preview = (result.responseText ?: "").take(200).ifBlank { "(no response)" }
             val ok = result.status != "Error" && result.status != "Timeout"
-            ScheduledTaskManager(app).markFired(task.id, sessionId, preview, ok = ok)
+            // nanoMuse: [GH#557] scheduledForMs carries the armed trigger through.
+            ScheduledTaskManager(app).markFired(
+                task.id, sessionId, preview, ok = ok, scheduledForMs = firedTriggerAtMs,
+            )
             postCompletionNotification(app, task, sessionId, preview)
         }
         return sessionId

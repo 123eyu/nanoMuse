@@ -2,7 +2,7 @@
 // parsed URL, the shell's own pages from disk, http(s) to the browser, the rest dropped.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { navigationVerdict, ownPage, sameOrigin } from "../out/navigation.js";
+import { mediaPermissionAllowed, navigationVerdict, ownPage, sameOrigin } from "../out/navigation.js";
 
 const HOST = "http://127.0.0.1:38421/?token=abc";
 const OWN = "file:///opt/nanoMuse/resources/app.asar/resources";
@@ -34,4 +34,14 @@ test("the verdict: stay, open outside, or drop", () => {
   assert.equal(navigationVerdict("javascript:alert(1)", HOST, OWN), "deny");
   assert.equal(navigationVerdict("file:///etc/passwd", HOST, OWN), "deny");
   assert.equal(navigationVerdict("data:text/html,<b>x</b>", HOST, OWN), "deny");
+});
+
+test("media permission is same-origin audio only", () => {
+  const origin = "http://127.0.0.1:38421/dictation";
+  assert.equal(mediaPermissionAllowed("media", origin, origin, ["audio"], HOST), true);
+  assert.equal(mediaPermissionAllowed("media", origin, origin, ["video"], HOST), false);
+  assert.equal(mediaPermissionAllowed("media", origin, origin, ["audio", "video"], HOST), false);
+  assert.equal(mediaPermissionAllowed("media", origin, "https://evil.example/", ["audio"], HOST), false);
+  assert.equal(mediaPermissionAllowed("media", "https://evil.example/", origin, ["audio"], HOST), false);
+  assert.equal(mediaPermissionAllowed("geolocation", origin, origin, ["audio"], HOST), false);
 });

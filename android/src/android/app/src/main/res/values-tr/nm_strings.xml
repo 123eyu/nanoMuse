@@ -132,6 +132,9 @@
     <string name="nm_routine_paused">Kapalı</string>
     <!-- The chat row a routine sent: its label and the clock time it fired -->
     <string name="nm_routine_wake_caption">Rutin · %1$s · %2$s</string>
+    <!-- One scheduled task, several times a day (GH#557) -->
+    <string name="nm_scheduled_task_add_time">Başka saat ekle</string>
+    <string name="nm_scheduled_task_runs_scheduled_for">%1$s için planlandı</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">Fikirler</string>
@@ -1127,7 +1130,6 @@
     <string name="nm_cloud_provider_no_delete">Bu sağlayıcı nanoMuse Cloud hesabınızın kendisidir. Modellerini kullanmayı bırakmak için yukarıdan kapatın; oturumu kapatmak için Ayarlar › nanoMuse Cloud bölümünü açın.</string>
     <string name="nm_welcome_own_key">Bunun yerine kendi API anahtarımı kullan</string>
     <string name="nm_useit_title">Ne için kullanılsın</string>
-    <string name="nm_useit_body">Bu anahtarın neleri üstleneceğini seç. Gerisi nanoMuse Cloud’da kalır.</string>
     <string name="nm_useit_body_signed_out">Bu anahtarın neleri üstleneceğini seç.</string>
     <string name="nm_useit_use">Kullan</string>
     <string name="nm_useit_not_now">Şimdi değil</string>

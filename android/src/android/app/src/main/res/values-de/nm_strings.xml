@@ -132,6 +132,9 @@
     <string name="nm_routine_paused">Aus</string>
     <!-- The chat row a routine sent: its label and the clock time it fired -->
     <string name="nm_routine_wake_caption">Routine · %1$s · %2$s</string>
+    <!-- One scheduled task, several times a day (GH#557) -->
+    <string name="nm_scheduled_task_add_time">Weitere Uhrzeit hinzufügen</string>
+    <string name="nm_scheduled_task_runs_scheduled_for">Geplant für %1$s</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">Ideen</string>
@@ -1127,7 +1130,6 @@
     <string name="nm_cloud_provider_no_delete">Dieser Anbieter ist dein nanoMuse-Cloud-Konto. Schalte ihn oben aus, um seine Modelle nicht mehr zu verwenden; zum Abmelden öffne Einstellungen › nanoMuse Cloud.</string>
     <string name="nm_welcome_own_key">Stattdessen eigenen API-Schlüssel verwenden</string>
     <string name="nm_useit_title">Wofür verwenden</string>
-    <string name="nm_useit_body">Wähle, was dieser Schlüssel übernehmen soll. Den Rest übernimmt weiterhin nanoMuse Cloud.</string>
     <string name="nm_useit_body_signed_out">Wähle, was dieser Schlüssel übernehmen soll.</string>
     <string name="nm_useit_use">Verwenden</string>
     <string name="nm_useit_not_now">Jetzt nicht</string>

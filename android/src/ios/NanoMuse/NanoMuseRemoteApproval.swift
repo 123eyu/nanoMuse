@@ -25,6 +25,10 @@ struct NanoMuseRemoteQuestion: Sendable {
     let preview: String
     let risk: String
     let reason: String
+    /// What a remembered answer covers, as the sender names it (`grant_key`, since 1.0.6:
+    /// the runtime's tool and target, the desktop's tool and whole argument); empty from an
+    /// older sender, whose preview is all there is to remember by.
+    let grantKey: String
     /// Seconds the other side waits before it takes silence as a no; 0 when it did not say.
     let timeout: Int
 
@@ -34,6 +38,7 @@ struct NanoMuseRemoteQuestion: Sendable {
         preview = ((body["preview"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         risk = (body["risk"] as? String) ?? ""
         reason = ((body["reason"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        grantKey = ((body["grant_key"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         timeout = (body["timeout"] as? Int) ?? (body["timeout"] as? Double).map { Int($0) } ?? 0
     }
 }
@@ -68,14 +73,18 @@ final class NanoMuseRemoteApprovals: ObservableObject {
         let risk: Risk
         let preview: String
         let reason: String
+        /// The sender's name for what an answer covers; empty from an older sender.
+        let grantKey: String
         /// Seconds the other side waits before it takes silence as a no.
         let timeout: Int
 
         /// A payment is answered one at a time, as on Android.
         var canSession: Bool { risk != .pay }
         var canAlways: Bool { risk != .pay && !preview.isEmpty }
-        /// The same step on the same device; what an "always" covers.
-        var target: String { "task:" + String(preview.prefix(60)) }
+        /// The same step on the same device; what an "always" covers: the sender's key when
+        /// it gave one (two steps that begin with the same words never share an answer),
+        /// the preview's first 60 characters from an older sender, as before.
+        var target: String { "task:" + (grantKey.isEmpty ? String(preview.prefix(60)) : grantKey) }
     }
 
     /// One standing answer: the same step on one device runs without a card.
@@ -148,6 +157,7 @@ final class NanoMuseRemoteApprovals: ObservableObject {
             risk: Risk(wire: question.risk),
             preview: preview,
             reason: question.reason,
+            grantKey: question.grantKey,
             timeout: question.timeout > 0 ? min(max(question.timeout, 30), 600) : Self.defaultTimeout
         )
         let key = Grant.key(deviceId: device.id, risk: request.risk.rawValue, target: request.target)

@@ -564,19 +564,31 @@ export function modelFor(m: { kind: string; for?: string[] }): ('chat' | 'gui')[
   return list.length ? list : m.kind === 'chat' ? ['chat'] : []
 }
 
-/** The chat model new sessions get: `deepseek-v4.1-flash` when the account has it, else the recommended one, else the first. */
-export const DEFAULT_CHAT_MODEL = 'deepseek-v4.1-flash'
-/** The model the hands see the screen with. */
-export const DEFAULT_HANDS_MODEL = 'qwen3.8-27b'
+/** The current hosted fallback; a relay's lane-specific recommendation wins. */
+export const DEFAULT_CHAT_MODEL = 'Qwen/Qwen3.6-27B-FP8'
+/** The current hosted fallback for the hands. */
+export const DEFAULT_HANDS_MODEL = 'Qwen/Qwen3.6-27B-FP8'
+const LEGACY_CHAT_MODEL = 'deepseek-v4.1-flash'
+const LEGACY_HANDS_MODEL = 'qwen3.8-27b'
 
-export function pickChatModel<M extends { id: string; kind: string; for?: string[]; recommended?: boolean }>(models: M[]): M | undefined {
+type PickableModel = { id: string; kind: string; for?: string[]; recommended?: boolean; recommendedFor?: string[] }
+
+export function pickChatModel<M extends PickableModel>(models: M[]): M | undefined {
   const chat = models.filter((m) => modelFor(m).includes('chat'))
-  return chat.find((m) => m.id === DEFAULT_CHAT_MODEL) ?? chat.find((m) => m.recommended) ?? chat[0]
+  return chat.find((m) => m.recommendedFor?.includes('chat'))
+    ?? chat.find((m) => m.id === DEFAULT_CHAT_MODEL)
+    ?? chat.find((m) => m.id === LEGACY_CHAT_MODEL)
+    ?? chat.find((m) => m.recommended)
+    ?? chat[0]
 }
 
-export function pickHandsModel<M extends { id: string; kind: string; for?: string[]; recommended?: boolean }>(models: M[]): M | undefined {
+export function pickHandsModel<M extends PickableModel>(models: M[]): M | undefined {
   const gui = models.filter((m) => modelFor(m).includes('gui'))
-  return gui.find((m) => m.id === DEFAULT_HANDS_MODEL) ?? gui.find((m) => m.recommended) ?? gui[0]
+  return gui.find((m) => m.recommendedFor?.includes('gui'))
+    ?? gui.find((m) => m.id === DEFAULT_HANDS_MODEL)
+    ?? gui.find((m) => m.id === LEGACY_HANDS_MODEL)
+    ?? gui.find((m) => m.recommended)
+    ?? gui[0]
 }
 
 /**

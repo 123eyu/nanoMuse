@@ -240,7 +240,7 @@ export type SlotOffer = Partial<Record<Slot, string>>
  * After a key is saved (contract section 2): one toggle per slot the row has a model for, all
  * on; *Use it* switches the ticked slots to the row through the Models page's own setters
  * (`POST /providers/adopt`), *Not now* leaves everything as it is. The footnote says where to
- * change it later. Signed out, the body does not promise that nanoMuse Cloud keeps the rest.
+ * change it later. Unticked slots stay exactly as they were.
  */
 export function UseItCard({ t, id, label, offer, signedIn, onDone }: { t: Translate; id: string; label: string; offer: SlotOffer; signedIn: boolean; onDone(said?: string): void }): ReactNode {
   const slots = SLOTS.filter((s) => offer[s])

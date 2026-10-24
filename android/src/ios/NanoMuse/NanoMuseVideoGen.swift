@@ -5,16 +5,19 @@
 //  Short clips through Alibaba Cloud Model Studio's asynchronous video API —
 //  Wan 2.2 Flash by default, or whichever Wan or MiniMax model the person
 //  picked or typed. The host is either Model Studio itself (the person's own
-//  key) or nanoMuse Cloud, which relays the same `/api/v1/…` paths under the
-//  account's token. A first frame is uploaded to Model Studio's free 48-hour
+//  key) or a self-hosted relay whose live menu explicitly advertises video.
+//  A first frame is uploaded to Model Studio's free 48-hour
 //  temporary storage first (`/api/v1/uploads`), because the video API takes
 //  URLs, not inline data; then `POST …/video-synthesis` with
 //  `X-DashScope-Async: enable` returns a task, `GET /api/v1/tasks/{id}` is
 //  polled every 10 s for up to 12 minutes, and the MP4 is downloaded.
 //
-//  The two families take different bodies: MiniMax wants
-//  `media[first_frame]`, `resolution`, `ratio` and `duration`; Wan wants
-//  `img_url`, `resolution`/`size` and — on wan2.6 and 2.5 — a `duration`.
+//  The families take different bodies: MiniMax wants `media[first_frame]`,
+//  `resolution`, `ratio` and `duration`; Wan up to 2.6 wants `img_url`,
+//  `resolution`/`size` and — on wan2.6 and 2.5 — a `duration`; Wan 2.7
+//  speaks Model Studio's newer protocol, `media[first_frame]` with
+//  `resolution` for a picture and `resolution` with `ratio` for words,
+//  `duration` 2–15 on both.
 //  Wan splits text-to-video and image-to-video into sibling models
 //  (`wan2.6-t2v` / `wan2.6-i2v`); whichever the person picked, the sibling
 //  is used for the other job.
@@ -34,7 +37,7 @@ enum NanoMuseVideoGen {
     struct Endpoint: Equatable, Sendable {
         var instanceId: String
         var label: String
-        /// `https://dashscope.aliyuncs.com` or `https://cloud.nanomuse.cn`, without the API path.
+        /// A Model Studio or explicitly media-enabled relay origin, without the API path.
         var host: String
         var apiKey: String
         var model: String
@@ -74,6 +77,7 @@ enum NanoMuseVideoGen {
     /// The video models Model Studio serves through this API, as of this build; the first is the recommended one.
     static let knownDashScopeModels: [String] = [
         "wan2.2-i2v-flash",
+        "wan2.7-i2v", "wan2.7-t2v",
         "MiniMax/MiniMax-H3",
         "wan2.6-i2v", "wan2.6-t2v",
         "wan2.5-i2v-preview", "wan2.5-t2v-preview",
@@ -88,9 +92,18 @@ enum NanoMuseVideoGen {
 
     private static func isWan(_ model: String) -> Bool { model.lowercased().hasPrefix("wan") }
 
-    /// The Wan sibling for the job: `…-i2v…` from a picture, `…-t2v…` from words. Wan 2.2 has no text-to-video Flash: its Plus is the sibling there.
+    /// Wan 2.7 (`wan2.7-i2v`, `wan2.7-t2v`, their dated snapshots): the newer protocol.
+    static func isWan27(_ model: String) -> Bool { model.lowercased().hasPrefix("wan2.7") }
+
+    /// The Wan sibling for the job: `…-i2v…` from a picture, `…-t2v…` from words. Wan 2.2 has no text-to-video Flash: its Plus is
+    /// the sibling there. Wan 2.7's dated snapshots differ between the two (`wan2.7-t2v-2026-06-12`, `wan2.7-i2v-2026-04-25`), so
+    /// the sibling there is the undated id, which Model Studio keeps current.
     static func model(for model: String, fromImage: Bool) -> String {
         if !isWan(model) { return model }
+        if isWan27(model) {
+            let kind = fromImage ? "i2v" : "t2v"
+            return model.lowercased().contains(kind) ? model : "wan2.7-" + kind
+        }
         if fromImage { return model.replacingOccurrences(of: "t2v", with: "i2v") }
         if model.hasPrefix("wan2.2") { return "wan2.2-t2v-plus" }
         return model.replacingOccurrences(of: "i2v", with: "t2v")
@@ -105,6 +118,40 @@ enum NanoMuseVideoGen {
         if model.hasPrefix("wan2.5") { return seconds <= 7 ? 5 : 10 }
         if isWan(model) { return min(max(seconds, 2), 15) }
         return min(max(seconds, 4), 15)
+    }
+
+    /// The body of an image-to-video task, as the families want it; `model` is already the sibling for the job.
+    static func imageToVideoBody(model: String, ossURL: String, prompt: String, seconds: Int) -> [String: Any] {
+        var input: [String: Any] = ["prompt": prompt]
+        var parameters: [String: Any] = ["watermark": false]
+        if isWan27(model) {
+            input["media"] = [["type": "first_frame", "url": ossURL]]
+            parameters["resolution"] = "720P"
+        } else if isWan(model) {
+            input["img_url"] = ossURL
+            parameters["resolution"] = wanResolution(model)
+        } else {
+            input["media"] = [["type": "first_frame", "url": ossURL]]
+            parameters["resolution"] = "768P"
+        }
+        if let d = duration(for: model, seconds: seconds) { parameters["duration"] = d }
+        return ["model": model, "input": input, "parameters": parameters]
+    }
+
+    /// The body of a text-to-video task. Wan 2.7 has 16:9, 9:16, 1:1, 4:3 and 3:4, so 21:9 becomes 16:9 there.
+    static func textToVideoBody(model: String, prompt: String, seconds: Int, ratio: String) -> [String: Any] {
+        var parameters: [String: Any] = ["watermark": false]
+        if isWan27(model) {
+            parameters["resolution"] = "720P"
+            parameters["ratio"] = ratio == "21:9" ? "16:9" : ratio
+        } else if isWan(model) {
+            parameters["size"] = wanSize(ratio)
+        } else {
+            parameters["resolution"] = "768P"
+            parameters["ratio"] = ratio
+        }
+        if let d = duration(for: model, seconds: seconds) { parameters["duration"] = d }
+        return ["model": model, "input": ["prompt": prompt], "parameters": parameters]
     }
 
     /// Wan text-to-video takes a pixel size instead of a ratio; 720p-class frames for each ratio.
@@ -209,18 +256,7 @@ enum NanoMuseVideoGen {
         var uploadEndpoint = ep
         uploadEndpoint.model = model
         let ossURL = try await uploadTemp(uploadEndpoint, bytes: png, name: "first-frame.png", mime: "image/png")
-        var input: [String: Any] = ["prompt": prompt]
-        var parameters: [String: Any] = ["watermark": false]
-        if isWan(model) {
-            input["img_url"] = ossURL
-            parameters["resolution"] = wanResolution(model)
-        } else {
-            input["media"] = [["type": "first_frame", "url": ossURL]]
-            parameters["resolution"] = "768P"
-        }
-        if let d = duration(for: model, seconds: seconds) { parameters["duration"] = d }
-        let body: [String: Any] = ["model": model, "input": input, "parameters": parameters]
-        let task = try await createTask(ep, body: body, ossInput: true)
+        let task = try await createTask(ep, body: imageToVideoBody(model: model, ossURL: ossURL, prompt: prompt, seconds: seconds), ossInput: true)
         onProgress(.submitted)
         let url = try await poll(ep, taskId: task, onProgress: onProgress)
         onProgress(.downloading)
@@ -236,16 +272,7 @@ enum NanoMuseVideoGen {
         onProgress: @escaping @Sendable (Progress) -> Void = { _ in }
     ) async throws -> Data {
         let model = Self.model(for: ep.model, fromImage: false)
-        var parameters: [String: Any] = ["watermark": false]
-        if isWan(model) {
-            parameters["size"] = wanSize(ratio)
-        } else {
-            parameters["resolution"] = "768P"
-            parameters["ratio"] = ratio
-        }
-        if let d = duration(for: model, seconds: seconds) { parameters["duration"] = d }
-        let body: [String: Any] = ["model": model, "input": ["prompt": prompt], "parameters": parameters]
-        let task = try await createTask(ep, body: body, ossInput: false)
+        let task = try await createTask(ep, body: textToVideoBody(model: model, prompt: prompt, seconds: seconds, ratio: ratio), ossInput: false)
         onProgress(.submitted)
         let url = try await poll(ep, taskId: task, onProgress: onProgress)
         onProgress(.downloading)

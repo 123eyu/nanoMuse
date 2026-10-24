@@ -42,6 +42,10 @@ class EmptyCompletion(RuntimeError):
     code = "upstream_empty"
 
 
+class PartialStreamError(RuntimeError):
+    """A stream failed after visible text reached the UI, so replaying would duplicate it."""
+
+
 _RETRYABLE = (
     openai.APIConnectionError,
     openai.APITimeoutError,
@@ -204,37 +208,44 @@ class OpenAIChatLLM(BaseLLM):
         usage: dict[str, Any] = {}
         model: str | None = None
 
-        async for chunk in stream:
-            if chunk.usage:
-                usage = chunk.usage.model_dump(exclude_none=True)
-            model = model or getattr(chunk, "model", None)
-            if not chunk.choices:
-                continue
-            choice = chunk.choices[0]
-            delta = choice.delta
-            if choice.finish_reason:
-                finish_reason = choice.finish_reason
-            if delta is None:
-                continue
-            rc = getattr(delta, "reasoning_content", None)
-            if rc:
-                reasoning_parts.append(rc)
-            if delta.content:
-                visible = think.feed(delta.content)
-                if visible:
-                    content_parts.append(visible)
-                    if on_delta:
-                        on_delta(visible)
-            for tc in delta.tool_calls or []:
-                idx = tc.index if tc.index is not None else 0
-                acc = tool_acc.setdefault(idx, {"id": None, "name": "", "arguments": ""})
-                if tc.id:
-                    acc["id"] = tc.id
-                if tc.function is not None:
-                    if tc.function.name:
-                        acc["name"] += tc.function.name
-                    if tc.function.arguments:
-                        acc["arguments"] += tc.function.arguments
+        try:
+            async for chunk in stream:
+                if chunk.usage:
+                    usage = chunk.usage.model_dump(exclude_none=True)
+                model = model or getattr(chunk, "model", None)
+                if not chunk.choices:
+                    continue
+                choice = chunk.choices[0]
+                delta = choice.delta
+                if choice.finish_reason:
+                    finish_reason = choice.finish_reason
+                if delta is None:
+                    continue
+                rc = getattr(delta, "reasoning_content", None)
+                if rc:
+                    reasoning_parts.append(rc)
+                if delta.content:
+                    visible = think.feed(delta.content)
+                    if visible:
+                        content_parts.append(visible)
+                        if on_delta:
+                            on_delta(visible)
+                for tc in delta.tool_calls or []:
+                    idx = tc.index if tc.index is not None else 0
+                    acc = tool_acc.setdefault(idx, {"id": None, "name": "", "arguments": ""})
+                    if tc.id:
+                        acc["id"] = tc.id
+                    if tc.function is not None:
+                        if tc.function.name:
+                            acc["name"] += tc.function.name
+                        if tc.function.arguments:
+                            acc["arguments"] += tc.function.arguments
+        except Exception as exc:
+            if content_parts:
+                raise PartialStreamError(
+                    "the model stream failed after visible text was shown; it was not retried"
+                ) from exc
+            raise
 
         tail = think.flush()
         if tail:
@@ -262,4 +273,4 @@ class OpenAIChatLLM(BaseLLM):
         )
 
 
-__all__ = ["OpenAIChatLLM", "NOT_GIVEN"]
+__all__ = ["OpenAIChatLLM", "NOT_GIVEN", "PartialStreamError"]

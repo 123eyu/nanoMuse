@@ -3,6 +3,9 @@ from __future__ import annotations
 import asyncio
 import sys
 from pathlib import Path
+from types import SimpleNamespace as NS
+
+import pytest
 
 from nanomuse.config import MCPServerSettings
 from nanomuse.schema import RiskLevel
@@ -64,6 +67,27 @@ async def test_per_tool_policy_overrides_the_servers_defaults():
         assert tools["echo__echo"].reads_private_data is True
     finally:
         await manager.close()
+
+
+@pytest.mark.parametrize(
+    "tools",
+    [
+        [NS(name="a.b", description=""), NS(name="a?b", description="")],
+        [
+            NS(name="x" * 65 + "a", description=""),
+            NS(name="x" * 65 + "b", description=""),
+        ],
+    ],
+)
+def test_normalised_mcp_tool_name_collisions_skip_the_server(tools):
+    """Two tools that would share one model-facing name make one unreachable; the server
+    is left out with a warning, and the runtime starts without it."""
+    manager = MCPManager([MCPServerSettings(name="server")])
+    assert manager._add_tools(manager.servers[0], object(), NS(tools=tools)) is False
+    assert manager.tools == []
+    fine = [NS(name="a", description=""), NS(name="b", description="")]
+    assert manager._add_tools(manager.servers[0], object(), NS(tools=fine)) is True
+    assert [t.name for t in manager.tools] == ["server__a", "server__b"]
 
 
 async def test_unavailable_server_is_skipped():

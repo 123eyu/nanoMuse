@@ -137,7 +137,7 @@ Ollama 在 `http://localhost:11434/v1` 提供 OpenAI 兼容的 API；带工具�
 
 ## `[image]` 和 `[video]` {#image-and-video}
 
-形象工作室的图片和形象的短视频不在聊天模型的主机上生成时，从哪里来。两个槽位都空（默认）时按一个顺序来（模型约定，0.1.41）：聊天服务商自己的图片模型（它有的话），账号的中继、阿里云百炼，以及目录里任何带 `image` 的服务商（它的 `defaults.image`；`[llm] image_model` / `video_model` 仍可指定别的）；否则在你登录了 nanoMuse Cloud 时是账号的中继，哪怕聊天模型在别处；再否则没有。短视频同理：图片主机会说视频 API 就用它，否则登录时用账号 key 走中继。设一个槽位，就能换到别处画，或者在聊天模型是 DeepSeek、ChatGPT 套餐或本地模型而你没有登录时才有地方画：
+形象工作室的图片和形象的短视频不在聊天模型的主机上生成时，从哪里来。两个槽位都空（默认）时按一个顺序来（模型约定，0.1.41）：聊天服务商自己的媒体模型（目录里带 `image` / `video` 的服务商，用对应的默认模型；`[llm] image_model` / `video_model` 仍可指定别的），然后是菜单明确提供这项媒体能力的已登录中继，最后是你第一家能做这件事的服务商。公共 nanoMuse Cloud 的菜单不再提供生图或生视频，因此它的用户必须接入自己的服务商和 API key；自己部署中继的运营者仍可明确开启旧媒体代理。设一个槽位，就能换到别处生成，或者在聊天模型是 DeepSeek、ChatGPT 套餐或本地模型时给媒体功能一个来源：
 
 ```toml
 [image]
@@ -177,6 +177,8 @@ instructions         = ""              # extra rules appended to the system prom
 
 `max_context_images` 是给手用的。在屏幕上跑一次任务，每一步都会追加一张截图，而整段对话每一步都要重新上传，所以十几张全尺寸图片曾经超过中继的请求体上限（413 `too_large`，0.1.37）。现在只带最新的四张，每张缩到最多两百万像素；更早的换成一行说明，模型仍然知道那里有过一张截图。桌面版的 harness 在它那一侧守着同样的预算。
 
+`max_context_messages` 尽量从用户消息的边界开始保留近期历史。如果单轮对话就填满了窗口，运行时会保留最新消息，并补全截断位置的整组工具调用与结果，因此消息数可能略高于配置值。已保存的对话历史不受影响。
+
 ## `[sync]` {#sync}
 
 ```toml
@@ -201,7 +203,7 @@ remote_control = true
 name = ""            # 空：用主机名
 ```
 
-`[cloud]` 是这个运行时登录的中继（[cloud.md](cloud.md)）：`base_url` 是它的公网地址（按 [self-hosting.md](self-hosting.md) 自己架一台后填这里）；`required = false` 允许首次运行不登录账号就完成，适合完全不用中继的运行时；`sync` 是整个账号「数据控制 → 同步」开关的默认值，人一旦选过，以选择为准；`models = false`（控制台里的「使用 nanoMuse Cloud 模型」开关，存在 app-settings 里）把账号的模型从动手、生成图片、短视频的自动顺序和服务商列表里拿掉，登录保持不变，于是除了明确点下的「这次改用 nanoMuse Cloud」，没有什么会消耗额度。账号密钥本身是保险库里的 `NANOMUSE_CLOUD_KEY`。
+`[cloud]` 是这个运行时登录的中继（[cloud.md](cloud.md)）：`base_url` 是它的公网地址（按 [self-hosting.md](self-hosting.md) 自己架一台后填这里）；`required = false` 允许首次运行不登录账号就完成，适合完全不用中继的运行时；`sync` 是整个账号「数据控制 → 同步」开关的默认值，人一旦选过，以选择为准；`models = false`（控制台里的「使用 nanoMuse Cloud 模型」开关，存在 app-settings 里）会把该中继实时声明的全部模型从自动顺序和服务商列表里拿掉，登录保持不变，于是除了明确点下的「这次改用 nanoMuse Cloud」，没有什么会消耗额度。nanoMuse 公共 Cloud 目前只提供对话和界面操作模型；生成图片和短视频需要用户添加自己的服务商。自建中继可以声明不同能力。账号密钥本身是保险库里的 `NANOMUSE_CLOUD_KEY`。
 
 `[hub]` 是把这台电脑当作账号的一台设备（[hub.md](hub.md)）：`enabled` 表示账号登录后就加入 hub；`remote_control = false` 时，其他设备只能从这台拿到 `info`，别的什么都做不了；`name` 是其他设备对它的称呼（空：用主机名）。`device_id` 按安装生成，由 App 写入。
 
@@ -397,7 +399,7 @@ reconnect_grace_s = 30.0             # 手机掉线后，进行中的任务等�
 sensitive_words  = ["确认支付", "立即付款", "转账", "提交订单", "发送", "删除", "pay now", "place order", "send", "delete"]  # a tap on these asks first; 这里是节选，默认列表有 22 个词
 ```
 
-`base_url` 和 `api_key` 为空时回退到 `[llm]`。空的 `model` 按一个顺序来（模型约定，0.1.41）：以中继为聊天模型时，是中继的手的模型（`qwen3.8-27b`，除非 `/v1/models` 另有指定），而不是聊天模型（聊天的默认模型看得懂图片，但手需要的是训练过、会在屏幕上指东西的模型）；聊天服务商是目录里带 `vision` 的自有服务商时，是它自己的手的模型（`defaults.hands`，百炼是 `qwen3.8-27b`，智谱是 `glm-4.6v`），用聊天的 key；聊天服务商看不了图（按目录 id 或主机识别出的本地服务器）而账号已登录时，是中继的手的模型，用账号的 key，聊天模型留在原处；其余情况是聊天模型，目录里没有的主机也是。明确写了 `model` 总是优先。只有操作器的 `base_url` 是另一个服务时才需要 key。每次手机任务的轨迹都进 `<data_dir>/phone-traces/`（保留最近 200 条；`nanomuse phone traces`）。
+`base_url` 和 `api_key` 为空时回退到 `[llm]`。空的 `model` 按一个顺序来（模型约定，0.1.41）：以中继为聊天模型时，是 `/v1/models` 推荐给 `gui` 的模型（公共 Cloud 目前让同一个多模态 `Qwen/Qwen3.6-27B-FP8` 同时负责聊天和操作屏幕）；聊天服务商是目录里带 `vision` 的自有服务商时，是它自己的手的模型（`defaults.hands`，百炼是 `qwen3.8-27b`，智谱是 `glm-4.6v`），用聊天的 key；聊天服务商看不了图（按目录 id 或主机识别出的本地服务器）而账号已登录时，是中继的手的模型，用账号的 key，聊天模型留在原处；其余情况是聊天模型，目录里没有的主机也是。明确写了 `model` 总是优先。只有操作器的 `base_url` 是另一个服务时才需要 key。每次手机任务的轨迹都进 `<data_dir>/phone-traces/`（保留最近 200 条；`nanomuse phone traces`）。
 
 应用层通过 `PUT /api/connections/gui` 设置这个槽位，它接受的 `provider` 和 `PUT /api/connections/llm` 一样：协议（`openai`、`openai_responses`）、`chatgpt`，或者 `bailian` 这样的目录 id，后者自带接口地址（`base_url` 可以留空）；目录里没有的 id，或运行时不会说其协议的 id，回 400 并列出可选项。回答（以及 `GET /api/connections` → `gui`）带 `provider` 原样、`provider_id`（协议加 URL 对应的目录条目）、`effective_model` 和 `effective_source`（`gui`、`chat` 或 `cloud`）。
 

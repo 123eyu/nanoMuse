@@ -129,6 +129,9 @@
     <string name="nm_routine_paused">Mati</string>
     <!-- The chat row a routine sent: its label and the clock time it fired -->
     <string name="nm_routine_wake_caption">Rutinitas · %1$s · %2$s</string>
+    <!-- One scheduled task, several times a day (GH#557) -->
+    <string name="nm_scheduled_task_add_time">Tambah waktu lain</string>
+    <string name="nm_scheduled_task_runs_scheduled_for">Dijadwalkan untuk %1$s</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">Ide</string>
@@ -1123,7 +1126,6 @@
     <string name="nm_cloud_provider_no_delete">Penyedia ini adalah akun nanoMuse Cloud Anda. Matikan di atas untuk berhenti memakai modelnya; untuk keluar, buka Pengaturan › nanoMuse Cloud.</string>
     <string name="nm_welcome_own_key">Pakai kunci API sendiri saja</string>
     <string name="nm_useit_title">Pakai untuk</string>
-    <string name="nm_useit_body">Pilih apa yang ditangani kunci ini. Sisanya tetap ditangani nanoMuse Cloud.</string>
     <string name="nm_useit_body_signed_out">Pilih apa yang ditangani kunci ini.</string>
     <string name="nm_useit_use">Pakai</string>
     <string name="nm_useit_not_now">Nanti saja</string>

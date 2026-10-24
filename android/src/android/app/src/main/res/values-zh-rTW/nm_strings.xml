@@ -125,6 +125,9 @@
     <string name="nm_routine_paused">已關閉</string>
     <!-- The chat row a routine sent: its label and the clock time it fired -->
     <string name="nm_routine_wake_caption">例程 · %1$s · %2$s</string>
+    <!-- One scheduled task, several times a day (GH#557) -->
+    <string name="nm_scheduled_task_add_time">再加一個時間</string>
+    <string name="nm_scheduled_task_runs_scheduled_for">計畫於 %1$s</string>
 
     <string name="nm_ideas_title">點子</string>
     <string name="nm_idea_kind_chat">會開始一段對話</string>
@@ -1093,7 +1096,6 @@
     <string name="nm_cloud_provider_no_delete">這個提供商就是你的 nanoMuse Cloud 帳號。要停用它的模型，請在上面關閉開關；要登出，請開啟「設定 › nanoMuse Cloud」。</string>
     <string name="nm_welcome_own_key">改用自己的 API key</string>
     <string name="nm_useit_title">用它來做什麼</string>
-    <string name="nm_useit_body">選這把 key 負責哪些事，其餘仍由 nanoMuse Cloud 負責。</string>
     <string name="nm_useit_body_signed_out">選這把 key 負責哪些事。</string>
     <string name="nm_useit_use">就這樣</string>
     <string name="nm_useit_not_now">暫不</string>

@@ -129,6 +129,9 @@
     <string name="nm_routine_paused">オフ</string>
     <!-- The chat row a routine sent: its label and the clock time it fired -->
     <string name="nm_routine_wake_caption">ルーティン · %1$s · %2$s</string>
+    <!-- One scheduled task, several times a day (GH#557) -->
+    <string name="nm_scheduled_task_add_time">時刻を追加</string>
+    <string name="nm_scheduled_task_runs_scheduled_for">%1$s に予定</string>
 
     <!-- Ideas tab -->
     <string name="nm_ideas_title">アイデア</string>
@@ -1123,7 +1126,6 @@
     <string name="nm_cloud_provider_no_delete">このプロバイダーは nanoMuse Cloud のアカウントそのものです。モデルを使わないようにするには上のスイッチをオフにし、サインアウトするには「設定 › nanoMuse Cloud」を開いてください。</string>
     <string name="nm_welcome_own_key">自分の API キーを使う</string>
     <string name="nm_useit_title">何に使うか</string>
-    <string name="nm_useit_body">このキーに任せることを選んでください。残りは引き続き nanoMuse Cloud が担当します。</string>
     <string name="nm_useit_body_signed_out">このキーに任せることを選んでください。</string>
     <string name="nm_useit_use">使う</string>
     <string name="nm_useit_not_now">今はしない</string>

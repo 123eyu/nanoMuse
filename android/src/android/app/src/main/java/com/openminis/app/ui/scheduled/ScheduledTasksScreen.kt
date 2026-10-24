@@ -278,7 +278,9 @@ private fun ScheduledTaskRow(
 }
 
 internal fun formatScheduleSummary(task: ScheduledTask): String {
-    val time = "%02d:%02d".format(task.timeOfDayHour, task.timeOfDayMinute)
+    // nanoMuse: [GH#557] every time on the one row, joined ("08:00, 14:00,
+    // 20:00"); a single time reads exactly as it did before.
+    val time = task.timesLabel()
     val repeat = when (task.repeatMode) {
         ScheduledRepeatMode.ONCE -> "Once"
         ScheduledRepeatMode.DAILY -> "Daily"

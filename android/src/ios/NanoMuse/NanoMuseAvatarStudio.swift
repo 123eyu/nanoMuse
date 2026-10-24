@@ -4,8 +4,8 @@
 //
 //  Describe a face → four candidates → pick one → the moods are posed
 //  from it → saved on this phone and in the account's profile. Pictures
-//  are drawn with a Bailian key on this phone when there is one, otherwise
-//  through nanoMuse Cloud with a cost estimate first (NanoMuseImageGen).
+//  are drawn with a provider key on this phone, or through a self-hosted
+//  relay that explicitly advertises an image model (NanoMuseImageGen).
 //  The chat-driven flow (NanoMuseAvatarFlow) drives this same model.
 //  Android: avatar/AvatarStudio.kt, ui/avatar/AvatarStudioScreen.kt.
 //
@@ -175,7 +175,7 @@ final class NanoMuseAvatarStudioModel: ObservableObject {
             : String(format: AppLocalized("A new face is %d pictures"), picturesPerFace)
     }
 
-    /// A Bailian key on this phone draws the face; nanoMuse Cloud otherwise.
+    /// Whether a Bailian key on this phone draws the face.
     var usesOwnKey: Bool { NanoMuseImageGen.usesOwnKey }
 
     /// Whether a picture can be drawn at all right now; the reason when not.
@@ -388,6 +388,17 @@ struct NanoMuseAvatarStudioView: View {
     @State private var askCost = false
     @State private var confirmReset = false
 
+    private var sourceNote: String {
+        switch NanoMuseImageGen.route() {
+        case .ownKey:
+            return AppLocalized("Pictures are drawn with your Bailian key and kept on this phone; the face is shared with your other devices through your account. Each new face is eight pictures: four to choose from and four moods.")
+        case .relay:
+            return AppLocalized("Pictures are drawn through nanoMuse Cloud and kept on this phone; the face is shared with your other devices through your account. Each new face is eight pictures: four to choose from and four moods.")
+        case .unavailable:
+            return AppLocalized("Until one is set, the avatar cannot be changed and no pictures can be drawn. The agent will say so if you ask.")
+        }
+    }
+
     var body: some View {
         if embedded {
             content
@@ -439,9 +450,7 @@ struct NanoMuseAvatarStudioView: View {
                     }
                 }
                 Section {
-                    Text(studio.usesOwnKey
-                         ? AppLocalized("Pictures are drawn with your Bailian key and kept on this phone; the face is shared with your other devices through your account. Each new face is eight pictures: four to choose from and four moods.")
-                         : AppLocalized("Pictures are drawn through nanoMuse Cloud and kept on this phone; the face is shared with your other devices through your account. Each new face is eight pictures: four to choose from and four moods."))
+                    Text(sourceNote)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                     Text(NanoMuseImageGen.providerLine())

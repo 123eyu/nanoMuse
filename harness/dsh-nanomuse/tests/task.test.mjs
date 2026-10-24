@@ -5,7 +5,7 @@
 // streamed while the model writes it when the asker asked for that.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { STREAM_INTERVAL_MS, TaskRunner, frame, preview, textOf } from '../lib/task.js'
+import { STREAM_INTERVAL_MS, TaskRunner, frame, grantKey, preview, textOf } from '../lib/task.js'
 
 /** The slice of a dsh Context the runner touches. */
 function fakeContext() {
@@ -104,6 +104,10 @@ test('frame, textOf and preview', () => {
   assert.equal(preview('think', 'not json'), 'think: not json')
   assert.equal(preview('noop', '{}'), 'noop')
   assert.equal(preview('bash', JSON.stringify({ command: 'x'.repeat(300) })).length, 'bash: '.length + 160)
+  // the key a remembered answer is kept under: the whole argument, never the cut preview
+  assert.equal(grantKey('bash', JSON.stringify({ command: 'x'.repeat(300) })), `bash: ${'x'.repeat(300)}`)
+  assert.equal(grantKey('bash', '{"command":"ls   -la\\n"}'), 'bash: ls -la')
+  assert.equal(grantKey('noop', '{}'), 'noop')
 })
 
 test('a task opens a named session, streams the run and resolves with the answer', async () => {

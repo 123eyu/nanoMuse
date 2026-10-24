@@ -64,6 +64,12 @@ export function noProxyList(relayHosts: readonly string[]): string[] {
   return out;
 }
 
+/** Relay exceptions come from the shell's trusted launch configuration, never renderer input. */
+export function trustedRelayHosts(env: NodeJS.ProcessEnv = process.env): string[] {
+  const configured = env.NANOMUSE_CLOUD_URL;
+  return configured ? [configured] : [];
+}
+
 /**
  * What the Host's environment gets for `proxy`: nothing when it is empty or not an address;
  * otherwise HTTP_PROXY and HTTPS_PROXY (Node's fetch reads these for both schemes and for a

@@ -137,7 +137,11 @@ speaking as nanoMuse through the `nanomuse` preset, with:
   Host's environment at start (`HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY` for SOCKS, `NO_PROXY`
   with `localhost,127.0.0.1,::1`, `cloud.nanomuse.cn` and the relay the plugin talks to, and
   `NODE_USE_ENV_PROXY=1`, which is what makes Node's fetch read them), so it takes effect
-  after a restart; *Restart now* under the row restarts the Host with the window up. The
+  after a restart; *Restart now* under the row restarts the Host with the window up, and
+  asks first when a reply, the hands, a task from another device or an approval is under
+  way, as quitting does (the next bullet but one). A self-hosted relay is on
+  `NO_PROXY` when the shell was started with `NANOMUSE_CLOUD_URL`, the setting the plugin
+  reads too. The
   phones have the same setting in the provider form, the web app in the own-key form, the
   runtime in `[llm] proxy` ([own-key.md](own-key.md#when-the-provider-cannot-be-reached));
 - **Standing grants** (Settings → Permissions): every permission this computer remembers,
@@ -159,7 +163,9 @@ speaking as nanoMuse through the `nanomuse` preset, with:
   busy answer, so the asking device can send it again. Closing the window with the menu-bar
   switch on stays in the tray and has never been a quit. The routes are the plugin's
   `GET /nanomuse/cloud/work` (the aggregate), `POST /work/gate {open}` (the hand-over) and
-  `POST /work/stop` (the confirmed end).
+  `POST /work/stop` (the confirmed end). *Restart now* under the proxy row and the restart
+  macOS asks for after a Screen Recording grant go through the same question; the restart
+  of the helper alone does not touch the Host's work.
 
 ## When the allowance is used up, and the relay's other answers
 
@@ -257,12 +263,19 @@ fixed preset row: a change under *Operating the screen* disposes the client and 
 hands call in flight finishes first). The file is removed when nothing is configured;
 `nanomuse/rooms.json` keeps the rooms (feed, goals with their steps and progress, which
 ideas were tried, the library index, memory).
+`desktop.json` is written to a temporary file beside it and swapped in, and the previous
+copy is kept as `desktop.json.bak`: a save that fails (a full disk, a crash) leaves the
+last good settings, and a damaged file is replaced from the copy at the next start. Both
+are readable by the owner alone, as the proxy address may carry a password. *Download your
+agent data* writes its zip one file at a time, leaves out links and anything over 64 MB,
+and removes a password from the proxy address in the `desktop.json` it packs.
 
 ## Models
 
 Settings → Models, right after General, is one row per thing a model does: *Chat*,
 *Operating the screen*, *Making pictures*, *Making clips*. Each picker lists nanoMuse Cloud
-first while you are signed in, its recommended model marked, then one group per provider
+first while you are signed in only when the relay's live menu covers that row, its
+lane-specific recommendation marked, then one group per provider
 you added under Settings → nanoMuse Cloud, each group holding only the models that can do
 that row's job (the screen needs a model that sees images; the hands speak OpenAI's shape,
 so an Anthropic or native Gemini key is named under the row but not listed). A row nothing
@@ -282,9 +295,11 @@ restarts and across later key updates instead of merging the full `/models` list
 
 What a row uses when you have not chosen: the provider new chats answer through, when it
 is one of your own and has a model for the job (its catalogue default); else nanoMuse
-Cloud while signed in; else the first of your providers that can. The three rows that
+Cloud while signed in only when its live menu offers the job; else the first of your
+providers that can. The hosted Cloud offers chat and screen operation, not media
+generation. The three rows that
 follow this order have *Automatic* as their first entry, with the row saying what it gives
-right now (*Currently nanoMuse Cloud · qwen3.8-27b*, say); pick it to drop a choice you
+right now (*Currently nanoMuse Cloud · Qwen/Qwen3.6-27B-FP8* for screen operation, say); pick it to drop a choice you
 made and let the row follow the order again. A chat pick is the default for new chats and
 moves the main chat with it (*Applies to the main chat and to new chats; a side chat keeps
 its model.*); a side chat keeps the model it was given, and the same pick twice writes
@@ -295,7 +310,8 @@ never left on a route no adapter serves, which showed as *no adapter registered 
 provider "custom"* on every new chat in 0.1.41. Pictures through your own key go straight to that provider (Model Studio's
 native image API, OpenRouter's image API, or the OpenAI shape for the rest) and nothing
 is billed to the account; the avatar studio says so in place of the cost line. Clips come
-from Model Studio only, through the account or your own Bailian key.
+from Model Studio through your own Bailian key (or a self-hosted relay whose operator
+explicitly enabled its legacy media proxy), never through the public hosted account.
 
 After you save a key, a small card asks *Use it for* with a toggle per thing the key can
 handle, all on; *Use it* switches those rows to that provider, *Not now* changes nothing.
@@ -303,7 +319,8 @@ When a model of your own fails under a turn, the card offers *Use nanoMuse Cloud
 time* while signed in: that one message is sent again through the account and the chat
 goes back to its model when the turn ends; the Models page stays as it was. *Use it* with
 chat ticked moves the main chat too. Nothing falls
-back on its own. The same button follows a failed studio round and a failed set of clips.
+back on its own. A failed studio round or clip set asks you to fix or choose a provider of
+your own; there is no hosted Cloud media retry.
 
 While signed in, the page starts with one switch, *Use nanoMuse Cloud models*. Off, the
 account's models leave every picker and the automatic order, the harness's side calls (a
@@ -537,7 +554,8 @@ first, as a bundle of its own (same identity, hardened runtime, its own identifi
 `io.github.nanomuse.desktop.computer-use`, none of the app's entitlements) and then the
 outer app. A local macOS build wants `build.sh` run before `npm run dist:dir`; without it
 electron-builder only warns that the source is missing and the app ships without the
-helper, on the pre-0.1.38 path.
+helper, on the pre-0.1.38 path. A Swift warning in the helper fails `build.sh`, as a
+warning in the iOS app fails its build: the helper is nanoMuse code.
 
 ## Linux notes
 

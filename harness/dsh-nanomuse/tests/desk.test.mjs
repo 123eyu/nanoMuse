@@ -207,7 +207,12 @@ test('shared connectors carry what and where, never how', () => {
   assert.equal(back[3].auth, 'open')
 })
 
-test('the chat and hands defaults follow the relay\'s `for`, with the 0.1.34 names first', () => {
+test('the chat and hands defaults follow the relay lane recommendation, with old menus supported', () => {
+  const current = [
+    { id: 'Qwen/Qwen3.6-27B-FP8', kind: 'chat', recommended: true, recommendedFor: ['chat', 'gui'], inputModalities: ['text', 'image'], for: ['chat', 'gui'] },
+  ]
+  assert.equal(pickChatModel(current)?.id, 'Qwen/Qwen3.6-27B-FP8')
+  assert.equal(pickHandsModel(current)?.id, 'Qwen/Qwen3.6-27B-FP8')
   const models = [
     { id: 'deepseek-v4.1-flash', kind: 'chat', recommended: false, inputModalities: ['text', 'image'], for: ['chat'] },
     { id: 'deepseek-v4', kind: 'chat', recommended: true, inputModalities: ['text', 'image'], for: ['chat'] },
@@ -216,6 +221,12 @@ test('the chat and hands defaults follow the relay\'s `for`, with the 0.1.34 nam
   ]
   assert.equal(pickChatModel(models)?.id, 'deepseek-v4.1-flash')
   assert.equal(pickHandsModel(models)?.id, 'qwen3.8-27b')
+  const future = [
+    { id: 'old-chat', kind: 'chat', recommended: true, inputModalities: ['text'], for: ['chat'] },
+    { id: 'next', kind: 'chat', recommended: true, recommendedFor: ['chat', 'gui'], inputModalities: ['text', 'image'], for: ['chat', 'gui'] },
+  ]
+  assert.equal(pickChatModel(future)?.id, 'next')
+  assert.equal(pickHandsModel(future)?.id, 'next')
   assert.equal(pickChatModel([{ id: 'old', kind: 'chat', recommended: true, inputModalities: ['text'] }])?.id, 'old')
   assert.equal(pickHandsModel([{ id: 'old', kind: 'chat', recommended: true, inputModalities: ['text'] }]), undefined)
   assert.equal(takesImages({ id: 'deepseek-v4', inputModalities: ['text', 'image'] }), false)

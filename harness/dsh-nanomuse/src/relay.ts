@@ -103,6 +103,8 @@ export interface RelayModel {
   /** `chat`, `image`, `video` — only `chat` models join the model picker. */
   kind: string
   recommended: boolean
+  /** The lanes this model is the relay's first choice for. */
+  recommendedFor?: string[]
   inputModalities: string[]
   /** What the relay says it is for (relay 0.1.34+): `chat`, `gui`, or both; absent on an older relay. */
   for?: string[]
@@ -489,6 +491,7 @@ export class Relay {
         name: String(m.name ?? m.id ?? ''),
         kind: String(extra.kind ?? 'chat'),
         recommended: Boolean(extra.recommended),
+        ...(Array.isArray(extra.recommended_for) ? { recommendedFor: extra.recommended_for.map(String) } : {}),
         inputModalities: Array.isArray(arch.input_modalities) ? arch.input_modalities.map(String) : ['text'],
         ...(Array.isArray(extra.for) ? { for: extra.for.map(String) } : {}),
       }
