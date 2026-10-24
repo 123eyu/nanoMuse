@@ -459,6 +459,18 @@ async def test_phone_act_takes_coordinates_and_returns_the_next_screen(tmp_path:
         "distance": 0.3,
     }
     assert not (await act.execute(action="swipe", x=1, y=1)).ok
+    # where the finger ends, where a directional swipe starts and where typing focuses are
+    # on the screen too; NaN and infinity are not numbers the phone should hear of
+    off_end = await act.execute(action="swipe", x=200, y=600, x2=200, y2=-900)
+    assert not off_end.ok and "outside the 390×844 screen" in off_end.error
+    off_start = await act.execute(action="swipe", direction="up", x=5000, y=5)
+    assert not off_start.ok and "outside the 390×844 screen" in off_start.error
+    off_focus = await act.execute(action="type", text="x", x=1, y=99999)
+    assert not off_focus.ok and "outside the 390×844 screen" in off_focus.error
+    nan = await act.execute(action="tap", x=float("nan"), y=5, label="x")
+    assert not nan.ok and "needs `x` and `y`" in nan.error
+    inf = await act.execute(action="swipe", x=1, y=1, x2=float("inf"), y2=1)
+    assert not inf.ok and "needs `x2`/`y2`" in inf.error
 
     opened = await act.execute(action="open_app", app="微信")
     assert opened.ok and phone.acts[-1]["app"] == "wechat"
