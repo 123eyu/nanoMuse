@@ -2663,7 +2663,7 @@ export const zh: typeof en = {
   stageAllowOnce: '允许一次',
   apScopeLead: '以后不再询问：',
   stageAlwaysChat: '本对话中始终允许',
-  stageAlwaysApp: '在 {app} 中始终允许',
+  stageAlwaysApp: '在 {app} 里始终允许',
   stageDeny: '拒绝',
   stageYourTurnDetail: '在屏幕上做完你的部分，然后按「好了」。',
   // About and the update check (0.1.34)
