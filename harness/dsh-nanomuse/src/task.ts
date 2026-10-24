@@ -120,7 +120,7 @@ export class TaskRunner {
   private readonly byCall = new Map<string, Run>()
   /** `<device id>\n<conversation>` → the session that conversation lives in. */
   private readonly conversations = new Map<string, SessionId>()
-  private readonly pendingApprovals = new Map<string, (status: ApprovalStatus) => void>()
+  private readonly pendingApprovals = new Map<string, { fromId: string; decide(status: ApprovalStatus): void }>()
   private approvalSeq = 0
 
   constructor(
@@ -188,25 +188,41 @@ export class TaskRunner {
       cutStream(run)
       this.bySession.delete(sessionId)
       this.byCall.delete(call.id)
-      for (const id of run.approvals) this.pendingApprovals.get(id)?.('cancelled')
+      for (const id of run.approvals) this.pendingApprovals.get(id)?.decide('cancelled')
     }
   }
 
   /** `stop {call}` → `{stopped}`: the run opened for that call ends; `conversation` picks by place instead. */
   async stop(args: Record<string, unknown>, call: IncomingCall): Promise<Record<string, unknown>> {
-    const byCall = this.byCall.get(String(args.call ?? ''))
-    const sessionId = this.conversations.get(key(call.from.id, String(args.conversation ?? '').trim() || call.from.id))
-    const run = byCall ?? (sessionId ? this.bySession.get(sessionId) : undefined)
+    const rawCall = String(args.call ?? '').trim()
+    const byCall = rawCall ? this.byCall.get(rawCall) : undefined
+    if (byCall && byCall.call.from.id !== call.from.id) {
+      this.options.log('warn', `nanomuse task: ${call.from.name || call.from.id} tried to stop ${byCall.call.from.id}'s run ${rawCall}`)
+    }
+    let run = byCall && byCall.call.from.id === call.from.id ? byCall : undefined
+    if (!run && (args.conversation !== undefined || !rawCall)) {
+      const conv = String(args.conversation ?? '').trim() || call.from.id
+      const sessionId = this.conversations.get(key(call.from.id, conv))
+      const sessionRun = sessionId ? this.bySession.get(sessionId) : undefined
+      if (sessionRun && sessionRun.call.from.id === call.from.id) {
+        run = sessionRun
+      }
+    }
     if (!run) return { stopped: false }
     run.agent.cancel({ kind: 'user' })
     return { stopped: true }
   }
 
   /** `approve {approval_id, allow}` → `{ok}`: the asker's answer to a card relayed from a run here. */
-  async approve(args: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const decide = this.pendingApprovals.get(String(args.approval_id ?? ''))
-    if (!decide) return { ok: false }
-    decide(args.allow === true || args.allow === 'true' ? 'approved' : 'denied')
+  async approve(args: Record<string, unknown>, call?: IncomingCall): Promise<Record<string, unknown>> {
+    const id = String(args.approval_id ?? '')
+    const pending = this.pendingApprovals.get(id)
+    if (!pending) return { ok: false }
+    if (call && call.from.id !== pending.fromId) {
+      this.options.log('warn', `nanomuse task: ${call.from.name || call.from.id} tried to approve ${pending.fromId}'s card ${id}`)
+      return { ok: false }
+    }
+    pending.decide(args.allow === true || args.allow === 'true' ? 'approved' : 'denied')
     return { ok: true }
   }
 
@@ -323,7 +339,7 @@ export class TaskRunner {
       const onAbort = () => done('cancelled')
       const timer = setTimeout(() => done('expired'), APPROVAL_TIMEOUT_S * 1000)
       req.signal?.addEventListener('abort', onAbort, { once: true })
-      this.pendingApprovals.set(id, done)
+      this.pendingApprovals.set(id, { fromId: run.call.from.id, decide: done })
     })
     if (status !== 'cancelled') run.call.event({ stage: 'approval_result', approval_id: id, status })
     this.options.log('info', `nanomuse task: ${run.call.from.name || run.call.from.id} ${status} ${req.toolName}`)
