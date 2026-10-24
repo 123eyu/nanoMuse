@@ -25,6 +25,7 @@ import { usePrefs } from './prefs.ts'
 import { useRooms, type ActivityRecord, type GoalAutomation } from './rooms.ts'
 import { TaskDetail } from './TaskDetail.tsx'
 import { ago, clockLabel, dayLabel, grantWhere } from './ui.tsx'
+import { appLabel } from '../desk.ts'
 import { win } from './win.ts'
 
 const COMPUTER_SECTION = 'nanomuse-computer'
@@ -256,7 +257,7 @@ function Approvals({ t, name, approvals, grants }: { t: Translate; name: string;
         grants.map((g) => h('div', { key: g.id, className: 'nm-pf-row' },
           h('span', { className: 'nm-pf-row-icon' }, h(IconCheck, { size: 18 })),
           h('div', { className: 'nm-pf-row-main' },
-            h('div', { className: 'nm-pf-row-title' }, t('pfAlwaysAllowed', { target: g.target.replace(/^computer_app:/, '') })),
+            h('div', { className: 'nm-pf-row-title' }, t('pfAlwaysAllowed', { target: appLabel(g.target.replace(/^computer_app:/, '')) })),
             h('div', { className: 'nm-pf-row-sub' }, [grantWhere(t, g), ago(t, g.at)].filter(Boolean).join(' · '))),
           h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', onClick: () => void call('grants/revoke', { id: g.id }).catch(() => undefined) }, t('pmRevoke')))))
     : h('p', { className: 'nm-pf-empty' }, t('pfApprovalsEmpty', { name }))

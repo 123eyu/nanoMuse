@@ -3,7 +3,7 @@
 // grants — with the tier each belongs to, and the grouping by tier the page draws.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { DEVICE_GRANT_PREFIX, GRANT_TIERS, grantCovers, groupGrants, REMOTE_CONTROL_GRANT_ID, standingGrants, withGrant } from '../lib/desk.js'
+import { appLabel, appNames, DEVICE_GRANT_PREFIX, GRANT_TIERS, grantCovers, groupGrants, REMOTE_CONTROL_GRANT_ID, standingGrants, withGrant } from '../lib/desk.js'
 
 test('the three tiers, highest first, are the contract', () => {
   assert.deepEqual([...GRANT_TIERS], ['highest', 'confirm', 'notice'])
@@ -84,4 +84,18 @@ test('a grant limited to a conversation carries it into the list', () => {
     { id: 'g-c', kind: 'computer_app', tier: 'confirm', target: 'WeChat', at: 5, sessionId: 's1', sessionTitle: 'Morning message' },
     { id: 'g-a', kind: 'computer_app', tier: 'confirm', target: 'Mail', at: 6 },
   ])
+})
+
+test('one app under its several head-line names is one app to a grant', () => {
+  assert.deepEqual(appNames('微信 (WeChat)'), ['微信', 'WeChat'])
+  assert.deepEqual(appNames('微信 (com.tencent.xinWeChat)'), ['微信', 'com.tencent.xinWeChat'])
+  assert.deepEqual(appNames('WeChat'), ['WeChat'])
+  assert.equal(appLabel('微信 (com.tencent.xinWeChat)'), '微信')
+  const grants = [{ id: 'g', target: 'computer_app:微信 (WeChat)', at: 1, sessionId: 's1' }]
+  // given on the whole screen, it holds in window mode and under the bare id
+  assert.equal(grantCovers(grants, '微信 (com.tencent.xinWeChat)', 's1'), true)
+  assert.equal(grantCovers(grants, 'WeChat', 's1'), true)
+  // another app with a name of its own is not covered
+  assert.equal(grantCovers(grants, '日历 (Calendar)', 's1'), false)
+  assert.equal(grantCovers([{ id: 'g2', target: 'computer_app:Safari', at: 1 }], 'Safari (com.apple.Safari)', 's9'), true)
 })

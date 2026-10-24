@@ -8,6 +8,7 @@
  * Like `Trajectory.tsx`, the strip is placed by a MutationObserver sweep; nothing of React's is
  * touched, and a strip whose question is gone is taken away.
  */
+import { appLabel } from '../desk.ts'
 import { call, type Translate } from './api.ts'
 import { recordApproval } from './prefs.ts'
 import { subscribeLive, type PendingApproval } from './live.ts'
@@ -51,7 +52,7 @@ export function renderApprovalScopes(t: Translate): () => void {
       node.append(b)
     }
     button(t('stageAlwaysChat'), 'conversation')
-    button(t('stageAlwaysApp', { app: approval.app.slice(0, 20) }), 'always')
+    button(t('stageAlwaysApp', { app: appLabel(approval.app).slice(0, 20) }), 'always')
     return node
   }
 

@@ -44,9 +44,26 @@ export interface Grant {
   sessionTitle?: string
 }
 
+/**
+ * The names one app goes by in the hands' head line: `微信 (WeChat)` on the whole screen,
+ * `微信 (com.tencent.xinWeChat)` in window mode, `WeChat` when the system gives no display
+ * name (the runtime writes `name (id)`, nanomuse/phone/screen.py). A grant matches on any.
+ */
+export function appNames(app: string): string[] {
+  const m = /^(.+?)\s*\(([^()]+)\)$/.exec(app.trim())
+  return (m ? [m[1]!, m[2]!] : [app.trim()]).map((n) => n.trim()).filter(Boolean)
+}
+
+/** The name an app is shown under: its display name, without the id. */
+export function appLabel(app: string): string {
+  return appNames(app)[0] ?? app
+}
+
 /** Whether a grant lets the hands act in `app` without asking, in the conversation `sessionId`. */
 export function grantCovers(grants: readonly Grant[], app: string, sessionId: string): boolean {
-  return Boolean(app) && grants.some((g) => g.target === `computer_app:${app}` && (!g.sessionId || g.sessionId === sessionId))
+  const names = new Set(appNames(app))
+  if (names.size === 0) return false
+  return grants.some((g) => g.target.startsWith('computer_app:') && appNames(g.target.slice('computer_app:'.length)).some((n) => names.has(n)) && (!g.sessionId || g.sessionId === sessionId))
 }
 
 /** The grants with one more for `app` (everywhere, or in one conversation), replacing the same one given before; the newest 64 kept. */
@@ -103,7 +120,7 @@ export function standingGrants(input: { grants?: readonly Grant[]; trusted?: rea
   const out: StandingGrant[] = []
   if (input.remoteControl === true) out.push({ id: REMOTE_CONTROL_GRANT_ID, kind: 'remote_control', tier: 'highest', target: '', at: 0 })
   for (const d of input.trusted ?? []) out.push({ id: `${DEVICE_GRANT_PREFIX}${d.id}`, kind: 'device', tier: 'confirm', target: d.name || d.id, at: d.at })
-  for (const g of input.grants ?? []) out.push({ id: g.id, kind: 'computer_app', tier: 'confirm', target: g.target.replace(/^computer_app:/, ''), at: g.at, ...(g.sessionId ? { sessionId: g.sessionId, sessionTitle: g.sessionTitle ?? '' } : {}) })
+  for (const g of input.grants ?? []) out.push({ id: g.id, kind: 'computer_app', tier: 'confirm', target: appLabel(g.target.replace(/^computer_app:/, '')), at: g.at, ...(g.sessionId ? { sessionId: g.sessionId, sessionTitle: g.sessionTitle ?? '' } : {}) })
   return out
 }
 

@@ -13,6 +13,7 @@
  * two steps the model thinks for seconds, and the glow and the capsule used to go dark for
  * each of those gaps (1.0.0). While it thinks the capsule says what the hands last did.
  */
+import { appLabel } from '../desk.ts'
 import { call, type Translate } from './api.ts'
 import { stillUrl } from './Avatar.tsx'
 import { bridge } from './bridge.ts'
@@ -35,7 +36,7 @@ const SCOPES: Record<string, 'once' | 'conversation' | 'always'> = { allow: 'onc
 export function approvalActions(t: Translate, app: string): { id: string; label: string; tone?: 'on' | 'no' }[] {
   return [
     { id: 'allow', label: t('stageAllowOnce'), tone: 'on' },
-    ...(app ? [{ id: 'chat', label: t('stageAlwaysChat') }, { id: 'app', label: t('stageAlwaysApp', { app: app.slice(0, 20) }) }] : []),
+    ...(app ? [{ id: 'chat', label: t('stageAlwaysChat') }, { id: 'app', label: t('stageAlwaysApp', { app: appLabel(app).slice(0, 20) }) }] : []),
     { id: 'deny', label: t('stageDeny'), tone: 'no' },
   ]
 }
