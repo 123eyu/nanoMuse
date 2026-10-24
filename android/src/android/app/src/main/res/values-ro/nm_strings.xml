@@ -1173,4 +1173,13 @@
     <string name="nm_font_scale_medium">Mediu</string>
     <string name="nm_font_scale_large">Mare</string>
     <string name="nm_font_scale_extra_large">Foarte mare</string>
+
+    <!-- nanoMuse: backup choices and the headless run (#560, #561) -->
+    <string name="nm_backup_chat_files">Fișierele din conversații</string>
+    <string name="nm_backup_chat_files_on">Fiecare atașament, fișier descărcat și fișier din spațiul de lucru pleacă împreună cu mesajele.</string>
+    <string name="nm_backup_chat_files_off">Doar mesajele. Fișierele sunt listate, nu incluse; o restaurare aduce conversațiile înapoi fără ele. Ține pachetul mic pentru un server care refuză încărcările mari.</string>
+    <string name="nm_backup_hint_too_large">Serverul a refuzat pachetul din cauza mărimii. De cele mai multe ori este limita lui de încărcare (nginx: client_max_body_size); mărește-o sau salvează conversațiile fără fișiere.</string>
+    <string name="nm_backup_delivery_failed">Livrarea a eșuat.</string>
+    <string name="nm_backup_run_needs_passphrase">Criptarea este pornită, iar fraza de acces se introduce pe pagina Backup; o rulare din shell nu o poate cere. Pornește backupul din pagină sau oprește criptarea acolo.</string>
+    <string name="nm_backup_run_started">Backup pornit din shell.</string>
 </resources>

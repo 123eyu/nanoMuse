@@ -1169,4 +1169,13 @@
     <string name="nm_font_scale_medium">Orta</string>
     <string name="nm_font_scale_large">Büyük</string>
     <string name="nm_font_scale_extra_large">Çok büyük</string>
+
+    <!-- nanoMuse: backup choices and the headless run (#560, #561) -->
+    <string name="nm_backup_chat_files">Sohbetlerdeki dosyalar</string>
+    <string name="nm_backup_chat_files_on">Her ek, aktarılan dosya ve çalışma alanı dosyası mesajlarla birlikte gider.</string>
+    <string name="nm_backup_chat_files_off">Yalnızca mesajlar. Dosyalar listelenir, taşınmaz; geri yükleme sohbetleri onlarsız getirir. Büyük yüklemeleri reddeden bir sunucu için paketi küçük tutar.</string>
+    <string name="nm_backup_hint_too_large">Sunucu paketi boyutu nedeniyle reddetti. Çoğu zaman bu, sunucunun yükleme sınırıdır (nginx: client_max_body_size); sınırı yükseltin ya da sohbetleri dosyaları olmadan yedekleyin.</string>
+    <string name="nm_backup_delivery_failed">Teslim başarısız oldu.</string>
+    <string name="nm_backup_run_needs_passphrase">Şifreleme açık ve parola Yedekleme sayfasında yazılıyor; kabuktan başlatılan bir çalıştırma bunu soramaz. Yedeklemeyi sayfadan başlatın ya da orada şifrelemeyi kapatın.</string>
+    <string name="nm_backup_run_started">Yedekleme kabuktan başlatıldı.</string>
 </resources>

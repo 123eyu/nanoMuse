@@ -1148,4 +1148,13 @@
     <string name="nm_font_scale_medium">Medium</string>
     <string name="nm_font_scale_large">Large</string>
     <string name="nm_font_scale_extra_large">XL</string>
+
+    <!-- nanoMuse: backup choices and the headless run (#560, #561) -->
+    <string name="nm_backup_chat_files">Files in the chats</string>
+    <string name="nm_backup_chat_files_on">Every attachment, offload and workspace file travels with the messages.</string>
+    <string name="nm_backup_chat_files_off">Messages only. The files are listed, not carried; a restore brings the chats back without them. Keeps the package small for a server that refuses large uploads.</string>
+    <string name="nm_backup_hint_too_large">The server refused the package for its size. Most often that is its upload limit (nginx: client_max_body_size); raise it, or back up the chats without their files.</string>
+    <string name="nm_backup_delivery_failed">Delivery failed.</string>
+    <string name="nm_backup_run_needs_passphrase">Encryption is on, and the passphrase is typed on the Backup page; a run from the shell cannot ask for it. Start the backup on the page, or turn encryption off there.</string>
+    <string name="nm_backup_run_started">Backup started from the shell.</string>
 </resources>

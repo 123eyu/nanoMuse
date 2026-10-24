@@ -1165,4 +1165,13 @@
     <string name="nm_font_scale_medium">Sedang</string>
     <string name="nm_font_scale_large">Besar</string>
     <string name="nm_font_scale_extra_large">Sangat besar</string>
+
+    <!-- nanoMuse: backup choices and the headless run (#560, #561) -->
+    <string name="nm_backup_chat_files">File di dalam obrolan</string>
+    <string name="nm_backup_chat_files_on">Setiap lampiran, file offload, dan file ruang kerja ikut bersama pesan.</string>
+    <string name="nm_backup_chat_files_off">Hanya pesan. File dicantumkan, tidak dibawa; pemulihan mengembalikan obrolan tanpa file. Paket tetap kecil untuk server yang menolak unggahan besar.</string>
+    <string name="nm_backup_hint_too_large">Server menolak paket karena ukurannya. Biasanya ini batas unggah server (nginx: client_max_body_size); naikkan batasnya, atau cadangkan obrolan tanpa file.</string>
+    <string name="nm_backup_delivery_failed">Pengiriman gagal.</string>
+    <string name="nm_backup_run_needs_passphrase">Enkripsi aktif, dan frasa sandi diketik di halaman Cadangan; menjalankannya dari shell tidak bisa memintanya. Mulai pencadangan dari halaman, atau matikan enkripsi di sana.</string>
+    <string name="nm_backup_run_started">Pencadangan dimulai dari shell.</string>
 </resources>

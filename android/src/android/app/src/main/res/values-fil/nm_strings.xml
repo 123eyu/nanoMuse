@@ -1169,4 +1169,13 @@
     <string name="nm_font_scale_medium">Katamtaman</string>
     <string name="nm_font_scale_large">Malaki</string>
     <string name="nm_font_scale_extra_large">Napakalaki</string>
+
+    <!-- nanoMuse: backup choices and the headless run (#560, #561) -->
+    <string name="nm_backup_chat_files">Mga file sa mga chat</string>
+    <string name="nm_backup_chat_files_on">Bawat attachment, offload file at workspace file ay kasama ng mga mensahe.</string>
+    <string name="nm_backup_chat_files_off">Mga mensahe lang. Nakalista ang mga file pero hindi kasama; ibabalik ng restore ang mga chat nang wala ang mga ito. Nananatiling maliit ang package para sa server na tumatanggi sa malalaking upload.</string>
+    <string name="nm_backup_hint_too_large">Tinanggihan ng server ang package dahil sa laki nito. Kadalasan ito ang upload limit ng server (nginx: client_max_body_size); taasan ito, o i-back up ang mga chat nang wala ang mga file.</string>
+    <string name="nm_backup_delivery_failed">Nabigo ang paghahatid.</string>
+    <string name="nm_backup_run_needs_passphrase">Naka-on ang encryption, at itinatype ang passphrase sa pahina ng Backup; hindi ito mahihingi ng pagtakbo mula sa shell. Simulan ang backup sa pahina, o patayin doon ang encryption.</string>
+    <string name="nm_backup_run_started">Nagsimula ang backup mula sa shell.</string>
 </resources>

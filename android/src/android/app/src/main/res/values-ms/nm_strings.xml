@@ -1165,4 +1165,13 @@
     <string name="nm_font_scale_medium">Sederhana</string>
     <string name="nm_font_scale_large">Besar</string>
     <string name="nm_font_scale_extra_large">Sangat besar</string>
+
+    <!-- nanoMuse: backup choices and the headless run (#560, #561) -->
+    <string name="nm_backup_chat_files">Fail dalam sembang</string>
+    <string name="nm_backup_chat_files_on">Setiap lampiran, fail punggah dan fail ruang kerja dibawa bersama mesej.</string>
+    <string name="nm_backup_chat_files_off">Mesej sahaja. Fail disenaraikan, tidak dibawa; pemulihan mengembalikan sembang tanpa fail. Pakej kekal kecil untuk pelayan yang menolak muat naik besar.</string>
+    <string name="nm_backup_hint_too_large">Pelayan menolak pakej kerana saiznya. Selalunya ini had muat naik pelayan (nginx: client_max_body_size); naikkan had itu, atau sandarkan sembang tanpa failnya.</string>
+    <string name="nm_backup_delivery_failed">Penghantaran gagal.</string>
+    <string name="nm_backup_run_needs_passphrase">Penyulitan dihidupkan, dan frasa laluan ditaip di halaman Sandaran; larian dari shell tidak boleh memintanya. Mulakan sandaran di halaman itu, atau matikan penyulitan di sana.</string>
+    <string name="nm_backup_run_started">Sandaran dimulakan dari shell.</string>
 </resources>

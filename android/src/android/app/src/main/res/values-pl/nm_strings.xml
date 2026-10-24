@@ -1177,4 +1177,13 @@
     <string name="nm_font_scale_medium">Średni</string>
     <string name="nm_font_scale_large">Duży</string>
     <string name="nm_font_scale_extra_large">Bardzo duży</string>
+
+    <!-- nanoMuse: backup choices and the headless run (#560, #561) -->
+    <string name="nm_backup_chat_files">Pliki w czatach</string>
+    <string name="nm_backup_chat_files_on">Każdy załącznik, plik odciążenia i plik obszaru roboczego wędruje razem z wiadomościami.</string>
+    <string name="nm_backup_chat_files_off">Tylko wiadomości. Pliki są wymienione, ale nie zabierane; przywracanie zwraca czaty bez nich. Paczka pozostaje mała dla serwera, który odrzuca duże przesyłki.</string>
+    <string name="nm_backup_hint_too_large">Serwer odrzucił paczkę z powodu rozmiaru. Najczęściej to jego limit przesyłania (nginx: client_max_body_size); zwiększ go albo zrób kopię czatów bez plików.</string>
+    <string name="nm_backup_delivery_failed">Dostarczenie nie powiodło się.</string>
+    <string name="nm_backup_run_needs_passphrase">Szyfrowanie jest włączone, a hasło wpisuje się na stronie kopii zapasowej; uruchomienie z powłoki nie może o nie zapytać. Rozpocznij kopię na stronie albo wyłącz tam szyfrowanie.</string>
+    <string name="nm_backup_run_started">Kopia zapasowa uruchomiona z powłoki.</string>
 </resources>

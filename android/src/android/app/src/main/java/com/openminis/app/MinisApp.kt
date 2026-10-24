@@ -555,6 +555,8 @@ class MinisApp : Application(), ImageLoaderFactory {
         NativeOffloadServer.register("nanomuse-hands", io.github.nanomuse.hands.HandsOffloadHandler(this))
         // nanoMuse: nanomuse-pc — the phone drives the user's other devices (shell, files, browser, screen, tasks).
         NativeOffloadServer.register("nanomuse-pc", io.github.nanomuse.reach.ReachOffloadHandler(this))
+        // nanoMuse: nanomuse-backup — a backup with the page's saved choices, so a scheduled task can run one (#560).
+        NativeOffloadServer.register("nanomuse-backup", io.github.nanomuse.backup.BackupOffloadHandler(this))
         // nanoMuse: join the hub, so the user's other devices can reach this phone and it can reach them.
         io.github.nanomuse.hub.Hub.autoStart(this)
         // T-config: minis-config — agent-facing settings management

@@ -1170,4 +1170,13 @@
     <string name="nm_font_scale_medium">Médio</string>
     <string name="nm_font_scale_large">Grande</string>
     <string name="nm_font_scale_extra_large">Muito grande</string>
+
+    <!-- nanoMuse: backup choices and the headless run (#560, #561) -->
+    <string name="nm_backup_chat_files">Arquivos das conversas</string>
+    <string name="nm_backup_chat_files_on">Cada anexo, arquivo descarregado e arquivo do espaço de trabalho viaja com as mensagens.</string>
+    <string name="nm_backup_chat_files_off">Só mensagens. Os arquivos são listados, não levados; uma restauração traz as conversas sem eles. Mantém o pacote pequeno para um servidor que recusa envios grandes.</string>
+    <string name="nm_backup_hint_too_large">O servidor recusou o pacote pelo tamanho. Quase sempre é o limite de envio dele (nginx: client_max_body_size); aumente-o, ou faça o backup das conversas sem os arquivos.</string>
+    <string name="nm_backup_delivery_failed">A entrega falhou.</string>
+    <string name="nm_backup_run_needs_passphrase">A criptografia está ligada e a senha é digitada na página de Backup; uma execução pelo shell não pode pedi-la. Inicie o backup na página, ou desligue a criptografia lá.</string>
+    <string name="nm_backup_run_started">Backup iniciado pelo shell.</string>
 </resources>

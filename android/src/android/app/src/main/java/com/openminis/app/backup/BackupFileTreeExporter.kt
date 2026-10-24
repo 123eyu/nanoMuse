@@ -57,6 +57,9 @@ class BackupFileTreeExporter(
         logicalPrefix: String,
         category: BackupCategory,
         sessionId: String? = null,
+        // nanoMuse: list the tree but carry none of its content, a §3.4 cap of zero on this tree
+        // alone, so chats can travel as messages only while the other categories keep their files (#561)
+        tombstonesOnly: Boolean = false,
     ): Result {
         val result = Result()
         if (!root.exists() || !root.isDirectory) return result
@@ -93,7 +96,7 @@ class BackupFileTreeExporter(
                 continue
             }
 
-            when (val outcome = addFile(entry, logicalPath, sessionId, category, result)) {
+            when (val outcome = addFile(entry, logicalPath, sessionId, tombstonesOnly)) { // nanoMuse: the tree's own cap
                 is BackupBlobStore.Outcome.Stored -> {
                     fileIndex.write(
                         BackupFileIndexEntry.file(logicalPath, outcome.size, outcome.sha256, category)
@@ -134,10 +137,10 @@ class BackupFileTreeExporter(
         file: File,
         logicalPath: String,
         sessionId: String?,
-        category: BackupCategory,
-        result: Result,
+        tombstonesOnly: Boolean, // nanoMuse: see export()
     ): BackupBlobStore.Outcome? = try {
-        blobStore.addFile(file, logicalPath, sessionId)
+        if (tombstonesOnly) blobStore.addFile(file, logicalPath, sessionId, capBytes = 0L) // nanoMuse
+        else blobStore.addFile(file, logicalPath, sessionId)
     } catch (e: Exception) {
         // One bad file must not sink an entire backup — the tombstone above
         // keeps the gap visible.

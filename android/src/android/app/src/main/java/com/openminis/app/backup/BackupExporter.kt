@@ -45,6 +45,15 @@ class BackupExporter(
         /** §3.4 — null means unlimited, which is the DEFAULT. */
         val maxFileBytes: Long? = null,
         /**
+         * nanoMuse: false carries the chats as messages only. Each session's
+         * tree (attachments, offloads, workspace, browser) is listed in
+         * `files.index.jsonl` as `skipped: "size"` tombstones, the §3.4 cap
+         * applied to that tree alone, so the package stays small enough for a
+         * server that refuses large uploads while the other categories keep
+         * their files. A restore counts them as files the cap left out (#561).
+         */
+        val chatFiles: Boolean = true,
+        /**
          * §3.3: credentials ship WITH the Providers category by default, so a
          * restored provider actually works. False produces the "export copy
          * without credentials" share package.
@@ -126,7 +135,7 @@ class BackupExporter(
                 if (BackupCategory.CHATS in options.categories) {
                     onProgress?.invoke("Exporting chats…")
                     stats[BackupCategory.CHATS.key] =
-                        exportChats(dataDir, trees, options.snapshotAtMillis)
+                        exportChats(dataDir, trees, options.snapshotAtMillis, options.chatFiles) // nanoMuse
                 }
                 if (BackupCategory.SHARED_FILES in options.categories) {
                     onProgress?.invoke("Exporting shared files…")
@@ -244,6 +253,7 @@ class BackupExporter(
         dataDir: File,
         trees: BackupFileTreeExporter,
         snapshotAtMillis: Long,
+        chatFiles: Boolean = true, // nanoMuse: see Options.chatFiles
     ): BackupManifest.CategoryStat {
         val dao = db.chatDao()
         var messageCount = 0
@@ -283,7 +293,8 @@ class BackupExporter(
                             // offloads / workspace / browser.
                             val dir = File(context.filesDir, "minis-sessions/${session.id}")
                             val r = trees.export(
-                                dir, "chats/${session.id}", BackupCategory.CHATS, session.id
+                                dir, "chats/${session.id}", BackupCategory.CHATS, session.id,
+                                tombstonesOnly = !chatFiles, // nanoMuse: messages only when asked
                             )
                             fileCount += r.filesIncluded
                             fileBytes += r.bytesIncluded
