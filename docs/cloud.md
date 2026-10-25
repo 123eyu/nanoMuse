@@ -108,8 +108,10 @@ The relay is the code in [`cloud/`](../cloud/README.md). It stores:
 - since relay 0.28, a device may say in its hub hello which model it runs on
   (`llm {provider, model}`, the two ids and nothing else: never a key, an
   address or a setting), so the operator can see which providers people
-  configure for themselves. The apps of 1.0.6 and earlier say nothing, and a
-  later app says it only when the person runs their own key;
+  configure for themselves. The apps of 1.0.6 and earlier say nothing; from
+  1.0.7 every client says `cloud` while the account's models answer and the
+  catalogue's vendor id (`openrouter`, `bailian`) with the model id on a key
+  of its own;
 - a timeline of account events (signed in, failed sign-in, password set or
   changed, signed out, refused for budget, upstream error) with a
   device name, a model or an error code as the detail, never message content;
