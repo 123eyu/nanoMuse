@@ -668,11 +668,15 @@ async def test_pictures_are_drawn_a_couple_at_a_time(stack):
     accounts = (await client.get("/v1/admin/accounts", headers={"X-Admin-Token": "admin"})).json()["accounts"]
     await client.post("/v1/admin/grant", headers={"X-Admin-Token": "admin"}, json={"account_id": accounts[0]["id"], "tokens": 1_000_000})
     in_flight = {"now": 0, "peak": 0}
+    # the provider answers nobody until the test says so: the four admitted requests cannot
+    # settle and free a slot before the two refused ones have been counted, however slow
+    # the runner (a timed sleep here let a sixth request in after the first had finished)
+    release = asyncio.Event()
 
     async def slow(request: Request):
         in_flight["now"] += 1
         in_flight["peak"] = max(in_flight["peak"], in_flight["now"])
-        await asyncio.sleep(0.05)
+        await release.wait()
         in_flight["now"] -= 1
         return {"output": {"choices": [{"message": {"content": [{"image": "http://upstream/pic.png"}]}}]}}
 
@@ -682,12 +686,19 @@ async def test_pictures_are_drawn_a_couple_at_a_time(stack):
     ]
     up.add_api_route("/ds/api/v1/services/aigc/multimodal-generation/generation", slow, methods=["POST"])
 
-    rs = await asyncio.gather(
-        *(
+    tasks = [
+        asyncio.ensure_future(
             client.post("/v1/images/generations", headers=headers, json={"model": "qwen-image-3.0", "prompt": f"dragon {i}"})
-            for i in range(6)
         )
-    )
+        for i in range(6)
+    ]
+    # the two turned away at the door are the only ones that can finish before the release
+    for _ in range(500):
+        if sum(t.done() for t in tasks) >= 2:
+            break
+        await asyncio.sleep(0.01)
+    release.set()
+    rs = await asyncio.gather(*tasks)
     # four of one account's requests may be under way at once (MAX_IN_FLIGHT); the two
     # over that are told so rather than queued
     assert sorted(r.status_code for r in rs) == [200] * 4 + [429] * 2

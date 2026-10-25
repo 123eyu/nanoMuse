@@ -572,6 +572,8 @@ are the first line of the admin dashboard.
 
 ## Running your own
 
+API and error counters are written through the relay's worker pool. The response awaits these writes, while the event loop remains available if a counter write waits for a database lock.
+
 Anyone can run a relay (for a family, a class, a company) and point the app
 at it. The server is a single Python process over SQLite; a VPS with Docker and
 a domain name is enough:
