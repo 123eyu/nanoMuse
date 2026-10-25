@@ -1,6 +1,7 @@
 import { act } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+import { setLocaleSetting } from "../i18n";
 import { NamingCard } from "./FirstConversation";
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
@@ -20,6 +21,9 @@ function byText(r: ReactTestRenderer, text: string) {
 }
 
 describe("NamingCard", () => {
+  // the labels looked for are the English ones, whatever the machine running the suite speaks
+  beforeAll(() => setLocaleSetting("en"));
+
   it("picks a chip straight away", () => {
     const onPick = vi.fn();
     let r!: ReactTestRenderer;

@@ -170,9 +170,12 @@ on the phones and the desktop (contract C4 in [parity.md](parity.md)):
    suggestions, or two from the built-in pool when it gave none, and
    *Something else* for a name of your own. A chip saves the name at once
    (`POST /api/firstrun/pick {name}`) and sends it as your message, so the
-   model's next reply is its first as itself; a typed name reaches the model
-   and comes back in the block. A card the app answers itself (the avatar
-   options) dismisses the chooser (`POST /api/firstrun/dismiss`).
+   model's next reply is its first as itself; *Something else* opens an input
+   on the card (1.0.8), and the name typed there goes the same way as a chip,
+   so a model that never repeats it in the block cannot leave the chooser up.
+   A name typed into the composer instead still reaches the model and comes
+   back in the block. A card the app answers itself (the avatar options)
+   dismisses the chooser (`POST /api/firstrun/dismiss`).
 
 While the first conversation runs, its turns are never *tasks* for the star
 asks. The addendum that tells the model about the ritual goes only into the
