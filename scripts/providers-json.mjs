@@ -75,6 +75,12 @@ function reasoningProblems(where, protocol, hint) {
   return out
 }
 
+// A checkout with core.autocrlf turns the source's LF into CRLF (nothing under nanomuse/ is
+// pinned to LF in .gitattributes) while harness/ and the phones' assets are pinned to LF, so
+// compared as raw text three of the four copies read as stale on Windows and a person
+// regenerated a diff that changed nothing. The content is what this asks about.
+const content = (s) => s.replace(/\r\n/g, '\n')
+
 const text = readFileSync(source, 'utf8')
 const catalogue = JSON.parse(text)
 const capabilities = new Set(catalogue.capabilities)
@@ -127,9 +133,9 @@ for (const target of targets) {
   if (process.argv.includes('--check')) {
     let current = ''
     try { current = readFileSync(target, 'utf8') } catch { /* missing counts as stale */ }
-    if (current !== text) { stale = true; console.error(`stale: ${target}`) }
+    if (content(current) !== content(text)) { stale = true; console.error(`stale: ${target}`) }
   } else {
-    writeFileSync(target, text)
+    writeFileSync(target, content(text))
     console.log(`${target}: ${catalogue.providers.length} providers`)
   }
 }
