@@ -65,7 +65,9 @@ export function errorCode(err: unknown): string {
  * What a failed `call` says to the person: the wire's and the relay's common refusals as a
  * plain sentence in the UI language (the relay out of reach, a deadline passed, too many
  * requests, a sign-in no longer valid, the relay in trouble, this computer's host not
- * answering), and otherwise `That did not work: <the message as it came>`.
+ * answering), the relay's refusals of a sign-in (a wrong or expired code, a wrong password,
+ * an address the relay does not take), and otherwise `That did not work: <the message as it
+ * came>`.
  */
 export function failureText(t: Translate, err: unknown): string {
   const code = errorCode(err)
@@ -75,6 +77,19 @@ export function failureText(t: Translate, err: unknown): string {
   if (!code && err instanceof TypeError && /fetch/i.test(text)) return t('errHostDown')
   if (code === 'unreachable') return t('errUnreachable')
   if (code === 'timeout' || code === 'http_504' || status === 504) return t('errTimeout')
+  // the relay's sign-in refusals, said in the person's language as the phones and the console
+  // say them (before the status branches: a wrong password is 401 and a carrier's limit 429)
+  if (code === 'code_wrong') return t('errCodeWrong')
+  if (code === 'code_expired') return t('errCodeExpired')
+  if (code === 'code_too_often') return t('errCodeTooOften')
+  if (code === 'send_failed') return t('errSendFailed')
+  if (code === 'bad_identifier') return t('errBadIdentifier')
+  if (code === 'phone_region') return t('errPhoneRegion')
+  if (code === 'not_invited') return t('errNotInvited')
+  if (code === 'signup_closed') return t('errSignupClosed')
+  if (code === 'account_disabled') return t('errAccountDisabled')
+  if (code === 'bad_credentials') return t('errBadCredentials')
+  if (code === 'locked') return t('errLocked')
   if (code === 'rate_limited' || code === 'too_many_in_flight' || code === 'provider_busy' || status === 429) return t('errBusy')
   if (code === 'signed_out' || code === 'bad_key' || status === 401) return t('errSignedOut')
   if (status >= 500 && status !== 504) return t('errRelay', { status })
@@ -83,7 +98,6 @@ export function failureText(t: Translate, err: unknown): string {
   if (code === 'no_key') return t('errNoKey')
   if (code === 'key_shape') return t('errKeySpaces')
   if (code === 'bad_provider') return t('errSignInRow')
-  // the relay's sign-in refusals that have no sentence elsewhere in the client
   if (code === 'domain_limited') return t('errDomainLimited')
   if (code === 'channel_unsupported') return t('errChannelUnsupported')
   return t('failed', { message: text || code || '?' })
