@@ -2,7 +2,7 @@ import { act } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { setLocaleSetting } from "../i18n";
-import { Composer } from "./ChatScreen";
+import { Composer, WorkingLine } from "./ChatScreen";
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
 // the composer's only window use is the quick-chat focus listener
@@ -79,5 +79,34 @@ describe("Composer stop disc", () => {
     });
     expect(onStop).toHaveBeenCalledTimes(1);
     expect(discs(r).stop?.props.disabled).toBe(true);
+
+// The presence frame from another device says what its run is doing — the line
+// under the message reads the step, and a run parked on a card reads as waiting.
+
+function line(who: Parameters<typeof WorkingLine>[0]["who"]) {
+  let r!: ReactTestRenderer;
+  act(() => {
+    r = create(<WorkingLine who={who} />);
   });
-});
+  return r.root.findByType("div").props.children[1].props.children;
+}
+
+describe("WorkingLine", () => {
+  beforeAll(() => setLocaleSetting("en"));
+
+  it("reads as plain working without a state", () => {
+    expect(line({ thread: "main", cid: "c", device: "phone-1", device_name: "Pixel 8", at: 1 })).toBe(
+      "Pixel 8 is working…",
+    );
+  });
+
+  it("reads the step the run reported", () => {
+    expect(
+      line({ thread: "main", cid: "c", device: "phone-1", device_name: "Pixel 8", state: "working", detail: "打开携程网站", at: 1 }),
+    ).toBe("Pixel 8 is working: 打开携程网站");
+  });
+
+  it("reads as waiting when the run is parked on a card", () => {
+    expect(
+      line({ thread: "main", cid: "c", device: "phone-1", device_name: "", state: "waiting", at: 1 }),
+    ).toBe("phone-1 is waiting for you");

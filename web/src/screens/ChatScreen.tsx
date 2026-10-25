@@ -670,13 +670,22 @@ function useLiveWorking(who: WorkingPresence | undefined): WorkingPresence | nul
   return who;
 }
 
-/** "Pixel 8 is working…" — quiet, under the message the other device is answering. */
-function WorkingLine({ who }: { who: WorkingPresence }) {
+/** "Pixel 8 is working…" — quiet, under the message the other device is answering. With
+ * 0.31 the frame says what the run is doing: the step's own words ride the presence, and
+ * a run paused on a question or an approval reads as waiting rather than working. */
+export function WorkingLine({ who }: { who: WorkingPresence }) {
   const t = useT();
+  const device = who.device_name || who.device;
+  const label =
+    who.state === "waiting"
+      ? t("{device} is waiting for you", { device })
+      : who.detail
+        ? t("{device} is working: {detail}", { device, detail: who.detail })
+        : t("{device} is working…", { device });
   return (
     <div className="flex items-center gap-1.5 px-1 text-[12px] text-muted">
       <Loader2 size={12} className="animate-spin" />
-      <span>{t("{device} is working…", { device: who.device_name || who.device })}</span>
+      <span>{label}</span>
     </div>
   );
 }
