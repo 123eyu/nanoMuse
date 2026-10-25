@@ -8,6 +8,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Runtime
 
+- **API Route is in the own-key catalogue.** An OpenAI-compatible gateway at `https://global.api-route.com/v1`, a key from [api-route.com/api-keys](https://www.api-route.com/api-keys), paid from a prepaid balance at the chosen model's rates. The default model is `gpt-6.1-sol`, and any id from the key's `/v1/models` list can be set instead. Chat only here; picture input, image generation and video are not claimed. `providers.json` lists twenty-three providers now, and the desktop, the phones, the relay and the web console carry the same file. By @DennyHo0917 ([#603](https://github.com/nano-muse/nanoMuse/pull/603), for [#564](https://github.com/nano-muse/nanoMuse/issues/564)).
+
 ### Web
 
 ### Desktop

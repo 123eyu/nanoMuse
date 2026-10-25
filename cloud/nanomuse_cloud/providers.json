@@ -443,6 +443,24 @@
       "verified": "2026-10"
     },
     {
+      "id": "api-route",
+      "name": "API Route",
+      "name_zh": "API Route",
+      "protocol": "openai",
+      "base_url": "https://global.api-route.com/v1",
+      "key_url": "https://www.api-route.com/api-keys",
+      "key_hint": "sk-…",
+      "auth": ["key"],
+      "regions": ["global"],
+      "capabilities": ["chat"],
+      "defaults": {
+        "chat": "gpt-6.1-sol"
+      },
+      "note": "An OpenAI-compatible gateway using your own API key. The default is gpt-6.1-sol; choose other model ids from the key's /v1/models list. Usage is deducted from your prepaid API Route balance at the selected model's current rates. Chat only here; picture input, image generation and video have not been verified.",
+      "note_zh": "使用自己 API key 的 OpenAI 兼容网关。默认模型为 gpt-6.1-sol，其他模型 id 可从这把 key 的 /v1/models 列表中选择。费用按所选模型的当前价格从 API Route 预充值余额中扣除。这里只提供对话，尚未验证图片输入、图片生成和视频功能。",
+      "verified": "2026-10"
+    },
+    {
       "id": "cheaperinference",
       "name": "Cheaper Inference",
       "name_zh": "Cheaper Inference",
