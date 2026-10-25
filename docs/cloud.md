@@ -366,7 +366,7 @@ GET    /v1/sync/state                   → {enabled, cursor, counts{conversatio
 PUT    /v1/sync/state   {enabled}       → the same; false deletes everything stored, the counter keeps counting
 GET    /v1/sync/changes ?since=0&limit=500&scope=all|main&tail=K   → {cursor, more, conversations[], messages[], skipped?}
 POST   /v1/sync/changes {device, conversations[], messages[]}   → {cursor, accepted, rejected[{cid | mid, reason, cid_main?}]}
-POST   /v1/sync/working {cid, working, device?}   → 204; the hub tells the other devices   404 no_conversation
+POST   /v1/sync/working {cid, working, device?, state?, detail?}   → 204; the hub tells the other devices (0.31: state and step ride along)   404 no_conversation
 DELETE /v1/sync/changes                 → the state, counts at zero     everything stored, switch unchanged
 DELETE /v1/sync/conversations/{cid}     → {cursor, deleted: true}      a tombstone the other devices apply; 404 no_conversation
 ```
@@ -387,7 +387,11 @@ row and behaves the same). Any other `scope` is 400 `bad_scope`.
 (`false`); the relay keeps the live ones in memory for ten minutes (never in
 the database, so a restart forgets them), lists them under `working` in the
 state (`[{cid, from, device_name, working, at}]`) and sends a `working` frame
-to the account's other sockets ([hub.md](hub.md#frames)). Request bodies over
+to the account's other sockets ([hub.md](hub.md#frames)). Since 0.31 a
+`working: true` may also say `state` (`working` | `waiting`) and `detail` —
+the run's current step in the model's own words, capped at 160 characters —
+and the frame and the state's `working` rows carry both, so the other devices
+see the run move between its start and its end. Request bodies over
 `MAX_REQUEST_BYTES` (16 MiB by default since 0.20) are 413 `too_large` with
 *Request body is N MB; this relay accepts up to M MB*.
 

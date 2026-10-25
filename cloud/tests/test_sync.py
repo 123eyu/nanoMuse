@@ -16,7 +16,7 @@ from nanomuse_cloud.config import Settings
 from nanomuse_cloud.db import Database
 from nanomuse_cloud.senders import LogSender
 from nanomuse_cloud.service import Cloud
-from nanomuse_cloud.sync import LIMITS, clean_attachments, cut_text, valid_id
+from nanomuse_cloud.sync import DETAIL_CAP, LIMITS, clean_attachments, cut_text, valid_id
 
 
 def uid() -> str:
@@ -627,6 +627,42 @@ async def test_working_is_presence_kept_ten_minutes_in_memory():
     await client.put("/v1/sync/state", json={"enabled": False}, headers=auth(key))
     r = await client.post("/v1/sync/working", json={"cid": main, "working": True}, headers=auth(key))
     assert r.status_code == 409 and r.json()["error"]["code"] == "sync_off"
+
+
+async def test_working_carries_state_and_step():
+    """0.31: a `working: true` may say what the run is doing — `state` and `detail` — the
+    state lists it and the frame carries it; a strange state falls back to `working`, a
+    long step is cut, and a `false` clears the line with nothing extra on it."""
+    app, client, sender, up, cloud, settings = make()
+    key = await signed_in(client, sender)
+    main = uid()
+    await client.post("/v1/sync/changes", json={"device": "pixel", "conversations": [conv(main, "main", "Main")]}, headers=auth(key))
+    step = "读文件 config.toml"
+    r = await client.post(
+        "/v1/sync/working",
+        json={"cid": main, "working": True, "device": "pixel", "state": "waiting", "detail": step},
+        headers=auth(key),
+    )
+    assert r.status_code == 204
+    st = (await client.get("/v1/sync/state", headers=auth(key))).json()
+    assert st["working"] == [
+        {"cid": main, "from": "pixel", "device_name": "", "state": "waiting", "detail": step, "at": st["working"][0]["at"]}
+    ]
+
+    # a state the relay does not know reads as `working`; a long step is cut, not refused
+    await client.post(
+        "/v1/sync/working",
+        json={"cid": main, "working": True, "device": "pixel", "state": "dancing", "detail": "x" * 500},
+        headers=auth(key),
+    )
+    st = (await client.get("/v1/sync/state", headers=auth(key))).json()
+    w = st["working"][0]
+    assert w["state"] == "working" and len(w["detail"]) == DETAIL_CAP
+
+    # done: the line goes, nothing of the step survives it
+    await client.post("/v1/sync/working", json={"cid": main, "working": False, "device": "pixel"}, headers=auth(key))
+    st = (await client.get("/v1/sync/state", headers=auth(key))).json()
+    assert st["working"] == []
 
 
 def test_hub_carries_working_to_the_other_devices(ws_client):
