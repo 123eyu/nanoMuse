@@ -1335,6 +1335,7 @@ export const en = {
   frNamingTitle: 'Give me a name',
   frNamingCustom: 'Something else…',
   frNamingPlaceholder: 'Write a name here',
+  frNamingConfirm: 'Use this name',
   // desk-a: the star nudges (C1)
   ndTasksOne: 'One task done. If nanoMuse helped, a star on GitHub tells the people building it that it did.',
   ndTasks: '{n} tasks done. If nanoMuse is useful, a star on GitHub helps the next person find it.',
@@ -2824,6 +2825,7 @@ export const zh: typeof en = {
   frNamingTitle: '给我起个名字吧',
   frNamingCustom: '自己取一个…',
   frNamingPlaceholder: '写个名字…',
+  frNamingConfirm: '就叫这个',
   // desk-a: the star nudges (C1)
   ndTasksOne: '已经一起完成 1 个任务。如果 nanoMuse 帮上了忙，到 GitHub 点一颗 Star，做它的人就知道了。',
   ndTasks: '已经一起完成 {n} 个任务。如果 nanoMuse 帮上了忙，到 GitHub 点一颗 Star，下一个人也能找到它。',
