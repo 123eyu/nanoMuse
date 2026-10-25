@@ -29,6 +29,18 @@ test('the catalogue parses as shipped: every row has an id, a protocol, regions 
   assert.deepEqual(parseCatalogue('nonsense'), [])
 })
 
+test('API Route is offered for own-key chat without unverified media capabilities', () => {
+  const provider = catalogue.find((p) => p.id === 'api-route')
+  assert.ok(provider)
+  assert.equal(baseUrlFor(provider, 'global'), 'https://global.api-route.com/v1')
+  assert.equal(provider.defaults.chat, 'gpt-6.1-sol')
+  assert.deepEqual(capabilitiesForAuth(provider, 'key'), ['chat'])
+  assert.ok(waysOn(catalogue, 'global').rest.some((p) => p.id === 'api-route'))
+  for (const capability of ['vision', 'image', 'video']) {
+    assert.ok(!providersWith(catalogue, capability, 'global').some((p) => p.id === 'api-route'))
+  }
+})
+
 test('loadCatalogue reads the asset next to lib/ and gives an empty list for a missing file', async () => {
   assert.ok((await loadCatalogue()).length >= 15)
   assert.deepEqual(await loadCatalogue('/nonexistent/providers.json'), [])
