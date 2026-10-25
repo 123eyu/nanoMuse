@@ -98,7 +98,7 @@ Errors carry a stable `code` the app can turn into a sentence:
 | 429 | `too_many_in_flight` | `MAX_IN_FLIGHT` requests of the account are already under way; `retry_after` in the body |
 | 429 | `provider_busy` | the image provider answered 429 even after the relay queued and retried (`IMAGE_CONCURRENCY`, `IMAGE_RETRIES`); `retry_after` seconds in the body |
 | 400 | `content_rejected` | the provider's content check declined the words (a chat request or an image prompt); the provider's own line rides along under `upstream` |
-| 400 | `upstream_400` | any other refusal of the request itself; the provider's message passed through |
+| 400 | `upstream_400` | any other refusal of the request itself; the provider's message passed through (read from an object or, as Gemini's OpenAI-compatible endpoint sends it, from the first object of a list) |
 | 502 | `upstream` / `upstream_auth` / `upstream_model` / `upstream_busy` / `upstream_<status>` | the provider failed; a plain sentence, the provider's line under `upstream` |
 | 503 | `upstream_unconfigured` | the key for the requested chat or media provider is missing |
 | 403 | `signup_closed` | the operator closed sign-ups (0.22, *Controls*); an identifier without an account gets this before any code is sent, existing accounts sign in as before |
