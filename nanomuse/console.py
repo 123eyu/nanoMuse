@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
+import sys
 
 from rich.console import Console
 from rich.markdown import Markdown
@@ -15,6 +17,23 @@ from nanomuse.schema import ToolCall, ToolResult
 from nanomuse.ui import ApprovalDecision, ApprovalRequest
 
 RISK_STYLE = {"safe": "green", "moderate": "yellow", "sensitive": "bold red"}
+
+
+def utf8_console() -> None:
+    """UTF-8 on stdout and stderr, line-buffered, whatever the console's code page says.
+
+    A Chinese Windows console is code page 936, and the ✓ a report is made of is not in
+    GBK, so ``nanomuse doctor`` piped into a file died with ``UnicodeEncodeError: 'gbk'
+    codec can't encode character '\\u2713'``; the frozen runtime the desktop app carries
+    does not read ``PYTHONUTF8`` or ``PYTHONUNBUFFERED`` either, and a GBK log with the
+    banner's dashes mangled was what the shell showed. Cheap, and a no-op where the
+    streams are already UTF-8.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            with contextlib.suppress(Exception):
+                reconfigure(encoding="utf-8", errors="replace", line_buffering=True)
 
 
 class ConsoleUI:
