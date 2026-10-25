@@ -251,10 +251,16 @@ async def _slash(cmd: str, muse) -> bool:  # noqa: ANN001
         return True
     if name == "help":
         console.print(
-            "/reset – clear conversation   /memory – list memories   /goals – list goals\n"
-            "/audit [n] – recent audit entries   /tools – list tools   /tainted – taint status\n"
-            "/permissions – what you allowed   /revoke <key> – take one back\n"
-            "/forget-approvals – clear every granted permission   /exit – quit"
+            "/reset             clear the conversation\n"
+            "/memory            list memories\n"
+            "/goals             list goals\n"
+            "/audit [n]         the last n audit entries (10)\n"
+            "/tools             list tools\n"
+            "/tainted           taint status\n"
+            "/permissions       what you allowed\n"
+            "/revoke <key>      take one back\n"
+            "/forget-approvals  clear every granted permission\n"
+            "/exit              quit"
         )
     elif name == "reset":
         muse.agent.reset()

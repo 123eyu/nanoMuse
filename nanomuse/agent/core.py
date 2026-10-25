@@ -556,7 +556,7 @@ class MuseAgent:
                         )
                     )
                 if self._is_stuck():
-                    logger.warning("agent seems stuck – nudging")
+                    logger.warning("agent seems stuck; nudging")
                     self.messages.append(Message.user(prompts.STUCK_PROMPT))
             else:
                 # Step budget exhausted: ask for a wrap-up without tools.
