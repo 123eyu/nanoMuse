@@ -235,7 +235,7 @@ test('the chat and hands defaults follow the relay lane recommendation, with old
   assert.equal(takesImages({ id: 'qwen3-vl', inputModalities: ['text', 'image'] }), true)
 })
 
-test('the provider row carries the image budget of a request through the relay (413 too_large): 5 MiB of base64 images, 2 Mpx a picture, the per-image byte cap left to dsh', async () => {
+test('the provider row carries the image budget of a request through the relay: 2 MiB of base64 images (about the newest four to eight screenshots), 2 Mpx a picture, the per-image byte cap left to dsh', async () => {
   const { providerRowFor, IMAGE_BUDGET } = await import('../lib/cloud.js')
   const row = providerRowFor('https://relay.test/v1', [
     { id: 'deepseek-v4.1', name: 'DeepSeek V4.1', kind: 'chat', recommended: true, inputModalities: ['text', 'image'], for: ['chat'] },
@@ -244,11 +244,11 @@ test('the provider row carries the image budget of a request through the relay (
   ])
   assert.equal(row.api, 'openai-completions')
   assert.equal(row.baseURL, 'https://relay.test/v1')
-  assert.equal(row.maxRequestImageBytes, 5 * 1024 * 1024)
+  assert.equal(row.maxRequestImageBytes, 2 * 1024 * 1024)
   assert.equal(row.requestImagePixelBudget, 2 * 1024 * 1024)
   assert.equal(row.requestImageMaxBytes, undefined)
-  assert.deepEqual(IMAGE_BUDGET, { maxRequestImageBytes: 5 * 1024 * 1024, requestImagePixelBudget: 2 * 1024 * 1024 })
-  // under the relay's 6 MiB cap with room for the text
+  assert.deepEqual(IMAGE_BUDGET, { maxRequestImageBytes: 2 * 1024 * 1024, requestImagePixelBudget: 2 * 1024 * 1024 })
+  // far under the relay's body cap (16 MB by default), with room for the text
   assert.ok(row.maxRequestImageBytes < 6 * 1024 * 1024)
   assert.deepEqual(row.models.map((m) => m.id), ['deepseek-v4.1'])
   assert.deepEqual(row.models[0].input, ['text', 'image'])

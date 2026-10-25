@@ -78,12 +78,18 @@ export const CHAT_ON_CLOUD_MESSAGE = 'Add a provider of your own first; with nan
 /** dsh-base's stock chat default (its `agent-default-model` row): what `adoptOwnDefault` and `adoptDefaultModel` read as "nothing chosen yet". */
 export const STOCK_DEFAULT_MODEL = { provider: 'deepseek-official', model: 'deepseek-flash' } as const
 /**
- * The image budget of one request through the relay (`dsh-llm-pi-ai` profile keys): the relay
- * refuses a body past 6 MiB (413 `too_large`), so the base64 images of a request are held to
- * 5 MiB — the oldest offloaded — and each image is scaled to 2 Mpx before it is encoded.
- * `requestImageMaxBytes` keeps dsh's default (1 MiB a picture).
+ * The image budget of one request through the relay (`dsh-llm-pi-ai` profile keys): the base64
+ * images of a request are held to 2 MiB, the oldest offloaded (dsh puts a line in their place),
+ * and each image is scaled to 2 Mpx before it is encoded. `requestImageMaxBytes` keeps dsh's
+ * default (1 MiB a picture). The byte bound is the only count dsh's adapter takes, and it is
+ * set for the hands: a run on a screen adds a picture per step, a 1600-wide screenshot is
+ * 200 to 500 KB of base64, and the relay's calls showed desktop hands turns carrying up to 23
+ * of them (13 at the 95th percentile), which the model has to read again at every step; the
+ * runtime's own loop keeps the newest four (`agent.max_context_images`). 2 MiB keeps about
+ * the newest four to eight, and stays far under the relay's body cap (`MAX_REQUEST_BYTES`,
+ * 16 MB by default; over it, 413 `too_large`).
  */
-export const IMAGE_BUDGET = { maxRequestImageBytes: 5 * 1024 * 1024, requestImagePixelBudget: 2 * 1024 * 1024 } as const
+export const IMAGE_BUDGET = { maxRequestImageBytes: 2 * 1024 * 1024, requestImagePixelBudget: 2 * 1024 * 1024 } as const
 /** Where the browser half talks to us. */
 export const API_PREFIX = '/nanomuse/cloud'
 /** The public relay no longer offers account-funded image or video generation. */
