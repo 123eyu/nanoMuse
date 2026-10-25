@@ -1184,6 +1184,7 @@ def create_app(
         # OpenAI request fields are dangerous, but `user` is ours to set so the
         # provider's abuse tooling can tell accounts apart without knowing them.
         body["user"] = caller.account_id[:32]
+        body.pop("store", None)  # OpenAI-only field; some upstreams (e.g. Gemini openai-compat) reject unknown fields with 400
         url = settings.upstream_base.rstrip("/") + "/chat/completions"
         request_body = dumps(body).encode()
         fallback_prompt_tokens = math.ceil(prompt_chars(body.get("messages") or []) / 3)
