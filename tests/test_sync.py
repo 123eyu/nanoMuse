@@ -337,6 +337,9 @@ def synced(
     app = create_app(settings, service)
     with TestClient(app) as client:
         client.headers["Authorization"] = "Bearer secret-token"
+        # start() scheduled the first pull on the app's loop; it lands before a test adds rows
+        # to the relay, or on a slow machine it takes them and the test's own pull applies 0
+        wait_for(lambda: relay.pulls)
         yield client, service, llm, relay
 
 
