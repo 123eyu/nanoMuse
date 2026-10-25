@@ -143,7 +143,7 @@ export function grantRowWords(t: Translate, g: StandingGrant): { title: string; 
         case 'chat': return { title: g.sessionTitle ? t('sgQuoted', { name: g.sessionTitle.slice(0, 60) }) : t('sgChatUntitled'), sub: [hands, when].filter(Boolean).join(' · ') }
         case 'task': return {
           title: g.scheduleTitle ? t('sgQuoted', { name: g.scheduleTitle.slice(0, 60) }) : t('sgTaskUntitled'),
-          sub: [hands, g.sessionTitle ? t('sgTaskChat', { chat: g.sessionTitle.slice(0, 40) }) : '', when].filter(Boolean).join(' · '),
+          sub: [g.scheduleGone ? t('sgTaskGone') : '', hands, g.sessionTitle ? t('sgTaskChat', { chat: g.sessionTitle.slice(0, 40) }) : '', when].filter(Boolean).join(' · '),
         }
       }
     }

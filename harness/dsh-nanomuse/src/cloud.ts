@@ -289,6 +289,8 @@ export interface LiveState {
   holds: Hold[]
   /** Standing "always allow" grants for the hands, per app. */
   grants: Grant[]
+  /** The tasks some of those grants are limited to that the schedule service no longer has. */
+  goneSchedules: string[]
   /** The model the hands see the screen with (`[gui]` of the bundled runtime); empty when the account has none. */
   handsModel: string
   /** The last update check, when one ran. */
@@ -657,6 +659,8 @@ export default class NanomuseCloud extends Service {
    * user message from `schedule`); gone at the turn's end or when the person writes in that turn.
    */
   private readonly scheduledTurns = new Map<string, string[]>()
+  /** The tasks of task grants that were deleted since (`refreshGoneSchedules`). */
+  private goneSchedules: string[] = []
   private readonly approvalDesk = new ApprovalDesk(
     () => this.deskMoved(),
     (req) => this.granted(req.toolName, String(req.agent.session.id)),
@@ -829,6 +833,9 @@ export default class NanomuseCloud extends Service {
       // The stage answers approvals too; registered before the task runner so a task from another
       // device (answered on that device) never reaches this desk.
       ctx.effect(() => ctx.on('approval/request', (req, next) => this.approvalDesk.handle(req, next), true), 'nanomuse cloud: approvals on the stage')
+      // a task grant whose task was deleted is listed as such, for revoking
+      void this.refreshGoneSchedules()
+      ctx.effect(() => ctx.on('schedule/changed' as never, (() => void this.refreshGoneSchedules()) as never), 'nanomuse cloud: deleted tasks of task grants')
       const runner = new TaskRunner(ctx, {
         deviceName: () => this.deviceName(),
         log: (level, text) => this.ctx.logger[level](text),
@@ -1343,6 +1350,23 @@ export default class NanomuseCloud extends Service {
     this.broadcast()
   }
 
+  /** Which task grants' tasks the schedule service no longer has; the lists mark those. */
+  private async refreshGoneSchedules(): Promise<void> {
+    const schedule = this.ctx.get('schedule') as { list(request: { sessionId: SessionId }): Promise<{ id: string }[]> } | undefined
+    if (!schedule) return
+    const tasks = (this.state.grants ?? []).filter((g) => g.sessionId && g.scheduleId)
+    const gone: string[] = []
+    for (const sessionId of new Set(tasks.map((g) => g.sessionId!))) {
+      const list = await schedule.list({ sessionId: sessionId as SessionId }).catch(() => undefined)
+      if (!list) continue
+      const have = new Set(list.map((r) => r.id))
+      for (const g of tasks) if (g.sessionId === sessionId && !have.has(g.scheduleId!)) gone.push(g.scheduleId!)
+    }
+    if (gone.join('|') === this.goneSchedules.join('|')) return
+    this.goneSchedules = gone
+    this.broadcast()
+  }
+
   /** A scheduled task's title, for the grant lists; '' when the schedule service does not know it. */
   private async scheduleTitle(sessionId: string, scheduleId: string): Promise<string> {
     const schedule = this.ctx.get('schedule') as { list(request: { sessionId: SessionId }): Promise<{ id: string; title: string }[]> } | undefined
@@ -1362,7 +1386,7 @@ export default class NanomuseCloud extends Service {
 
   /** Every remembered permission on this computer as one list (the Permissions page's *Standing grants*). */
   standingGrants(): StandingGrant[] {
-    return standingGrants({ grants: this.state.grants ?? [], trusted: this.trusted, remoteControl: this.remoteControl })
+    return standingGrants({ grants: this.state.grants ?? [], trusted: this.trusted, remoteControl: this.remoteControl, goneSchedules: this.goneSchedules })
   }
 
   /**
@@ -2367,6 +2391,7 @@ export default class NanomuseCloud extends Service {
       approvals: this.approvalDesk.list(),
       holds: this.holdDesk.list(),
       grants: this.state.grants ?? [],
+      goneSchedules: this.goneSchedules,
       handsModel: this.handsModel(),
       update: this.state.update ?? null,
       motion: this.motion.view(),

@@ -57,6 +57,12 @@ test('groups come by where they hold, general first, the switch leading, newest 
   assert.deepEqual(groupGrants(standingGrants({ grants: [{ id: 'g-1', target: 'computer_app:Safari', at: 1, sessionId: 's1' }] })).map((g) => g.scope), ['chat'])
 })
 
+test('a task grant whose task was deleted says so', () => {
+  const grants = [{ id: 'g', target: 'computer_app:WeChat', at: 1, sessionId: 's1', scheduleId: 'schedule-a' }, { id: 'h', target: 'computer_app:WeChat', at: 1, sessionId: 's1', scheduleId: 'schedule-b' }]
+  const list = standingGrants({ grants, goneSchedules: ['schedule-a'] })
+  assert.deepEqual(list.map((g) => g.scheduleGone ?? false), [true, false])
+})
+
 test('a grant in one conversation covers that conversation only; one for every conversation covers all', () => {
   const grants = [
     { id: 'g-chat', target: 'computer_app:WeChat', at: 1, sessionId: 's-morning', sessionTitle: 'Morning message' },
