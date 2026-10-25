@@ -10,6 +10,8 @@ from typing import Any
 from nanomuse.cloud import CloudClient
 
 DEFAULT_PAGE = 500
+#: the longest step text presence carries (the other devices render one line)
+DETAIL_CAP = 160
 
 
 class SyncClient:
@@ -37,12 +39,19 @@ class SyncClient:
             query += f"&tail={int(tail)}"
         return await self.cloud._request("GET", f"/v1/sync/changes?{query}")
 
-    async def working(self, cid: str, working: bool, device: str) -> None:
-        """Presence (C9): a turn started (``True``) or ended (``False``) on that conversation
-        here. The relay tells the account's other devices; 204, nothing to read."""
-        await self.cloud._request(
-            "POST", "/v1/sync/working", {"cid": cid, "working": bool(working), "device": device}
-        )
+    async def working(
+        self, cid: str, working: bool, device: str, state: str = "", detail: str = ""
+    ) -> None:
+        """Presence (C9, 0.31): a turn started (``True``) or ended (``False``) on that
+        conversation here, with what it is doing right now — the status state and the
+        step's own words, capped. A hint to the other devices' screens, never a
+        retry-worthy write. The relay tells the account's other devices; 204."""
+        body: dict[str, Any] = {"cid": cid, "working": bool(working), "device": device}
+        if working and state:
+            body["state"] = state
+        if working and detail:
+            body["detail"] = detail[:DETAIL_CAP]
+        await self.cloud._request("POST", "/v1/sync/working", body)
 
     async def push(
         self, device: str, conversations: list[dict[str, Any]], messages: list[dict[str, Any]]

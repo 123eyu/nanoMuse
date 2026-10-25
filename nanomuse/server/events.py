@@ -180,6 +180,11 @@ class EventBus:
     def unsubscribe(self, q: asyncio.Queue[dict[str, Any]]) -> None:
         self._subscribers.discard(q)
 
+    def subscribed(self, q: asyncio.Queue[dict[str, Any]]) -> bool:
+        """Whether ``q`` still gets frames: a slow subscriber is dropped on a full queue,
+        and a watcher that only waits would hang on a queue nobody fills any more."""
+        return q in self._subscribers
+
     @property
     def connections(self) -> int:
         return len(self._subscribers)

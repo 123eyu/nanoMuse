@@ -324,6 +324,10 @@ export interface WorkingPresence {
   cid: string;
   device: string;
   device_name: string;
+  /** what the run is doing right now (0.31): working, or waiting on the person */
+  state?: "working" | "waiting";
+  /** the step's own words ("打开携程网站"), as the run reported it last */
+  detail?: string;
   at: number;
 }
 

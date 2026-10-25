@@ -84,6 +84,12 @@ TAIL = 300
 WORKING_TTL_S = 10 * 60
 # how many POSTs one push may make before it lets go (a brand-new device with a long history)
 MAX_ROUNDS = 50
+# the quietest gap between two presence posts of one run (0.31): a step that changes
+# every second still reads on the other devices as one moving line, not a stream
+PRESENCE_INTERVAL_S = 2.0
+# how often the status watcher checks it was not dropped for slowness (a full queue in
+# EventBus.publish discards the subscriber; the watcher notices and subscribes again)
+WATCH_POLL_S = 30.0
 
 
 def new_cid() -> str:
@@ -134,8 +140,13 @@ class ConversationSync:
         self._tasks: set[asyncio.Task[Any]] = set()
         # set by stop(): nothing of this engine talks to the relay after that
         self._stopped = False
-        # presence (C9): cid → {thread, device, device_name, at} for the other devices' turns
-        # under way; a frame says so, a reply or ten minutes clears it
+        # 0.31: what this device last announced per thread — (state, detail) of the run
+        # under way — so a step change re-posts only when there is something new to say
+        self._announced: dict[str, tuple[str, str]] = {}
+        self._presence_scheduled: set[str] = set()
+        self._status_queue: asyncio.Queue[dict[str, Any]] | None = None
+        # presence (C9): cid → {thread, device, device_name, state, detail, at} for the other
+        # devices' turns under way; a frame says so, a reply or ten minutes clears it
         self.working: dict[str, dict[str, Any]] = {}
         # a one-off pull from zero waiting its turn (side chats just turned on)
         self._pull_from_zero = False
@@ -274,7 +285,8 @@ class ConversationSync:
 
     def working_view(self) -> list[dict[str, Any]]:
         """The other devices' turns under way (C9): ``[{thread, cid, device, device_name,
-        at}]``, ``at`` in Unix seconds, entries older than ten minutes dropped."""
+        state, detail, at}]``, ``at`` in Unix seconds, entries older than ten minutes
+        dropped. ``state``/``detail`` (0.31) say what the run is doing right now."""
         cutoff = int(time.time()) - WORKING_TTL_S
         for cid in [c for c, w in self.working.items() if int(w.get("at") or 0) < cutoff]:
             del self.working[cid]
@@ -286,6 +298,9 @@ class ConversationSync:
         self._stopped = False
         if self._timer is None or self._timer.done():
             self._timer = asyncio.create_task(self._tick(), name="sync-timer")
+        if self._status_queue is None:
+            self._status_queue = self.svc.bus.subscribe()
+            self._keep(asyncio.create_task(self._watch_status(), name="sync-status"))
         if self.active:
             self.pull_soon()
             self.push_soon(delay=PUSH_DELAY_S)
@@ -323,6 +338,8 @@ class ConversationSync:
         if account_id and account_id != previous:
             self.state.update(account_id=account_id, cursor=0)
             self.working.clear()
+            self._announced.clear()
+            self._presence_scheduled.clear()
             self._save()
             self._rehome_main(previous, account_id)
             if previous:
@@ -498,11 +515,91 @@ class ConversationSync:
         cid = self.cid_of(thread.id)
         if not cid or not self.active or self._stopped:
             return
+        status = self.svc.ui.status.get(thread.id) or {}
+        state = str(status.get("state") or "working")
+        detail = str(status.get("detail") or "")
+        if working:
+            self._announced[thread.id] = (state, detail)
+        else:
+            self._announced.pop(thread.id, None)
         self.client.cloud.api_key = self.svc.hub._key()
         try:
-            await self.client.working(cid, working, self.svc.hub.device_id)
+            await self.client.working(
+                cid, working, self.svc.hub.device_id, state=state, detail=detail
+            )
         except Exception as exc:  # noqa: BLE001 — presence is a hint, never worth a retry
             logger.debug("sync: working={} not delivered: {}", working, exc)
+
+    def status_changed(self, thread_id: str, state: str, detail: str) -> None:
+        """The run's step moved on (0.31): presence again with the new state and step.
+        Throttled to one post per interval — the task sleeps, then reads the newest status
+        and sends only what is still true and still new."""
+        if self._stopped or state not in ("working", "waiting"):
+            return
+        thread = self.svc.threads.get(thread_id)
+        if thread is None or not self.active or not self._eligible(thread):
+            return
+        if self._announced.get(thread_id) == (state, detail):
+            return
+        if thread_id in self._presence_scheduled:
+            return
+        self._presence_scheduled.add(thread_id)
+        self._keep(asyncio.create_task(self._presence_later(thread), name="sync-presence"))
+
+    async def _presence_later(self, thread: Thread) -> None:
+        """One post per interval, until what is announced is what the run is doing: a step
+        that lands while a post is under way is caught by the next round, not lost."""
+        try:
+            while not self._stopped and self.active:
+                await asyncio.sleep(PRESENCE_INTERVAL_S)
+                status = self.svc.ui.status.get(thread.id) or {}
+                state = str(status.get("state") or "")
+                if state not in ("working", "waiting"):
+                    return  # the run ended while we waited; turn_finished owns the goodbye
+                detail = str(status.get("detail") or "")
+                if self._announced.get(thread.id) == (state, detail):
+                    return
+                await self._send_working(thread, True)
+        finally:
+            self._presence_scheduled.discard(thread.id)
+
+    async def _watch_status(self) -> None:
+        """The bus's status frames (the local run's steps), feeding presence (0.31). The
+        bus drops a subscriber whose queue filled (a burst of stream frames while this
+        task waited its turn), so the wait is bounded: a dropped watcher subscribes
+        itself again rather than hanging on a queue nobody fills."""
+        try:
+            while not self._stopped:
+                q = self._status_queue
+                if q is None or not self.svc.bus.subscribed(q):
+                    if q is not None:
+                        self.svc.bus.unsubscribe(q)  # a discard is idempotent either way
+                    q = self.svc.bus.subscribe()
+                    self._status_queue = q
+                    # the frames the drop ate are gone; the runs' own status is the
+                    # catch-up, so a step that landed while this healed is not lost
+                    for tid, st in (getattr(self.svc.ui, "status", {}) or {}).items():
+                        self.status_changed(
+                            str(tid), str(st.get("state") or ""), str(st.get("detail") or "")
+                        )
+                try:
+                    msg = await asyncio.wait_for(q.get(), timeout=WATCH_POLL_S)
+                except TimeoutError:
+                    continue
+                if msg.get("kind") != "status":
+                    continue
+                status = msg.get("status") or {}
+                self.status_changed(
+                    str(status.get("thread") or ""),
+                    str(status.get("state") or ""),
+                    str(status.get("detail") or ""),
+                )
+        finally:
+            q = self._status_queue
+            if q is not None:
+                self.svc.bus.unsubscribe(q)
+                if self._status_queue is q:
+                    self._status_queue = None
 
     def thread_changed(self, thread: Thread) -> None:
         """Created or renamed: push now (a rename is one small request)."""
@@ -518,6 +615,7 @@ class ConversationSync:
         self._save()
         for c in [c for c, w in self.working.items() if w.get("thread") == thread_id]:
             del self.working[c]
+        self._announced.pop(thread_id, None)
         # a side chat with side chats off: nothing of it moves any more, its copy elsewhere stays
         if (
             cid
@@ -558,6 +656,8 @@ class ConversationSync:
                 "cid": cid,
                 "device": device,
                 "device_name": str(frame.get("device_name") or ""),
+                "state": str(frame.get("state") or "working"),
+                "detail": str(frame.get("detail") or ""),
                 "at": at,
             }
         else:
@@ -573,6 +673,8 @@ class ConversationSync:
                 "cid": cid,
                 "device": device,
                 "device_name": str(frame.get("device_name") or ""),
+                "state": str(frame.get("state") or "working"),
+                "detail": str(frame.get("detail") or ""),
                 "working": bool(frame.get("working")),
                 "at": at,
             }

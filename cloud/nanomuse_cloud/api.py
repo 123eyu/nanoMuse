@@ -24,7 +24,7 @@
     PUT  /v1/sync/state       {enabled}                         → the switch; off deletes everything stored
     GET  /v1/sync/changes     ?since=&limit=&scope=&tail=       → conversations and messages after a cursor, in seq order (0.20: scope=all|main, tail=K with since=0)
     POST /v1/sync/changes     {device, conversations, messages} → {cursor, accepted, rejected}; the other devices hear a hub `sync` frame
-    POST /v1/sync/working     {cid, working, device?}           → 0.20: 204; the other devices hear a hub `working` frame (presence, kept 10 min in memory)
+    POST /v1/sync/working     {cid, working, device?, state?, detail?} → 0.20: 204; the other devices hear a hub `working` frame (presence, kept 10 min in memory; 0.31: state and step ride along)
     DELETE /v1/sync/changes                                     → the store emptied, the switch kept
     DELETE /v1/sync/conversations/{cid}                         → one chat tombstoned everywhere
     POST /v1/auth/sign-out                                      → 204 (revokes this key)
@@ -1043,13 +1043,17 @@ def create_app(
         """0.20: {cid, working, device?} — a turn started or ended on that conversation on the
         calling device (`device` as `push` carries it, else `X-Nanomuse-Device`). The
         account's other sockets hear a hub `working` frame; the relay remembers a `true` for
-        ten minutes. Presence, not data: nothing is written."""
+        ten minutes. Presence, not data: nothing is written. 0.31: a `true` may say
+        `state` (`working` | `waiting`) and `detail` — the step's own words, capped —
+        which ride the frame to the other devices' screens."""
         body = await _json(request)
         cid = str(body.get("cid") or "")
         if not cid or "working" not in body:
             raise CloudError(400, "bad_request", "Say cid and working: true or false")
         device = str(body.get("device") or request.headers.get("x-nanomuse-device", ""))[:80]
-        frame = sync_store.set_working(caller.account_id, cid, device, bool(body["working"]))
+        state = str(body.get("state") or "")
+        detail = str(body.get("detail") or "")
+        frame = sync_store.set_working(caller.account_id, cid, device, bool(body["working"]), state=state, detail=detail)
         hub = getattr(app.state, "hub", None)
         if hub is not None:
             await hub.notify_working(caller.account_id, frame)

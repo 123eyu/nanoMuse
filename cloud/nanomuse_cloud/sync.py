@@ -25,7 +25,10 @@ gets the newest messages with their conversations instead of the whole store, so
 sign-in shows a chat in seconds however big the history is. Presence rides alongside: a
 device says ``working`` on a conversation when a turn starts there and when it ends; the
 relay tells the account's other sockets and remembers the latest ``working: true`` for ten
-minutes, in memory only — it is a hint for the screen, not data worth a table.
+minutes, in memory only — it is a hint for the screen, not data worth a table. Since 0.31
+a `working: true` also says what the run is doing right now: a `state` (`working` or
+`waiting`) and the step's own words as `detail`, so the other devices see the run move
+instead of only its start and its end.
 """
 
 from __future__ import annotations
@@ -45,6 +48,8 @@ DEFAULT_PAGE = 500
 MAX_PAGE = 1000
 TOMBSTONE_DAYS = 30
 MAX_ATTACHMENTS = 20
+#: the longest step text presence carries (0.31): the other devices render one line
+DETAIL_CAP = 160
 KINDS = ("main", "side")
 ROLES = ("user", "assistant")
 SCOPES = ("all", "main")
@@ -162,18 +167,42 @@ class Presence:
         self.clock = clock
         self._live: dict[tuple[str, str], dict] = {}
 
-    def set(self, account_id: str, cid: str, device: str, device_name: str, working: bool) -> dict:
-        """Record the change; returns the frame body the hub sends (without `type`)."""
+    def set(
+        self,
+        account_id: str,
+        cid: str,
+        device: str,
+        device_name: str,
+        working: bool,
+        state: str = "",
+        detail: str = "",
+    ) -> dict:
+        """Record the change; returns the frame body the hub sends (without `type`).
+        0.31: a `true` carries what the run is doing — the state and the step's own
+        words, capped — beside the device's name."""
         at = int(self.clock())
         key = (account_id, cid)
+        clean_state = state if state in ("working", "waiting") else "working"
+        clean_detail = detail[:DETAIL_CAP]
         if working:
-            self._live[key] = {"cid": cid, "from": device, "device_name": device_name, "at": at}
+            self._live[key] = {
+                "cid": cid,
+                "from": device,
+                "device_name": device_name,
+                "state": clean_state,
+                "detail": clean_detail,
+                "at": at,
+            }
         else:
             cur = self._live.get(key)
             # another device's `true` stands: the one that finished is not the one working
             if cur is not None and cur["from"] == device:
                 del self._live[key]
-        return {"cid": cid, "from": device, "device_name": device_name, "working": working, "at": at}
+        frame = {"cid": cid, "from": device, "device_name": device_name, "working": working, "at": at}
+        if working:
+            frame["state"] = clean_state
+            frame["detail"] = clean_detail
+        return frame
 
     def working(self, account_id: str) -> list[dict]:
         """The unexpired entries of one account, oldest first."""
@@ -344,9 +373,18 @@ class SyncStore:
             out["skipped"] = skipped
         return out
 
-    def set_working(self, account_id: str, cid: str, device: str, working: bool) -> dict:
+    def set_working(
+        self,
+        account_id: str,
+        cid: str,
+        device: str,
+        working: bool,
+        state: str = "",
+        detail: str = "",
+    ) -> dict:
         """`POST /v1/sync/working`: presence for one conversation. Returns the frame body the
-        hub sends to the account's other sockets. 404 for a cid the relay does not hold."""
+        hub sends to the account's other sockets. 404 for a cid the relay does not hold.
+        0.31: `state` and `detail` ride along on a `true` — what the run is doing now."""
         cid_ok = valid_id(cid)
         if cid_ok is None:
             raise CloudError(400, "bad_cid", "That is not a conversation id")
@@ -358,7 +396,7 @@ class SyncStore:
             if row is None or row["deleted"]:
                 raise CloudError(404, "no_conversation", "No synced conversation with that id")
             name = self._device_names(c, account_id).get(device, "")
-        return self.presence.set(account_id, cid_ok, device, name, bool(working))
+        return self.presence.set(account_id, cid_ok, device, name, bool(working), state=state, detail=detail)
 
     @staticmethod
     def _live_conversations(c: sqlite3.Connection, account_id: str) -> int:

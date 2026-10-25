@@ -219,13 +219,20 @@ class FakeSyncRelay:
             "messages": [dict(r) for k, r in rows if k == "m"],
         }
 
-    async def working(self, cid: str, working: bool, device: str) -> None:
+    async def working(
+        self, cid: str, working: bool, device: str, state: str = "", detail: str = ""
+    ) -> None:
         self._check("working")
         if self.fail_working is not None:
             raise self.fail_working
         if cid not in self.convs:
             raise CloudError(404, "no_conversation", "none")
-        self.working_calls.append({"cid": cid, "working": working, "device": device})
+        call = {"cid": cid, "working": working, "device": device}
+        if working and state:
+            call["state"] = state
+        if working and detail:
+            call["detail"] = detail
+        self.working_calls.append(call)
 
     async def push(
         self, device: str, conversations: list[dict[str, Any]], messages: list[dict[str, Any]]
@@ -868,6 +875,87 @@ def test_turning_side_chats_on_pulls_once_from_zero_and_pushes_them(main_only) -
     assert again.sync.side_chats is False
 
 
+def test_the_status_watcher_heals_after_the_bus_drops_it(
+    main_only, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """0.31: the bus discards a subscriber whose queue filled (a burst of stream frames
+    while the watcher waited its turn). The watcher notices within one poll and
+    subscribes again, so presence keeps following the run instead of hanging on a queue
+    nobody fills."""
+    client, service, llm, relay = main_only
+    monkeypatch.setattr(engine_mod, "PRESENCE_INTERVAL_S", 0.01)
+    monkeypatch.setattr(engine_mod, "WATCH_POLL_S", 0.05)
+    gate = asyncio.Event()
+
+    class GatedLLM(MockLLM):
+        async def ask(self, messages: Any, *args: Any, **kwargs: Any) -> LLMResponse:
+            await gate.wait()
+            return await super().ask(messages, *args, **kwargs)
+
+    service.threads[MAIN_THREAD].agent.llm = GatedLLM(
+        [LLMResponse(content="done", finish_reason="stop")]
+    )
+    client.post(f"/api/threads/{MAIN_THREAD}/send", json={"text": "go"})
+    wait_for(lambda: relay.working_calls)
+    dropped = service.sync._status_queue
+    assert dropped is not None and service.bus.subscribed(dropped)
+    # the bus drops the slow subscriber — exactly what publish does on a full queue
+    client.portal.call(service.bus.unsubscribe, dropped)  # type: ignore[union-attr]
+    # a later step still reaches the relay: the watcher healed itself
+    client.portal.call(lambda: service.ui.set_status("working", "after the drop", MAIN_THREAD))
+    wait_for(lambda: any(c.get("detail") == "after the drop" for c in relay.working_calls))
+    assert service.sync._status_queue is not dropped
+    client.portal.call(gate.set)  # type: ignore[union-attr]
+    wait_for(lambda: relay.working_calls[-1]["working"] is False)
+
+
+def test_presence_follows_the_runs_steps(main_only, monkeypatch: pytest.MonkeyPatch) -> None:
+    """0.31: the presence the other devices see says what the run is doing — the state and
+    the step's own words — and follows the run as the steps change, one throttled post
+    that carries the newest step, not one per change."""
+    client, service, llm, relay = main_only
+    monkeypatch.setattr(engine_mod, "PRESENCE_INTERVAL_S", 0.01)
+    gate = asyncio.Event()
+
+    class GatedLLM(MockLLM):
+        async def ask(self, messages: Any, *args: Any, **kwargs: Any) -> LLMResponse:
+            await gate.wait()
+            return await super().ask(messages, *args, **kwargs)
+
+    service.threads[MAIN_THREAD].agent.llm = GatedLLM(
+        [LLMResponse(content="done", finish_reason="stop")]
+    )
+    client.post(f"/api/threads/{MAIN_THREAD}/send", json={"text": "go"})
+    wait_for(lambda: relay.working_calls)
+    assert relay.working_calls[0]["working"] is True
+
+    # a step arrives on the bus (the run calls set_status before every tool) and presence
+    # follows it — the watcher reads the frames, the post carries the newest step
+    client.portal.call(lambda: service.ui.set_status("working", "打开携程网站", MAIN_THREAD))
+    wait_for(lambda: any(c.get("detail") == "打开携程网站" for c in relay.working_calls))
+    # two steps in quick succession: each throttled round reads the newest status, so the
+    # other devices end up on the newest step — whether a round caught the middle one is
+    # timing, not contract
+    client.portal.call(lambda: service.ui.set_status("working", "shell: ls", MAIN_THREAD))
+    client.portal.call(lambda: service.ui.set_status("working", "读文件 config.toml", MAIN_THREAD))
+    wait_for(
+        lambda: (
+            relay.working_calls and relay.working_calls[-1].get("detail") == "读文件 config.toml"
+        )
+    )
+    # nothing new to say: no further posts
+    calls_so_far = len(relay.working_calls)
+    client.portal.call(lambda: service.ui.set_status("working", "读文件 config.toml", MAIN_THREAD))
+    time.sleep(0.1)
+    assert len(relay.working_calls) == calls_so_far
+    # waiting on the person reads as waiting
+    client.portal.call(lambda: service.ui.set_status("waiting", "等你确认", MAIN_THREAD))
+    wait_for(lambda: any(c.get("state") == "waiting" for c in relay.working_calls))
+    # the run ends: the line goes
+    client.portal.call(gate.set)  # type: ignore[union-attr]
+    wait_for(lambda: relay.working_calls[-1]["working"] is False)
+
+
 def test_working_goes_up_with_the_turn_and_comes_down_from_the_hub(main_only) -> None:
     client, service, llm, relay = main_only
     gate = asyncio.Event()
@@ -883,10 +971,12 @@ def test_working_goes_up_with_the_turn_and_comes_down_from_the_hub(main_only) ->
     client.post(f"/api/threads/{MAIN_THREAD}/send", json={"text": "go"})
     # working: true right after the person's message is on the relay, under the main's cid
     wait_for(lambda: relay.working_calls)
+    # 0.31: a `working: true` carries the run's state beside the device
     assert relay.working_calls[0] == {
         "cid": relay_main(relay),
         "working": True,
         "device": "pc-self",
+        "state": "working",
     }
     assert [m["text"] for m in relay.msgs.values()] == ["go"]
     client.portal.call(gate.set)  # type: ignore[union-attr]
@@ -911,6 +1001,8 @@ def test_working_goes_up_with_the_turn_and_comes_down_from_the_hub(main_only) ->
             "cid": main_cid,
             "device": "phone-1",
             "device_name": "Pixel 8",
+            "state": "working",
+            "detail": "",
             "at": frame["at"],
         }
     ]
@@ -970,6 +1062,8 @@ def test_the_working_frame_reaches_the_web_app(main_only) -> None:
             "cid": main_cid,
             "device": "phone-1",
             "device_name": "Pixel 8",
+            "state": "working",
+            "detail": "",
             "working": True,
             "at": frame["at"],
         }
