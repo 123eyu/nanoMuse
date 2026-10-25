@@ -511,7 +511,7 @@ async def test_uploads_are_paced_and_the_account_and_the_store_have_caps(tmp_pat
     # the same file again: known, and not counted against the cap a second time
     r = await client.put(f"/v1/blobs/{sha}", headers={**ha, "Content-Type": "image/png"}, content=big)
     assert r.status_code == 200 and r.json()["known"] is True
-    other = b"\x89PNG" + b"\8" * (700 * 1024)
+    other = b"\x89PNG" + b"\\8" * (700 * 1024)  # two bytes a repeat: about 1.4 MiB
     r = await client.put(f"/v1/blobs/{hashlib.sha256(other).hexdigest()}", headers={**ha, "Content-Type": "image/png"}, content=other)
     assert r.status_code == 413 and r.json()["error"]["code"] == "quota_exceeded"
     assert not cloud.media.has(hashlib.sha256(other).hexdigest())  # refused before anything was written

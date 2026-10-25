@@ -27,7 +27,20 @@ log = logging.getLogger("nanomuse_cloud.send")
 
 
 class SendError(RuntimeError):
-    pass
+    """A code that did not go out. `reason` is `too_often` when the carrier's own limit for
+    the number refused it, so the person is told to wait rather than that the relay failed;
+    it is empty for everything else."""
+
+    def __init__(self, message: str, reason: str = "") -> None:
+        super().__init__(message)
+        self.reason = reason
+
+
+def aliyun_limit_code(code: str) -> bool:
+    """Whether an Aliyun answer code is the carrier's limit for one number, not a fault:
+    `isv.BUSINESS_LIMIT_CONTROL` (one a minute, five an hour, ten a day on dysms),
+    `isv.DAY_LIMIT_CONTROL`, `isv.MONTH_LIMIT_CONTROL`, and `biz.FREQUENCY` on dypns."""
+    return "LIMIT_CONTROL" in code or "FREQUENCY" in code
 
 
 class CodeSender(Protocol):
@@ -260,10 +273,15 @@ class AliyunSmsSender:
             # URL is cut at the question mark before it reaches the log
             log.error("aliyun sms request failed: %s: %s", type(e).__name__, str(e).split("?", 1)[0][:160])
             raise SendError("sms") from e
-        if body.get("Code") != "OK":
-            # never the number: BUSINESS_LIMIT_CONTROL (too many for one number), FREQUENCY_FAIL,
-            # MOBILE_NUMBER_ILLEGAL, FUNCTION_NOT_OPENED, isv.* — all are the operator's to read
-            log.error("aliyun sms (%s) rejected: %s %s", self.api, body.get("Code"), body.get("Message"))
+        answer = str(body.get("Code") or "")
+        if answer != "OK":
+            # never the number in the log. The carrier's limit for one number is the person's
+            # to wait out (429 code_too_often upstream); MOBILE_NUMBER_ILLEGAL,
+            # FUNCTION_NOT_OPENED and the other isv.* answers are the operator's to read.
+            if aliyun_limit_code(answer):
+                log.warning("aliyun sms (%s) held by the carrier's limit: %s", self.api, answer)
+                raise SendError("sms", reason="too_often")
+            log.error("aliyun sms (%s) rejected: %s %s", self.api, answer, body.get("Message"))
             raise SendError("sms")
 
 

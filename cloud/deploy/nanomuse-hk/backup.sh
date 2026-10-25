@@ -1,7 +1,8 @@
 #!/bin/sh
 # Daily copy of the relay's SQLite database, taken with SQLite's own backup
 # (consistent under WAL, no need to stop the container), gzipped, kept for 30
-# days. Run by nanomuse-relay-backup.timer; harmless to run by hand.
+# days, and, when cos.env says where, sent off the box encrypted. Run by
+# nanomuse-relay-backup.timer; harmless to run by hand.
 #
 #   RELAY_DIR     where docker-compose.yml lives (default /opt/nanomuse/relay)
 #   BACKUP_DIR    where copies go (default /opt/nanomuse/backups)
@@ -12,6 +13,15 @@
 # The copies are only useful together with CLOUD_SECRET from .env (the
 # hashes and the encrypted identifiers are keyed by it), so .env is copied
 # alongside, once, and again whenever it changes, with the same 0600 mode.
+#
+# Off the box, when RELAY_DIR/cos.env exists (README › Off the box): the day's copy,
+# encrypted to an age public key whose private half the maintainer keeps away from the
+# box, goes to a COS bucket under relay/ through rclone's S3 interface, with a key that
+# may put objects into that bucket and nothing else; the bucket's own lifecycle rule
+# expires the copies. .env and the record's files never leave the box. A failed upload
+# is a line in the journal, not a failed backup: the local copy exists.
+#
+#   cos.env: COS_BUCKET, COS_REGION, COS_SECRET_ID, COS_SECRET_KEY, BACKUP_AGE_RECIPIENT
 #
 # The timer runs this as root, and the database copy comes out of the container
 # owned by uid 10001, so without the chown below every file under BACKUP_DIR
@@ -65,3 +75,27 @@ fi
 
 find "$out" -name 'cloud-*.db.gz' -mtime +"$keep" -delete
 echo "backup: $out/cloud-$stamp.db.gz ($(du -h "$out/cloud-$stamp.db.gz" | cut -f1))"
+
+if [ -f "$relay/cos.env" ]; then
+	if ! command -v age >/dev/null || ! command -v rclone >/dev/null; then
+		echo "backup: cos.env is there but age or rclone is not installed; nothing went off the box" >&2
+		exit 0
+	fi
+	(
+		set -a
+		# shellcheck disable=SC1091
+		. "$relay/cos.env"
+		set +a
+		enc="$out/.cloud-$stamp.db.gz.age"
+		trap 'rm -f "$enc"' EXIT
+		age -r "$BACKUP_AGE_RECIPIENT" -o "$enc" "$out/cloud-$stamp.db.gz"
+		export RCLONE_CONFIG_COS_TYPE=s3 RCLONE_CONFIG_COS_PROVIDER=TencentCOS RCLONE_CONFIG_COS_ACL=private
+		export RCLONE_CONFIG_COS_ACCESS_KEY_ID="$COS_SECRET_ID" RCLONE_CONFIG_COS_SECRET_ACCESS_KEY="$COS_SECRET_KEY"
+		export RCLONE_CONFIG_COS_ENDPOINT="cos.$COS_REGION.myqcloud.com"
+		if rclone copyto --s3-no-check-bucket --s3-chunk-size 64M -q "$enc" "cos:$COS_BUCKET/relay/cloud-$stamp.db.gz.age"; then
+			echo "backup: off the box as relay/cloud-$stamp.db.gz.age in $COS_BUCKET"
+		else
+			echo "backup: the upload to $COS_BUCKET failed; the local copy stands" >&2
+		fi
+	)
+fi

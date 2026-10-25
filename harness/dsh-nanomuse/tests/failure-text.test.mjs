@@ -69,6 +69,29 @@ test('the relay: too many requests, a sign-in no longer valid, a 5xx', () => {
   assert.equal(failureText(t, failed('502')), 'nanoMuse Cloud ran into a problem (502). Try again in a minute.')
 })
 
+test("the relay's sign-in refusals read in the person's language, not as the wire's English", () => {
+  const t = translator(en)
+  const z = translator(zh)
+  assert.equal(failureText(t, failed('code_wrong', 'That code is not right')), en.errCodeWrong)
+  assert.equal(failureText(z, failed('code_wrong', 'That code is not right')), zh.errCodeWrong)
+  assert.equal(failureText(t, failed('code_expired')), en.errCodeExpired)
+  assert.equal(failureText(t, failed('send_failed')), en.errSendFailed)
+  assert.equal(failureText(t, failed('bad_identifier', 'not a phone number or an e-mail address')), en.errBadIdentifier)
+  assert.equal(failureText(t, failed('phone_region')), en.errPhoneRegion)
+  assert.equal(failureText(t, failed('not_invited')), en.errNotInvited)
+  assert.equal(failureText(t, failed('signup_closed')), en.errSignupClosed)
+  assert.equal(failureText(t, failed('account_disabled')), en.errAccountDisabled)
+  // a wrong password is a 401 and the carrier's limit a 429: the sign-in sentence, not the generic one
+  assert.equal(failureText(t, failed('bad_credentials')), en.errBadCredentials)
+  assert.equal(failureText(t, failed('locked')), en.errLocked)
+  assert.equal(failureText(t, failed('code_too_often')), en.errCodeTooOften)
+  assert.equal(failureText(z, failed('code_too_often')), zh.errCodeTooOften)
+  for (const key of ['errCodeWrong', 'errCodeExpired', 'errCodeTooOften', 'errSendFailed', 'errBadIdentifier', 'errPhoneRegion', 'errNotInvited', 'errSignupClosed', 'errAccountDisabled', 'errBadCredentials', 'errLocked']) {
+    assert.ok(en[key] && zh[key], `${key} in both languages`)
+    assert.doesNotMatch(en[key] + zh[key], /[!！—–]/, `${key} has no exclamation mark or dash`)
+  }
+})
+
 test('the host itself gone: fetch to loopback failed with no status and no code', () => {
   const t = translator(en)
   assert.equal(failureText(t, new TypeError('Failed to fetch')), en.errHostDown)

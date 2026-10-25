@@ -1,0 +1,48 @@
+name: iOS · Beta group
+
+# Hand a build that is on TestFlight already to the external group "nanoMuse Beta" (the public
+# link): the "What to Test" note, Apple's beta review (once per version, a day or two), the
+# testers notified. The build comes from the iOS · TestFlight workflow; internal testers have
+# it as soon as it is processed, the external group gets it when this workflow has run and the
+# review has passed. Manual only. Needs three of the repository secrets, see docs/ios.md:
+#   APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_ISSUER_ID, APP_STORE_CONNECT_KEY_P8
+# Nothing is built or signed here; the lane talks to App Store Connect and nothing else.
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: "The TestFlight build to hand on (CFBundleVersion, the TestFlight run's number); empty takes the newest"
+        required: false
+        default: ""
+      what_to_test:
+        description: "What to Test, shown to the testers; empty names the build and the releases page"
+        required: false
+        default: ""
+
+concurrency:
+  group: ios-beta-external
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  external:
+    name: external group · beta review
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Add the build to the external group and submit it for beta review
+        working-directory: android/src/ios
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_P8: ${{ secrets.APP_STORE_CONNECT_KEY_P8 }}
+          BUILD_NUMBER: ${{ inputs.build_number }}
+          WHAT_TO_TEST: ${{ inputs.what_to_test }}
+          FASTLANE_SKIP_UPDATE_CHECK: "1"
+          FASTLANE_HIDE_CHANGELOG: "1"
+        run: fastlane external

@@ -68,6 +68,7 @@ Errors carry a stable `code` the app can turn into a sentence:
 | 400 | `phone_region` | a number the SMS sender cannot reach (the Aliyun sender covers mainland China only); e-mail works everywhere |
 | 400 | `code_wrong` / `code_expired` | verification code |
 | 400 | `channel_unsupported` | this relay's `CODE_SENDER` does not send codes that way (SMS or e-mail); the sentence says which |
+| 429 | `code_too_often` | too many codes for the identifier in ten minutes or from the address in an hour, or the SMS carrier's own limit for the number (Aliyun: one a minute, five an hour, ten a day); wait |
 | 502 | `send_failed` | the SMS or mail provider refused or did not answer; the code was not sent |
 | 400 | `bad_credentials` / `password_short` / `password_long` / `password_weak` / `password_wrong` / `password_required` | the password sign-in and the password form (`bad_credentials` is 401; `locked` is 429 after too many wrong passwords) |
 | 404 | `no_session` | the sign-in to revoke no longer exists |
@@ -733,7 +734,10 @@ awaiting the first token, streaming) and age, the last hour by minute with
 outcomes, latency percentiles and output tokens, the newest finished calls,
 and a verdict (smooth, busy, saturated) from the last ten minutes' queue share
 and queue P95; *Usage* (`/v1/admin/analytics/usage`): the day × model matrix
-by requests, cost, tokens or accounts, and a click on a day opens it
+by requests, cost, tokens, cached tokens or accounts, how much of the prompts
+the provider's cache served (overall and per model, from the ledger; and for
+the turns people ran on keys of their own and sent up, per provider and
+model, from the record), and a click on a day opens it
 (`/v1/admin/analytics/day`): hours × models, platforms, outcomes by model,
 latency by hour, the provider's error reasons, the top accounts; *Platforms*
 (`/v1/admin/analytics/platforms`): Android, iOS, desktop, the runtime, the

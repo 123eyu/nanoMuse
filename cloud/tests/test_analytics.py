@@ -239,6 +239,7 @@ def fake_upstream() -> FastAPI:
     up.state.requests = []
     up.state.chat_503s = 0
     up.state.delay_s = 0.0
+    up.state.cached_tokens = 0  # when set, the usage says this many prompt tokens came from the cache
 
     @up.post("/v1/chat/completions")
     async def chat(request: Request):
@@ -257,6 +258,7 @@ def fake_upstream() -> FastAPI:
                 content={"error": {"message": "DataInspectionFailed: inappropriate content", "code": "data_inspection_failed"}},
             )
         tools = body.get("tools") or []
+        cached = {"prompt_tokens_details": {"cached_tokens": up.state.cached_tokens}} if up.state.cached_tokens else {}
         if body.get("stream"):
 
             async def gen():
@@ -268,7 +270,7 @@ def fake_upstream() -> FastAPI:
                     yield f"data: {json.dumps(chunk)}\n\n"
                 for piece in ("你好", "，", "世界"):
                     yield f"data: {json.dumps({'choices': [{'index': 0, 'delta': {'content': piece}}]})}\n\n"
-                yield f"data: {json.dumps({'choices': [], 'usage': {'prompt_tokens': 40, 'completion_tokens': 6}})}\n\n"
+                yield f"data: {json.dumps({'choices': [], 'usage': {'prompt_tokens': 40, 'completion_tokens': 6, **cached}})}\n\n"
                 yield "data: [DONE]\n\n"
 
             return StreamingResponse(gen(), media_type="text/event-stream")
@@ -282,7 +284,7 @@ def fake_upstream() -> FastAPI:
         return {
             "id": "c1",
             "choices": [{"index": 0, "message": message, "finish_reason": "stop"}],
-            "usage": {"prompt_tokens": 100, "completion_tokens": 50},
+            "usage": {"prompt_tokens": 100, "completion_tokens": 50, **cached},
         }
 
     return up
@@ -437,7 +439,9 @@ async def test_the_live_view_shows_the_gate_the_queue_and_the_last_hour(stack):
     assert live["last_10m"]["requests"] == 3 and live["last_10m"]["ok"] == 3 and live["last_10m"]["waited_share"] > 0
     assert live["last_10m"]["p95_wait_ms"] >= 100 and live["last_hour"]["tokens_out"] == 18
     assert live["since_start"]["counts"]["ok"] == 3 and len(live["recent"]) == 3
-    assert live["minutes"][-1]["n"] == 3 and live["in_flight"] == {"requests": 0, "accounts": 0, "limit": 4}
+    # the three calls fall in the current minute's bucket, or the previous one when the clock
+    # turned over between them and the read (CI saw 0 == 3 once at hh:mm:00.7)
+    assert sum(m["n"] for m in live["minutes"][-2:]) == 3 and live["in_flight"] == {"requests": 0, "accounts": 0, "limit": 4}
 
 
 async def test_the_analytics_pages_answer_from_the_rows(stack):
@@ -537,6 +541,65 @@ async def test_the_analytics_pages_answer_from_the_rows(stack):
     assert (await client.get("/v1/admin/analytics/usage?days=0", headers=ADMIN)).json()["days"] == 1
     for path in ("usage", "day", "platforms", "cohorts", "hands", "quality", "abuse"):
         assert (await client.get(f"/v1/admin/analytics/{path}")).status_code == 401
+
+
+async def test_the_usage_page_says_how_much_of_the_prompts_the_cache_served(stack):
+    """0.31: the cache is the difference between a prompt billed whole and one billed at a
+    fifth, and between four seconds to the first token and one. The Usage page says how many
+    prompt tokens the provider served from its cache, per day, per model and in all (from the
+    ledger, which has the figure back to the first version that billed it), each call's row
+    carries its own (`calls.cached_tokens`), and the turns people ran on keys of their own
+    (POST /v1/turns) are counted by provider and model under `own_keys`."""
+    app, client, sender, up, cloud = stack
+    headers, aid = await sign_up(client, sender)
+    plain = {"model": "qwen3.8-27b", "messages": [{"role": "user", "content": "hi"}]}
+    # a cold call, then two with 80 of the 100 prompt tokens from the cache (one streamed: 40 → 30)
+    assert (await client.post("/v1/chat/completions", headers=headers, json=plain)).status_code == 200
+    up.state.cached_tokens = 80
+    assert (await client.post("/v1/chat/completions", headers=headers, json=plain)).status_code == 200
+    up.state.cached_tokens = 30
+    assert (await client.post("/v1/chat/completions", headers=headers, json={**plain, "stream": True})).status_code == 200
+    got = rows(cloud)
+    assert [(r["prompt_tokens"], r["cached_tokens"]) for r in got] == [(100, 0), (100, 80), (40, 30)]
+
+    usage = (await client.get("/v1/admin/analytics/usage?days=7", headers=ADMIN)).json()
+    today = usage["rows"][-1]
+    assert (today["prompt_tokens"], today["cached_tokens"]) == (240, 110)
+    assert today["models"]["qwen3.8-27b"]["cached_tokens"] == 110
+    assert usage["totals"]["cached_tokens"] == 110 and usage["models"][0]["cached_tokens"] == 110
+    assert usage["own_keys"] == []
+
+    # a turn run on the person's own OpenAI key, sent up afterwards with its usage; one on a
+    # key whose client did not say how much was cached counts 0 cached, not nothing
+    for i, (provider, model, u) in enumerate(
+        (
+            ("openai", "gpt-5.6", {"prompt_tokens": 2_000, "completion_tokens": 40, "cached_tokens": 1_500}),
+            ("openai", "gpt-5.6", {"prompt_tokens": 1_000, "completion_tokens": 10, "cached_tokens": 5_000}),  # clamped
+            ("anthropic", "claude-5", {"prompt_tokens": 300, "completion_tokens": 20}),
+        )
+    ):
+        turn = {
+            "id": f"t-{i}",
+            "model": model,
+            "provider": provider,
+            "messages": [{"role": "user", "content": "hi"}],
+            "response": {"message": {"role": "assistant", "content": "hello"}, "usage": u},
+        }
+        assert (await client.post("/v1/turns", headers=headers, json=turn)).status_code == 201
+    usage = (await client.get("/v1/admin/analytics/usage?days=7", headers=ADMIN)).json()
+    assert usage["totals"]["cached_tokens"] == 110  # the hosted figures are the relay's own calls only
+    own = {(o["provider"], o["model"]): o for o in usage["own_keys"]}
+    assert set(own) == {("openai", "gpt-5.6"), ("anthropic", "claude-5")}
+    assert own[("openai", "gpt-5.6")]["turns"] == 2 and own[("openai", "gpt-5.6")]["accounts"] == 1
+    assert (own[("openai", "gpt-5.6")]["prompt_tokens"], own[("openai", "gpt-5.6")]["cached_tokens"]) == (3_000, 2_500)
+    assert (own[("anthropic", "claude-5")]["prompt_tokens"], own[("anthropic", "claude-5")]["cached_tokens"]) == (300, 0)
+    # the relay's own turns in the record carry the figure too (written off the loop)
+    while app.state.record_tasks:
+        await asyncio.gather(*list(app.state.record_tasks))
+    turns = cloud.db._conn.execute("SELECT source, prompt_tokens, cached_tokens FROM turns ORDER BY ts, rowid").fetchall()
+    assert sorted((r[0], r[1], r[2]) for r in turns) == sorted(
+        [("cloud", 100, 0), ("cloud", 100, 80), ("cloud", 40, 30), ("own", 2_000, 1_500), ("own", 1_000, 1_000), ("own", 300, 0)]
+    )
 
 
 async def test_kept_turns_get_a_shape_row_and_older_ones_are_backfilled(stack):

@@ -1,5 +1,7 @@
-/** Usage: the day × model matrix for the period, and one day in full (hours, platforms,
- *  outcomes and latency, error reasons, the accounts that cost most); the price table. */
+/** Usage: the day × model matrix for the period, how much of the prompts the provider's cache
+ *  served (hosted models, and the turns people ran on keys of their own), and one day in full
+ *  (hours, platforms, outcomes and latency, error reasons, the accounts that cost most); the
+ *  price table. */
 
 import { useMemo } from "react";
 import type { PageProps } from "../App";
@@ -13,8 +15,10 @@ import { Btn, Chips, DataTable, Grid, Kpi, Kpis, Note, Panel, Seg, cx, type Col 
 import { PlatformPill, Who } from "../ui/who";
 import { Loaded } from "./common";
 
-type Metric = "requests" | "cost_cny" | "prompt_tokens" | "completion_tokens" | "accounts";
-const METRICS: Metric[] = ["requests", "cost_cny", "prompt_tokens", "completion_tokens", "accounts"];
+type Metric = "requests" | "cost_cny" | "prompt_tokens" | "completion_tokens" | "cached_tokens" | "accounts";
+const METRICS: Metric[] = ["requests", "cost_cny", "prompt_tokens", "completion_tokens", "cached_tokens", "accounts"];
+/** The cached share of the input: 0 when nothing was prompted. */
+const share = (cached: number, prompt: number) => (prompt > 0 ? cached / prompt : 0);
 const fmtOf = (m: Metric) => (m === "cost_cny" ? (v: number) => money(v) : m === "requests" || m === "accounts" ? fmt : compact);
 
 export function Usage({ days }: PageProps) {
@@ -43,6 +47,7 @@ export function Usage({ days }: PageProps) {
               <Kpi label={T.g.cost} value={money(d.totals.cost_cny)} sub={`${T.us.costPerReq} ${money(costPerReq, 4)}`} />
               <Kpi label={T.g.tokensIn} value={compact(d.totals.prompt_tokens)} sub={`${T.us.avgIn} ${fmt(d.totals.requests ? d.totals.prompt_tokens / d.totals.requests : 0)}`} />
               <Kpi label={T.g.tokensOut} value={compact(d.totals.completion_tokens)} sub={`${T.us.avgOut} ${fmt(d.totals.requests ? d.totals.completion_tokens / d.totals.requests : 0)}`} />
+              <Kpi label={<span title={T.us.cachedHint}>{T.us.cached}</span>} value={d.totals.prompt_tokens ? pct(share(d.totals.cached_tokens, d.totals.prompt_tokens), 1) : "·"} sub={`${compact(d.totals.cached_tokens)} ${T.us.cachedOf(compact(d.totals.prompt_tokens))}`} tone={d.totals.prompt_tokens > 100_000 && share(d.totals.cached_tokens, d.totals.prompt_tokens) < 0.05 ? "warn" : ""} />
               <Kpi label={T.g.model} value={models.length} sub={models.map((m) => m.model).slice(0, 3).join(", ")} small />
               <Kpi label={T.g.perDay} value={money(d.totals.cost_cny / Math.max(1, d.totals.active_days))} sub={`${fmt(d.totals.requests / Math.max(1, d.totals.active_days))} ${T.g.requests}`} />
             </Kpis>
@@ -124,12 +129,33 @@ export function Usage({ days }: PageProps) {
                     { key: "per", label: T.us.costPerReq, num: true, value: (m) => (m.requests ? m.cost_cny / m.requests : 0), render: (m) => money(m.requests ? m.cost_cny / m.requests : 0, 4) },
                     { key: "prompt_tokens", label: T.us.avgIn, num: true, value: (m) => (m.requests ? m.prompt_tokens / m.requests : 0), render: (m) => fmt(m.requests ? m.prompt_tokens / m.requests : 0) },
                     { key: "completion_tokens", label: T.us.avgOut, num: true, value: (m) => (m.requests ? m.completion_tokens / m.requests : 0), render: (m) => fmt(m.requests ? m.completion_tokens / m.requests : 0) },
+                    { key: "cached", label: T.us.cachedShare, num: true, value: (m) => share(m.cached_tokens, m.prompt_tokens), render: (m) => (m.prompt_tokens ? pct(share(m.cached_tokens, m.prompt_tokens), 1) : "·") },
                     { key: "days", label: T.us.activeDays, num: true, hideSm: true },
                   ]}
                 />
               </Panel>
               <Panel title={T.us.prices}>{ov.data ? <Prices s={ov.data.settings} /> : <div className="hint py-4 text-center">{T.g.loading}</div>}</Panel>
             </Grid>
+            <Panel title={T.us.ownKeys} sub={T.us.ownKeysHint} pad={d.own_keys.length > 0 ? false : undefined}>
+              {d.own_keys.length ? (
+                <DataTable
+                  rows={d.own_keys}
+                  rowKey={(o) => `${o.provider}/${o.model}`}
+                  defaultSort="turns"
+                  columns={[
+                    { key: "provider", label: T.us.provider, render: (o) => <code>{o.provider || T.g.unknown}</code> },
+                    { key: "model", label: T.g.model, render: (o) => <code>{o.model}</code> },
+                    { key: "turns", label: T.us.turns, num: true, render: (o) => fmt(o.turns) },
+                    { key: "accounts", label: T.g.accounts, num: true, render: (o) => fmt(o.accounts) },
+                    { key: "prompt_tokens", label: T.us.avgIn, num: true, value: (o) => (o.turns ? o.prompt_tokens / o.turns : 0), render: (o) => fmt(o.turns ? o.prompt_tokens / o.turns : 0) },
+                    { key: "completion_tokens", label: T.us.avgOut, num: true, value: (o) => (o.turns ? o.completion_tokens / o.turns : 0), render: (o) => fmt(o.turns ? o.completion_tokens / o.turns : 0) },
+                    { key: "cached", label: T.us.cachedShare, num: true, value: (o) => share(o.cached_tokens, o.prompt_tokens), render: (o) => (o.prompt_tokens ? pct(share(o.cached_tokens, o.prompt_tokens), 1) : "·") },
+                  ]}
+                />
+              ) : (
+                <Note>{T.us.ownKeysNone}</Note>
+              )}
+            </Panel>
           </>
         );
       }}
