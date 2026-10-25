@@ -444,6 +444,135 @@ async def test_the_live_view_shows_the_gate_the_queue_and_the_last_hour(stack):
     assert sum(m["n"] for m in live["minutes"][-2:]) == 3 and live["in_flight"] == {"requests": 0, "accounts": 0, "limit": 4}
 
 
+async def test_a_queued_stream_hears_where_it_stands_and_a_slow_one_stays_warm(stack, monkeypatch):
+    """0.31: two slots and four streams. The third and fourth wait at the gate and, every tick,
+    get a chunk with no choices and a `nanomuse` field: `queued`, how many are ahead (0 for
+    the third, 1 for the fourth), how long they have waited; then `working` once the slot is
+    theirs. While the provider takes its time over the first bytes, a comment line goes out
+    every tick, which every SSE parser skips. The words of the reply and the usage are the
+    same as without any of it, and the telemetry rows count the wait at the gate."""
+    from nanomuse_cloud import api as api_mod
+
+    monkeypatch.setattr(api_mod, "STATUS_TICK", 0.05)
+    monkeypatch.setattr(api_mod, "KEEPALIVE_TICK", 0.05)
+    app, client, sender, up, cloud = stack
+    headers, _aid = await sign_up(client, sender)
+    plain = {"model": "qwen3.8-27b", "messages": [{"role": "user", "content": "hi"}], "stream": True}
+    up.state.delay_s = 0.4
+
+    async def one():
+        r = await client.post("/v1/chat/completions", headers=headers, json=plain)
+        assert r.status_code == 200
+        return r.text
+
+    tasks = []
+    for _ in range(4):
+        tasks.append(asyncio.create_task(one()))
+        await asyncio.sleep(0.02)  # arrival order is the queue's order
+    texts = [await t for t in tasks]
+
+    def statuses(text: str) -> list[dict]:
+        out = []
+        for line in text.splitlines():
+            if line.startswith("data:") and '"nanomuse"' in line:
+                out.append(json.loads(line[5:].strip())["nanomuse"])
+        return out
+
+    def words(text: str) -> str:
+        out = []
+        for line in text.splitlines():
+            if not line.startswith("data:") or line[5:].strip() == "[DONE]":
+                continue
+            obj = json.loads(line[5:].strip())
+            for ch in obj.get("choices") or []:
+                out.append(ch["delta"].get("content") or "")
+        return "".join(out)
+
+    # the first two never waited: no status chunks, keepalive comments only
+    for text in texts[:2]:
+        assert statuses(text) == [] and ": keepalive" in text and words(text) == "你好，世界"
+    # the third waited behind nobody, the fourth behind one; both then heard "working"
+    third, fourth = statuses(texts[2]), statuses(texts[3])
+    assert third[0]["phase"] == "queued" and third[0]["ahead"] == 0 and third[0]["waited_ms"] >= 40
+    assert fourth[0]["phase"] == "queued" and fourth[0]["ahead"] == 1
+    assert third[-1]["phase"] == "working" and fourth[-1]["phase"] == "working" and "ahead" not in third[-1]
+    assert all(s["phase"] == "queued" for s in third[:-1]) and third[-1]["waited_ms"] >= third[0]["waited_ms"]
+    for text in texts[2:]:
+        assert words(text) == "你好，世界" and text.rstrip().endswith("data: [DONE]")
+        # a status chunk is a chat chunk with no choices: the shape every parser lets through
+        chunk = json.loads(next(line for line in text.splitlines() if '"nanomuse"' in line)[5:])
+        assert chunk["object"] == "chat.completion.chunk" and chunk["choices"] == [] and chunk["model"] == "qwen3.8-27b"
+    live = (await client.get("/v1/admin/live", headers=ADMIN)).json()
+    assert live["gate"] == {"active": 0, "waiting": 0, "limit": 2}
+    assert live["last_10m"]["requests"] == 4 and live["last_10m"]["ok"] == 4 and live["last_10m"]["waited_share"] == 0.5
+    assert live["last_hour"]["tokens_out"] == 24
+
+
+async def test_a_waiter_that_leaves_the_queue_gives_its_place_back(stack, monkeypatch):
+    """The app closes a stream while it waits at the gate (the person gave up): its place goes,
+    the ones behind move up, and the slot it would have taken is handed to the next in line."""
+    from nanomuse_cloud import api as api_mod
+
+    monkeypatch.setattr(api_mod, "STATUS_TICK", 0.05)
+    app, client, sender, up, cloud = stack
+    headers, _aid = await sign_up(client, sender)
+    plain = {"model": "qwen3.8-27b", "messages": [{"role": "user", "content": "hi"}], "stream": True}
+    up.state.delay_s = 0.4
+    tasks = [asyncio.create_task(client.post("/v1/chat/completions", headers=headers, json=plain)) for _ in range(3)]
+    await asyncio.sleep(0.15)
+    live = (await client.get("/v1/admin/live", headers=ADMIN)).json()
+    assert live["gate"] == {"active": 2, "waiting": 1, "limit": 2}
+    tasks[2].cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await tasks[2]
+    await asyncio.sleep(0.05)
+    live = (await client.get("/v1/admin/live", headers=ADMIN)).json()
+    assert live["gate"]["waiting"] == 0 and live["gate"]["active"] == 2
+    for t in tasks[:2]:
+        assert (await t).status_code == 200
+    live = (await client.get("/v1/admin/live", headers=ADMIN)).json()
+    assert live["gate"] == {"active": 0, "waiting": 0, "limit": 2}
+    assert live["since_start"]["counts"].get("client_gone", 0) == 1
+
+
+def test_the_gate_hands_slots_out_in_arrival_order():
+    """The gate on its own: tickets take slots in the order they asked, `ahead` counts the
+    queue in front, a ticket released before its turn leaves no hole, and `slot()` is the
+    same wait in one piece. A gate with no limit holds nobody."""
+    from nanomuse_cloud.api import UpstreamGate
+
+    async def run():
+        gate = UpstreamGate(1)
+        a, b, c = gate.ticket(), gate.ticket(), gate.ticket()
+        assert await a.acquire(0.01) is True and gate.active == 1
+        assert await b.acquire(0.01) is False and await c.acquire(0.01) is False
+        assert (b.ahead, c.ahead, gate.waiting) == (0, 1, 2)
+        b.release()  # gives up its place
+        assert (c.ahead, gate.waiting) == (0, 1)
+        a.release()  # the slot goes to c, not to anyone new
+        d = gate.ticket()
+        assert await d.acquire(0.01) is False and await c.acquire(0.01) is True
+        assert gate.active == 1 and d.ahead == 0
+        c.release()
+        assert await d.acquire(None) is True
+        d.release()
+        assert gate.snapshot() == {"active": 0, "waiting": 0, "limit": 1}
+        async with gate.slot():
+            assert gate.active == 1
+        assert gate.active == 0
+        # a ticket granted after its holder stopped waiting hands the slot on when released
+        e, f = gate.ticket(), gate.ticket()
+        assert await e.acquire(None) is True and await f.acquire(0.01) is False
+        e.release()  # f's future is granted now, though f is not awaiting
+        assert gate.active == 1 and f.held is False
+        f.release()
+        assert gate.active == 0 and gate.waiting == 0
+        free = UpstreamGate(0)
+        assert await free.ticket().acquire(0.01) is True and free.waiting == 0
+
+    asyncio.run(run())
+
+
 async def test_the_analytics_pages_answer_from_the_rows(stack):
     app, client, sender, up, cloud = stack
     phone, aid = await sign_up(client, sender)

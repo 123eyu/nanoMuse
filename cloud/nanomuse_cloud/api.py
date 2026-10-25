@@ -120,6 +120,7 @@ import secrets
 import tempfile
 import time
 import uuid
+from collections import deque
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -162,32 +163,126 @@ log = logging.getLogger("nanomuse_cloud.api")
 
 
 class UpstreamGate:
-    """A process-wide provider slot limit with aggregate-only health figures."""
+    """A process-wide provider slot limit, first come first served, with aggregate-only
+    health figures. A request takes a `GateTicket` and waits for its slot in steps, so a
+    stream can tell the app how many are ahead of it and keep the connection warm while it
+    waits (0.31); `slot()` is the same wait in one piece."""
 
     def __init__(self, limit: int):
         self.limit = max(0, limit)
-        self._semaphore = asyncio.Semaphore(self.limit) if self.limit else None
         self.active = 0
-        self.waiting = 0
+        self._queue: deque[asyncio.Future[None]] = deque()
+
+    @property
+    def waiting(self) -> int:
+        return len(self._queue)
+
+    def ticket(self) -> GateTicket:
+        return GateTicket(self)
+
+    def _hand_out(self) -> None:
+        """Free slots to the queue's head; a waiter that left (its future cancelled) is skipped."""
+        while self._queue and self.active < self.limit:
+            fut = self._queue.popleft()
+            if not fut.done():
+                self.active += 1
+                fut.set_result(None)
 
     @asynccontextmanager
     async def slot(self) -> AsyncIterator[None]:
-        if self._semaphore is not None:
-            self.waiting += 1
-            try:
-                await self._semaphore.acquire()
-            finally:
-                self.waiting -= 1
-        self.active += 1
+        ticket = self.ticket()
         try:
+            await ticket.acquire(None)
             yield
         finally:
-            self.active -= 1
-            if self._semaphore is not None:
-                self._semaphore.release()
+            ticket.release()
 
     def snapshot(self) -> dict[str, int]:
         return {"active": self.active, "waiting": self.waiting, "limit": self.limit}
+
+
+class GateTicket:
+    """One request's place at the gate: `acquire(timeout)` answers whether the slot is held
+    yet and keeps the place in the queue across calls; `ahead` is how many wait in front;
+    `release()` gives the slot back, or the place, whichever the ticket has."""
+
+    def __init__(self, gate: UpstreamGate):
+        self.gate = gate
+        self.held = False
+        self._fut: asyncio.Future[None] | None = None
+
+    @property
+    def ahead(self) -> int:
+        if self._fut is None or self._fut.done():
+            return 0
+        try:
+            return self.gate._queue.index(self._fut)
+        except ValueError:
+            return 0
+
+    async def acquire(self, timeout: float | None) -> bool:
+        if self.held:
+            return True
+        gate = self.gate
+        if self._fut is None:
+            if not gate.limit or (gate.active < gate.limit and not gate._queue):
+                gate.active += 1
+                self.held = True
+                return True
+            self._fut = asyncio.get_running_loop().create_future()
+            gate._queue.append(self._fut)
+        try:
+            # shielded: a timeout here must not cancel the place in the queue
+            await asyncio.wait_for(asyncio.shield(self._fut), timeout)
+        except TimeoutError:
+            return False
+        self.held = True
+        return True
+
+    def release(self) -> None:
+        gate = self.gate
+        fut, self._fut = self._fut, None
+        if self.held:
+            self.held = False
+            gate.active -= 1
+            gate._hand_out()
+        elif fut is not None:
+            if fut.done() and not fut.cancelled():
+                # granted after the waiter stopped waiting: the slot goes to the next in line
+                gate.active -= 1
+                gate._hand_out()
+            else:
+                try:
+                    gate._queue.remove(fut)
+                except ValueError:
+                    pass
+                fut.cancel()
+
+
+#: how often a stream waiting for a provider slot says where it stands (and keeps warm)
+STATUS_TICK = 5.0
+#: how often a stream waiting for the provider's first bytes sends a comment line
+KEEPALIVE_TICK = 10.0
+
+
+def status_chunk(model: str, phase: str, started: float, *, ahead: int | None = None) -> bytes:
+    """A chat chunk with no choices and a `nanomuse` field: where the turn stands before the
+    model has said anything (0.31). `queued` carries how many requests are ahead at the
+    relay's gate; `working` says the slot is taken and the model is being waited for.
+    Parsers that know nothing of it see an empty chunk, as a usage-only chunk is."""
+    status: dict[str, Any] = {"phase": phase, "waited_ms": max(0, int((time.monotonic() - started) * 1000))}
+    if ahead is not None:
+        status["ahead"] = ahead
+    chunk = {"object": "chat.completion.chunk", "created": int(time.time()), "model": model, "choices": [], "nanomuse": status}
+    return f"data: {dumps(chunk)}\n\n".encode()
+
+
+async def _prepend(head: str | None, rest: AsyncIterator[str]) -> AsyncIterator[str]:
+    """The line already taken from an iterator, then the iterator."""
+    if head is not None:
+        yield head
+    async for line in rest:
+        yield line
 
 
 def _broken_status(e: httpx.HTTPError) -> str:
@@ -1274,63 +1369,106 @@ def create_app(
             detail = ""
             called: list[str] = []
             attempt = 0
+            ticket = chat_gate.ticket()
+            started = time.monotonic()
             try:
-                async with chat_gate.slot():
-                    meter.slot(call)
-                    while True:
-                        retry_status = 0
-                        async with http.stream("POST", url, headers=headers, content=request_body) as r:
-                            if r.status_code >= 400:
-                                raw = await r.aread()
-                                if chat_retryable(r.status_code) and attempt < chat_retry_limit:
-                                    retry_status = r.status_code
-                                else:
-                                    event_kind = upstream_event_kind(r.status_code, raw)
-                                    cloud.note(caller.account_id, event_kind, upstream_detail("chat", r.status_code, spec.id, raw))
-                                    failed = True
-                                    status = "content_rejected" if event_kind == "content.rejected" else "upstream_error"
-                                    detail = str(r.status_code)
-                                    err = relay_error_body(r.status_code, raw)
-                                    # The 200 has left; count the embedded stream error here.
-                                    cloud.db.daily_add("error", str(err["error"]["code"]))
-                                    yield f"data: {dumps(err)}\n\n".encode()
-                                    yield b"data: [DONE]\n\n"
-                                    return
+                # 0.31: while the request waits for a provider slot, the app hears how many are
+                # ahead of it (a chunk with no choices, which every parser lets through, and a
+                # `nanomuse` field the apps read), every STATUS_TICK seconds; the same chunks
+                # keep the connection warm through NATs that drop a silent one
+                queued = False
+                while not await ticket.acquire(STATUS_TICK):
+                    queued = True
+                    yield status_chunk(spec.id, "queued", started, ahead=ticket.ahead)
+                meter.slot(call)
+                if queued:
+                    # the turn's own: the app drops "ahead of you" and waits for the model
+                    yield status_chunk(spec.id, "working", started)
+                while True:
+                    retry_status = 0
+                    # the provider's first bytes, with a comment line (which every SSE parser
+                    # skips) every KEEPALIVE_TICK seconds until they come: a busy endpoint takes
+                    # a minute and more over a 12k-token prompt, longer than idle lines live
+                    opening = asyncio.ensure_future(
+                        http.send(http.build_request("POST", url, headers=headers, content=request_body), stream=True)
+                    )
+                    try:
+                        while True:
+                            done, _pending = await asyncio.wait({opening}, timeout=KEEPALIVE_TICK)
+                            if done:
+                                break
+                            yield b": keepalive\n\n"
+                    except BaseException:
+                        opening.cancel()
+                        raise
+                    r = opening.result()
+                    try:
+                        if r.status_code >= 400:
+                            raw = await r.aread()
+                            if chat_retryable(r.status_code) and attempt < chat_retry_limit:
+                                retry_status = r.status_code
                             else:
-                                accepted = True
-                                async for line in r.aiter_lines():
-                                    if line.startswith("data:"):
-                                        payload = line[5:].strip()
-                                        if payload and payload != "[DONE]":
-                                            meter.first(call)
-                                            try:
-                                                obj = json.loads(payload)
-                                            except ValueError:
-                                                obj = None
-                                            if isinstance(obj, dict):
-                                                u = usage_from_json(obj)
-                                                if u is not None:
-                                                    usage = u
-                                                assembler.feed(obj)
-                                                for ch in obj.get("choices") or []:
-                                                    d = ch.get("delta") if isinstance(ch, dict) else None
-                                                    if isinstance(d, dict) and isinstance(d.get("content"), str):
-                                                        text_len += len(d["content"])
-                                                        reply.append(d["content"])
-                                                        call.tokens_out += 1
-                                                called.extend(delta_tool_names(obj))
-                                                obj["model"] = spec.id
-                                                payload = dumps(obj)
-                                        yield f"data: {payload}\n\n".encode()
-                                    elif line == "":
-                                        continue
-                                    else:
-                                        yield (line + "\n").encode()
-                                status = "ok"
+                                event_kind = upstream_event_kind(r.status_code, raw)
+                                cloud.note(caller.account_id, event_kind, upstream_detail("chat", r.status_code, spec.id, raw))
+                                failed = True
+                                status = "content_rejected" if event_kind == "content.rejected" else "upstream_error"
+                                detail = str(r.status_code)
+                                err = relay_error_body(r.status_code, raw)
+                                # The 200 has left; count the embedded stream error here.
+                                cloud.db.daily_add("error", str(err["error"]["code"]))
+                                yield f"data: {dumps(err)}\n\n".encode()
+                                yield b"data: [DONE]\n\n"
                                 return
-                        await chat_retry_pause(attempt, retry_status)
-                        attempt += 1
-                        call.retries = attempt
+                        else:
+                            accepted = True
+                            lines = r.aiter_lines()
+                            # the first line the same way: the headers may come well before it
+                            first = asyncio.ensure_future(anext(lines, None))
+                            try:
+                                while True:
+                                    done, _pending = await asyncio.wait({first}, timeout=KEEPALIVE_TICK)
+                                    if done:
+                                        break
+                                    yield b": keepalive\n\n"
+                            except BaseException:
+                                first.cancel()
+                                raise
+                            head = first.result()
+                            async for line in _prepend(head, lines):
+                                if line.startswith("data:"):
+                                    payload = line[5:].strip()
+                                    if payload and payload != "[DONE]":
+                                        meter.first(call)
+                                        try:
+                                            obj = json.loads(payload)
+                                        except ValueError:
+                                            obj = None
+                                        if isinstance(obj, dict):
+                                            u = usage_from_json(obj)
+                                            if u is not None:
+                                                usage = u
+                                            assembler.feed(obj)
+                                            for ch in obj.get("choices") or []:
+                                                d = ch.get("delta") if isinstance(ch, dict) else None
+                                                if isinstance(d, dict) and isinstance(d.get("content"), str):
+                                                    text_len += len(d["content"])
+                                                    reply.append(d["content"])
+                                                    call.tokens_out += 1
+                                            called.extend(delta_tool_names(obj))
+                                            obj["model"] = spec.id
+                                            payload = dumps(obj)
+                                    yield f"data: {payload}\n\n".encode()
+                                elif line == "":
+                                    continue
+                                else:
+                                    yield (line + "\n").encode()
+                            status = "ok"
+                            return
+                    finally:
+                        await r.aclose()
+                    await chat_retry_pause(attempt, retry_status)
+                    attempt += 1
+                    call.retries = attempt
             except httpx.HTTPError as e:
                 log.warning("upstream stream error: %s %s", type(e).__name__, e)
                 cloud.note(caller.account_id, "upstream.error", f"chat stream broke {spec.id}: {type(e).__name__}")
@@ -1360,6 +1498,7 @@ def create_app(
                         status="ok" if status == "ok" else "partial",
                         **turn_where,
                     )
+                ticket.release()
                 cloud.settle(caller, request_id)
                 record_call(
                     call,

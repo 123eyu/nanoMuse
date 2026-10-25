@@ -671,6 +671,19 @@ hub_paused`), and `allowance_exhausted` with `paused: true` when the free
 allowance is paused rather than spent; `/healthz`, `/v1/config` and `/v1/me`
 list the switches that are off under `paused`.
 
+**Before the model says anything (relay 0.31).** A streamed chat turn may begin with
+chunks that have no `choices`: `{"object": "chat.completion.chunk", "model", "created",
+"choices": [], "nanomuse": {"phase", "waited_ms", "ahead"?}}`. While the request waits for
+one of the relay's provider slots (`CHAT_CONCURRENCY`), one comes every five seconds with
+`phase: "queued"` and `ahead`, how many requests are in front of it; when its slot comes,
+one with `phase: "working"`; a request that never waited gets none. While the provider
+takes its time over the first bytes, a comment line (`: keepalive`) goes out every ten
+seconds. An SSE parser skips comment lines by definition, and a chunk without choices is
+the shape of the usage-only chunk every client already handles, so a client that knows
+nothing of either sees the reply it always saw; the apps read the field and say how many
+are ahead and how long the turn has waited. Nothing of this is in a non-streamed turn,
+and nothing of it is charged or recorded.
+
 A key the relay does not know answers
 `401 bad_key`; from 0.1.40, a key whose account was deleted answers
 `401 account_deleted` instead, on every call that takes a key (`/v1/me`,
