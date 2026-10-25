@@ -16,6 +16,7 @@ import urllib.request
 from typing import Any
 
 from nanomuse.bridge.tokens import BRIDGE_TOKEN_ENV, BRIDGE_URL_ENV
+from nanomuse.stdio import utf8_console
 
 NOT_HERE = (
     "nanoMuse's bridge is not here: this program works inside a command the agent runs "
@@ -98,6 +99,8 @@ def parse_pairs(items: list[str]) -> dict[str, Any]:
 
 # ------------------------------------------------------------------ nanomuse-device
 def device_main(argv: list[str] | None = None) -> int:
+    # the answer may be Chinese (a name, a page): UTF-8, not the console's code page
+    utf8_console()
     p = argparse.ArgumentParser(
         prog="nanomuse-device",
         description="The phone's capabilities, from a command the agent runs: "
@@ -144,6 +147,8 @@ def device_main(argv: list[str] | None = None) -> int:
 
 # ------------------------------------------------------------------ nanomuse-browser
 def browser_main(argv: list[str] | None = None) -> int:
+    # the answer may be Chinese (a name, a page): UTF-8, not the console's code page
+    utf8_console()
     p = argparse.ArgumentParser(
         prog="nanomuse-browser",
         description="The agent's browser view, from a command: navigate, extract, click, type, press, "
@@ -212,6 +217,8 @@ def browser_main(argv: list[str] | None = None) -> int:
 
 # ------------------------------------------------------------------ nanomuse-open
 def open_main(argv: list[str] | None = None) -> int:
+    # the answer may be Chinese (a name, a page): UTF-8, not the console's code page
+    utf8_console()
     p = argparse.ArgumentParser(
         prog="nanomuse-open",
         description="Open a page for the user in the app's browser view (the root file system's "

@@ -1,5 +1,6 @@
 import json
 import re
+from pathlib import Path
 from typing import Any
 
 import typer
@@ -67,6 +68,36 @@ def test_doctor_reports_the_setup_without_calling_the_model(tmp_path, monkeypatc
     # the exit code is the whole message: click's Exit is a RuntimeError, and the
     # async runner's catch-all once printed it as "error: Exit: 1" under the summary
     assert "error:" not in out and "Exit" not in out
+
+
+def test_the_report_prints_on_a_console_whose_code_page_is_not_utf8(tmp_path: Path) -> None:
+    """A Chinese Windows console is code page 936, and the ✓ a report is made of is not in
+    GBK: `nanomuse doctor > report.txt` died with a UnicodeEncodeError before printing
+    anything. ``PYTHONIOENCODING=gbk`` is that console on any machine, so this runs on CI."""
+    import os
+    import subprocess
+    import sys
+
+    config = tmp_path / "config.toml"
+    config.write_text(
+        f'data_dir = "{(tmp_path / "data").as_posix()}"\n'
+        f'[agent]\nworkspace = "{(tmp_path / "ws").as_posix()}"\n'
+        f'[llm]\nbase_url = "http://localhost:11434/v1"\nmodel = "qwen3:8b"\n',
+        "utf-8",
+    )
+    (tmp_path / "ws").mkdir()
+    env = {**os.environ, "PYTHONIOENCODING": "gbk", "PYTHONUTF8": "0", "NO_COLOR": "1"}
+    result = subprocess.run(
+        [sys.executable, "-m", "nanomuse", "doctor", "--no-model", "--config", str(config)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        env=env,
+        timeout=180,
+    )
+    assert "UnicodeEncodeError" not in result.stdout + result.stderr
+    assert "✓" in result.stdout
 
 
 def test_config_path_follows_the_data_dir_variable(tmp_path, monkeypatch):
