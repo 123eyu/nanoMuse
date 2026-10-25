@@ -1191,4 +1191,9 @@
     <string name="nm_backup_delivery_failed">Dostarczenie nie powiodło się.</string>
     <string name="nm_backup_run_needs_passphrase">Szyfrowanie jest włączone, a hasło wpisuje się na stronie kopii zapasowej; uruchomienie z powłoki nie może o nie zapytać. Rozpocznij kopię na stronie albo wyłącz tam szyfrowanie.</string>
     <string name="nm_backup_run_started">Kopia zapasowa uruchomiona z powłoki.</string>
+
+    <!-- The line under the typing dots while the model has not said anything yet -->
+    <string name="nm_wait_busy">Model jest zajęty, na razie %1$d s</string>
+    <string name="nm_wait_queued">Przed Tobą: %1$d, na razie %2$d s</string>
+    <string name="nm_wait_next">Jesteś następny, na razie %1$d s</string>
 </resources>

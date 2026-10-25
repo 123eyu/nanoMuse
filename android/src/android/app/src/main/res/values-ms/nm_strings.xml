@@ -1179,4 +1179,9 @@
     <string name="nm_backup_delivery_failed">Penghantaran gagal.</string>
     <string name="nm_backup_run_needs_passphrase">Penyulitan dihidupkan, dan frasa laluan ditaip di halaman Sandaran; larian dari shell tidak boleh memintanya. Mulakan sandaran di halaman itu, atau matikan penyulitan di sana.</string>
     <string name="nm_backup_run_started">Sandaran dimulakan dari shell.</string>
+
+    <!-- The line under the typing dots while the model has not said anything yet -->
+    <string name="nm_wait_busy">Model sedang sibuk, sudah %1$d s</string>
+    <string name="nm_wait_queued">%1$d di hadapan anda, sudah %2$d s</string>
+    <string name="nm_wait_next">Anda seterusnya, sudah %1$d s</string>
 </resources>

@@ -57,7 +57,8 @@ data class ContextPolicy(
          *   - `64K–128K` → offload + compact; headroom 10k for compact.
          *   - `≥128K`  → generous offload + compact; headroom 20k.
          */
-        fun forContextWindow(contextWindow: Int): ContextPolicy = when {
+        fun forContextWindow(contextWindow: Int): ContextPolicy = io.github.nanomuse.chat.ContextBudget.cap(tierFor(contextWindow)) // nanoMuse: compaction at 32k whatever the window (ContextBudget)
+        private fun tierFor(contextWindow: Int): ContextPolicy = when {
             contextWindow < 32_000 -> ContextPolicy(
                 offloadThreshold = 0,
                 offloadTarget = 0,

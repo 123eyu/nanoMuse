@@ -1183,4 +1183,9 @@
     <string name="nm_backup_delivery_failed">Teslim başarısız oldu.</string>
     <string name="nm_backup_run_needs_passphrase">Şifreleme açık ve parola Yedekleme sayfasında yazılıyor; kabuktan başlatılan bir çalıştırma bunu soramaz. Yedeklemeyi sayfadan başlatın ya da orada şifrelemeyi kapatın.</string>
     <string name="nm_backup_run_started">Yedekleme kabuktan başlatıldı.</string>
+
+    <!-- The line under the typing dots while the model has not said anything yet -->
+    <string name="nm_wait_busy">Model meşgul, şimdiye kadar %1$d sn</string>
+    <string name="nm_wait_queued">Önünüzde %1$d istek var, şimdiye kadar %2$d sn</string>
+    <string name="nm_wait_next">Sıradaki sizsiniz, şimdiye kadar %1$d sn</string>
 </resources>

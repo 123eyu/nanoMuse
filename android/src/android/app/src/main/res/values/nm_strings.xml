@@ -1162,4 +1162,9 @@
     <string name="nm_backup_delivery_failed">Delivery failed.</string>
     <string name="nm_backup_run_needs_passphrase">Encryption is on, and the passphrase is typed on the Backup page; a run from the shell cannot ask for it. Start the backup on the page, or turn encryption off there.</string>
     <string name="nm_backup_run_started">Backup started from the shell.</string>
+
+    <!-- The line under the typing dots while the model has not said anything yet -->
+    <string name="nm_wait_busy">The model is busy, %1$d s so far</string>
+    <string name="nm_wait_queued">%1$d ahead of you, %2$d s so far</string>
+    <string name="nm_wait_next">You are next, %1$d s so far</string>
 </resources>

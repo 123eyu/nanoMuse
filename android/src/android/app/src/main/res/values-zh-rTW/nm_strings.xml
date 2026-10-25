@@ -1149,4 +1149,9 @@
     <string name="nm_backup_delivery_failed">傳送失敗。</string>
     <string name="nm_backup_run_needs_passphrase">已開啟加密，密語要在備份頁上輸入，從命令列發起的備份拿不到它。請在備份頁上開始備份，或在那裡關閉加密。</string>
     <string name="nm_backup_run_started">從命令列發起的備份已開始。</string>
+
+    <!-- The line under the typing dots while the model has not said anything yet -->
+    <string name="nm_wait_busy">模型介面比較忙，已等待 %1$d 秒</string>
+    <string name="nm_wait_queued">前面還有 %1$d 個，已等待 %2$d 秒</string>
+    <string name="nm_wait_next">下一個就到你，已等待 %1$d 秒</string>
 </resources>

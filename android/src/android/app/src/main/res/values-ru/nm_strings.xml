@@ -1191,4 +1191,9 @@
     <string name="nm_backup_delivery_failed">Доставка не удалась.</string>
     <string name="nm_backup_run_needs_passphrase">Шифрование включено, а пароль вводится на странице резервного копирования; запуск из оболочки не может его запросить. Начните резервное копирование на странице или выключите там шифрование.</string>
     <string name="nm_backup_run_started">Резервное копирование запущено из оболочки.</string>
+
+    <!-- The line under the typing dots while the model has not said anything yet -->
+    <string name="nm_wait_busy">Модель занята, прошло %1$d с</string>
+    <string name="nm_wait_queued">Перед вами %1$d, прошло %2$d с</string>
+    <string name="nm_wait_next">Вы следующий, прошло %1$d с</string>
 </resources>

@@ -1281,6 +1281,7 @@ class OpenAIProvider private constructor(
                         val err = mapHttpError(code, event.toString())
                         throw err
                     }
+                    event.optJSONObject("nanomuse")?.let { io.github.nanomuse.cloud.NmStreamStatus.note(it) } // nanoMuse: the relay's "queued, N ahead" before the model speaks (docs/cloud.md)
                     val choices = event.optJSONArray("choices")
                     if (choices != null && choices.length() > 0) {
                         val choice = choices.getJSONObject(0)
