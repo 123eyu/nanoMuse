@@ -6,6 +6,24 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Cloud
 
+### Runtime
+
+### Web
+
+### Desktop
+
+### Android
+
+### iOS
+
+### Project
+
+## [1.0.7] - 2026-10-25 · Logbook
+
+Logbook: two days after Beacon, a fourth look at the whole project with the twenty-seven pull requests merged since, around one change: the record. From relay 0.29 nanoMuse Cloud keeps every chat turn it answers in full, the pictures as files named by their hash, as the account's own data; the 1.0.7 apps name the device and conversation on each call, send up the turns they ran on a key of their own and show what is held under *Data controls*, where one tap deletes it ([#579](https://github.com/nano-muse/nanoMuse/pull/579), [#591](https://github.com/nano-muse/nanoMuse/pull/591)). The face's clips travel with the face, each device's hello names the provider and model that answer it, and the models answer the nanoMuse apps only, a pool worker or a script on an account key being turned away with `403 client_not_supported` ([#570](https://github.com/nano-muse/nanoMuse/pull/570), [#573](https://github.com/nano-muse/nanoMuse/pull/573)). The relay is 0.30.0: the operator's console is a new application with a live view of the model endpoint, one row per chat call says how it went and never what was said, the heavy pages read on a second connection off the requests' path ([#582](https://github.com/nano-muse/nanoMuse/pull/582), [#583](https://github.com/nano-muse/nanoMuse/pull/583)), older history pages read through the index and the counter writes are off the event loop, both by @takiAA ([#589](https://github.com/nano-muse/nanoMuse/pull/589), [#590](https://github.com/nano-muse/nanoMuse/pull/590)); a 1.0.6 client works against it unchanged. The runtime names itself on every model call, shows a thinking model's reasoning while it thinks, by @mongo027 ([#484](https://github.com/nano-muse/nanoMuse/pull/484)), searches with Parallel, by @cutey-none ([#566](https://github.com/nano-muse/nanoMuse/pull/566)), has Cheaper Inference in the catalogue, by @aiapienthusiast ([#554](https://github.com/nano-muse/nanoMuse/pull/554)), lists a skill's files under a dotted path and no longer sends the previous provider's key after a switch, both by @z1010223zero-pixel ([#572](https://github.com/nano-muse/nanoMuse/pull/572), [#581](https://github.com/nano-muse/nanoMuse/pull/581)), skips the environment's proxy for its own calls, prints on a non-UTF-8 console and reports a write across drives, by @Yicheng-Mark ([#587](https://github.com/nano-muse/nanoMuse/pull/587), [#594](https://github.com/nano-muse/nanoMuse/pull/594), [#595](https://github.com/nano-muse/nanoMuse/pull/595), [#596](https://github.com/nano-muse/nanoMuse/pull/596)), treats a remote MCP server as egress, asks before telling a coding agent what to do and keeps a webhook's key out of the chat; the goals' evaluation has a fixed benchmark, by @Longfellow1 ([#585](https://github.com/nano-muse/nanoMuse/pull/585)). The desktop checks who stops or approves a remote task, by @hobostay ([#567](https://github.com/nano-muse/nanoMuse/pull/567)), tints its settings only while searching, by @cutey-none ([#569](https://github.com/nano-muse/nanoMuse/pull/569)), keeps a failed push's lines and moves the Gemini key into a header. On Android one scheduled task fires at several times a day, by @Mola-maker ([#558](https://github.com/nano-muse/nanoMuse/pull/558)), a chats backup can leave the files out and run from the shell ([#561](https://github.com/nano-muse/nanoMuse/issues/561), [#560](https://github.com/nano-muse/nanoMuse/issues/560)), the Feed shows the newest batch first ([#555](https://github.com/nano-muse/nanoMuse/issues/555)) and signing out stops the account's work first. On the iPhone a second account's profile and files stay apart from the first, the privacy manifest says what is sent, and fifty-one strings read in all nine languages ([#592](https://github.com/nano-muse/nanoMuse/pull/592)). The privacy policy says what the hub keeps about each device ([#598](https://github.com/nano-muse/nanoMuse/pull/598)), the READMEs' contributors keep themselves current, and the hosted relay keeps fourteen days of database copies ([#597](https://github.com/nano-muse/nanoMuse/pull/597)).
+
+### Cloud
+
 - Moved request-statistics writes off the event loop so waiting for a database lock in the counter middleware no longer pauses unrelated work.
 - Reading older record and sample pages, including exports and the analytics backfill, skips newer timestamps through the existing index; same-second rows keep their insertion order.
 
