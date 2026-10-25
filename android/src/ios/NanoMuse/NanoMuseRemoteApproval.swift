@@ -13,6 +13,11 @@
 //  person at the other device answered first (`approval_result`) leaves without an answer
 //  from here.
 //
+//  The same card answers a computer's own question (`approval.ask`, docs/hub.md): a step of a
+//  scheduled task there, asked here because nobody may be at that computer. Its answers are
+//  Allow once, Always in this task (kept on the computer, not here) and Deny; the computer's
+//  `approval.close` takes the card away once it was decided there or on another phone.
+//
 
 import Foundation
 import SwiftUI
@@ -40,6 +45,33 @@ struct NanoMuseRemoteQuestion: Sendable {
         reason = ((body["reason"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         grantKey = ((body["grant_key"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         timeout = (body["timeout"] as? Int) ?? (body["timeout"] as? Double).map { Int($0) } ?? 0
+    }
+}
+
+/// A computer's `approval.ask`: a step of one of its scheduled tasks.
+struct NanoMuseScheduledQuestion: Sendable {
+    let id: String
+    let preview: String
+    let reason: String
+    let app: String
+    let taskTitle: String
+    /// The computer offers *Always in this task* (a hands step in one task).
+    let canTask: Bool
+    let timeout: Int
+
+    init?(args: [String: Any]) {
+        guard let id = args["approval_id"] as? String, !id.isEmpty else { return nil }
+        self.id = id
+        let chinese = Locale.preferredLanguages.first?.hasPrefix("zh") == true
+        let zh = chinese ? ((args["preview_zh"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines) : ""
+        let en = ((args["preview"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        reason = ((args["reason"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        preview = zh.isEmpty ? (en.isEmpty ? reason : en) : zh
+        app = ((args["app"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        taskTitle = (((args["task"] as? [String: Any])?["title"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        canTask = ((args["scopes"] as? [String]) ?? []).contains("schedule")
+        let seconds = (args["timeout"] as? Int) ?? (args["timeout"] as? Double).map { Int($0) } ?? 0
+        timeout = seconds > 0 ? min(max(seconds, 30), 600) : 180
     }
 }
 
@@ -77,10 +109,18 @@ final class NanoMuseRemoteApprovals: ObservableObject {
         let grantKey: String
         /// Seconds the other side waits before it takes silence as a no.
         let timeout: Int
+        /// For a computer's own question: the scheduled task asking, and the app it acts in.
+        var schedule: Schedule? = nil
 
-        /// A payment is answered one at a time, as on Android.
-        var canSession: Bool { risk != .pay }
-        var canAlways: Bool { risk != .pay && !preview.isEmpty }
+        struct Schedule: Equatable {
+            let taskTitle: String
+            let app: String
+            let canTask: Bool
+        }
+
+        /// A payment is answered one at a time, as on Android; a scheduled task's step has its own answers.
+        var canSession: Bool { risk != .pay && schedule == nil }
+        var canAlways: Bool { risk != .pay && !preview.isEmpty && schedule == nil }
         /// The same step on the same device; what an "always" covers: the sender's key when
         /// it gave one (two steps that begin with the same words never share an answer),
         /// the preview's first 60 characters from an older sender, as before.
@@ -103,7 +143,15 @@ final class NanoMuseRemoteApprovals: ObservableObject {
     }
 
     enum Decision {
-        case once, session, always, deny, timeout, elsewhere
+        case once, session, always, task, deny, timeout, elsewhere
+    }
+
+    /// What a computer's question ends with: the answer to send back, or none.
+    enum ScheduledOutcome {
+        /// `once`, `schedule` or `deny`.
+        case answer(String)
+        case expired
+        case withdrawn
     }
 
     /// What `decide` hands back to the task: the answer to send, or nothing to send.
@@ -175,7 +223,7 @@ final class NanoMuseRemoteApprovals: ObservableObject {
         }
         queue.removeAll { $0.id == id }
         switch decision {
-        case .once:
+        case .once, .task:
             return .allowed(standing: false)
         case .session:
             if request.canSession { sessionGrants.insert("\(sessionId)|\(key)") }
@@ -192,6 +240,54 @@ final class NanoMuseRemoteApprovals: ObservableObject {
         case .elsewhere:
             return .settledElsewhere
         }
+    }
+
+    /// A computer's `approval.ask` from `device`: the card, then the answer. Nothing is
+    /// remembered here; *Always in this task* is kept on the computer.
+    func ask(_ question: NanoMuseScheduledQuestion, from device: (id: String, name: String)) async -> ScheduledOutcome {
+        let id = Self.scheduledId(deviceId: device.id, approvalId: question.id)
+        guard waiters[id] == nil else { return .withdrawn }
+        let request = Request(
+            id: id,
+            deviceId: device.id,
+            deviceName: device.name,
+            sessionId: "",
+            risk: .other,
+            preview: question.preview,
+            reason: question.reason,
+            grantKey: "",
+            timeout: question.timeout,
+            schedule: Request.Schedule(taskTitle: question.taskTitle, app: question.app, canTask: question.canTask)
+        )
+        queue.append(request)
+        timers[id] = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(request.timeout) * 1_000_000_000)
+            guard !Task.isCancelled else { return }
+            self?.resolve(id, .timeout)
+        }
+        let decision = await withCheckedContinuation { (cont: CheckedContinuation<Decision, Never>) in
+            waiters[id] = cont
+        }
+        queue.removeAll { $0.id == id }
+        switch decision {
+        case .once, .session, .always: return .answer("once")
+        case .task: return .answer(question.canTask ? "schedule" : "once")
+        case .deny: return .answer("deny")
+        case .timeout: return .expired
+        case .elsewhere: return .withdrawn
+        }
+    }
+
+    /// The computer's `approval.close`: decided there or on another phone. False when this phone was not asking.
+    func close(deviceId: String, approvalId: String) -> Bool {
+        let id = Self.scheduledId(deviceId: deviceId, approvalId: approvalId)
+        guard waiters[id] != nil else { return false }
+        resolve(id, .elsewhere)
+        return true
+    }
+
+    private static func scheduledId(deviceId: String, approvalId: String) -> String {
+        "ask|\(deviceId)|\(approvalId)"
     }
 
     /// The card's answer.
@@ -265,6 +361,9 @@ struct NanoMuseRemoteApprovalSheet: View {
 
     /// Android's titles for the three classes; a plain one for the rest.
     private var title: String {
+        if request.schedule != nil {
+            return String(format: AppLocalized("Allow %@ to take this step on %@?"), agentName, request.deviceName)
+        }
         switch request.risk {
         case .delete: return String(format: AppLocalized("Allow %@ to delete this?"), agentName)
         case .send: return String(format: AppLocalized("Allow %@ to send this?"), agentName)
@@ -279,7 +378,7 @@ struct NanoMuseRemoteApprovalSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    Text(String(format: AppLocalized("The step runs on %@, not on this phone."), request.deviceName))
+                    Text(lead)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     if !request.reason.isEmpty {
@@ -302,6 +401,9 @@ struct NanoMuseRemoteApprovalSheet: View {
                 }
                 Section {
                     Button(AppLocalized("Allow once")) { approvals.answer(request.id, .once) }
+                    if request.schedule?.canTask == true {
+                        Button(AppLocalized("Always in this task")) { approvals.answer(request.id, .task) }
+                    }
                     if request.canSession {
                         Button(AppLocalized("Allow for this chat")) { approvals.answer(request.id, .session) }
                     }
@@ -320,7 +422,25 @@ struct NanoMuseRemoteApprovalSheet: View {
         .interactiveDismissDisabled()
     }
 
+    /// Where the step runs: for a scheduled task, which task and which app.
+    private var lead: String {
+        guard let schedule = request.schedule else {
+            return String(format: AppLocalized("The step runs on %@, not on this phone."), request.deviceName)
+        }
+        if schedule.app.isEmpty {
+            return String(format: AppLocalized("The scheduled task “%@” is running on %@ and waits for your answer. The step runs there, not on this phone."), schedule.taskTitle, request.deviceName)
+        }
+        return String(format: AppLocalized("The scheduled task “%@” is running on %@ and wants to act in %@. It waits for your answer; the step runs there, not on this phone."), schedule.taskTitle, request.deviceName, schedule.app)
+    }
+
     private var footer: String {
+        if let schedule = request.schedule {
+            var lines = [String(format: AppLocalized("No answer in %d seconds leaves the question waiting on %@."), request.timeout, request.deviceName)]
+            if schedule.canTask {
+                lines.append(String(format: AppLocalized("Always in this task is kept on %@: this task stops asking there. Revoke it under Settings → Permissions on that computer."), request.deviceName))
+            }
+            return lines.joined(separator: " ")
+        }
         var lines = [String(format: AppLocalized("No answer in %d seconds counts as a no."), request.timeout)]
         if request.canAlways {
             lines.append(String(format: AppLocalized("Always allow lets this same step run on %@ without asking; Approvals on the agent's page lists it and can take it back."), request.deviceName))
