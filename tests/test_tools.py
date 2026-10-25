@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import os
 import socket
 import sys
 from pathlib import Path
@@ -80,6 +81,30 @@ async def test_files_write_repairs_double_escaped_newlines(tmp_path: Path):
     one = 'echo "a\\nb"'
     await files.execute(action="write", path="one.sh", content=one)
     assert (tmp_path / "one.sh").read_text() == one
+
+
+async def test_a_write_into_an_extra_root_on_another_drive_is_reported(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """An extra root on another drive has no path relative to the workspace, and Windows'
+    ``os.path.relpath`` raises "path is on mount 'D:', start on mount 'C:'" there, after the
+    file is already on disk: the write succeeded and the model was told it failed."""
+    ws = tmp_path / "ws"
+    ws.mkdir()
+    extra = tmp_path / "D"
+    extra.mkdir()
+    files = Files(workspace=ws, extra_roots=[extra])
+    real_relpath = os.path.relpath
+
+    def relpath(path: str | Path, start: str | Path | None = None) -> str:
+        if Path(path).is_relative_to(extra):
+            raise ValueError("path is on mount 'D:', start on mount 'C:'")
+        return real_relpath(path, start)
+
+    monkeypatch.setattr(os.path, "relpath", relpath)
+    r = await files.execute(action="write", path=str(extra / "note.txt"), content="hi")
+    assert r.ok and "note.txt" in r.output, r.error
+    assert (extra / "note.txt").read_text("utf-8") == "hi"
 
 
 async def test_shell_and_python(tmp_path: Path):
