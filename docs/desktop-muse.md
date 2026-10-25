@@ -235,6 +235,11 @@ allowed without asking until you revoke the grant, on the agent page or under Se
 Computer use → *Always allowed*. *Always in this chat* writes the same grant with the
 chat's session id and title: it holds in that chat only, which is what a scheduled task
 needs (its runs land in the same chat), and the lists say *Only in the chat "<title>"*.
+While a scheduled task runs (its reminder opened the turn), the strip and the capsule offer
+*Always in this task* in place of *Always in this chat*: the grant also keeps the task's id
+and title and holds only in the turns that task starts, until someone writes in that turn;
+a turn that runs two tasks at once needs a grant for each. The lists say *Only when the task
+"<title>" runs*.
 The grant names the app, not the person or the words: in that chat, the hands may send
 anything to anyone in that app. Settings → **Computer use** shows the two macOS
 permissions with *Allow* and *Open System Settings* (through the desktop shell; the
@@ -321,8 +326,8 @@ shows the same in the trajectory card), and goes 220 ms after the run ends. When
 hands are about to click or drag under it, it moves to the bottom of the work area first
 (and back up next time), the way the phone's capsule dodges the finger. A hold turns it
 amber with **Your turn · <reason> · Done**; a question the agent asked before a step
-hangs under it as a card with *Allow once*, *Always in this chat* and *Always in <app>*
-(for a step of the hands), *Deny*. The shell feeds it
+hangs under it as a card with *Allow once*, *Always in this chat* (*Always in this task*
+in a scheduled task's run) and *Always in <app>* (for a step of the hands), *Deny*. The shell feeds it
 over IPC from the main window (`nanomuse:overlay`, `{hands: {active, held, step, title,
 text, face, stop, take, x, y, kind}, cards}`) and its answers come back the same way.
 
