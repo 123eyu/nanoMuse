@@ -877,7 +877,13 @@ def test_remote_control_off_refuses_everything_but_info(hub_server) -> None:
     relay.call_runtime("info", {}, "i1")
     res = relay.next_frame("result")
     assert res["ok"] is True and res["body"]["kind"] == "computer"
+    # seen, not operated: nothing a caller would need to drive the computer
+    assert res["body"]["actions"] == ["info"]
+    assert not {"user", "home", "cwd", "shell"} & set(res["body"])
     client.put("/api/hub", json={"remote_control": True})
+    relay.call_runtime("info", {}, "i2")
+    res = relay.next_frame("result")
+    assert res["body"]["user"] and "shell" in res["body"]["actions"]
     relay.call_runtime("shell", {"command": "echo hi"}, "s2")
     # with remote control on, the person at this computer still agrees first: a card here,
     # addressed to the phone, offering once / always for that device

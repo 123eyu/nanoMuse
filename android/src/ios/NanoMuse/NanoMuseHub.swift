@@ -215,17 +215,40 @@ final class NanoMuseHub: ObservableObject {
     }
 
     private func hello() -> [String: Any] {
-        [
-            "type": "hello",
-            "device": [
-                "id": deviceId,
-                "name": name,
-                "kind": "phone",
-                "os": "iOS \(UIDevice.current.systemVersion)",
-                "version": Self.version,
-                "actions": Self.actions,
-            ],
+        var device: [String: Any] = [
+            "id": deviceId,
+            "name": name,
+            "kind": "phone",
+            "os": "iOS \(UIDevice.current.systemVersion)",
+            "version": Self.version,
+            "actions": Self.actions,
         ]
+        if let llm = Self.helloLlm() { device["llm"] = llm }
+        return ["type": "hello", "device": device]
+    }
+
+    /// What answers new chats on this phone, for the devices list and the operator's page
+    /// (docs/hub.md `device.llm`, 1.0.7): `cloud` for the account's models, else the catalogue's
+    /// vendor id; never a key, a base URL or a provider the catalogue does not know.
+    static func helloLlm() -> [String: String]? {
+        guard let entry = NanoMuseModelSlots.chatEntry(),
+              let inst = ProviderConfigStore.shared.instance(for: entry.providerInstanceId) else { return nil }
+        let provider: String
+        if inst.id == NanoMuseCloud.instance?.id {
+            provider = "cloud"
+        } else if let vendor = NanoMuseCatalogue.vendor(for: inst) {
+            provider = vendor.id
+        } else {
+            return nil
+        }
+        let model = entry.model.id
+        guard Self.llmId(provider), Self.llmId(model) else { return nil }
+        return ["provider": provider, "model": model]
+    }
+
+    private static func llmId(_ s: String) -> Bool {
+        !s.isEmpty && s.count <= 80 && !s.contains("://")
+            && s.unicodeScalars.allSatisfy { CharacterSet.alphanumerics.contains($0) || "._:/-".unicodeScalars.contains($0) }
     }
 
     private func receive(_ gen: Int) {

@@ -1937,7 +1937,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "让这个应用通过代理访问提供方：设置 → 网络"
+            "value" : "让这个应用通过代理访问服务商：设置 → 网络"
           }
         },
         "zh-Hant" : {
@@ -2644,7 +2644,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "换一个提供方，用自己的 key"
+            "value" : "换一个服务商，用自己的 key"
           }
         },
         "zh-Hant" : {
@@ -6747,7 +6747,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "自有提供方的 HTTP 代理"
+            "value" : "自有服务商的 HTTP 代理"
           }
         },
         "zh-Hant" : {
@@ -8316,7 +8316,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 没有任何回应。问题出在这台手机到提供方的线路上，与 nanoMuse 自己的服务器无关。"
+            "value" : "%@ 没有任何回应。问题出在这台手机到服务商的线路上，与 nanoMuse 自己的服务器无关。"
           }
         },
         "zh-Hant" : {
@@ -8587,7 +8587,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "只有发往你用自己 key 添加的提供方和 ChatGPT 套餐的请求走代理。nanoMuse Cloud、你的电脑和局域网从不经过它。只保存在这台手机上。"
+            "value" : "只有发往你用自己 key 添加的服务商和 ChatGPT 套餐的请求走代理。nanoMuse Cloud、你的电脑和局域网从不经过它。只保存在这台手机上。"
           }
         },
         "zh-Hant" : {
@@ -8646,7 +8646,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打开提供方"
+            "value" : "打开服务商"
           }
         },
         "zh-Hant" : {
@@ -14979,65 +14979,6 @@
         }
       }
     },
-    "While this is on, the text of your chats with the nanoMuse Cloud models is kept on the relay to train the community's own open model: what you wrote, what it answered and the tools it chose to call. Not your memory or SOUL (the system prompt), not what tools returned, not pictures, and never next to who you are. Your own API key never passes through the relay." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Solange das an ist, wird der Text deiner Chats mit den Modellen von nanoMuse Cloud auf dem Relay behalten, um das eigene offene Modell der Community zu trainieren: was du geschrieben hast, was es geantwortet hat und welche Werkzeuge es aufgerufen hat. Nicht dein Gedächtnis oder SOUL (der Systemprompt), nicht, was Werkzeuge zurückgegeben haben, keine Bilder, und nie zusammen damit, wer du bist. Dein eigener API-Schlüssel läuft nie über das Relay."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "While this is on, the text of your chats with the nanoMuse Cloud models is kept on the relay to train the community's own open model: what you wrote, what it answered and the tools it chose to call. Not your memory or SOUL (the system prompt), not what tools returned, not pictures, and never next to who you are. Your own API key never passes through the relay."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mientras está activado, el texto de tus chats con los modelos de nanoMuse Cloud (lo que escribiste, lo que respondió y las herramientas que decidió usar) se guarda en el relay para entrenar el modelo abierto de la comunidad. No tu memoria ni el SOUL (el prompt del sistema), ni lo que devolvieron las herramientas, ni imágenes, y nunca junto a quién eres. Tu propia clave de API nunca pasa por el relay."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tant que c’est activé, le texte de vos discussions avec les modèles nanoMuse Cloud est conservé sur le relais pour entraîner le modèle ouvert de la communauté : ce que vous avez écrit, ce qu’il a répondu et les outils qu’il a choisi d’appeler. Pas votre mémoire ni SOUL (l’invite système), pas ce que les outils ont renvoyé, pas les images, et jamais à côté de qui vous êtes. Votre propre clé d’API ne passe jamais par le relais."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "オンの間、nanoMuse Cloud のモデルとのチャットのテキストがリレーに保持され、コミュニティ自身のオープンモデルの学習に使われます: あなたが書いたこと、モデルの答え、モデルが呼ぶことにしたツールです。メモリや SOUL（システムプロンプト）、ツールが返した内容、画像は含まれず、あなたが誰かと結び付けられることもありません。自分の API キーがリレーを通ることはありません。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "켜져 있는 동안 nanoMuse Cloud 모델과 나눈 채팅의 텍스트가 커뮤니티의 오픈 모델을 학습시키기 위해 릴레이에 보관됩니다: 내가 쓴 것, 모델이 답한 것, 모델이 호출하기로 한 도구입니다. 메모리나 SOUL(시스템 프롬프트), 도구가 돌려준 결과, 그림은 포함되지 않고, 내가 누구인지와 함께 두는 일도 없습니다. 내 API 키는 릴레이를 거치지 않습니다."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Пока это включено, текст ваших чатов с моделями nanoMuse Cloud хранится на релее для обучения собственной открытой модели сообщества: что вы написали, что ответила модель и какие инструменты она решила вызвать. Без вашей памяти и SOUL (системного промпта), без результатов инструментов, без картинок и никогда рядом с тем, кто вы. Ваш собственный API-ключ через релей не проходит."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "打开后，你与 nanoMuse Cloud 模型对话的文字会保存在中继上，用来训练社区自己的开源模型：你写的、它回答的，以及它选择调用的工具。不保存你的记忆和 SOUL（系统提示）、工具返回的内容和图片，也不和你的身份放在一起。用自己的 API key 时，对话不经过中继。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "打開後，你與 nanoMuse Cloud 模型對話的文字會保存在中繼上，用來訓練社群自己的開源模型：你寫的、它回答的，以及它選擇呼叫的工具。不保存你的記憶和 SOUL（系統提示）、工具回傳的內容和圖片，也不和你的身分放在一起。用自己的 API key 時，對話不經過中繼。"
-          }
-        }
-      }
-    },
     "Your code and link are under Settings → nanoMuse Cloud." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15204,7 +15145,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "提供方"
+            "value" : "服务商"
           }
         },
         "zh-Hant" : {
@@ -15263,7 +15204,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "提供方回答说这把 key 已不再有效。请到提供方设置里检查。"
+            "value" : "服务商回答说这把 key 已不再有效。请到服务商设置里检查。"
           }
         },
         "zh-Hant" : {
@@ -15322,7 +15263,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "提供方回答说这把 key 的额度已用完。"
+            "value" : "服务商回答说这把 key 的额度已用完。"
           }
         },
         "zh-Hant" : {
@@ -15381,7 +15322,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "提供方要求稍等片刻。"
+            "value" : "服务商要求稍等片刻。"
           }
         },
         "zh-Hant" : {
@@ -15440,7 +15381,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "提供方说：%@"
+            "value" : "服务商说：%@"
           }
         },
         "zh-Hant" : {
@@ -21148,10 +21089,52 @@
     },
     "1. Open the verification page\n2. Enter this code to authorize nanoMuse" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. Öffne die Bestätigungsseite\n2. Gib diesen Code ein, um nanoMuse zu autorisieren"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "1. Abre la página de verificación\n2. Introduce este código para autorizar nanoMuse"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. Ouvrez la page de vérification\n2. Saisissez ce code pour autoriser nanoMuse"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. 確認ページを開く\n2. このコードを入力して nanoMuse を承認する"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. 확인 페이지를 엽니다\n2. 이 코드를 입력해 nanoMuse를 승인합니다"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. Откройте страницу подтверждения\n2. Введите этот код, чтобы разрешить доступ nanoMuse"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. 打开验证页面\n2. 输入这个代码，授权 nanoMuse"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. 打開驗證頁面\n2. 輸入這個代碼，授權 nanoMuse"
           }
         }
       }
@@ -24645,10 +24628,52 @@
     "Alibaba Bailian" : {
       "comment" : "Voice provider name",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alibaba Bailian"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Alibaba Bailian"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alibaba Bailian"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alibaba Bailian"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alibaba Bailian"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alibaba Bailian"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阿里云百炼"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阿里雲百煉"
           }
         }
       }
@@ -27016,10 +27041,52 @@
     },
     "Arguments truncated in transit — result may be incomplete" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Argumente wurden unterwegs gekürzt; das Ergebnis kann unvollständig sein"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Los argumentos se truncaron en tránsito; el resultado puede estar incompleto"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les arguments ont été tronqués en transit ; le résultat peut être incomplet"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "引数が送信中に切り詰められました。結果が不完全な可能性があります"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전송 중 인수가 잘렸습니다. 결과가 불완전할 수 있습니다"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Аргументы были обрезаны при передаче; результат может быть неполным"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参数在传输中被截断，结果可能不完整"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "參數在傳輸中被截斷，結果可能不完整"
           }
         }
       }
@@ -27375,10 +27442,52 @@
     },
     "audio" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "audio"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "audio"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오디오"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "аудио"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音频"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音訊"
           }
         }
       }
@@ -27896,30 +28005,156 @@
     },
     "Authorization" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autorisierung"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Autorización"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autorisation"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "認可"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "인증"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Авторизация"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "授权"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "授權"
           }
         }
       }
     },
     "Authorization Endpoint (https://…/authorize)" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autorisierungs-Endpunkt (https://…/authorize)"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Endpoint de autorización (https://…/authorize)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Point de terminaison d’autorisation (https://…/authorize)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "認可エンドポイント (https://…/authorize)"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "인증 엔드포인트 (https://…/authorize)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Конечная точка авторизации (https://…/authorize)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "授权端点（https://…/authorize）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "授權端點（https://…/authorize）"
           }
         }
       }
     },
     "Authorization Endpoint must be a valid https URL." : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Autorisierungs-Endpunkt muss eine gültige https-URL sein."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "El endpoint de autorización debe ser una URL https válida."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le point de terminaison d’autorisation doit être une URL https valide."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "認可エンドポイントは有効な https URL である必要があります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "인증 엔드포인트는 유효한 https URL이어야 합니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Конечная точка авторизации должна быть корректным https-адресом."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "授权端点必须是有效的 https 地址。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "授權端點必須是有效的 https 網址。"
           }
         }
       }
@@ -27936,20 +28171,104 @@
     },
     "Authorization was cancelled." : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Autorisierung wurde abgebrochen."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Se canceló la autorización."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’autorisation a été annulée."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "認可はキャンセルされました。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "인증이 취소되었습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Авторизация отменена."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "授权已取消。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "授權已取消。"
           }
         }
       }
     },
     "Authorize…" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autorisieren …"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Autorizar…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autoriser…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "認可…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "인증…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Авторизовать…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "授权…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "授權…"
           }
         }
       }
@@ -29851,10 +30170,52 @@
     },
     "Blocked: arguments were truncated in transit" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blockiert: Die Argumente wurden unterwegs gekürzt"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bloqueado: los argumentos se truncaron durante el envío"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bloqué : les arguments ont été tronqués en transit"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブロックしました: 引数が送信中に切り詰められました"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "차단됨: 전송 중 인수가 잘렸습니다"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заблокировано: аргументы были обрезаны при передаче"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已拦截：参数在传输中被截断"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已攔截：參數在傳輸中被截斷"
           }
         }
       }
@@ -32340,10 +32701,52 @@
     },
     "Chats" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chats"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Chats"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discussions"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "チャット"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "채팅"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чаты"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "对话"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "對話"
           }
         }
       }
@@ -34480,7 +34883,49 @@
     },
     "Client ID" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client-ID"
+          }
+        },
         "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client ID"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ID client"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クライアント ID"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "클라이언트 ID"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client ID"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client ID"
+          }
+        },
+        "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Client ID"
@@ -34490,20 +34935,104 @@
     },
     "Client ID is required." : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Client-ID ist erforderlich."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "El Client ID es obligatorio."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’ID client est obligatoire."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クライアント ID は必須です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "클라이언트 ID가 필요합니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нужно указать Client ID."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要填写 Client ID。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要填寫 Client ID。"
           }
         }
       }
     },
     "Client Secret (optional)" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client-Secret (optional)"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Client Secret (opcional)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Secret client (facultatif)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クライアントシークレット（任意）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "클라이언트 시크릿(선택)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client Secret (необязательно)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client Secret（可选）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client Secret（可選）"
           }
         }
       }
@@ -36324,10 +36853,52 @@
     },
     "Contacting Kimi…" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kimi wird kontaktiert …"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Contactando con Kimi…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connexion à Kimi…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kimi に接続中…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kimi에 연결하는 중…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Связываемся с Kimi…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在联系 Kimi…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在聯絡 Kimi…"
           }
         }
       }
@@ -38960,10 +39531,52 @@
     },
     "Could not build the authorization URL." : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Autorisierungs-URL konnte nicht erstellt werden."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "No se pudo construir la URL de autorización."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de construire l’URL d’autorisation."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "認可 URL を作成できませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "인증 URL을 만들 수 없습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось собрать адрес авторизации."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法生成授权地址。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法產生授權網址。"
           }
         }
       }
@@ -39021,7 +39634,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "無法匯入該供應商設定。"
+            "value" : "無法匯入該服務商設定。"
           }
         }
       }
@@ -39086,10 +39699,52 @@
     },
     "Could not present the authorization page." : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Autorisierungsseite konnte nicht angezeigt werden."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "No se pudo mostrar la página de autorización."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’afficher la page d’autorisation."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "認可ページを表示できませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "인증 페이지를 표시할 수 없습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось открыть страницу авторизации."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法打开授权页面。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法打開授權頁面。"
           }
         }
       }
@@ -44385,10 +45040,52 @@
     "Doubao (Volcano)" : {
       "comment" : "Voice provider name",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Doubao (Volcano)"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Doubao (Volcano)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Doubao (Volcano)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Doubao (Volcano)"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Doubao (Volcano)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Doubao (Volcano)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "豆包（火山引擎）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "豆包（火山引擎）"
           }
         }
       }
@@ -55450,10 +56147,52 @@
     "iFlytek (Xunfei)" : {
       "comment" : "Voice provider name",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iFlytek (Xunfei)"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "iFlytek (Xunfei)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iFlytek (Xunfei)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iFlytek (Xunfei)"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iFlytek (Xunfei)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iFlytek (Xunfei)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "科大讯飞"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "科大訊飛"
           }
         }
       }
@@ -55519,10 +56258,52 @@
     },
     "image" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bild"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "imagen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "image"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이미지"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "изображение"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图片"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "圖片"
           }
         }
       }
@@ -56415,7 +57196,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "匯入為供應商"
+            "value" : "匯入為服務商"
           }
         }
       }
@@ -58874,10 +59655,52 @@
     },
     "Kimi Code Login" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kimi Code-Anmeldung"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Inicio de sesión de Kimi Code"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connexion Kimi Code"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kimi Code ログイン"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kimi Code 로그인"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вход в Kimi Code"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kimi Code 登录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kimi Code 登入"
           }
         }
       }
@@ -63444,10 +64267,52 @@
     },
     "MCP Servers" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP-Server"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Servidores MCP"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serveurs MCP"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP サーバー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP 서버"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Серверы MCP"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP 服务器"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP 伺服器"
           }
         }
       }
@@ -63862,10 +64727,52 @@
     },
     "Memory & Soul" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gedächtnis & Soul"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Memoria y Soul"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mémoire et Soul"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記憶と Soul"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "기억과 Soul"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Память и Soul"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "记忆与 Soul"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記憶與 Soul"
           }
         }
       }
@@ -68054,7 +68961,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "多供應商聚合路由（openrouter.ai）"
+            "value" : "多服務商聚合路由（openrouter.ai）"
           }
         }
       }
@@ -72807,10 +73714,52 @@
     },
     "Not authorized" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht autorisiert"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sin autorización"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non autorisé"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未認可"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "인증되지 않음"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет авторизации"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未授权"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未授權"
           }
         }
       }
@@ -72818,10 +73767,52 @@
     "not installed" : {
       "comment" : "voice pack not downloaded",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nicht installiert"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "no instalado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "non installé"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未インストール"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "설치되지 않음"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "не установлен"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未安装"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未安裝"
           }
         }
       }
@@ -74619,10 +75610,52 @@
     },
     "Open verification page" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestätigungsseite öffnen"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abrir la página de verificación"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir la page de vérification"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認ページを開く"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "확인 페이지 열기"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть страницу подтверждения"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开验证页面"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打開驗證頁面"
           }
         }
       }
@@ -79480,7 +80513,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "偵測到供應商設定"
+            "value" : "偵測到服務商設定"
           }
         }
       }
@@ -79596,7 +80629,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "匯入供應商"
+            "value" : "匯入服務商"
           }
         }
       }
@@ -80460,10 +81493,52 @@
     },
     "Re-authorize" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut autorisieren"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Volver a autorizar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autoriser à nouveau"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再認可"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다시 인증"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Авторизовать заново"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新授权"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新授權"
           }
         }
       }
@@ -82089,10 +83164,52 @@
     },
     "Redirect URI is invalid." : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Redirect-URI ist ungültig."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "El URI de redirección no es válido."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’URI de redirection n’est pas valide."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リダイレクト URI が無効です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "리디렉션 URI가 올바르지 않습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Некорректный Redirect URI."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重定向 URI 无效。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新導向 URI 無效。"
           }
         }
       }
@@ -82215,10 +83332,52 @@
     },
     "Refresh Tools" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Werkzeuge aktualisieren"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Actualizar herramientas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualiser les outils"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ツールを更新"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "도구 새로 고침"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обновить инструменты"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刷新工具"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新整理工具"
           }
         }
       }
@@ -88835,10 +89994,52 @@
     },
     "Scopes (space-separated)" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scopes (durch Leerzeichen getrennt)"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ámbitos (separados por espacios)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Portées (séparées par des espaces)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スコープ（スペース区切り）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "범위(공백으로 구분)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scopes (через пробел)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scopes（用空格分隔）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scopes（用空格分隔）"
           }
         }
       }
@@ -91827,10 +93028,52 @@
     },
     "Shared Files" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geteilte Dateien"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Archivos compartidos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fichiers partagés"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "共有ファイル"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "공유 파일"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Общие файлы"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "共享文件"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "共享檔案"
           }
         }
       }
@@ -92773,10 +94016,52 @@
     "Show in Files" : {
       "comment" : "Completed download row hint",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Dateien zeigen"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mostrar en Archivos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher dans Fichiers"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ファイル App で表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "파일 앱에서 보기"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать в Файлах"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在「文件」中显示"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在「檔案」中顯示"
           }
         }
       }
@@ -93136,10 +94421,52 @@
     "Showing models that can read images." : {
       "comment" : "Vision group picker filter note",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es werden Modelle angezeigt, die Bilder lesen können."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mostrando los modelos que pueden leer imágenes."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affichage des modèles capables de lire les images."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像を読み取れるモデルを表示しています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이미지를 읽을 수 있는 모델을 표시합니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показаны модели, которые умеют читать изображения."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只显示能读图的模型。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只顯示能讀圖的模型。"
           }
         }
       }
@@ -93387,10 +94714,52 @@
     },
     "Sign in with Kimi Code" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Kimi Code anmelden"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Iniciar sesión con Kimi Code"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se connecter avec Kimi Code"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kimi Code でサインイン"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kimi Code로 로그인"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Войти через Kimi Code"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Kimi Code 登录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Kimi Code 登入"
           }
         }
       }
@@ -93579,20 +94948,104 @@
     },
     "Sign in with your Kimi Code / Coding Plan subscription" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit deinem Kimi Code / Coding Plan-Abo anmelden"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Inicia sesión con tu suscripción a Kimi Code / Coding Plan"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connectez-vous avec votre abonnement Kimi Code / Coding Plan"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kimi Code / Coding Plan のサブスクリプションでサインイン"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kimi Code / Coding Plan 구독으로 로그인"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Войдите с подпиской Kimi Code / Coding Plan"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用你的 Kimi Code / Coding Plan 订阅登录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用你的 Kimi Code / Coding Plan 訂閱登入"
           }
         }
       }
     },
     "Sign in with your Kimi Code / Coding Plan subscription." : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Melde dich mit deinem Kimi Code / Coding Plan-Abo an."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Inicia sesión con tu suscripción a Kimi Code / Coding Plan."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connectez-vous avec votre abonnement Kimi Code / Coding Plan."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kimi Code / Coding Plan のサブスクリプションでサインインします。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kimi Code / Coding Plan 구독으로 로그인합니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Войдите с подпиской Kimi Code / Coding Plan."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用你的 Kimi Code / Coding Plan 订阅登录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用你的 Kimi Code / Coding Plan 訂閱登入。"
           }
         }
       }
@@ -93701,10 +95154,52 @@
     },
     "Signed in to Kimi Code" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bei Kimi Code angemeldet"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sesión iniciada en Kimi Code"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecté à Kimi Code"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kimi Code にサインイン済み"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kimi Code에 로그인됨"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выполнен вход в Kimi Code"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已登录 Kimi Code"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已登入 Kimi Code"
           }
         }
       }
@@ -96067,10 +97562,52 @@
     },
     "State mismatch in the OAuth callback." : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der State-Parameter im OAuth-Callback stimmt nicht überein."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "El parámetro state no coincide en la respuesta de OAuth."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le paramètre state ne correspond pas dans le retour OAuth."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OAuth コールバックの state が一致しません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OAuth 콜백의 state 값이 일치하지 않습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Параметр state в ответе OAuth не совпадает."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OAuth 回调里的 state 不匹配。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OAuth 回呼裡的 state 不相符。"
           }
         }
       }
@@ -98669,10 +100206,52 @@
     "Tap to view" : {
       "comment" : "Completed download card",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Anzeigen tippen"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Toca para ver"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toucher pour afficher"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タップして表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "탭하여 보기"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нажмите, чтобы открыть"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点按查看"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "點一下查看"
           }
         }
       }
@@ -101065,10 +102644,52 @@
     },
     "The terminal engine isn't running yet. Open a chat or the terminal once, then retry." : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Terminal-Engine läuft noch nicht. Öffne einmal einen Chat oder das Terminal und versuche es dann erneut."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "El motor del terminal aún no está en ejecución. Abre un chat o el terminal una vez y vuelve a intentarlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le moteur du terminal ne tourne pas encore. Ouvrez une discussion ou le terminal une fois, puis réessayez."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ターミナルエンジンがまだ起動していません。チャットかターミナルを一度開いてから、やり直してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "터미널 엔진이 아직 실행되지 않았습니다. 채팅이나 터미널을 한 번 연 뒤 다시 시도하세요."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Движок терминала ещё не запущен. Откройте чат или терминал один раз и повторите попытку."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "终端引擎还没有运行。先打开一次对话或终端，再重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "終端機引擎還沒有運行。先打開一次對話或終端機，再重試。"
           }
         }
       }
@@ -102174,10 +103795,52 @@
     "This group describes images for models that cannot see them — only models that accept image input are listed." : {
       "comment" : "Add-models filter note for the bound vision group",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Gruppe beschreibt Bilder für Modelle, die sie nicht sehen können; es werden nur Modelle aufgeführt, die Bilder als Eingabe annehmen."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Este grupo describe imágenes para los modelos que no pueden verlas: solo se muestran los modelos que aceptan entrada de imagen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce groupe décrit les images pour les modèles qui ne peuvent pas les voir ; seuls les modèles acceptant des images en entrée sont listés."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このグループは、画像を見られないモデルのために画像を説明します。画像入力に対応するモデルだけが表示されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 그룹은 이미지를 볼 수 없는 모델을 위해 이미지를 설명합니다. 이미지 입력을 받는 모델만 표시됩니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Эта группа описывает изображения для моделей, которые их не видят; в списке только модели, принимающие изображения на вход."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这个组负责给看不了图的模型描述图片，所以只列出能接收图片输入的模型。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個群組負責給看不了圖的模型描述圖片，所以只列出能接收圖片輸入的模型。"
           }
         }
       }
@@ -102353,7 +104016,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此 JSON 檔案看起來是匯出的供應商設定。是否匯入為新供應商，還是作為檔案附件新增到聊天？"
+            "value" : "此 JSON 檔案看起來是匯出的服務商設定。是否匯入為新服務商，還是作為檔案附件新增到聊天？"
           }
         }
       }
@@ -104963,30 +106626,156 @@
     },
     "Token Endpoint (https://…/token)" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Token-Endpunkt (https://…/token)"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Endpoint de token (https://…/token)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Point de terminaison de jeton (https://…/token)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トークンエンドポイント (https://…/token)"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "토큰 엔드포인트 (https://…/token)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Конечная точка токена (https://…/token)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "令牌端点（https://…/token）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "權杖端點（https://…/token）"
           }
         }
       }
     },
     "Token Endpoint must be a valid https URL." : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Token-Endpunkt muss eine gültige https-URL sein."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "El endpoint de token debe ser una URL https válida."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le point de terminaison de jeton doit être une URL https valide."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トークンエンドポイントは有効な https URL である必要があります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "토큰 엔드포인트는 유효한 https URL이어야 합니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Конечная точка токена должна быть корректным https-адресом."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "令牌端点必须是有效的 https 地址。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "權杖端點必須是有效的 https 網址。"
           }
         }
       }
     },
     "Token endpoint returned no access_token." : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Token-Endpunkt hat kein access_token zurückgegeben."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "El endpoint de token no devolvió ningún access_token."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le point de terminaison de jeton n’a renvoyé aucun access_token."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トークンエンドポイントが access_token を返しませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "토큰 엔드포인트가 access_token을 반환하지 않았습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Конечная точка токена не вернула access_token."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "令牌端点没有返回 access_token。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "權杖端點沒有回傳 access_token。"
           }
         }
       }
@@ -105334,10 +107123,52 @@
     },
     "Tools" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Werkzeuge"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Herramientas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outils"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ツール"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "도구"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Инструменты"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工具"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工具"
           }
         }
       }
@@ -106410,10 +108241,52 @@
     },
     "Unexpected CLI output (no JSON result). Check the server's connectivity." : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unerwartete CLI-Ausgabe (kein JSON-Ergebnis). Prüfe die Verbindung zum Server."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Salida inesperada de la CLI (sin resultado JSON). Comprueba la conectividad del servidor."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sortie CLI inattendue (pas de résultat JSON). Vérifiez la connectivité du serveur."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予期しない CLI 出力です（JSON の結果がありません）。サーバーへの接続を確認してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "예상치 못한 CLI 출력입니다(JSON 결과 없음). 서버 연결을 확인하세요."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Неожиданный вывод CLI (нет результата в JSON). Проверьте связь с сервером."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CLI 输出不符合预期（没有 JSON 结果）。检查一下服务器的连通性。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CLI 輸出不符合預期（沒有 JSON 結果）。檢查一下伺服器的連線。"
           }
         }
       }
@@ -109540,10 +111413,52 @@
     },
     "video" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "video"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "vidéo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "비디오"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "видео"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "视频"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "影片"
           }
         }
       }
@@ -110133,10 +112048,52 @@
     },
     "Voice Corrections" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprachkorrekturen"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Correcciones de voz"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Corrections vocales"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声の修正"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "음성 교정"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Голосовые исправления"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "语音纠错"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "語音糾錯"
           }
         }
       }
@@ -110727,10 +112684,52 @@
     },
     "Waiting for authorization…" : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warte auf Autorisierung …"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Esperando la autorización…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En attente d’autorisation…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "認可を待っています…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "인증을 기다리는 중…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ожидание авторизации…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待授权…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待授權…"
           }
         }
       }
@@ -112696,10 +114695,52 @@
     "Xiaomi MiMo" : {
       "comment" : "Voice provider name",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xiaomi MiMo"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Xiaomi MiMo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xiaomi MiMo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xiaomi MiMo"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xiaomi MiMo"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xiaomi MiMo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "小米 MiMo"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "小米 MiMo"
           }
         }
       }
@@ -113070,7 +115111,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "有尚未儲存的供應商設定。"
+            "value" : "有尚未儲存的服務商設定。"
           }
         }
       }
@@ -122943,6 +124984,655 @@
         }
       }
     },
+    "While this is on, the text of those chats (what you wrote, what the model answered and the tools it chose to call) also joins the training set for the community's own open model: without your memory or SOUL (the system prompt), what tools returned, pictures, or who you are. Off, nothing more joins it; the record itself stays until you delete it. Turns on a key of your own are in the record, never in the training set." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solange das an ist, geht der Text dieser Chats (was du geschrieben hast, was das Modell geantwortet hat und welche Werkzeuge es aufgerufen hat) auch in den Trainingssatz für das eigene offene Modell der Community: ohne dein Gedächtnis oder SOUL (den Systemprompt), ohne das, was Werkzeuge zurückgegeben haben, ohne Bilder und ohne, wer du bist. Aus: nichts weiter kommt hinzu; die Aufzeichnung selbst bleibt, bis du sie löschst. Runden mit deinem eigenen Schlüssel sind in der Aufzeichnung, nie im Trainingssatz."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "While this is on, the text of those chats (what you wrote, what the model answered and the tools it chose to call) also joins the training set for the community's own open model: without your memory or SOUL (the system prompt), what tools returned, pictures, or who you are. Off, nothing more joins it; the record itself stays until you delete it. Turns on a key of your own are in the record, never in the training set."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mientras está activado, el texto de esos chats (lo que escribiste, lo que respondió el modelo y las herramientas que decidió usar) también entra en el conjunto de entrenamiento del modelo abierto de la comunidad: sin tu memoria ni el SOUL (el prompt del sistema), sin lo que devolvieron las herramientas, sin imágenes y sin quién eres. Desactivado, nada más entra; el registro en sí se conserva hasta que lo borres. Los turnos con tu propia clave están en el registro, nunca en el conjunto de entrenamiento."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tant que c’est activé, le texte de ces discussions (ce que vous avez écrit, ce que le modèle a répondu et les outils qu’il a choisi d’appeler) rejoint aussi le jeu d’entraînement du modèle ouvert de la communauté : sans votre mémoire ni SOUL (l’invite système), sans ce que les outils ont renvoyé, sans images et sans qui vous êtes. Désactivé, plus rien ne s’y ajoute ; l’historique lui-même reste jusqu’à ce que vous le supprimiez. Les tours avec votre propre clé sont dans l’historique, jamais dans le jeu d’entraînement."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オンの間、これらのチャットのテキスト（あなたが書いたこと、モデルの答え、モデルが呼ぶことにしたツール）は、コミュニティ自身のオープンモデルの学習データにも入ります。メモリや SOUL（システムプロンプト）、ツールが返した内容、画像、あなたが誰かは含みません。オフにすると以後は入りません。記録そのものは削除するまで残ります。自分のキーでのターンは記録に入り、学習データには決して入りません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "켜져 있는 동안 이 채팅의 텍스트(내가 쓴 것, 모델이 답한 것, 모델이 호출하기로 한 도구)는 커뮤니티의 오픈 모델을 위한 학습 세트에도 들어갑니다. 메모리나 SOUL(시스템 프롬프트), 도구가 돌려준 결과, 그림, 내가 누구인지는 포함되지 않습니다. 끄면 더는 들어가지 않고, 기록 자체는 삭제할 때까지 남습니다. 내 키로 한 턴은 기록에만 들어가고 학습 세트에는 절대 들어가지 않습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пока это включено, текст этих чатов (что вы написали, что ответила модель и какие инструменты она решила вызвать) попадает и в обучающий набор для собственной открытой модели сообщества: без вашей памяти и SOUL (системного промпта), без того, что вернули инструменты, без картинок и без того, кто вы. Выключено: больше ничего не добавляется; сама запись остаётся, пока вы её не удалите. Реплики с вашим собственным ключом есть в записи, но никогда в обучающем наборе."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开后，这些对话的文字（你写的、模型回答的，以及它选择调用的工具）还会进入训练集，用来训练社区自己的开源模型：不含你的记忆和 SOUL（系统提示）、工具返回的内容、图片和你的身份。关掉后不再有新的进入；记录本身保留到你删除为止。用你自己的 key 的对话只进记录，不进训练集。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟後，這些對話的文字（你寫的、模型回答的，以及它選擇呼叫的工具）還會進入訓練集，用來訓練社群自己的開源模型：不含你的記憶和 SOUL（系統提示）、工具傳回的內容、圖片和你的身分。關閉後不再有新的進入；記錄本身保留到你刪除為止。用你自己的 key 的對話只進記錄，不進訓練集。"
+          }
+        }
+      }
+    },
+    "Off. Nothing more joins the training set." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus. Nichts weiter kommt in den Trainingssatz."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off. Nothing more joins the training set."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desactivado. Nada más entra en el conjunto de entrenamiento."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactivé. Plus rien ne rejoint le jeu d’entraînement."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフ。以後は学習データに入りません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "꺼짐. 더는 학습 세트에 들어가지 않습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выключено. В обучающий набор больше ничего не добавляется."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已关闭。之后的对话不再进入训练集。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已關閉。之後的對話不再進入訓練集。"
+          }
+        }
+      }
+    },
+    "Delete the record and the kept conversations" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufzeichnung und behaltene Unterhaltungen löschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete the record and the kept conversations"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar el registro y las conversaciones guardadas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer l’historique et les conversations conservées"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記録と保持している会話を削除"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "기록과 보관된 대화 삭제"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить запись и сохранённые разговоры"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除记录和已保存的对话"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除記錄和已保存的對話"
+          }
+        }
+      }
+    },
+    "Removes the record of this account's chats and every training turn kept from it, whether the switch is on or off now. Turning the switch off keeps what was kept until you delete it here." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entfernt die Aufzeichnung der Chats dieses Kontos und jede davon behaltene Trainingsrunde, egal ob der Schalter gerade an oder aus ist. Den Schalter auszuschalten behält das Behaltene, bis du es hier löschst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removes the record of this account's chats and every training turn kept from it, whether the switch is on or off now. Turning the switch off keeps what was kept until you delete it here."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina el registro de los chats de esta cuenta y cada turno de entrenamiento guardado de ella, esté el interruptor activado o no. Desactivar el interruptor conserva lo guardado hasta que lo borres aquí."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprime l’historique des discussions de ce compte et chaque tour d’entraînement conservé, que l’interrupteur soit activé ou non. Désactiver l’interrupteur garde ce qui a été conservé jusqu’à ce que vous le supprimiez ici."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアカウントのチャットの記録と、保持しているすべての学習ターンを削除します。スイッチが今オンかオフかは関係ありません。スイッチをオフにしただけでは、ここで削除するまで保持されたままです。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 계정 채팅의 기록과 보관된 모든 학습 턴을 삭제합니다. 스위치가 지금 켜져 있든 꺼져 있든 상관없습니다. 스위치를 끄기만 하면 여기서 삭제할 때까지 보관된 것은 남습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удаляет запись чатов этого аккаунта и каждую сохранённую от него обучающую реплику, включён переключатель сейчас или нет. Выключение переключателя оставляет сохранённое, пока вы не удалите его здесь."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除这个账号的对话记录和已保存的全部训练轮次，不管开关现在是开是关。只关掉开关不会删除已保存的内容，要在这里删。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除這個帳號的對話記錄和已保存的全部訓練輪次，不管開關現在是開是關。只關掉開關不會刪除已保存的內容，要在這裡刪。"
+          }
+        }
+      }
+    },
+    "The record of your chats and the kept training turns are removed from the server. This cannot be undone." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Aufzeichnung deiner Chats und die behaltenen Trainingsrunden werden vom Server entfernt. Das lässt sich nicht rückgängig machen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The record of your chats and the kept training turns are removed from the server. This cannot be undone."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El registro de tus chats y los turnos de entrenamiento guardados se eliminan del servidor. Esto no se puede deshacer."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’historique de vos discussions et les tours d’entraînement conservés sont supprimés du serveur. Cette action est irréversible."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "チャットの記録と保持している学習ターンがサーバーから削除されます。元に戻せません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "채팅 기록과 보관된 학습 턴이 서버에서 삭제됩니다. 되돌릴 수 없습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запись ваших чатов и сохранённые обучающие реплики удаляются с сервера. Это нельзя отменить."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的对话记录和已保存的训练轮次会从服务器上删除，不可恢复。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的對話記錄和已保存的訓練輪次會從伺服器上刪除，無法復原。"
+          }
+        }
+      }
+    },
+    "Deleted: %1$d turns of the record, %2$d files, %3$d training turns." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gelöscht: %1$d Runden der Aufzeichnung, %2$d Dateien, %3$d Trainingsrunden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deleted: %1$d turns of the record, %2$d files, %3$d training turns."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminado: %1$d turnos del registro, %2$d archivos, %3$d turnos de entrenamiento."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimé : %1$d tours de l’historique, %2$d fichiers, %3$d tours d’entraînement."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "削除しました：記録 %1$d ターン、ファイル %2$d 件、学習ターン %3$d ターン。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "삭제됨: 기록 %1$d턴, 파일 %2$d개, 학습 턴 %3$d턴."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалено: реплик записи %1$d, файлов %2$d, обучающих реплик %3$d."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已删除：记录 %1$d 轮、文件 %2$d 个、训练轮次 %3$d 轮。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已刪除：記錄 %1$d 輪、檔案 %2$d 個、訓練輪次 %3$d 輪。"
+          }
+        }
+      }
+    },
+    "nanoMuse Cloud keeps every turn of your chats with its models in full as your account's record: what went to the model, what it answered, the tools and what they returned, the pictures as files. From the 1.0.7 app on, turns answered on your own key join it too. It is your data: only your devices and whoever runs the relay can read it." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nanoMuse Cloud behält jede Runde deiner Chats mit seinen Modellen vollständig als Aufzeichnung deines Kontos: was an das Modell ging, was es geantwortet hat, die Werkzeuge und was sie zurückgegeben haben, die Bilder als Dateien. Ab der App 1.0.7 kommen auch Runden dazu, die mit deinem eigenen Schlüssel beantwortet wurden. Es sind deine Daten: nur deine Geräte und wer das Relay betreibt, können sie lesen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nanoMuse Cloud keeps every turn of your chats with its models in full as your account's record: what went to the model, what it answered, the tools and what they returned, the pictures as files. From the 1.0.7 app on, turns answered on your own key join it too. It is your data: only your devices and whoever runs the relay can read it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nanoMuse Cloud guarda completo cada turno de tus chats con sus modelos como el registro de tu cuenta: lo que se envió al modelo, lo que respondió, las herramientas y lo que devolvieron, las imágenes como archivos. Desde la app 1.0.7 también entran los turnos respondidos con tu propia clave. Son tus datos: solo tus dispositivos y quien opera el relay pueden leerlos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nanoMuse Cloud conserve en entier chaque tour de vos discussions avec ses modèles comme historique de votre compte : ce qui a été envoyé au modèle, ce qu’il a répondu, les outils et ce qu’ils ont renvoyé, les images sous forme de fichiers. À partir de l’application 1.0.7, les tours répondus avec votre propre clé s’y ajoutent aussi. Ce sont vos données : seuls vos appareils et la personne qui fait tourner le relais peuvent les lire."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nanoMuse Cloud は、そのモデルとのチャットの各ターンをまるごと、あなたのアカウントの記録として保持します。モデルに送られた内容、モデルの答え、ツールとツールが返した内容、画像はファイルとして保持します。1.0.7 以降のアプリでは、自分のキーで答えたターンも加わります。これはあなたのデータで、読めるのはあなたの端末とリレーを運用する人だけです。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nanoMuse Cloud는 그 모델과 나눈 채팅의 모든 턴을 내 계정의 기록으로 통째로 보관합니다. 모델에 보낸 내용, 모델의 답, 도구와 도구가 돌려준 결과, 그림은 파일로 보관합니다. 1.0.7부터의 앱에서는 내 키로 답한 턴도 들어갑니다. 이것은 내 데이터이며, 내 기기와 릴레이를 운영하는 사람만 읽을 수 있습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nanoMuse Cloud хранит каждую реплику ваших чатов с его моделями целиком как запись вашего аккаунта: что ушло модели, что она ответила, инструменты и что они вернули, картинки как файлы. Начиная с приложения 1.0.7 туда попадают и реплики, отвеченные с вашим собственным ключом. Это ваши данные: читать их могут только ваши устройства и тот, кто держит релей."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nanoMuse Cloud 会把你和它的模型的每一轮对话完整保存为你账号的记录：发给模型的内容、它的回答、工具和工具返回的内容，图片作为文件保存。1.0.7 起的 App 还会把用自己 key 回答的对话补进来。这是你的数据，只有你的设备和运行中继的人能读。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nanoMuse Cloud 會把你和它的模型的每一輪對話完整保存為你帳號的記錄：送給模型的內容、它的回答、工具和工具傳回的內容，圖片以檔案保存。1.0.7 起的 App 還會把用自己 key 回答的對話補進來。這是你的資料，只有你的裝置和營運中繼的人能讀。"
+          }
+        }
+      }
+    },
+    "The record holds %1$d turns of this account (%2$d run on your own keys), with %3$d pictures." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Aufzeichnung enthält %1$d Runden dieses Kontos (%2$d mit deinen eigenen Schlüsseln), mit %3$d Bildern."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The record holds %1$d turns of this account (%2$d run on your own keys), with %3$d pictures."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El registro guarda %1$d turnos de esta cuenta (%2$d con tus propias claves), con %3$d imágenes."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’historique contient %1$d tours de ce compte (%2$d avec vos propres clés), avec %3$d images."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記録にはこのアカウントの %1$d ターン（うち %2$d ターンは自分のキー）、画像 %3$d 枚があります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "기록에 이 계정의 %1$d턴(그중 %2$d턴은 내 키 사용)과 그림 %3$d장이 있습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В записи %1$d реплик этого аккаунта (%2$d с вашими собственными ключами), картинок: %3$d."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "记录里有这个账号的 %1$d 轮对话（其中 %2$d 轮用的是你自己的 key），图片 %3$d 张。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記錄裡有這個帳號的 %1$d 輪對話（其中 %2$d 輪用的是你自己的 key），圖片 %3$d 張。"
+          }
+        }
+      }
+    },
+    "The record holds nothing of this account yet." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Aufzeichnung enthält noch nichts von diesem Konto."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The record holds nothing of this account yet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El registro aún no guarda nada de esta cuenta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’historique ne contient encore rien de ce compte."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記録にはこのアカウントの内容がまだありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "기록에 아직 이 계정의 내용이 없습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В записи пока ничего нет от этого аккаунта."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "记录里还没有这个账号的内容。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記錄裡還沒有這個帳號的內容。"
+          }
+        }
+      }
+    },
+    "This relay keeps a turn for %1$d days." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Relay behält eine Runde %1$d Tage lang."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This relay keeps a turn for %1$d days."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este relay conserva un turno durante %1$d días."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce relais conserve un tour pendant %1$d jours."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このリレーはターンを %1$d 日間保持します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 릴레이는 턴을 %1$d일 동안 보관합니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот релей хранит реплику %1$d дн."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这个中继保留 %1$d 天。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個中繼保留 %1$d 天。"
+          }
+        }
+      }
+    },
+    "It stays until you delete it." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sie bleibt, bis du sie löschst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It stays until you delete it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se conserva hasta que lo borres."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il reste jusqu’à ce que vous le supprimiez."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "削除するまで残ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "삭제할 때까지 남습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Она остаётся, пока вы её не удалите."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会一直保留到你删除为止。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "會一直保留到你刪除為止。"
+          }
+        }
+      }
+    },
     "Describe a new face" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -124949,65 +127639,6 @@
         }
       }
     },
-    "Off. Nothing more is kept." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aus. Nichts weiter wird behalten."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Off. Nothing more is kept."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Desactivado. No se guarda nada más."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Désactivé. Plus rien n’est conservé."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "オフにしました。これ以上は保持されません。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "끔. 더 이상 보관하지 않습니다."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выключено. Больше ничего не сохраняется."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已关闭。之后的对话不再保存。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已關閉。之後的對話不再保存。"
-          }
-        }
-      }
-    },
     "On it" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -125834,65 +128465,6 @@
         }
       }
     },
-    "Removes every turn kept from this account, whether the switch is on or off now. Turning the switch off keeps what was kept until you delete it here." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Entfernt jede von diesem Konto behaltene Runde, egal ob der Schalter gerade an oder aus ist. Den Schalter auszuschalten behält das Behaltene, bis du es hier löschst."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Removes every turn kept from this account, whether the switch is on or off now. Turning the switch off keeps what was kept until you delete it here."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elimina cada turno guardado de esta cuenta, esté el interruptor activado o no. Desactivar el interruptor conserva lo guardado hasta que lo elimines aquí."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Supprime chaque tour conservé de ce compte, que l’interrupteur soit activé ou non. Désactiver l’interrupteur garde ce qui a été conservé jusqu’à ce que vous le supprimiez ici."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "スイッチのオン・オフにかかわらず、このアカウントから保持したすべてのターンを削除します。スイッチをオフにしても、ここで削除するまで保持済みのものは残ります。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "스위치가 지금 켜져 있든 꺼져 있든 이 계정에서 보관된 모든 턴을 삭제합니다. 스위치를 끄는 것만으로는 여기서 삭제하기 전까지 보관된 것이 남습니다."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Удаляет все реплики, сохранённые с этого аккаунта, независимо от положения переключателя. Выключение переключателя оставляет сохранённое, пока вы не удалите его здесь."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "删除这个账号已保存的全部对话，不管开关现在是开是关。只关掉开关不会删除已保存的内容，要在这里删。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "刪除這個帳號已保存的全部對話，不管開關現在是開是關。只關掉開關不會刪除已保存的內容，要在這裡刪。"
-          }
-        }
-      }
-    },
     "Routines" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -126479,65 +129051,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "貼紙"
-          }
-        }
-      }
-    },
-    "The kept conversations are removed from the server. This cannot be undone." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Die behaltenen Gespräche werden vom Server entfernt. Das lässt sich nicht rückgängig machen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The kept conversations are removed from the server. This cannot be undone."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Las conversaciones guardadas se eliminan del servidor. Esto no se puede deshacer."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Les conversations conservées sont supprimées du serveur. C’est irréversible."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "保持している会話がサーバーから削除されます。元に戻せません。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "보관된 대화가 서버에서 삭제됩니다. 되돌릴 수 없습니다."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Сохранённые разговоры удаляются с сервера. Это нельзя отменить."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已保存的对话会从服务器上删除，不可恢复。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已保存的對話會從伺服器上刪除，不可恢復。"
           }
         }
       }
@@ -148656,13 +151169,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hands"
+            "value" : "动手操作屏幕"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hands"
+            "value" : "動手操作螢幕"
           }
         }
       }
@@ -149434,61 +151947,61 @@
         }
       }
     },
-    "Deleting a chat on one device deletes it on all of them. Nobody but your devices can read the text; the operator sees counts, not words." : {
+    "Deleting a chat on one device deletes it on all of them. The text is stored as it is: your devices and whoever runs the relay can read it, nobody else." : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wird ein Chat auf einem Gerät gelöscht, verschwindet er auf allen. Niemand außer deinen Geräten kann den Text lesen; der Betreiber sieht Zahlen, keine Worte."
+            "value" : "Wird ein Chat auf einem Gerät gelöscht, verschwindet er auf allen. Der Text wird so gespeichert, wie er ist: Deine Geräte und wer das Relay betreibt können ihn lesen, sonst niemand."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deleting a chat on one device deletes it on all of them. Nobody but your devices can read the text; the operator sees counts, not words."
+            "value" : "Deleting a chat on one device deletes it on all of them. The text is stored as it is: your devices and whoever runs the relay can read it, nobody else."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eliminar un chat en un dispositivo lo elimina en todos. Nadie salvo tus dispositivos puede leer el texto; el operador ve recuentos, no palabras."
+            "value" : "Eliminar un chat en un dispositivo lo elimina en todos. El texto se guarda tal cual: pueden leerlo tus dispositivos y quien opera el relay, nadie más."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Supprimer une discussion sur un appareil la supprime sur tous. Personne d’autre que vos appareils ne peut lire le texte ; l’opérateur voit des compteurs, pas des mots."
+            "value" : "Supprimer une discussion sur un appareil la supprime sur tous. Le texte est conservé tel quel : vos appareils et la personne qui fait tourner le relais peuvent le lire, personne d’autre."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1 つのデバイスでチャットを削除すると、すべてのデバイスから削除されます。テキストを読めるのはあなたのデバイスだけで、運営者に見えるのは件数であって内容ではありません。"
+            "value" : "1 つのデバイスでチャットを削除すると、すべてのデバイスから削除されます。テキストはそのまま保存されます。読めるのはあなたのデバイスとリレーを運営する人だけで、ほかには誰も読めません。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "한 기기에서 채팅을 삭제하면 모든 기기에서 삭제됩니다. 내 기기 말고는 아무도 텍스트를 읽을 수 없습니다. 운영자는 단어가 아니라 수치만 봅니다."
+            "value" : "한 기기에서 채팅을 삭제하면 모든 기기에서 삭제됩니다. 텍스트는 있는 그대로 저장됩니다. 내 기기와 릴레이를 운영하는 사람만 읽을 수 있고, 그 밖에는 아무도 읽을 수 없습니다."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Удаление чата на одном устройстве удаляет его на всех. Текст могут читать только ваши устройства; оператор видит счётчики, а не слова."
+            "value" : "Удаление чата на одном устройстве удаляет его на всех. Текст хранится как есть: его могут прочитать ваши устройства и тот, кто держит релей, и больше никто."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在一台设备上删除对话，所有设备都会删除。除了你的设备没人能读到文字；运营方只看到数量，看不到内容。"
+            "value" : "在一台设备上删除对话，所有设备都会删除。文本按原样保存：能读到的只有你的设备和运行中继的人，没有别人。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在一台裝置上刪除對話，所有裝置都會刪除。除了你的裝置沒人能讀到文字；營運方只看到數量，看不到內容。"
+            "value" : "在一台裝置上刪除對話，所有裝置都會刪除。文字按原樣保存：能讀到的只有你的裝置和運行中繼的人，沒有別人。"
           }
         }
       }
@@ -153051,7 +155564,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Qwen/Qwen3.6-27B-FP8 透過帳號額度處理對話、圖片輸入和螢幕操作。生成圖片和影片需要接入你自己的供應商和 API key。"
+            "value" : "Qwen/Qwen3.6-27B-FP8 透過帳號額度處理對話、圖片輸入和螢幕操作。生成圖片和影片需要接入你自己的服務商和 API key。"
           }
         },
         "ja" : {
@@ -154327,6 +156840,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "AI 生成的靈感範例"
+          }
+        }
+      }
+    },
+    "Use a Kimi Coding API key." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwende einen Kimi Coding API-Schlüssel."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa una clave de API de Kimi Coding."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisez une clé d’API Kimi Coding."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kimi Coding の API キーを使います。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kimi Coding API 키를 사용합니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Используйте ключ API Kimi Coding."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Kimi Coding 的 API key。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Kimi Coding 的 API 金鑰。"
           }
         }
       }

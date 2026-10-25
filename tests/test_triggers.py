@@ -123,7 +123,7 @@ def test_triggers_tool(tmp_path: Path):
     # creating standing work is a change of state; listing and cancelling are not
     assert create.risk == RiskLevel.MODERATE
     assert tool.assess({"action": "list"}).risk == RiskLevel.SAFE
-    assert tool.assess({"action": "cancel", "trigger_id": "t_x"}).risk == RiskLevel.SAFE
+    assert tool.assess({"action": "cancel", "trigger_id": "t_x"}).risk == RiskLevel.MODERATE
     store.close()
 
 
@@ -252,6 +252,21 @@ async def test_mail_watcher_reads_new_messages_by_uid(monkeypatch: pytest.Monkey
     )
     assert "rent goes up by 3%" in landlord.body and "123456" not in landlord.body  # scrubbed
     assert landlord.key == "uid:41" and landlord.render().startswith("From: The Landlord")
+
+    # a burst past MAX_PER_LOOK: the oldest come first and the mark stops at the last of
+    # them, so the rest are the next look's, never skipped
+    from nanomuse.triggers import mail as mail_mod
+
+    monkeypatch.setattr(mail_mod, "MAX_PER_LOOK", 1)
+    mark = 40
+    for expected, next_mark in (([41], 41), ([42], 42), ([], 42)):
+        server = _TinyImap(messages)  # one conversation each
+        server.start()
+        settings.imap_port = server.port
+        fresh, mark = await watcher.look(mark)
+        server.close()
+        assert [m.uid for m in fresh] == expected and mark == next_mark
+    monkeypatch.setattr(mail_mod, "MAX_PER_LOOK", 20)
 
     # a bad login is an error the poller can show, not a crash
     server = _TinyImap(messages)

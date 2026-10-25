@@ -151,6 +151,8 @@ enum LLMProviderFactory {
             // load this provider's user-authored rules. Set for every OpenAI-family
             // provider, not just Mistral.
             p.providerInstanceId = instance.id
+            // nanoMuse: a request to the account's relay says which device asks (NanoMuseCloudHeaders)
+            p.extraHeaders.merge(NanoMuseCloudHeaders.forInstance(instance)) { _, ours in ours }
             return p
         }
         switch instance.credentialType {

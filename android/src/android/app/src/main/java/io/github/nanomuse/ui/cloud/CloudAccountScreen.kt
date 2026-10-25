@@ -524,8 +524,12 @@ fun CloudAccountScreen(
                         MuseRow(
                             title = stringResource(R.string.nm_data_improve),
                             icon = Icons.Outlined.Storage,
+                            // the count is what the relay holds of this account: the record's turns
+                            // (relay 0.29) or, on an older relay, the training set's
                             value = stringResource(if (a.contribute) R.string.nm_data_status_on else R.string.nm_data_status_off) +
-                                if (a.samples > 0) " · " + stringResource(R.string.nm_data_turns, a.samples) else "",
+                                maxOf(a.samples, a.record?.takeIf { it.on }?.turns ?: 0).let { held ->
+                                    if (held > 0) " · " + stringResource(R.string.nm_data_turns, held) else ""
+                                },
                             onClick = onOpenDataControls,
                         )
                     }

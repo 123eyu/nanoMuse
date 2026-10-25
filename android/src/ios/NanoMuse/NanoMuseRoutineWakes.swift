@@ -33,12 +33,20 @@ final class NanoMuseRoutineWakes {
     private var map: [String: Wake]
 
     init() {
-        if let data = UserDefaults.standard.data(forKey: Self.key),
+        map = Self.load()
+    }
+
+    private static func load() -> [String: Wake] {
+        if let data = UserDefaults.standard.data(forKey: key),
            let decoded = try? JSONDecoder().decode([String: Wake].self, from: data) {
-            map = decoded
-        } else {
-            map = [:]
+            return decoded
         }
+        return [:]
+    }
+
+    /// The defaults changed hands (C12, `NanoMuseAccountData`): the map is the account's.
+    func reload() {
+        map = Self.load()
     }
 
     /// The user row `mid` was a routine's; remembered for good.

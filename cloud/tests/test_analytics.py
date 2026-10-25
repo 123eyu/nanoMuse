@@ -6,7 +6,9 @@ from __future__ import annotations
 
 import asyncio
 import json
+import sqlite3
 import time
+from dataclasses import replace
 
 import httpx
 import pytest
@@ -658,6 +660,89 @@ async def test_the_analytics_loop_warms_the_meter_sweeps_old_calls_and_backfills
         assert cloud.db.calls_count() == 1  # the three-day-old row is gone
         kinds = sorted(str(r["kind"]) for r in cloud.db._conn.execute("SELECT kind FROM events").fetchall())
         assert kinds == ["account.deleted", "sign_in.code"]
+
+
+# -- 0.30: the long reads run on a connection of their own ---------------------------------------
+
+
+def test_the_reader_sees_committed_rows_and_refuses_to_write(tmp_path):
+    """A file database hands the pages a second, read-only connection: it reads what the
+    first committed, a write through it fails, and an in-memory database (one connection)
+    hands back itself."""
+    db = Database(str(tmp_path / "relay.sqlite"))
+    reader = db.reader()
+    assert reader is not db and reader.read_only is True and db.reader() is reader
+    aid = db.create_account("hash", "phone", "138****8000", 0, account_id="a")["id"]
+    assert reader.account(aid) is not None and reader.account_counts()["total"] == 1
+    with pytest.raises(sqlite3.OperationalError, match="readonly"):
+        reader.add_event(aid, "sign_in.code", "x")
+    assert Database(":memory:").reader() is not None
+    mem = Database(":memory:")
+    assert mem.reader() is mem
+    db.optimize()  # the planner's statistics: a no-op on a small file, never an error
+
+
+def test_the_pages_read_through_the_read_only_service(tmp_path):
+    """`Cloud.reads` is the service over the reader: the pages it serves see every committed
+    row and leave the relay's own connection alone; writing through it fails."""
+    settings = replace(make_settings(), database=str(tmp_path / "relay.sqlite"))
+    cloud = Cloud(settings, Database(settings.database), LogSender())
+    aid = cloud.db.create_account("hash", "phone", "138****8000", 0, account_id="a")["id"]
+    reads = cloud.reads
+    assert reads.db is cloud.db.reader() and reads.db is not cloud.db and reads.s is cloud.s
+    assert reads.admin_overview(7)["accounts"]["total"] == 1
+    assert reads.admin_data(7)["accounts"]["total"] == 1
+    assert reads.admin_invites()["funnel"]["invited"] == 0
+    assert reads.admin_account(aid, 7)["account"]["id"] == aid
+    assert [m["id"] for m in reads.admin_turns()] == []
+    with pytest.raises(sqlite3.OperationalError, match="readonly"):
+        reads.note(aid, "sign_in.code", "x")
+    # a setting the operator changes is the one the next view reads (a fresh copy each time)
+    cloud.admin_update_settings({"allowance_cny": 12.5}, actor="test")
+    assert cloud.reads.s.allowance_cny == 12.5
+
+
+async def test_the_data_view_sums_tokens_from_the_shape_rows_and_fills_older_ones_in(stack):
+    """The Data view's sums come from `sample_stats`, never from the conversation rows; a
+    shape row written before 0.30 has no tokens (-1) until the tokens backfill copies them
+    from the turn, a page at a time, remembering where it was."""
+    app, client, sender, up, cloud = stack
+    headers, aid = await sign_up(client, sender)
+    assert (await client.post("/v1/me/contribute", headers=headers, json={"on": True})).status_code == 200
+    # two turns kept before 0.30: a shape row each, without tokens
+    for text in ("Plan my week around two deadlines", "Draft the invoice mail"):
+        sid = cloud.db.add_sample(aid, "qwen3.8-27b", json.dumps([{"role": "user", "content": text}]), "Sure " * 10, 100, 50, "{}")
+        cloud.db.add_sample_stats([an.sample_shape(sid, aid, int(time.time()), "qwen3.8-27b", "[]", "", "{}")])
+    assert cloud.db.sample_stats_without_tokens() == 2
+    # a turn kept now carries its tokens at once
+    r = await client.post(
+        "/v1/chat/completions",
+        headers=headers,
+        json={"model": "qwen3.8-27b", "messages": [{"role": "user", "content": "What is the capital of Peru"}]},
+    )
+    assert r.status_code == 200
+    view = cloud.reads.admin_data(7)
+    assert view["tokens_pending"] == 2 and view["totals"]["samples"] == 3
+    fresh_tokens = view["totals"]["prompt_tokens"] + view["totals"]["completion_tokens"]
+    assert fresh_tokens > 0  # the new turn's only; the two older rows count as nothing yet
+    analytics = app.state.analytics
+    assert analytics.tokens_step(2) == 2 and cloud.db.sample_stats_without_tokens() == 1
+    assert cloud.db.settings_get("sample_stats.tokens_cursor")[0] != [-1, -1]
+    assert analytics.tokens_step(2) == 1 and analytics.tokens_done is True
+    assert cloud.db.sample_stats_without_tokens() == 0
+    view = cloud.reads.admin_data(7)
+    assert view["tokens_pending"] == 0
+    assert view["totals"]["prompt_tokens"] + view["totals"]["completion_tokens"] == fresh_tokens + 2 * 150
+    assert view["by_account"][0]["prompt_tokens"] == 200 + view["recent"][0]["prompt_tokens"]
+    assert {p["platform"]: p["samples"] for p in view["by_platform"]} == {"other": 2, "ios": 1}  # the two synthetic rows carry no UA
+    # a fresh Analytics (a restart) sees the finished cursor and reads nothing
+    fresh = an.Analytics(cloud, an.LiveMeter(), lambda: None, lambda: {"active": 0, "waiting": 0, "limit": 1})
+    assert fresh.tokens_step(2) == 0 and fresh.tokens_done is True
+    # the export runs in a thread over a temporary file, whole and with its length
+    r = await client.get("/v1/admin/samples/export?since=0", headers=ADMIN)
+    assert r.status_code == 200 and r.headers["content-length"] == str(len(r.content))
+    lines = [json.loads(line) for line in r.text.splitlines()]
+    assert len(lines) == 3 and all("account_id" not in line for line in lines)
 
 
 # -- the hub: a device may say which model it runs on --------------------------------------------

@@ -70,6 +70,11 @@ class MediaStore:
     temporary directory that is removed with the store. Writes are atomic (a temporary
     name, then a rename), so a crash never leaves a half picture under a real hash."""
 
+    #: files a delete could not remove (a permission, a disk that was read-only for a moment),
+    #: one hash a line, tried again by :meth:`retry_deletes` from the hourly sweep — the
+    #: database forgot them the moment they were deleted, so the store remembers for it
+    RETRY_FILE = ".unlink-retry"
+
     def __init__(self, root: str | Path | None = None):
         self._tmp: tempfile.TemporaryDirectory | None = None
         if root is None or root == "":
@@ -106,11 +111,55 @@ class MediaStore:
             return None
 
     def delete(self, sha: str) -> bool:
+        """The file gone; True when it was there. A file that will not go (anything but
+        "already gone") is noted for :meth:`retry_deletes`, so the person's delete is
+        honoured even when the disk said no at that moment."""
         try:
             self.path(sha).unlink()
             return True
-        except (OSError, ValueError):
+        except FileNotFoundError:
             return False
+        except ValueError:
+            return False
+        except OSError:
+            self._remember(sha)
+            return False
+
+    def _remember(self, sha: str) -> None:
+        try:
+            with open(self.root / self.RETRY_FILE, "a", encoding="ascii") as f:
+                f.write(sha + "\n")
+        except OSError:
+            pass  # the disk is the problem; the next sweep's walk of the list will not help either
+
+    def retry_deletes(self) -> int:
+        """Try the noted deletes again (the hourly sweep); answers how many files went. What
+        still will not go stays on the list."""
+        path = self.root / self.RETRY_FILE
+        try:
+            pending = [line.strip() for line in path.read_text(encoding="ascii").splitlines() if is_sha256(line.strip())]
+        except OSError:
+            return 0
+        if not pending:
+            return 0
+        left: list[str] = []
+        gone = 0
+        for sha in dict.fromkeys(pending):  # each once, in order
+            try:
+                self.path(sha).unlink()
+                gone += 1
+            except FileNotFoundError:
+                continue
+            except OSError:
+                left.append(sha)
+        try:
+            if left:
+                path.write_text("".join(s + "\n" for s in left), encoding="ascii")
+            else:
+                path.unlink()
+        except OSError:
+            pass
+        return gone
 
     def close(self) -> None:
         if self._tmp is not None:
@@ -217,6 +266,30 @@ def media_refs(value: Any) -> set[str]:
 
     walk(value)
     return found
+
+
+def inline_media_bytes(value: Any) -> int:
+    """About how many bytes the ``data:`` URLs anywhere in a JSON value decode to (three
+    quarters of the base64), before any is decoded: an upload is measured against the
+    account's cap first, written after."""
+    total = 0
+
+    def walk(v: Any) -> None:
+        nonlocal total
+        if isinstance(v, str):
+            if v.startswith("data:"):
+                comma = v.find(",")
+                if comma > 0:
+                    total += (len(v) - comma - 1) * 3 // 4
+        elif isinstance(v, dict):
+            for x in v.values():
+                walk(x)
+        elif isinstance(v, list):
+            for x in v:
+                walk(x)
+
+    walk(value)
+    return total
 
 
 def attach_media(value: Any, store: MediaStore, mimes: dict[str, str]) -> Any:

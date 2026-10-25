@@ -15,7 +15,7 @@ object ProviderFactory {
      * Create a provider, optionally with OAuth support.
      * [context] is needed for OpenAI OAuth to access encrypted storage for token refresh.
      */
-    fun create(instance: ProviderInstance, apiKey: String, model: LLMModel, context: Context? = null): LLMProvider {
+    fun create(instance: ProviderInstance, apiKey: String, model: LLMModel, context: Context? = null, record: Boolean = true): LLMProvider { // nanoMuse: + record (io.github.nanomuse.cloud.OwnTurns)
         // T174: route through ProviderInstance.effectiveBaseURL instead of
         // re-implementing the trim-+-endsWith dance inline. The previous
         // version did `url.endsWith("/v1")` on the raw, untrimmed string,
@@ -98,6 +98,8 @@ object ProviderFactory {
                         // azureUrl() can preserve the ?api-version query.
                         isAzure = instance.azureMode,
                         azureBase = instance.customBaseURL,
+                        // nanoMuse: the Cloud's row names this device for the account's record (io.github.nanomuse.cloud.CloudHeaders)
+                        extraHeaders = io.github.nanomuse.cloud.CloudHeaders.forInstance(context, instance),
                     )
                 }
             }
@@ -204,6 +206,7 @@ object ProviderFactory {
         // custom-rule path (Gemini/Anthropic use their own emitters), so this is the
         // only type that needs it.
         (provider as? OpenAIProvider)?.thinkingRuleInstanceId = instance.id
-        return provider
+        // nanoMuse: a turn on a key of the person's own joins the account's record afterwards (io.github.nanomuse.cloud.OwnTurns)
+        return if (record) io.github.nanomuse.cloud.OwnTurns.wrap(context, instance, provider) else provider
     }
 }

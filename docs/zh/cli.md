@@ -41,7 +41,7 @@ nanomuse run "Summarise the top three Hacker News stories into hn.md" [--auto]
 nanomuse daemon [--interval 3600] [--once]
 ```
 
-推进每一个进行中的目标，休眠，再来一遍。它跑在哨兵的 `auto` 模式下，所以要配上拒绝规则和收紧的 `egress_allowlist`。App 里的「后台工作」开关在 `nanomuse serve` 内做的是同一件事：每个周期推进一个目标，进展发到聊天里。
+把每一个进行中的目标各自放进一次性的会话里推进，休眠，再来一遍；每轮做了什么打印在这里。它跑在哨兵的 `auto` 模式下，所以要配上拒绝规则和收紧的 `egress_allowlist`。它是 App 里「后台工作」开关（在 `nanomuse serve` 内）的朴素版、无人值守版：那个开关每个周期挑一个目标，在聊天自己的上下文和哨兵之下运行，进展发到聊天里，重启后还记得欠下的那一轮（[app.md](app.md#background-work)）；daemon 没有聊天，也不记得上一轮，只是跑。
 
 ## 目标 {#goals}
 
@@ -188,7 +188,7 @@ nanomuse audit [-n 20] [--json]        # recent decisions, approvals, tool calls
 nanomuse config init [--path config/config.toml] [--force]
 nanomuse config show                   # effective settings, secrets masked
 nanomuse config path                   # which file is in use
-nanomuse doctor [--no-model]           # config, data dir, model, connectors — one screen
+nanomuse doctor [--no-model]           # config, data dir, model, connectors, one screen
 nanomuse version                       # also: nanomuse --version / -V
 nanomuse mcp                           # this computer's screen and hands as an MCP server on stdio, for another host
 ```

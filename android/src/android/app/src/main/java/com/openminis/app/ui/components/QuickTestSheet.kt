@@ -520,7 +520,7 @@ internal suspend fun performTest(
     }
 
     val provider = runCatching {
-        ProviderFactory.create(instance, apiKey, entry.model, context)
+        ProviderFactory.create(instance, apiKey, entry.model, context, record = false) // nanoMuse: a test is not a chat turn; the image test needs the concrete provider
     }.getOrElse { return@withContext failure(it.message ?: "Couldn't create provider.") }
 
     when (kind) {

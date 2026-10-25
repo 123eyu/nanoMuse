@@ -40,6 +40,21 @@ export interface HelloDevice {
   os: string
   version: string
   actions: string[]
+  /**
+   * Relay 0.28, optional: the ids this device runs its chats under (`cloud` for the relay's
+   * models, else the catalogue id of the person's own key) and the model id. Plain ids only;
+   * never a key or a URL. The operator's console counts them in aggregate (docs/hub.md).
+   */
+  llm?: { provider: string; model: string }
+}
+
+/** `[A-Za-z0-9._:/-]{1,80}` and no scheme: what `HelloDevice.llm` may carry; anything else is left out. */
+const LLM_ID = /^[A-Za-z0-9._:/-]{1,80}$/
+
+/** `llm` for a hello when both ids are plain, else nothing (the hello goes out without it). */
+export function helloLlm(provider: string, model: string): HelloDevice['llm'] {
+  if (!LLM_ID.test(provider) || !LLM_ID.test(model) || provider.includes('://') || model.includes('://')) return undefined
+  return { provider, model }
 }
 
 export interface Caller {
@@ -78,12 +93,20 @@ export class HubError extends Error {
   }
 }
 
+/** The events the client listens for, with the fields it reads of each. */
+export interface SocketEvents {
+  open: unknown
+  message: { data: unknown }
+  error: unknown
+  close: { code?: number; reason?: string }
+}
+
 /** The subset of the WebSocket API the client uses; Node 22's global and a test double both fit. */
 export interface SocketLike {
   readyState: number
   send(data: string): void
   close(code?: number, reason?: string): void
-  addEventListener(type: 'open' | 'message' | 'close' | 'error', listener: (event: any) => void): void
+  addEventListener<K extends keyof SocketEvents>(type: K, listener: (event: SocketEvents[K]) => void): void
 }
 
 export interface HubClientOptions {

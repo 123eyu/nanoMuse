@@ -3,11 +3,11 @@
     <string name="app_name">nanoMuse</string>
     <string name="new_chat">新增對話</string>
     <string name="settings">設定</string>
-    <string name="providers">供應商</string>
-    <string name="add_provider">新增供應商</string>
+    <string name="providers">服務商</string>
+    <string name="add_provider">新增服務商</string>
     <string name="appearance">外觀</string>
     <string name="no_sessions">尚無對話</string>
-    <string name="no_providers">新增供應商即可開始</string>
+    <string name="no_providers">新增服務商即可開始</string>
     <string name="send">傳送</string>
     <string name="type_message">輸入訊息…</string>
     <string name="delete">刪除</string>
@@ -128,14 +128,14 @@
     <string name="browser_settings_ua_not_set">未設定</string>
     <string name="settings_back">返回</string>
     <string name="settings_title">設定</string>
-    <string name="settings_section_llm_providers">LLM 供應商</string>
-    <string name="settings_section_llm_providers_footer">設定 Agent 使用哪些模型、管理各供應商的 API 金鑰與 OAuth，並建立模型群組以進行備援或負載平衡。</string>
-    <string name="settings_manage_providers">管理供應商</string>
+    <string name="settings_section_llm_providers">LLM 服務商</string>
+    <string name="settings_section_llm_providers_footer">設定 Agent 使用哪些模型、管理各服務商的 API 金鑰與 OAuth，並建立模型群組以進行備援或負載平衡。</string>
+    <string name="settings_manage_providers">管理服務商</string>
     <string name="settings_manage_providers_subtitle">API 金鑰與 OAuth 登入</string>
     <string name="settings_model_groups">模型群組</string>
     <string name="settings_model_groups_subtitle">備援與負載平衡</string>
     <string name="settings_token_usage">Token 用量</string>
-    <string name="settings_token_usage_subtitle">追蹤各供應商的 API 用量</string>
+    <string name="settings_token_usage_subtitle">追蹤各服務商的 API 用量</string>
     <string name="settings_section_appearance">外觀</string>
     <string name="settings_appearance_subtitle">主題、字型大小與顯示</string>
     <string name="settings_section_agent_runtime">Agent 執行環境</string>
@@ -175,7 +175,7 @@
     <string name="mcp_form_startup_timeout_placeholder">預設 60</string>
     <string name="voice_services_section">語音服務</string>
     <!-- nanoMuse: 您 → 你 (the app speaks to the person plainly) -->
-    <string name="voice_services_duplicate_hint">有語音服務被重複設定。語音在此會合併為單一列；若你願意，可以刪除上方多餘的供應商。</string>
+    <string name="voice_services_duplicate_hint">有語音服務被重複設定。語音在此會合併為單一列；若你願意，可以刪除上方多餘的服務商。</string>
     <string name="voice_services_stt_count">%1$d 個語音轉文字</string>
     <string name="voice_services_tts_count">%1$d 個文字轉語音</string>
     <string name="voice_service_source">來源</string>
@@ -184,16 +184,16 @@
     <string name="voice_service_speech_to_text">語音轉文字</string>
     <string name="voice_service_text_to_speech">文字轉語音</string>
     <string name="voice_service_show_in_voice_services">顯示於語音服務</string>
-    <string name="voice_service_shared_credential_note">此語音服務共用其供應商的 API 金鑰與端點。若要修改，請編輯該供應商。</string>
+    <string name="voice_service_shared_credential_note">此語音服務共用其服務商的 API 金鑰與端點。若要修改，請編輯該服務商。</string>
     <string name="voice_service_hidden_badge">已隱藏</string>
-    <string name="add_provider_voice_chat_providers">語音對話供應商</string>
+    <string name="add_provider_voice_chat_providers">語音對話服務商</string>
     <!-- nanoMuse: 您 → 你 (the app speaks to the person plainly) -->
-    <string name="add_provider_voice_templates_footer">語音轉文字與文字轉語音的服務商。供應商類型與基礎網址已預先填好——只要補上你的 API 金鑰即可。</string>
+    <string name="add_provider_voice_templates_footer">語音轉文字與文字轉語音的服務商。服務商類型與基礎網址已預先填好——只要補上你的 API 金鑰即可。</string>
     <string name="add_provider_voice_capability_tts">語音合成（TTS）</string>
     <string name="add_provider_voice_capability_asr">語音辨識（ASR）</string>
     <string name="add_provider_voice_capability_both">辨識 + 合成</string>
     <string name="quicktest_no_audio">沒有取得任何音訊。</string>
-    <string name="quicktest_voice_unsupported">此模型的供應商不支援這個語音轉換方向。</string>
+    <string name="quicktest_voice_unsupported">此模型的服務商不支援這個語音轉換方向。</string>
     <string name="quicktest_audio_play">播放</string>
     <string name="quicktest_audio_replay">重新播放</string>
     <string name="quicktest_transcript_result">說出：「%1$s」\n聽到：「%2$s」</string>
@@ -564,7 +564,7 @@
     <string name="common_edit">編輯</string>
     <string name="thinking_rules_section">思考規則</string>
     <string name="thinking_rules_footer">規則由上而下依序評估，第一條符合該模型的規則決定要送出哪些思考參數。預設規則為內建，無法刪除——若要覆寫，請在其上方新增規則。</string>
-    <string name="thinking_rules_official_protocol_notice">此供應商使用官方協定，因此其思考參數由 nanoMuse 自行維護。自訂規則適用於使用 Chat Completions API 的 OpenAI 相容供應商。</string>
+    <string name="thinking_rules_official_protocol_notice">此服務商使用官方協定，因此其思考參數由 nanoMuse 自行維護。自訂規則適用於使用 Chat Completions API 的 OpenAI 相容服務商。</string>
     <string name="thinking_rules_default_rules_count">預設規則（%1$d）</string>
     <string name="thinking_rules_add_rule">新增規則</string>
     <string name="thinking_rules_move_up">上移</string>
@@ -901,7 +901,7 @@
     <string name="newer_db_exit">關閉</string>
     <string name="usage_attr_unknown_session">模型不明——該工作階段的紀錄已被刪除</string>
     <!-- nanoMuse: 您 → 你 (the app speaks to the person plainly) -->
-    <string name="usage_attr_removed">已不在你設定的供應商之中</string>
+    <string name="usage_attr_removed">已不在你設定的服務商之中</string>
     <string name="usage_detail_output">輸出</string>
     <string name="usage_detail_cache_read">快取讀取</string>
     <string name="usage_detail_cache_creation">快取建立</string>
@@ -998,23 +998,23 @@
     <string name="common_remove">移除</string>
     <string name="provider_detail_set_manual_bearer_token">設置手動 Bearer Token</string>
     <string name="add_provider_choose_provider">選擇 AI 服務商</string>
-    <string name="add_provider_you_can_add_multiple_instances_of_the_sa">你可以新增同一供應商的多個實例（例如工作與個人帳號）。OpenAI 和 Anthropic 也支援相容的第三方端點 —— 選擇對應的通訊協定後再設定自訂 API Base URL。</string>
+    <string name="add_provider_you_can_add_multiple_instances_of_the_sa">你可以新增同一服務商的多個實例（例如工作與個人帳號）。OpenAI 和 Anthropic 也支援相容的第三方端點 —— 選擇對應的通訊協定後再設定自訂 API Base URL。</string>
     <string name="add_provider_auth_method">認證方式</string>
     <string name="add_provider_choose_authentication">選擇身分驗證方式</string>
-    <string name="add_provider_pick_the_auth_method_that_matches_your_a">選擇與你帳號相符的身分驗證方式。OAuth 透過供應商的網頁流程登入；API Key 使用帳號面板中的金鑰。</string>
+    <string name="add_provider_pick_the_auth_method_that_matches_your_a">選擇與你帳號相符的身分驗證方式。OAuth 透過服務商的網頁流程登入；API Key 使用帳號面板中的金鑰。</string>
     <string name="add_provider_identity">標識</string>
-    <string name="add_provider_the_label_is_shown_in_the_provider_list_">標籤會顯示在供應商列表和模型選擇器裡。</string>
+    <string name="add_provider_the_label_is_shown_in_the_provider_list_">標籤會顯示在服務商列表和模型選擇器裡。</string>
     <string name="add_provider_credential">憑證</string>
     <string name="add_provider_your_key_is_stored_securely_in_encrypted">你的金鑰儲存在加密儲存中,不會離開裝置。</string>
     <string name="add_provider_endpoint">端點</string>
-    <string name="add_provider_endpoint_anthropic_hint">直接使用 Anthropic 官方端點即可。若是第三方的 Anthropic 相容服務（例如 Mimo），基礎網址可能需要加上「/anthropic」之類的路徑後綴——請查閱該供應商的文件。此網址會原樣使用，並在後面接上「/v1/messages」。</string>
+    <string name="add_provider_endpoint_anthropic_hint">直接使用 Anthropic 官方端點即可。若是第三方的 Anthropic 相容服務（例如 Mimo），基礎網址可能需要加上「/anthropic」之類的路徑後綴——請查閱該服務商的文件。此網址會原樣使用，並在後面接上「/v1/messages」。</string>
     <string name="add_provider_custom_api_base_optional">自定義 API 地址（可選）</string>
     <string name="add_provider_authentication">認證</string>
-    <string name="add_provider_sign_in_succeeded_the_token_is_stored_in">登入成功。token 已儲存在加密儲存中。點擊儲存以新增供應商。</string>
+    <string name="add_provider_sign_in_succeeded_the_token_is_stored_in">登入成功。token 已儲存在加密儲存中。點擊儲存以新增服務商。</string>
     <string name="add_provider_authenticated">已認證</string>
     <string name="add_provider_token">Token</string>
     <string name="add_provider_save_provider">保存 AI 服務商</string>
-    <string name="add_provider_opens_the_provider_s_web_sign_in_flow_af">開啟供應商的網頁登入流程。登入後,token 會自動寫入這裡。</string>
+    <string name="add_provider_opens_the_provider_s_web_sign_in_flow_af">開啟服務商的網頁登入流程。登入後,token 會自動寫入這裡。</string>
     <string name="add_provider_signing_in">正在登入…</string>
     <!-- nanoMuse: 您 → 你 (the app speaks to the person plainly) -->
     <string name="add_provider_oauth_network_unreachable">無法連線至登入伺服器。請檢查你的網路或 Proxy 設定後再試一次。</string>
@@ -1030,16 +1030,16 @@
     <string name="model_entry_visibility">可見性</string>
     <string name="model_entry_hidden_models_won_t_appear_in_the_model_">隱藏的模型不會出現在模型選擇器中。</string>
     <string name="model_entry_hidden">隱藏</string>
-    <string name="model_entry_restores_the_provider_reported_display_n">還原供應商回報的顯示名稱和 token 上限,並取消模型隱藏。</string>
+    <string name="model_entry_restores_the_provider_reported_display_n">還原服務商回報的顯示名稱和 token 上限,並取消模型隱藏。</string>
     <string name="model_entry_reset_to_default">恢復默認</string>
     <string name="modeldetail_identity_footer_custom">這是自定義模型。可以編輯模型 ID。</string>
-    <string name="modeldetail_identity_footer_builtin">內建模型。顯示名稱會覆蓋供應商提供的預設值。</string>
+    <string name="modeldetail_identity_footer_builtin">內建模型。顯示名稱會覆蓋服務商提供的預設值。</string>
     <string name="modeldetail_section_capabilities">能力</string>
     <string name="modeldetail_context_window">上下文視窗</string>
     <string name="modeldetail_thinking">思考</string>
-    <string name="modeldetail_capabilities_footer">上下文視窗和最大輸出 Token 數（以 tokens 計）。留空使用供應商預設值。對支援擴展推理的模型啟用思考模式。</string>
-    <string name="modeldetail_provider_default">供應商預設</string>
-    <string name="modeldetail_max_tokens_exceeds_warning">超過供應商回報的上限（%1$d）。值已保存，但可能導致請求失敗。</string>
+    <string name="modeldetail_capabilities_footer">上下文視窗和最大輸出 Token 數（以 tokens 計）。留空使用服務商預設值。對支援擴展推理的模型啟用思考模式。</string>
+    <string name="modeldetail_provider_default">服務商預設</string>
+    <string name="modeldetail_max_tokens_exceeds_warning">超過服務商回報的上限（%1$d）。值已保存，但可能導致請求失敗。</string>
     <string name="modeldetail_section_input_modality">輸入模態</string>
     <string name="modeldetail_image_input">圖片輸入</string>
     <string name="modeldetail_pdf_input">PDF 輸入</string>
@@ -1062,7 +1062,7 @@
     <string name="quicktest_kind_speech">語音輸出</string>
     <string name="quicktest_kind_transcription">語音轉寫</string>
     <string name="quicktest_empty_reply">（空回覆）</string>
-    <string name="quicktest_image_unsupported">該模型的供應商不支援透過快速測試進行圖像生成。</string>
+    <string name="quicktest_image_unsupported">該模型的服務商不支援透過快速測試進行圖像生成。</string>
     <string name="quicktest_no_image">未返回任何圖像。</string>
     <string name="quicktest_speech_unavailable">Android 端暫不支援語音輸出/轉寫測試。</string>
     <string name="modelgroup_speech_output">語音輸出</string>
@@ -1112,7 +1112,7 @@
     <string name="settings_agent_loop_models">Agent 循環模型</string>
     <string name="agent_loop_models_groups">分組</string>
     <string name="agent_loop_models_picking_a_group_pins_every_model_in_it_a">選取群組會固定其中所有模型。在模型群組裡新增或移除成員。</string>
-    <string name="agent_loop_models_add_a_provider_and_refresh_its_model_lis">新增供應商並重新整理其模型列表以填入此選擇器。</string>
+    <string name="agent_loop_models_add_a_provider_and_refresh_its_model_lis">新增服務商並重新整理其模型列表以填入此選擇器。</string>
     <string name="agent_loop_models_no_models_or_groups_available_yet">尚無可用的模型或群組。</string>
     <string name="agent_loop_models_selected">已選擇</string>
     <string name="agent_loop_models_not_selected">未選取</string>
@@ -1255,7 +1255,7 @@
     <string name="backup_category_shared_files">共用檔案</string>
     <string name="backup_category_skills">技能</string>
     <string name="backup_category_memory">記憶與 Soul</string>
-    <string name="backup_category_providers">供應商</string>
+    <string name="backup_category_providers">服務商</string>
     <string name="backup_category_mcp">MCP 伺服器</string>
     <string name="backup_category_env_vars">環境變數</string>
     <string name="backup_category_voice">語音校正</string>
@@ -1357,8 +1357,8 @@
     <string name="backup_count_items">%1$d 個項目 · %2$s</string>
     <string name="backup_count_skills">%1$d 個技能 · %2$d 個檔案 · %3$s</string>
     <string name="backup_count_servers">%1$d 台伺服器 · %2$s</string>
-    <string name="backup_count_providers">%1$d 個供應商 · %2$s</string>
-    <string name="backup_count_providers_rules">%1$d 個供應商 · %2$d 條思考規則 · %3$s</string>
+    <string name="backup_count_providers">%1$d 個服務商 · %2$s</string>
+    <string name="backup_count_providers_rules">%1$d 個服務商 · %2$d 條思考規則 · %3$s</string>
     <string name="backup_restore_passphrase_footer">這份備份已加密。沒有通關密語就無法開啟。</string>
     <string name="backup_restore">開始復原</string>
     <string name="backup_restoring">復原中…</string>
@@ -1377,10 +1377,10 @@
     <string name="backup_report_not_downloaded">%1$s：有 %2$d 個檔案不在備份中（來源裝置上未下載）</string>
     <string name="backup_report_missing_from_package">%1$s：有 %2$d 個檔案列在備份清單中卻不存在於備份內——這份備份並不完整</string>
     <string name="backup_report_unreadable">%1$s：有 %2$d 個項目無法讀取</string>
-    <string name="backup_creds_restored">已為 %1$d 個供應商連同設定一併復原 API 金鑰。這台裝置上既有的金鑰予以保留。若 OAuth 的 Token 已過期，可能仍需要重新登入。</string>
+    <string name="backup_creds_restored">已為 %1$d 個服務商連同設定一併復原 API 金鑰。這台裝置上既有的金鑰予以保留。若 OAuth 的 Token 已過期，可能仍需要重新登入。</string>
     <!-- nanoMuse: 您 → 你 (the app speaks to the person plainly) -->
     <string name="backup_creds_kept">已保留你既有的 API 金鑰——備份中的金鑰與這台裝置上的憑證相符，因此不需要覆寫任何內容。</string>
-    <string name="backup_creds_none">這份備份建立時未包含 API 金鑰，因此復原的供應商沒有憑證——使用前請逐一輸入 API 金鑰或重新登入。</string>
+    <string name="backup_creds_none">這份備份建立時未包含 API 金鑰，因此復原的服務商沒有憑證——使用前請逐一輸入 API 金鑰或重新登入。</string>
     <string name="backup_done">完成</string>
     <string name="backup_dest_title">備份目的地</string>
     <string name="backup_dest_saved">已儲存的目的地</string>
@@ -1597,7 +1597,7 @@
     <string name="back">返回</string>
     <string name="sessionlist_welcome_title">歡迎使用 nanoMuse</string>
     <string name="sessionlist_welcome_subtitle">三步之後，你就有一個住在手機裡的助理。</string>
-    <string name="sessionlist_welcome_step1_title">新增供應商</string>
+    <string name="sessionlist_welcome_step1_title">新增服務商</string>
     <string name="sessionlist_welcome_step1_subtitle">設定 API Key 或使用 OAuth 登入</string>
     <string name="sessionlist_welcome_step2_title">選擇模型</string>
     <string name="sessionlist_welcome_step2_subtitle">選擇你想使用的模型</string>
@@ -1699,7 +1699,7 @@
     <string name="scheduled_task_run_now_done">工作已結束</string>
     <string name="scheduled_task_run_now_done_body">排程工作已執行完畢並產生回覆。</string>
     <string name="scheduled_task_run_now_failed">工作失敗</string>
-    <string name="scheduled_task_run_now_failed_body">排程工作無法執行。請確認已設定供應商。</string>
+    <string name="scheduled_task_run_now_failed_body">排程工作無法執行。請確認已設定服務商。</string>
     <string name="scheduled_task_run_now_open_session">開啟工作階段</string>
     <string name="scheduled_task_run_now_dismiss">關閉</string>
     <string name="scheduled_task_field_target">執行時應該要</string>

@@ -174,3 +174,48 @@ async def test_visible_partial_stream_is_not_retried():
     with pytest.raises(PartialStreamError):
         await llm._send({"model": "m", "messages": []}, deltas.append)
     assert calls == 1 and deltas == ["visible"]
+
+
+async def test_thinking_shown_live_is_not_retried_but_a_hidden_tool_fragment_is():
+    """What the person saw is not shown twice: a stream that broke after live reasoning
+    is not retried either. A tool-call fragment nobody saw is: the retry is invisible."""
+    import openai
+    import pytest
+
+    from nanomuse.llm.openai_chat import PartialStreamError
+
+    llm = OpenAIChatLLM(
+        LLMSettings(api_key="x", base_url="http://localhost", stream=True, max_retries=2)
+    )
+    calls = 0
+
+    async def fail_after_reasoning(**_):
+        nonlocal calls
+        calls += 1
+        return _FakeStream([_chunk(reasoning="hmm"), openai.APIConnectionError(request=None)])
+
+    llm.client.chat.completions.create = fail_after_reasoning  # type: ignore[method-assign]
+    shown: list[str] = []
+    with pytest.raises(PartialStreamError):
+        await llm._send({"model": "m", "messages": []}, None, shown.append)
+    assert calls == 1 and shown == ["hmm"]
+
+    # the same reasoning with nobody displaying it, then a tool fragment: retried, answered
+    calls = 0
+
+    async def fail_once_then_answer(**_):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return _FakeStream(
+                [
+                    _chunk(reasoning="hmm"),
+                    _chunk(tool_calls=[_tc(0, id="c1", name="ls", arguments="{")]),
+                    openai.APIConnectionError(request=None),
+                ]
+            )
+        return _FakeStream([_chunk(content="done", finish="stop")])
+
+    llm.client.chat.completions.create = fail_once_then_answer  # type: ignore[method-assign]
+    resp = await llm._send({"model": "m", "messages": []}, None, None)
+    assert calls == 2 and resp.content == "done"
