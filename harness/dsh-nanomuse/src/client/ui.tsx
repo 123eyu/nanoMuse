@@ -117,12 +117,12 @@ export function Empty({ icon, text, children }: { icon: ReactNode; text: string;
     children ?? null)
 }
 
-/** A group of remembered permissions, by where they hold: its heading and the line under it. */
-export function grantGroupWords(t: Translate, scope: GrantScope): { title: string; sub: string } {
+/** A group of remembered permissions, by where they hold: its heading, the line under it, and what an empty one says. */
+export function grantGroupWords(t: Translate, scope: GrantScope): { title: string; sub: string; none: string } {
   switch (scope) {
-    case 'general': return { title: t('sgScopeGeneral'), sub: t('sgScopeGeneralSub') }
-    case 'chat': return { title: t('sgScopeChat'), sub: t('sgScopeChatSub') }
-    case 'task': return { title: t('sgScopeTask'), sub: t('sgScopeTaskSub') }
+    case 'general': return { title: t('sgScopeGeneral'), sub: t('sgScopeGeneralSub'), none: t('sgScopeGeneralNone') }
+    case 'chat': return { title: t('sgScopeChat'), sub: t('sgScopeChatSub'), none: t('sgScopeChatNone') }
+    case 'task': return { title: t('sgScopeTask'), sub: t('sgScopeTaskSub'), none: t('sgScopeTaskNone') }
   }
 }
 

@@ -187,11 +187,12 @@ export function grantScope(g: { sessionId?: string; scheduleId?: string }): Gran
 
 /**
  * The list by where it holds, general first; inside a group the remote-control switch leads
- * (it lets the most through), then newest first. Groups with nothing in them are left out.
+ * (it lets the most through), then newest first. Every group is there, empty or not: the lists
+ * show an empty one with how a grant gets into it.
  */
 export function groupGrants(list: readonly StandingGrant[]): { scope: GrantScope; grants: StandingGrant[] }[] {
   const rank = (g: StandingGrant) => (g.kind === 'remote_control' ? 0 : 1)
-  return GRANT_SCOPES.map((scope) => ({ scope, grants: list.filter((g) => grantScope(g) === scope).sort((a, b) => rank(a) - rank(b) || b.at - a.at) })).filter((group) => group.grants.length > 0)
+  return GRANT_SCOPES.map((scope) => ({ scope, grants: list.filter((g) => grantScope(g) === scope).sort((a, b) => rank(a) - rank(b) || b.at - a.at) }))
 }
 
 /**

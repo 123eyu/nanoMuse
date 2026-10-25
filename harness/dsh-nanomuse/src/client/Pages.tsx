@@ -87,7 +87,6 @@ export function makePermissionsSection(t: Translate) {
 function StandingGrants({ t, live }: { t: Translate; live: Live }): ReactNode {
   const [busy, setBusy] = useState<string | undefined>()
   const groups = groupGrants(standingGrants({ grants: live.grants, trusted: live.hub.trusted, remoteControl: live.hub.remoteControl, goneSchedules: live.goneSchedules }))
-  if (groups.length === 0) return h(Fragment, null, h('p', null, t('sgLead')), h('p', null, t('sgEmpty')))
   const revoke = (id: string) => {
     setBusy(id)
     void call('grants/revoke', { id }).catch(() => undefined).finally(() => setBusy(undefined))
@@ -103,6 +102,7 @@ function StandingGrants({ t, live }: { t: Translate; live: Live }): ReactNode {
           h('div', { className: 'nm-row-main' },
             h('span', { className: 'nm-row-title' }, head.title),
             h('span', { className: 'nm-row-sub nm-wrap' }, head.sub))),
+        grants.length === 0 ? h('div', { className: 'nm-row' }, h('span', { className: 'nm-row-sub nm-wrap' }, head.none)) : null,
         grants.map((g) => {
           const w = grantRowWords(t, g)
           return h(Row, { key: g.id, icon: icon(g), title: w.title, sub: w.sub, right: h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', disabled: busy !== undefined, onClick: () => revoke(g.id) }, busy === g.id ? t('working') : t('pmRevoke')) })

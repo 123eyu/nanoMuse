@@ -102,8 +102,7 @@ export function makeComputerSection(t: Translate) {
             h('span', { className: 'nm-row-sub nm-wrap' }, t('cuRiskNote'))))),
       // "always allow" given on the stage, per app (C2): listed here by where it holds, revocable here
       h('h2', null, t('pfApprovalsAlways')),
-      live.grants.length
-        ? groupGrants(standingGrants({ grants: live.grants, goneSchedules: live.goneSchedules })).map(({ scope, grants }) => {
+      groupGrants(standingGrants({ grants: live.grants, goneSchedules: live.goneSchedules })).map(({ scope, grants }) => {
             const head = grantGroupWords(t, scope)
             return h('div', { key: scope, className: 'nm-card' },
               h('div', { className: 'nm-row' },
@@ -111,6 +110,7 @@ export function makeComputerSection(t: Translate) {
                 h('div', { className: 'nm-row-main' },
                   h('span', { className: 'nm-row-title' }, head.title),
                   h('span', { className: 'nm-row-sub nm-wrap' }, head.sub))),
+              grants.length === 0 ? h('div', { className: 'nm-row' }, h('span', { className: 'nm-row-sub nm-wrap' }, head.none)) : null,
               grants.map((g) => {
                 const w = grantRowWords(t, g)
                 return h('div', { key: g.id, className: 'nm-row' },
@@ -120,8 +120,7 @@ export function makeComputerSection(t: Translate) {
                     h('span', { className: 'nm-row-sub' }, w.sub)),
                   h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', onClick: () => void call('grants/revoke', { id: g.id }).catch(() => undefined) }, t('pmRevoke')))
               }))
-          })
-        : h('p', null, t('cuGrantsNone')))
+          }))
   }
 }
 

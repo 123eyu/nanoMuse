@@ -251,10 +251,10 @@ function Approvals({ t, name, approvals, grants, goneSchedules }: { t: Translate
     h('div', { className: 'nm-pf-row-main' }, h('div', { className: 'nm-pf-row-title' }, t('pfManagePermissions'))),
     h('span', { className: 'nm-pf-row-chev' }, h(IconChevronRight, { size: 16 })))
   // the standing grants first (the phone's list), by where they hold, then what was answered on cards
-  const standing = grants.length
-    ? h(Fragment, null,
+  const standing = h(Fragment, null,
         groupGrants(standingGrants({ grants, goneSchedules })).map(({ scope, grants: group }) => h(Fragment, { key: scope },
           h('div', { className: 'nm-pf-day' }, grantGroupWords(t, scope).title),
+          group.length === 0 ? h('p', { className: 'nm-pf-empty' }, grantGroupWords(t, scope).none) : null,
           group.map((g) => {
             const w = grantRowWords(t, g)
             return h('div', { key: g.id, className: 'nm-pf-row' },
@@ -264,7 +264,6 @@ function Approvals({ t, name, approvals, grants, goneSchedules }: { t: Translate
                 h('div', { className: 'nm-pf-row-sub' }, w.sub)),
               h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', onClick: () => void call('grants/revoke', { id: g.id }).catch(() => undefined) }, t('pmRevoke')))
           }))))
-    : h('p', { className: 'nm-pf-empty' }, t('pfApprovalsEmpty', { name }))
   if (approvals.length === 0) return h('div', { className: 'nm-pf-rows' }, standing, manage)
   return h('div', { className: 'nm-pf-rows' },
     standing,
