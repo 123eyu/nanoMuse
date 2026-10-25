@@ -1373,6 +1373,9 @@ html[data-nm-muse] [data-conversation-scroll]:has(> .nm-intro-host) [class*="_co
 .nm-naming-row.nm-selected { border: 1.5px solid var(--nm-blue); color: var(--nm-blue); }
 .nm-naming-row.nm-dimmed { opacity: 0.4; }
 .nm-naming-custom { border-style: dashed; color: var(--dsw-alias-label-tertiary); background: transparent; }
+.nm-naming input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; color: var(--dsw-alias-label-primary); font: inherit; font-size: 15px; padding: 0; }
+.nm-naming-confirm { flex: none; padding: 5px 12px; border-radius: 9px; border: 1px solid var(--nm-divider); background: var(--nm-base); color: var(--dsw-alias-label-primary); font: inherit; font-size: 13.5px; cursor: pointer; }
+.nm-naming-confirm:disabled { opacity: 0.5; cursor: default; }
 
 /* The Feed (C5): the intro card, the "how" card under the empty state, the routine row in the sliders. */
 .nm-feed-intro { display: flex; flex-direction: column; gap: 8px; margin: 0 0 14px; padding: 14px 16px; border-radius: var(--nm-radius); background: var(--nm-card); border: 1px solid var(--nm-divider); }

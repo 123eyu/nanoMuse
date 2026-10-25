@@ -1,4 +1,5 @@
 import { Check, Sparkles } from "lucide-react";
+import { useState } from "react";
 import { useT } from "../i18n";
 import { cx } from "../util";
 
@@ -7,8 +8,9 @@ import { cx } from "../util";
  * owns the state). The app speaks three lines first, as the agent, at no cost in tokens;
  * the model then asks the person's name and, when it has it, the chooser offers two names
  * for the agent — the model's suggestions or two from the built-in pool — and "Something
- * else" for a name of the person's own. The desktop (`firstrun.ts`) and the phones draw
- * the same card.
+ * else" for a name of the person's own: an input on the card, saved by the pick endpoint
+ * the way a chip is, never waiting on the model to repeat the name in a `nanomuse-naming`
+ * block. The desktop (`firstrun.ts`) and the phones draw the same card.
  */
 
 /** The opening lines, drawn as the agent's grey bubbles; they are not messages the model sees. */
@@ -26,22 +28,24 @@ export function IntroLines({ lines }: { lines: string[] }) {
   );
 }
 
-/** The chooser under the model's latest reply: two names, "Something else", and the chosen one ticked. */
+/** The chooser under the model's latest reply: two names, "Something else" with an input
+ * for a name of the person's own, and the chosen one ticked. */
 export function NamingCard({
   chips,
   chosen,
   busy,
   onPick,
-  onElse,
 }: {
   chips: string[];
   chosen: string | null;
   busy?: boolean;
   onPick: (name: string) => void;
-  onElse: () => void;
 }) {
   const t = useT();
-  if (chips.length === 0 && !chosen) return null;
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState("");
+  if (chips.length === 0 && !chosen && !editing) return null;
+  const typed = value.trim();
   return (
     <section className="rise mx-1 my-2 rounded-[22px] border border-border/70 bg-surface p-3.5">
       <div className="flex items-center gap-2 text-[13px] font-medium text-fg">
@@ -66,12 +70,53 @@ export function NamingCard({
             </button>
           );
         })}
-        {!chosen && (
-          <button type="button" disabled={busy} onClick={onElse} className="rounded-full border border-border px-3.5 py-1.5 text-[13.5px] text-muted hover:bg-surface-2 disabled:opacity-60">
+        {!chosen && !editing && (
+          <button type="button" disabled={busy} onClick={() => setEditing(true)} className="rounded-full border border-border px-3.5 py-1.5 text-[13.5px] text-muted hover:bg-surface-2 disabled:opacity-60">
             {t("Something else")}
           </button>
         )}
       </div>
+      {!chosen && editing && (
+        <form
+          className="mt-2.5 flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (typed) onPick(typed);
+          }}
+        >
+          <input
+            autoFocus
+            value={value}
+            maxLength={16}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setEditing(false);
+                setValue("");
+              }
+            }}
+            placeholder={t("Type a name for me")}
+            className="min-w-0 flex-1 rounded-full border border-border bg-surface-2 px-3.5 py-1.5 text-[13.5px] text-fg outline-none focus:border-accent"
+          />
+          <button
+            type="submit"
+            disabled={busy || !typed}
+            className="rounded-full bg-accent px-3.5 py-1.5 text-[13.5px] font-medium text-accent-fg disabled:opacity-60"
+          >
+            {t("Call me this")}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setEditing(false);
+              setValue("");
+            }}
+            className="rounded-full border border-border px-3.5 py-1.5 text-[13.5px] text-muted hover:bg-surface-2"
+          >
+            {t("Back")}
+          </button>
+        </form>
+      )}
     </section>
   );
 }

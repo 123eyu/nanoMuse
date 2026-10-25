@@ -1760,6 +1760,8 @@ const zhCN: Record<string, string> = {
   "Open the chat. It introduces itself and asks your name.": "打开聊天。它会介绍自己，并问你的名字。",
   "Pick a name for me, or type one": "给我挑一个名字，或者自己输入一个",
   "Something else": "自己起一个",
+  "Type a name for me": "输入你想叫我什么",
+  "Call me this": "就叫这个",
 
   // the own-key model form: the proxy for this provider
   "Proxy (optional)": "代理（可选）",

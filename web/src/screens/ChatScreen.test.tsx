@@ -1,6 +1,7 @@
 import { act } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+import { setLocaleSetting } from "../i18n";
 import { Composer } from "./ChatScreen";
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
@@ -27,6 +28,9 @@ function discs(r: ReactTestRenderer) {
 }
 
 describe("Composer stop disc", () => {
+  // the labels looked for are the English ones, whatever the machine running the suite speaks
+  beforeAll(() => setLocaleSetting("en"));
+
   it("swaps the send disc for a stop disc while busy with an empty box", () => {
     let r!: ReactTestRenderer;
     act(() => {
