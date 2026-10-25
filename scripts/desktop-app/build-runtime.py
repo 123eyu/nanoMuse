@@ -23,7 +23,6 @@ import subprocess
 import sys
 import tempfile
 import time
-import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -92,6 +91,10 @@ def check(exe: Path) -> None:
         env.pop(key, None)
     # A startup log can exceed a pipe's capacity before the server listens.
     # A regular file also lets the timeout read diagnostics without waiting for EOF.
+    # the health check is a call to this machine: the environment's proxy has no part in it
+    # (a machine behind one polled the proxy instead and never saw the runtime come up)
+    from nanomuse.local_http import local_open
+
     with tempfile.TemporaryFile() as log:
         proc = subprocess.Popen(
             [str(exe), "serve", "--no-qr", "--no-auth", "--port", str(port)],
@@ -106,15 +109,11 @@ def check(exe: Path) -> None:
                 if proc.poll() is not None:
                     break
                 try:
-                    with urllib.request.urlopen(
-                        f"http://127.0.0.1:{port}/api/health", timeout=1
-                    ) as r:
+                    with local_open(f"http://127.0.0.1:{port}/api/health", timeout=1) as r:
                         body = json.loads(r.read())
                         if body.get("ok"):
                             print("health:", body)
-                            with urllib.request.urlopen(
-                                f"http://127.0.0.1:{port}/", timeout=2
-                            ) as r2:
+                            with local_open(f"http://127.0.0.1:{port}/", timeout=2) as r2:
                                 page = r2.read()
                                 assert (
                                     b'<div id="root"' in page

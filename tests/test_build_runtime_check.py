@@ -57,7 +57,7 @@ Probe = Callable[[str], BaseException | None]
 
 
 @pytest.fixture
-def probe(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Probe:
+def probe(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, dead_proxy: str) -> Probe:
     spec = importlib.util.spec_from_file_location("build_runtime_check", SCRIPT)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
