@@ -33,6 +33,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Project
 
+- An *iOS · Beta group* workflow hands a TestFlight build to the external group *nanoMuse Beta* and submits it for Apple's beta review (*Run workflow* with the build number and a note), so the public link gets a version without a sign-in to App Store Connect.
 - The harness bundle workflow builds a branch once, through its pull request (and main and the release tags as before); a push to a branch with a pull request open ran the Linux and Windows jobs twice.
 
 ## [1.0.7] - 2026-10-25 · Logbook

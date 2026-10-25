@@ -758,8 +758,12 @@ when either grows past its ceiling.
 Distribution is TestFlight, **internal testers**: the people you add as users of your App Store
 Connect team (up to 100), who get every build minutes after it is processed, with no App Review.
 An external group (public link, up to 10,000 testers) needs Apple's beta review once per version;
-the group *nanoMuse Beta* and its public link exist, and each build is added to it and submitted
-for review after the internal testers have had it. The pipeline is the same either way.
+the group *nanoMuse Beta* and its public link exist. A build is handed to it by the *iOS · Beta
+group* workflow (`.github/workflows/ios-beta-external.yml`, *Run workflow*, the build number from
+the TestFlight run and a "What to Test" note; an empty build number takes the newest): the
+`external` lane of the Fastfile adds the build to the group, writes the note and submits it for
+the beta review, with the three App Store Connect secrets and nothing else. The testers are
+notified when the review has passed. The pipeline is the same either way.
 
 ### Where it stands
 
