@@ -1580,6 +1580,12 @@ async def test_an_upstream_refusal_is_written_down_with_the_providers_words():
     )
     assert upstream_detail("chat", 502, "m", b"<html>bad gateway</html>") == "chat 502 m"
     assert upstream_detail("chat", 400, "m", b'{"message": "plain\\nlines"}') == "chat 400 m: plain lines"
+    # Gemini's OpenAI-compatible endpoint wraps its error in a list
+    gemini = b'[{"error":{"code":400,"message":"Unknown name \\"store\\": Cannot find field.","status":"INVALID_ARGUMENT"}}]'
+    assert upstream_detail("chat", 400, "gemini-3.1-flash-lite", gemini) == (
+        'chat 400 gemini-3.1-flash-lite: Unknown name "store": Cannot find field.'
+    )
+    assert upstream_detail("chat", 400, "m", b"[]") == "chat 400 m"
 
     app, client, sender, up, cloud = make_stack(catalog_probe=False)
     data = await sign_up(client, sender, identifier="13800138000", device="pixel")
@@ -1621,6 +1627,11 @@ def test_a_content_check_refusal_is_said_plainly():
     # an ordinary 400 still passes the provider's own words through, as before
     assert relay_error_body(400, other)["error"] == {"message": "Model not exist.", "type": "upstream", "code": "upstream_400"}
     assert relay_error_body(429, other)["error"]["code"] == "upstream_busy"
+    # a 400 wrapped in a list (Gemini's OpenAI-compatible endpoint) passes its words through too,
+    # instead of the generic sentence that sent people hunting for a key (#611)
+    gemini = b'[{"error":{"code":400,"message":"Unknown name \\"store\\": Cannot find field.","status":"INVALID_ARGUMENT"}}]'
+    assert relay_error_body(400, gemini)["error"]["message"] == 'Unknown name "store": Cannot find field.'
+    assert relay_error_body(400, b"[1, 2]")["error"]["message"] == "The model provider refused the request"
 
 
 async def test_a_content_check_refusal_is_counted_apart_from_upstream_errors(stack):

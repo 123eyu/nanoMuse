@@ -351,22 +351,33 @@ def apply_chat_defaults(body: dict, defaults: dict) -> None:
         body["reasoning_effort"] = "none"
 
 
+def upstream_body(raw: bytes | str) -> dict | None:
+    """The object a provider's error body is about: the body itself when it is one, the
+    first object of a list when the provider wraps it in one (Gemini's OpenAI-compatible
+    endpoint answers a 400 with ``[{"error": {...}}]``), None for anything that is not
+    JSON or neither of the two."""
+    try:
+        obj = json.loads(raw.decode("utf-8", "replace") if isinstance(raw, bytes) else raw)
+    except (ValueError, UnicodeDecodeError):
+        return None
+    if isinstance(obj, list):
+        obj = next((o for o in obj if isinstance(o, dict)), None)
+    return obj if isinstance(obj, dict) else None
+
+
 def upstream_detail(kind: str, status: int, model: str, raw: bytes | str) -> str:
     """The line an `upstream.error` event keeps: the kind, the status, the model and the
     provider's own words (its `error.message`, one line, trimmed) — enough to see *why* a
     request failed from the admin page, never the request's content."""
     message = ""
-    try:
-        obj = json.loads(raw.decode("utf-8", "replace") if isinstance(raw, bytes) else raw)
-        err = obj.get("error") if isinstance(obj, dict) else None
-        if isinstance(err, dict):
-            message = str(err.get("message") or err.get("code") or "")
-        elif isinstance(err, str):
-            message = err
-        elif isinstance(obj, dict):
-            message = str(obj.get("message") or "")
-    except (ValueError, AttributeError, UnicodeDecodeError):
-        message = ""
+    obj = upstream_body(raw)
+    err = obj.get("error") if obj else None
+    if isinstance(err, dict):
+        message = str(err.get("message") or err.get("code") or "")
+    elif isinstance(err, str):
+        message = err
+    elif obj:
+        message = str(obj.get("message") or "")
     message = " ".join(message.split())
     line = f"{kind} {status} {model}".strip()
     return f"{line}: {message[:200]}" if message else line
@@ -401,16 +412,15 @@ def relay_error_body(status: int, raw: bytes) -> dict:
     key they never had. The provider's text rides along under ``upstream`` for the curious
     and for bug reports."""
     upstream = ""
-    try:
-        up = json.loads(raw)
-        if isinstance(up, dict):
-            e = up.get("error")
-            if isinstance(e, dict) and e.get("message"):
-                upstream = str(e["message"])[:300]
-            elif up.get("message"):
-                upstream = str(up["message"])[:300]
-    except ValueError:
-        pass
+    up = upstream_body(raw)
+    if up:
+        e = up.get("error")
+        if isinstance(e, dict) and e.get("message"):
+            upstream = str(e["message"])[:300]
+        elif isinstance(e, str) and e:
+            upstream = e[:300]
+        elif up.get("message"):
+            upstream = str(up["message"])[:300]
     if status == 400 and content_check_refusal(raw):
         message, code = "The model provider's content check declined this request; try different words", "content_rejected"
     elif status == 400:
