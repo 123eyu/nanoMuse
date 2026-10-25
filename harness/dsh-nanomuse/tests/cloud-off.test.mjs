@@ -319,3 +319,59 @@ test('off without any own chat model, a side call is refused too, not sent to th
     await out.done()
   }
 })
+
+test('the llm/stream hook: until the first chunk a Cloud call is in live.waiting with its session, and it leaves at the first chunk, at the end, and when the stream breaks', async () => {
+  const out = await cloud({ defaultModel: { provider: PROVIDER_ID, model: 'deepseek-v4.1-flash' } })
+  try {
+    assert.deepEqual(out.svc.live().waiting, [])
+    let release
+    const gate = new Promise((resolve) => { release = resolve })
+    const next = () => (async function* () {
+      await gate
+      yield { type: 'text-delta', text: 'hi' }
+      yield { type: 'finish', reason: { kind: 'stop' } }
+    })()
+    const runtime = { stream() { throw new Error('not the relay') } }
+    const before = Date.now()
+    const it = out.hooks['llm/stream'].call(runtime, { provider: PROVIDER_ID, model: 'deepseek-v4.1-flash', sessionId: 'chat-7' }, next)[Symbol.asyncIterator]()
+    const first = it.next() // the stream is opened, the relay has not spoken
+    await new Promise((r) => setTimeout(r, 10))
+    let waiting = out.svc.live().waiting
+    assert.equal(waiting.length, 1)
+    assert.equal(waiting[0].session, 'chat-7')
+    assert.ok(waiting[0].since >= before && waiting[0].since <= Date.now())
+    // a second call, of another chat, is listed after it
+    let release2
+    const gate2 = new Promise((resolve) => { release2 = resolve })
+    const next2 = () => (async function* () { await gate2; yield { type: 'finish', reason: { kind: 'error', failure: { kind: 'network', message: 'broke' } } } })()
+    const it2 = out.hooks['llm/stream'].call(runtime, { provider: PROVIDER_ID, model: 'deepseek-v4.1-flash', sessionId: 'chat-8' }, next2)[Symbol.asyncIterator]()
+    const second = it2.next()
+    await new Promise((r) => setTimeout(r, 10))
+    assert.deepEqual(out.svc.live().waiting.map((w) => w.session), ['chat-7', 'chat-8'])
+    // the first token: chat-7 is no longer waiting, chat-8 still is
+    release()
+    assert.equal((await first).value.type, 'text-delta')
+    assert.deepEqual(out.svc.live().waiting.map((w) => w.session), ['chat-8'])
+    assert.equal((await it.next()).value.type, 'finish')
+    assert.equal((await it.next()).done, true)
+    // a stream that ends in an error leaves too
+    release2()
+    assert.equal((await second).value.reason.kind, 'error')
+    assert.equal((await it2.next()).done, true)
+    assert.deepEqual(out.svc.live().waiting, [])
+    // a consumer that stops reading (the person pressed Stop) leaves as well
+    let release3
+    const gate3 = new Promise((resolve) => { release3 = resolve })
+    const next3 = () => (async function* () { await gate3; yield { type: 'finish', reason: { kind: 'aborted' } } })()
+    const it3 = out.hooks['llm/stream'].call(runtime, { provider: PROVIDER_ID, model: 'deepseek-v4.1-flash' }, next3)[Symbol.asyncIterator]()
+    const third = it3.next()
+    await new Promise((r) => setTimeout(r, 10))
+    assert.deepEqual(out.svc.live().waiting.map((w) => w.session), [''])
+    release3()
+    await third
+    await it3.return()
+    assert.deepEqual(out.svc.live().waiting, [])
+  } finally {
+    await out.done()
+  }
+})

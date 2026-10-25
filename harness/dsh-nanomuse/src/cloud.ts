@@ -308,6 +308,8 @@ export interface LiveState {
   trajectory: { rev: number; sessions: string[] }
   /** The 80 % heads-up (C12), while it is due: what is left of the pool and what an invitation adds, in yuan; null otherwise. */
   headsUp: { left: number; grant: number; bonus: number } | null
+  /** The account's model calls still without a first token (0.31): when each began and its session, for the "waited N s" line above that chat's composer. */
+  waiting: Array<{ since: number; session: string }>
 }
 
 /** What Settings → Account's "ways on", the own-key step and the pickers read (`GET /providers`). */
@@ -1043,7 +1045,7 @@ export default class NanomuseCloud extends Service {
           cloud.ctx.logger.info('nanomuse cloud: a call to %s refused, Cloud models are off%s', options.model, options.purpose ? ` (${options.purpose})` : '')
           return cloud.refuseCloudOff()
         }
-        return cloud.watchRelayStream(next())
+        return cloud.watchRelayStream(next(), options.sessionId === undefined ? '' : String(options.sessionId))
       })
     })
     this.ctx.effect(() => () => {
@@ -1128,29 +1130,43 @@ export default class NanomuseCloud extends Service {
    * (`src/refusals.ts`) so the chat draws the card and the retry plugin lets it be; a spent
    * allowance has the account re-read, so Settings and the heads-up agree with it; a 401 has
    * the sign-in forgotten here, as a `/me` 401 does. A turn that ended well counts for the
-   * 80 % heads-up.
+   * 80 % heads-up. Until the first chunk the call is in `waits`, so the chat can say how long
+   * it has been waiting (0.31; the relay's own "queued, N ahead" chunks have no choices and
+   * never reach this side, so the line counts the seconds and nothing more).
    */
-  private async *watchRelayStream(stream: AsyncIterable<StreamChunk>): AsyncIterable<StreamChunk> {
-    for await (const chunk of stream) {
-      if (chunk.type !== 'finish') {
-        yield chunk
-        continue
+  private async *watchRelayStream(stream: AsyncIterable<StreamChunk>, session = ''): AsyncIterable<StreamChunk> {
+    const id = ++this.waitSeq
+    this.waits.set(id, { since: Date.now(), session })
+    this.broadcast()
+    try {
+      for await (const chunk of stream) {
+        if (this.waits.delete(id)) this.broadcast()
+        if (chunk.type !== 'finish') {
+          yield chunk
+          continue
+        }
+        if (chunk.reason.kind !== 'error') {
+          if (chunk.reason.kind !== 'aborted') this.afterRelayTurn()
+          yield chunk
+          continue
+        }
+        const seen = relayFailure(chunk.reason.failure)
+        if (!seen) {
+          yield chunk
+          continue
+        }
+        this.ctx.logger.info('nanomuse cloud: the relay refused (%s %s): %s', seen.refusal.status, seen.refusal.code, seen.refusal.message || '—')
+        this.refused(seen.refusal)
+        yield { ...chunk, reason: { kind: 'error', failure: { ...chunk.reason.failure, ...seen.failure } } }
       }
-      if (chunk.reason.kind !== 'error') {
-        if (chunk.reason.kind !== 'aborted') this.afterRelayTurn()
-        yield chunk
-        continue
-      }
-      const seen = relayFailure(chunk.reason.failure)
-      if (!seen) {
-        yield chunk
-        continue
-      }
-      this.ctx.logger.info('nanomuse cloud: the relay refused (%s %s): %s', seen.refusal.status, seen.refusal.code, seen.refusal.message || '—')
-      this.refused(seen.refusal)
-      yield { ...chunk, reason: { kind: 'error', failure: { ...chunk.reason.failure, ...seen.failure } } }
+    } finally {
+      if (this.waits.delete(id)) this.broadcast()
     }
   }
+
+  /** The account's model calls still without a first token, by a number of their own (0.31). */
+  private readonly waits = new Map<number, { since: number; session: string }>()
+  private waitSeq = 0
 
   /** Set when the relay answered that it keeps no record; cleared when the account is read again. */
   private recordOff = false
@@ -2321,6 +2337,7 @@ export default class NanomuseCloud extends Service {
       },
       trajectory: { rev: this.trajectory.view().rev, sessions: [...new Set(this.trajectory.view().runs.map((r) => r.sessionId))] },
       headsUp: this.headsUp(),
+      waiting: [...this.waits.values()].sort((a, b) => a.since - b.since),
     }
   }
 

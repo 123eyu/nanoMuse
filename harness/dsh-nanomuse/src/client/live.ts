@@ -157,6 +157,8 @@ export interface Live {
   trajectory?: { rev: number; sessions: string[] } | undefined
   /** The 80 % heads-up (C12) while it is due: what is left of the pool, the pool, what an invitation adds (yuan). Null or absent otherwise. */
   headsUp?: { left: number; grant: number; bonus: number } | null | undefined
+  /** The account's model calls still without a first token (0.31): when each began and its session. Absent on an older host. */
+  waiting?: Array<{ since: number; session: string }> | undefined
   /** Whether the stream is open; false before the first snapshot and while reconnecting. */
   streaming: boolean
 }
