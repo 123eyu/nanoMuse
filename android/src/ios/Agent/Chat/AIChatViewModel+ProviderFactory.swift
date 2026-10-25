@@ -18,6 +18,12 @@ extension AIChatViewModel {
     /// method, since the resolution depends only on global state
     /// (ProviderConfigStore + LLMProviderFactory).
     static func makeAgentProvider(for entry: ModelEntry) async -> AgentProvider {
+        // nanoMuse: a turn answered on the person's own key joins the account's record (NanoMuseOwnTurns)
+        let bare = await makeBareAgentProvider(for: entry)
+        return NanoMuseOwnTurns.wrap(entry: entry, bare)
+    }
+
+    static func makeBareAgentProvider(for entry: ModelEntry) async -> AgentProvider { // nanoMuse: was makeAgentProvider
         let store = ProviderConfigStore.shared
         guard let instance = store.instance(for: entry.providerInstanceId) else {
             logger.error("No ProviderInstance found for entry \(entry.id)")

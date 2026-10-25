@@ -815,7 +815,7 @@ export const zh = {
     version: "版本",
     refresh: "每 30 秒刷新",
     hubOnline: (n: number, a: number) => `${n} 个连接 · ${a} 个账号`,
-    hubDrops: (d: number, f: number, s: number) => `丢帧 ${d} · 刷屏断开 ${f} · 慢读断开 ${s}`,
+    hubDrops: (d: number, f: number, s: number, r: number) => `丢帧 ${d} · 刷屏断开 ${f} · 慢读断开 ${s} · 握手前拒绝 ${r}`,
     pending: "待回的调用",
   },
 
@@ -1799,7 +1799,7 @@ export const en: Strings = {
     version: "Version",
     refresh: "Refreshes every 30 s",
     hubOnline: (n: number, a: number) => `${n} sockets · ${a} accounts`,
-    hubDrops: (d: number, f: number, s: number) => `dropped frames ${d} · flood closes ${f} · slow closes ${s}`,
+    hubDrops: (d: number, f: number, s: number, r: number) => `dropped frames ${d} · flood closes ${f} · slow closes ${s} · refused before hello ${r}`,
     pending: "Calls pending",
   },
 

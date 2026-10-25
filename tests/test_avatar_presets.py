@@ -17,10 +17,10 @@ MOODS = ("idle", "working", "waiting", "happy", "error")
 
 def test_avatar_preset_sources_and_client_previews_match() -> None:
     source = ROOT / "assets" / "avatar-presets"
-    manifest = json.loads((source / "source.json").read_text())
+    manifest = json.loads((source / "source.json").read_text("utf-8"))
     ios_project = (
         ROOT / "android" / "src" / "ios" / "Minis.xcodeproj" / "project.pbxproj"
-    ).read_text()
+    ).read_text("utf-8")
     assert manifest["generated"] == "2026-10-22"
     assert manifest["image_model"] == "qwen-image-3.0-pro"
     assert len(manifest["sha256"]) == len(PRESETS) * len(MOODS)
@@ -77,7 +77,7 @@ def test_avatar_preset_sources_and_client_previews_match() -> None:
 
 
 def test_avatar_preset_manifest_contains_no_secret_material() -> None:
-    text = (ROOT / "assets" / "avatar-presets" / "source.json").read_text()
+    text = (ROOT / "assets" / "avatar-presets" / "source.json").read_text("utf-8")
     lowered = text.lower()
     assert re.search(r"\bsk-[a-z0-9_-]{12,}", lowered) is None
     assert "authorization" not in lowered

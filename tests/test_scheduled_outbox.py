@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from nanomuse.server.outbox import DeliveryOutbox
 
 
@@ -19,15 +17,14 @@ def _claim(store: DeliveryOutbox):
     )
 
 
-@pytest.mark.parametrize("crash_point", ["after_claim", "after_enqueue", "during_execution"])
-def test_pending_delivery_recovers_at_each_pre_ack_crash_point(tmp_path: Path, crash_point: str):
+def test_pending_delivery_recovers_from_a_crash_before_the_ack(tmp_path: Path):
+    """Queue insertion and execution are deliberately outside SQLite: a crash after the
+    claim, after the enqueue or during the run leaves the same durable pending row, and
+    the next start replays it once."""
     path = tmp_path / "outbox.db"
     store = DeliveryOutbox(path)
     claimed = _claim(store)
     assert claimed is not None
-    # Queue insertion and execution are deliberately outside SQLite. Until the worker's
-    # acknowledgement, all three crash points have the same durable pending state.
-    assert crash_point
     store.close()
 
     recovered = DeliveryOutbox(path)

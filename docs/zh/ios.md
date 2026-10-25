@@ -20,17 +20,17 @@ Mac runner 上构建后交给 TestFlight。这一页说的是：源码树里有�
 可用的关键。
 
 ```
-android/src/ios/                 the Xcode project: Minis.xcodeproj, app, extensions, tests
-android/src/ios/NanoMuse/        ours: nanoMuse Cloud client and screens (a synchronized folder
-                                 of the Minis target; drop a .swift file in, it is compiled)
-android/src/ios/fastlane/        the TestFlight lane
-android/deps/build_lame.sh       LAME → FFmpeg → iSH → Alpine rootfs → rclone, in that order
+android/src/ios/                 Xcode 工程：Minis.xcodeproj、App、扩展、测试
+android/src/ios/NanoMuse/        我们的：nanoMuse Cloud 客户端和各个页面（Minis target 的同步
+                                 文件夹；放进一个 .swift 文件就会被编译）
+android/src/ios/fastlane/        TestFlight 的 lane
+android/deps/build_lame.sh       LAME → FFmpeg → iSH → Alpine rootfs → rclone，按这个顺序
 android/deps/build_ffmpeg.sh
 android/deps/build_ish.sh
 android/deps/prepare_alpine_rootfs.sh
 android/deps/build_rclone_ios.sh
-scripts/rebrand.py               the `ios()` step: ids, names, versions, strings, links, colours
-scripts/gen-ios-icons.py         the app icon and the four alternates, from assets/brand/
+scripts/rebrand.py               其中的 `ios()` 一步：id、名字、版本、字符串、链接、颜色
+scripts/gen-ios-icons.py         App 图标和四款备选图标，来自 assets/brand/
 .github/workflows/ios-testflight.yml
 ```
 
@@ -65,6 +65,10 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
 
 我们自己的，在 `NanoMuse/` 里：
 
+- **对缓存稳定的智能体指令。** 系统提示把固定的工具和安全说明放在一个不变的前缀里，后面
+  再接模型能力、技能和 MCP 元数据、记忆、`USER.md` 和对话引导，最后是当前时间、语言和
+  可用模型数，作为一段确定的易变后缀。写一条记忆或每小时刷新一次时间，不再让支持前缀缓存
+  的服务商把静态指令作废；回退模型按同样的布局重建。
 - **nanoMuse Cloud。** *服务商* 页第一行就是「nanoMuse Cloud」：手机号或邮箱地址、验证码，
   然后中继（[cloud.md](cloud.md)）就成了 App 里一个普通的 OpenAI 兼容服务商，自带一个模型组，
   没有默认时它就是默认。和 Android 客户端（`io.github.nanomuse.cloud`）同样的线上格式、同样
@@ -181,8 +185,14 @@ scripts/gen-ios-icons.py         the app icon and the four alternates, from asse
   → 上游的 `MCPOAuthController`）、key / 打开 / 自动三类服务，以及对那八个不支持注册客户端
   的服务，询问 client id 并给出可复制的回调地址。原来叫 *MCP 集成* 的设置行现在是**连接器**；
   末尾的 *你自己的服务器* 是上游的 MCP 页面。
-- **数据控制**（`NanoMuseDataControls.swift`）：中继的开关、保留的回合数、隐私页、带确认的
-  删除。**Reach**（`NanoMuseReach.swift`）：账号下每台设备一个面板（打开链接、发一条便条、
+- **数据控制**（`NanoMuseDataControls.swift`）：中继的记录里有这个账号的什么（多少轮、其中多少轮用自己的 key、
+  多少张图片、这个中继保留多久；中继 0.29 起）、训练集开关和它的计数、隐私页、一次带确认的删除，记录和训练轮次一起删。
+  1.0.7 起手机自己也参与记录（[cloud.md](cloud.md#the-record)）：发给账号的聊天请求带
+  `X-NanoMuse-Device` 和 `X-NanoMuse-Conversation`（`NanoMuseCloudHeaders.swift`），用自己 key 答完的一轮事后连图片
+  （作为文件）一起上传（`NanoMuseOwnTurns.swift`，包在 agent provider 外面；从不带 key 和 base URL），hub 的 hello
+  说明新对话由什么模型回答（`device.llm`），头像的短片随头像经 profile 的 `clips` 走（`NanoMuseProfile.swift`：
+  这里画出的短片传上去给其他设备，它们的落到本机的 motion 目录，一个头像每个账号只动画一次）。
+  **Reach**（`NanoMuseReach.swift`）：账号下每台设备一个面板（打开链接、发一条便条、
   跑一行 shell、截一张图），都通过 hub。
   **交给另一台设备的任务**（`NanoMuseDeviceMention.swift`、`NanoMuseRemoteApproval.swift`）：
   以 `@〈设备〉` 开头的消息作为 hub 的 `task` 发给那台设备的 Muse（消息开头打 `@` 时，菜单在文件

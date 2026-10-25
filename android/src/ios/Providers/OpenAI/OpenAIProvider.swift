@@ -872,8 +872,11 @@ final class OpenAIProvider: LLMProvider {
         for (key, value) in extraHeaders {
             request.setValue(value, forHTTPHeaderField: key)
         }
-        // nanoMuse: OpenCode Go wants one stable id per conversation
-        if let opencodeSession { request.setValue(opencodeSession, forHTTPHeaderField: NanoMuseOpenCodeSession.header) }
+        // nanoMuse: OpenCode Go wants one stable id per conversation; the account's relay files the turn under it
+        if let opencodeSession {
+            if NanoMuseOpenCodeSession.wants(customBaseURL) { request.setValue(opencodeSession, forHTTPHeaderField: NanoMuseOpenCodeSession.header) }
+            if NanoMuseCloudHeaders.isCloud(extraHeaders) { request.setValue(opencodeSession, forHTTPHeaderField: NanoMuseCloudHeaders.conversation) }
+        }
         // [T-ios-openai-body-oom] Must run BEFORE serializing: an out-of-memory
         // inside JSONSerialization aborts the process and cannot be caught. This
         // is the agent loop's request path, where the body grows with every turn.

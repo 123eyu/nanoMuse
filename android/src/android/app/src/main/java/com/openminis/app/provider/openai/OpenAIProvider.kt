@@ -706,8 +706,8 @@ class OpenAIProvider private constructor(
                 memBefore, serStartNs, failure = null,
             )
         }
-        // nanoMuse: OpenCode Go wants one stable id per conversation (io.github.nanomuse.net.OpenCodeSession)
-        val request = buildRequest(bodyStr, if (io.github.nanomuse.net.OpenCodeSession.wants(basePath)) derivePromptCacheKey(messages) else null)
+        // nanoMuse: OpenCode Go wants one stable id per conversation (io.github.nanomuse.net.OpenCodeSession); the relay's record takes the same id (io.github.nanomuse.cloud.CloudHeaders)
+        val request = buildRequest(bodyStr, if (io.github.nanomuse.net.OpenCodeSession.wants(basePath) || io.github.nanomuse.cloud.CloudHeaders.isCloud(extraHeaders)) derivePromptCacheKey(messages) else null)
         val headerMap = mutableMapOf<String, String>()
         for (name in request.headers.names()) {
             headerMap[name] = request.headers[name] ?: ""
@@ -2390,7 +2390,7 @@ class OpenAIProvider private constructor(
      * the OAuth byte build, and the OkHttp RequestBody. Per-call peak heap
      * dropped by ~2× the body size (often tens of MB on long agent loops).
      */
-    private suspend fun buildRequest(bodyStr: String, opencodeSession: String? = null): Request { // nanoMuse: + opencodeSession
+    private suspend fun buildRequest(bodyStr: String, conversationKey: String? = null): Request { // nanoMuse: + conversationKey (OpenCode's session, the Cloud's conversation)
         val token = getToken()
 
         if (isOAuth && !forceChatCompletions) {
@@ -2459,8 +2459,11 @@ class OpenAIProvider private constructor(
         for ((key, value) in extraHeaders) {
             builder.header(key, value)
         }
-        // nanoMuse: the conversation's id for OpenCode, before the per-call overrides so those still win
-        opencodeSession?.let { builder.header(io.github.nanomuse.net.OpenCodeSession.HEADER, it) }
+        // nanoMuse: the conversation's id for OpenCode, or for the Cloud's record, before the per-call overrides so those still win
+        conversationKey?.let {
+            if (io.github.nanomuse.net.OpenCodeSession.wants(basePath)) builder.header(io.github.nanomuse.net.OpenCodeSession.HEADER, it)
+            if (io.github.nanomuse.cloud.CloudHeaders.isCloud(extraHeaders)) builder.header(io.github.nanomuse.cloud.CloudHeaders.CONVERSATION, it)
+        }
         // [T-android-model-use-passthrough-mode] Per-call chat header overrides,
         // applied AFTER the ctor extraHeaders → same-name REPLACE over any
         // default (incl. Authorization/Content-Type). Empty on normal calls.

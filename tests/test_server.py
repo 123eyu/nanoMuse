@@ -727,6 +727,49 @@ def test_reasoning_streams_to_the_bus(server):
     assert replies[-1].get("reasoning") == "pondering the matter"
 
 
+def test_a_stream_the_model_call_broke_off_is_closed_with_the_run(server):
+    """The model streamed a few words, then the call failed: the bubble that opened for them
+    is closed (`stream_end`, discarded) when the run ends, so the page is not left with a
+    bubble streaming nothing and the next run's words land in a fresh one."""
+    client, service, llm = server
+
+    class Broken(Exception):
+        pass
+
+    def half_then_fail(messages):  # noqa: ANN001, ANN202
+        raise Broken("the provider closed the connection")
+
+    published: list[dict[str, Any]] = []
+    real_publish = service.ui.bus.publish
+
+    def record(message: dict[str, Any]) -> None:
+        published.append(message)
+        real_publish(message)
+
+    real_ask = llm.ask
+
+    async def ask_half(messages, **kw):  # noqa: ANN001, ANN202
+        if kw.get("on_delta"):
+            kw["on_delta"]("Half a ")
+        return await real_ask(messages, **kw)
+
+    service.ui.bus.publish = record  # type: ignore[method-assign]
+    llm.ask = ask_half  # type: ignore[method-assign]
+    llm.script.append(half_then_fail)
+    try:
+        client.post("/api/threads/main/send", json={"text": "go on"})
+        wait_for(lambda: [e for e in events_of(client, kind="notice") if e.get("level") == "error"])
+        wait_idle(service, "main")
+    finally:
+        service.ui.bus.publish = real_publish  # type: ignore[method-assign]
+        llm.ask = real_ask  # type: ignore[method-assign]
+    starts = [m for m in published if m["kind"] == "stream_start"]
+    ends = [m for m in published if m["kind"] == "stream_end"]
+    assert len(starts) == 1 and len(ends) == 1
+    assert ends[0]["id"] == starts[0]["id"] and ends[0].get("discard") is True
+    assert "main" not in service.ui._stream_ids
+
+
 def test_websocket_rejects_bad_token(server):
     client, _, _ = server
     from starlette.websockets import WebSocketDisconnect
@@ -2594,6 +2637,7 @@ def test_triggers_start_work_from_mail_events_and_webhooks(
     # --- mail, with the inbox stubbed --------------------------------------------------------
     settings.connectors.email.enabled = True
     settings.connectors.email.imap_host = "imap.example.com"
+    settings.connectors.email.address = "me@example.com"
     assert client.get("/api/triggers").json()["available"]["mail"] is True
     mail = client.post(
         "/api/triggers",
@@ -2631,7 +2675,16 @@ def test_triggers_start_work_from_mail_events_and_webhooks(
     monkeypatch.setattr(MailWatcher, "_creds", lambda self: ("me@example.com", "pw"))
     client.portal.call(lambda: asyncio.get_event_loop().create_task(service._poll_mail()))
     wait_for(lambda: service.app.triggers.get_meta(service._mail_mark()) == "40")
+    # the mailbox is named by a hash: the address is in the vault, not in this database
     assert service._mail_mark().startswith("mail_uid:imap.example.com:")
+    assert "@" not in service._mail_mark() and "me@example.com" not in service._mail_mark()
+    # a mark an earlier version wrote under the address itself moves to the hashed key
+    hashed = service._mail_mark()
+    service.app.triggers.delete_meta(hashed)
+    service.app.triggers.set_meta("mail_uid:imap.example.com:me@example.com", "39")
+    assert service.app.triggers.get_meta(service._mail_mark()) == "39"
+    assert service.app.triggers.get_meta("mail_uid:imap.example.com:me@example.com", "") == ""
+    service.app.triggers.set_meta(service._mail_mark(), "40")
     assert client.get("/api/triggers").json()["items"][-1]["fired"] == 0  # nothing replayed
     # the poll interval has not passed: nothing happens
     client.portal.call(lambda: asyncio.get_event_loop().create_task(service._poll_mail()))
@@ -2810,13 +2863,24 @@ def test_a_device_coming_online_reaches_the_feed(server):
 def test_device_trigger_shows_in_the_triggers_view(server):
     from nanomuse.cloud import CLOUD_KEY
 
-    client, service, _ = server
+    client, service, llm = server
     service.app.vault.set(CLOUD_KEY, "cloud-key-for-the-test")
     service.create_trigger("device", "tell me", match="pixel")
     view = client.get("/api/triggers").json()
     assert view["available"]["device"] is True
     item = view["items"][0]
     assert item["kind"] == "device" and item["lead_minutes"] == 0 and item["secret"] == ""
+    # the web console makes one too, and its Run now has a test occurrence like the others
+    made = client.post(
+        "/api/triggers", json={"kind": "device", "match": "laptop", "text": "say hi"}
+    )
+    assert made.status_code == 200 and made.json()["kind"] == "device"
+    llm.script.append(LLMResponse(content="Hi from the test."))
+    fired = client.post(f"/api/triggers/{made.json()['id']}/fire")
+    assert fired.status_code == 200
+    wait_idle(service, "main")
+    sent = [m for m in llm.calls[-1]["messages"] if m.role == "user"][-1].content
+    assert "as if the device had just come online" in sent
 
 
 def test_the_hub_devices_frame_fires_them(server):

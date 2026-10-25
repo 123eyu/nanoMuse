@@ -218,6 +218,8 @@ export interface HubStats {
   dropped_frames: number;
   flood_closes: number;
   slow_closes: number;
+  /** Sockets closed before their hello: an address opening too many, an account with too many open (relay 0.30). */
+  refused_connections?: number;
 }
 export interface Live {
   time: number;

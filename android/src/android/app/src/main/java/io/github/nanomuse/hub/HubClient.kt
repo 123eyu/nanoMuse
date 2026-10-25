@@ -136,6 +136,7 @@ class HubClient(
         private set
     private var retry: ScheduledFuture<*>? = null
     private var delayMs = 1000L
+    @Volatile private var frameLimit = MAX_FRAME
     private val stopSentinel = Any()
 
     fun start() {
@@ -189,6 +190,14 @@ class HubClient(
         }
 
         override fun onMessage(webSocket: WebSocket, text: String) {
+            // a frame past the limit (the relay's own, or this phone's ceiling when the relay
+            // named a larger one) is not parsed: a relay of someone else's cannot make the
+            // phone build a JSON tree of tens of megabytes
+            if (text.length > frameLimit) {
+                AppLogger.warning(TAG, "a frame of ${text.length} characters is past the limit; closing")
+                runCatching { webSocket.close(1009, "too_large") }
+                return
+            }
             val frame = runCatching { JSONObject(text) }.getOrNull() ?: return
             onFrame(frame)
         }
@@ -241,6 +250,8 @@ class HubClient(
             "welcome" -> {
                 delayMs = 1000L
                 connected = true
+                // the relay's frame limit, within this phone's own ceiling
+                frameLimit = frame.optJSONObject("server")?.optInt("frame_limit", 0)?.takeIf { it > 0 }?.coerceAtMost(MAX_FRAME) ?: MAX_FRAME
                 devices = parseDevices(frame.optJSONArray("devices"))
                 onState(true, frame.optString("device_id"))
                 onDevices(devices)
@@ -356,5 +367,7 @@ class HubClient(
         private const val HUB_PAUSED_RETRY_MS = 120_000L
         /** After the relay refused the key at the handshake: what the runtime waits too. */
         private const val REFUSED_RETRY_MS = 60_000L
+        /** The largest frame taken from the relay, in characters: the relay's default (docs/hub.md). */
+        const val MAX_FRAME = 16 * 1024 * 1024
     }
 }

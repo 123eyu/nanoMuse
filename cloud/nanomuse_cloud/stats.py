@@ -99,7 +99,10 @@ DAY = Column("day", "Day (UTC)", "日期（UTC）", "day")
 class Stats:
     def __init__(self, cloud: Cloud, sync_store: SyncStore, collector: GitHubCollector | None, hub_getter: Callable[[], Hub | None]):
         self.cloud = cloud
-        self.db = cloud.db
+        # the metrics read through the read-only connection (Database.reader), off the loop
+        # (api.py), so a slow one never holds the requests' lock; the one write, the health
+        # probe, goes through cloud.db (see _relay)
+        self.db = cloud.db.reader()
         self.sync_store = sync_store
         self.collector = collector
         self.hub_getter = hub_getter
@@ -467,7 +470,7 @@ def _github_assets(s: Stats, days: int) -> list[dict[str, Any]]:
 def _relay(s: Stats, days: int) -> list[dict[str, Any]]:
     t = int(time.time())
     hub = s.hub_getter()
-    db = s.db.health()
+    db = s.cloud.db.health()  # a write probe: the relay's own connection, not the read-only one
     paused = [k for k, v in s.cloud.controls.paused().items() if v]
     sync = s.sync_store.admin_totals()
     gh_ok = s.collector.last_ok if s.collector is not None else None

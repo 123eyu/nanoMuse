@@ -294,18 +294,21 @@ enum NanoMuseLibraryIndex {
         "mp4", "mov", "avi", "mkv", "webm", "mp3", "wav", "aac", "flac", "ogg", "m4a",
     ]
 
-    /// Every file under each session's workspace and under the shared
-    /// folder, newest first.
+    /// Every file under the workspace of each session in `titles` and under the shared
+    /// folder, newest first. `titles` is the set of chats the person can see (C12: this
+    /// account's); a workspace left by another account's chat, or by a chat since deleted,
+    /// is not listed, previewed or shared from here.
     static func scan(titles: [String: String]) -> [NanoMuseLibraryEntry] {
         var out: [NanoMuseLibraryEntry] = []
         let fm = FileManager.default
         let base = AIChatViewModel.minisPersistentBase
         if let sessions = try? fm.contentsOfDirectory(at: base, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles]) {
             for dir in sessions {
+                let sid = dir.lastPathComponent
+                guard titles[sid] != nil else { continue }
                 let ws = dir.appendingPathComponent("workspace", isDirectory: true)
                 var isDir: ObjCBool = false
                 guard fm.fileExists(atPath: ws.path, isDirectory: &isDir), isDir.boolValue else { continue }
-                let sid = dir.lastPathComponent
                 walk(ws, root: ws, depth: 0, sessionId: sid, title: titles[sid], into: &out)
                 if out.count >= maxEntries { break }
             }
