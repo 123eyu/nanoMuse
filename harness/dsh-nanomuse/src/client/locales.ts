@@ -1166,6 +1166,7 @@ export const en = {
   stageAllowOnce: 'Allow once',
   apScopeLead: 'Do not ask again:',
   stageAlwaysChat: 'Always in this chat',
+  stageAlwaysTask: 'Always in this task',
   stageAlwaysApp: 'Always in {app}',
   stageDeny: 'Deny',
   stageYourTurnDetail: 'Do your part on the screen, then press Done.',
@@ -1222,6 +1223,8 @@ export const en = {
   cuGrantSub: '{name} may click and type in this app without asking each time.',
   grantInChat: 'Only in the chat “{chat}”',
   grantInOneChat: 'Only in one chat',
+  grantInTask: 'Only when the task “{task}” runs',
+  grantInOneTask: 'Only when one scheduled task runs',
   cuGrantsNone: 'None. “Always in <app>” on a permission card puts one here.',
   // desk-b: the face in motion (C3)
   moAnimating: 'Animating {n}/{total}…',
@@ -2663,6 +2666,7 @@ export const zh: typeof en = {
   stageAllowOnce: '允许一次',
   apScopeLead: '以后不再询问：',
   stageAlwaysChat: '本对话中始终允许',
+  stageAlwaysTask: '此定时任务中始终允许',
   stageAlwaysApp: '在 {app} 里始终允许',
   stageDeny: '拒绝',
   stageYourTurnDetail: '在屏幕上做完你的部分，然后按「好了」。',
@@ -2719,6 +2723,8 @@ export const zh: typeof en = {
   cuGrantSub: '{name} 在这个应用里点按和输入时不再每次询问。',
   grantInChat: '仅限对话「{chat}」',
   grantInOneChat: '仅限一个对话',
+  grantInTask: '仅限定时任务「{task}」运行时',
+  grantInOneTask: '仅限一个定时任务运行时',
   cuGrantsNone: '还没有。在权限卡片上选「在 <应用> 里始终允许」，就会记在这里。',
   // desk-b: the face in motion (C3)
   moAnimating: '正在生成动作 {n}/{total}…',

@@ -116,13 +116,14 @@ export function Empty({ icon, text, children }: { icon: ReactNode; text: string;
     children ?? null)
 }
 
-/** `2 min ago`-style, from the shared words. */
-/** Where a hands grant holds: '' for every conversation, else the one it was given in. */
-export function grantWhere(t: Translate, g: { sessionId?: string; sessionTitle?: string }): string {
+/** Where a hands grant holds: '' for every conversation, else the one task or the one conversation it was given in. */
+export function grantWhere(t: Translate, g: { sessionId?: string; sessionTitle?: string; scheduleId?: string; scheduleTitle?: string }): string {
   if (!g.sessionId) return ''
+  if (g.scheduleId) return g.scheduleTitle ? t('grantInTask', { task: g.scheduleTitle.slice(0, 40) }) : t('grantInOneTask')
   return g.sessionTitle ? t('grantInChat', { chat: g.sessionTitle.slice(0, 40) }) : t('grantInOneChat')
 }
 
+/** `2 min ago`-style, from the shared words. */
 export function ago(t: Translate, at: number): string {
   if (!at) return ''
   const delta = Math.max(0, Date.now() - at) / 1000

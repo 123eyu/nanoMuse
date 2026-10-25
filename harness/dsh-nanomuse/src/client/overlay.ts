@@ -27,16 +27,17 @@ export interface OverlayOptions {
 }
 
 /** The capsule's answer to an approval, as the scope the host keeps it under. */
-const SCOPES: Record<string, 'once' | 'conversation' | 'always'> = { allow: 'once', chat: 'conversation', app: 'always' }
+const SCOPES: Record<string, 'once' | 'schedule' | 'conversation' | 'always'> = { allow: 'once', task: 'schedule', chat: 'conversation', app: 'always' }
 
 /**
- * An approval card's buttons: *Allow once*, then for a hands step *Always in this chat* and
- * *Always in <app>* (a standing grant, revocable on the Permissions page), then *Deny*.
+ * An approval card's buttons: *Allow once*, then for a hands step *Always in this chat* (in a
+ * scheduled task's run, *Always in this task* in its place) and *Always in <app>* (a standing
+ * grant, revocable on the Permissions page), then *Deny*. Four at most, as the capsule draws.
  */
-export function approvalActions(t: Translate, app: string): { id: string; label: string; tone?: 'on' | 'no' }[] {
+export function approvalActions(t: Translate, app: string, scheduleId = ''): { id: string; label: string; tone?: 'on' | 'no' }[] {
   return [
     { id: 'allow', label: t('stageAllowOnce'), tone: 'on' },
-    ...(app ? [{ id: 'chat', label: t('stageAlwaysChat') }, { id: 'app', label: t('stageAlwaysApp', { app: appLabel(app).slice(0, 20) }) }] : []),
+    ...(app ? [scheduleId ? { id: 'task', label: t('stageAlwaysTask') } : { id: 'chat', label: t('stageAlwaysChat') }, { id: 'app', label: t('stageAlwaysApp', { app: appLabel(app).slice(0, 20) }) }] : []),
     { id: 'deny', label: t('stageDeny'), tone: 'no' },
   ]
 }
@@ -77,7 +78,7 @@ export function syncOverlay({ t, stop }: OverlayOptions): () => void {
     const zh = t('langTag') === 'zh'
     const cards = [
       ...live.holds.map((h) => ({ id: `hold:${h.id}`, kind: 'hold' as const, title: t('stageYourTurn'), text: h.reason || t('stageYourTurnDetail'), actions: [{ id: 'done', label: t('stageDoneBtn'), tone: 'on' as const }] })),
-      ...live.approvals.map((a) => ({ id: `ap:${a.id}`, kind: 'approval' as const, title: t('statusNeedsApproval'), text: (zh && a.summaryZh) || a.summary || a.purpose || a.toolName, actions: approvalActions(t, a.app) })),
+      ...live.approvals.map((a) => ({ id: `ap:${a.id}`, kind: 'approval' as const, title: t('statusNeedsApproval'), text: (zh && a.summaryZh) || a.summary || a.purpose || a.toolName, actions: approvalActions(t, a.app, a.scheduleId) })),
     ]
     const key = JSON.stringify({ hands, cards })
     if (key === lastKey) return

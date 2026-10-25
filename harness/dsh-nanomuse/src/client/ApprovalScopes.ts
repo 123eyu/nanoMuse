@@ -5,6 +5,8 @@
  * card offers the two standing answers. Either is the stage's answer (`POST approvals/<id>` with
  * the scope), which the host keeps as a grant and which withdraws the card, as the capsule's does.
  *
+ * In a scheduled task's run, *Always in this task* stands in for *Always in this chat*.
+ *
  * Like `Trajectory.tsx`, the strip is placed by a MutationObserver sweep; nothing of React's is
  * touched, and a strip whose question is gone is taken away.
  */
@@ -37,7 +39,7 @@ export function renderApprovalScopes(t: Translate): () => void {
     label.className = 'nm-ap-scope-label'
     label.textContent = t('apScopeLead')
     node.append(label)
-    const button = (text: string, scope: 'conversation' | 'always') => {
+    const button = (text: string, scope: 'schedule' | 'conversation' | 'always') => {
       const b = document.createElement('button')
       b.type = 'button'
       b.className = 'nm-pill nm-pill-ghost nm-pill-sm'
@@ -51,7 +53,8 @@ export function renderApprovalScopes(t: Translate): () => void {
       })
       node.append(b)
     }
-    button(t('stageAlwaysChat'), 'conversation')
+    if (approval.scheduleId) button(t('stageAlwaysTask'), 'schedule')
+    else button(t('stageAlwaysChat'), 'conversation')
     button(t('stageAlwaysApp', { app: appLabel(approval.app).slice(0, 20) }), 'always')
     return node
   }
@@ -89,8 +92,8 @@ export function renderApprovalScopes(t: Translate): () => void {
   })
   observer.observe(document.body, { childList: true, subtree: true })
   const offLive = subscribeLive((live) => {
-    const key = live.approvals.map((a) => `${a.id}:${a.app}`).join('|')
-    if (key === pending.map((a) => `${a.id}:${a.app}`).join('|')) return
+    const key = live.approvals.map((a) => `${a.id}:${a.app}:${a.scheduleId}`).join('|')
+    if (key === pending.map((a) => `${a.id}:${a.app}:${a.scheduleId}`).join('|')) return
     pending = live.approvals
     schedule()
   })
