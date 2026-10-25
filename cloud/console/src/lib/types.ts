@@ -240,6 +240,7 @@ export interface UsageCell {
   requests: number;
   prompt_tokens: number;
   completion_tokens: number;
+  cached_tokens: number;
   cost_cny: number;
   accounts: number;
 }
@@ -248,6 +249,7 @@ export interface UsageDayRow {
   requests: number;
   prompt_tokens: number;
   completion_tokens: number;
+  cached_tokens: number;
   cost_cny: number;
   active_accounts: number;
   models: Record<string, UsageCell>;
@@ -258,8 +260,19 @@ export interface UsageModel {
   requests: number;
   prompt_tokens: number;
   completion_tokens: number;
+  cached_tokens: number;
   cost_cny: number;
   days: number;
+}
+/** A turn people ran on a key of their own and sent up (POST /v1/turns), per provider and model. */
+export interface OwnKeyUsage {
+  provider: string;
+  model: string;
+  turns: number;
+  accounts: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  cached_tokens: number;
 }
 export interface Usage {
   generated_at: number;
@@ -267,7 +280,8 @@ export interface Usage {
   day_offset_h: number;
   rows: UsageDayRow[];
   models: UsageModel[];
-  totals: { requests: number; prompt_tokens: number; completion_tokens: number; cost_cny: number; active_days: number };
+  totals: { requests: number; prompt_tokens: number; completion_tokens: number; cached_tokens: number; cost_cny: number; active_days: number };
+  own_keys: OwnKeyUsage[];
 }
 export interface DayHour {
   hour: number;

@@ -610,41 +610,29 @@ class Analytics:
     # -- usage: the matrix and a day's drill-down ----------------------------------------------
 
     def usage(self, days: int) -> dict[str, Any]:
+        """The day × model matrix from the ledger (requests, tokens, money, accounts), each
+        model's totals, and the cache: how many of the prompt tokens the provider served from
+        its cache, per day, per model and overall (`cached_tokens`; the share is theirs over
+        the prompt tokens). `own_keys` says the same for the turns people ran on keys of their
+        own and sent up, per provider and model."""
         since, _today, window = self._since(days)
         cells: dict[tuple[int, str], dict[str, Any]] = {}
         models: dict[str, dict[str, Any]] = {}
+        counted = ("requests", "prompt_tokens", "completion_tokens", "cached_tokens", "cost_uy")
         for r in self.db.usage_by_day_model(since, self.offset):
             d, model = int(r["day"]), str(r["model"] or "?")
-            c = cells.setdefault(
-                (d, model), {"requests": 0, "prompt_tokens": 0, "completion_tokens": 0, "cost_uy": 0, "accounts": 0, "kind": str(r["kind"])}
-            )
-            c["requests"] += int(r["requests"] or 0)
-            c["prompt_tokens"] += int(r["prompt_tokens"] or 0)
-            c["completion_tokens"] += int(r["completion_tokens"] or 0)
-            c["cost_uy"] += int(r["cost_uy"] or 0)
+            c = cells.setdefault((d, model), {**dict.fromkeys(counted, 0), "accounts": 0, "kind": str(r["kind"])})
+            m = models.setdefault(model, {"model": model, "kind": str(r["kind"]), **dict.fromkeys(counted, 0), "days": 0})
+            for k in counted:
+                c[k] += int(r[k] or 0)
+                m[k] += int(r[k] or 0)
             c["accounts"] = max(c["accounts"], int(r["accounts"] or 0))
-            m = models.setdefault(
-                model,
-                {
-                    "model": model,
-                    "kind": str(r["kind"]),
-                    "requests": 0,
-                    "prompt_tokens": 0,
-                    "completion_tokens": 0,
-                    "cost_uy": 0,
-                    "days": 0,
-                },
-            )
-            m["requests"] += int(r["requests"] or 0)
-            m["prompt_tokens"] += int(r["prompt_tokens"] or 0)
-            m["completion_tokens"] += int(r["completion_tokens"] or 0)
-            m["cost_uy"] += int(r["cost_uy"] or 0)
             m["days"] += 1
         active = {int(r["day"]): int(r["n"]) for r in self.db.active_by_day(since, self.offset)}
         rows = []
         for d in window:
             by_model = {}
-            total = {"requests": 0, "prompt_tokens": 0, "completion_tokens": 0, "cost_uy": 0}
+            total = dict.fromkeys(counted, 0)
             for model in models:
                 c = cells.get((d, model))
                 if c is None:
@@ -653,6 +641,7 @@ class Analytics:
                     "requests": c["requests"],
                     "prompt_tokens": c["prompt_tokens"],
                     "completion_tokens": c["completion_tokens"],
+                    "cached_tokens": c["cached_tokens"],
                     "cost_cny": self._cny(c["cost_uy"]),
                     "accounts": c["accounts"],
                 }
@@ -664,6 +653,7 @@ class Analytics:
                     "requests": total["requests"],
                     "prompt_tokens": total["prompt_tokens"],
                     "completion_tokens": total["completion_tokens"],
+                    "cached_tokens": total["cached_tokens"],
                     "cost_cny": self._cny(total["cost_uy"]),
                     "active_accounts": active.get(d, 0),
                     "models": by_model,
@@ -674,11 +664,24 @@ class Analytics:
             "requests": sum(m["requests"] for m in model_rows),
             "prompt_tokens": sum(m["prompt_tokens"] for m in model_rows),
             "completion_tokens": sum(m["completion_tokens"] for m in model_rows),
+            "cached_tokens": sum(m["cached_tokens"] for m in model_rows),
             "cost_cny": self._cny(sum(m["cost_uy"] for m in model_rows)),
             "active_days": sum(1 for r in rows if r["requests"]),
         }
         for m in model_rows:
             m["cost_cny"] = self._cny(m.pop("cost_uy"))
+        own_keys = [
+            {
+                "provider": str(r["provider"] or ""),
+                "model": str(r["model"] or "?"),
+                "turns": int(r["turns"] or 0),
+                "accounts": int(r["accounts"] or 0),
+                "prompt_tokens": int(r["prompt_tokens"] or 0),
+                "completion_tokens": int(r["completion_tokens"] or 0),
+                "cached_tokens": int(r["cached_tokens"] or 0),
+            }
+            for r in self.db.own_usage_by_provider(since)
+        ]
         return {
             "generated_at": int(time.time()),
             "days": days,
@@ -686,6 +689,7 @@ class Analytics:
             "rows": rows,
             "models": model_rows,
             "totals": totals,
+            "own_keys": own_keys,
         }
 
     def day(self, day: int) -> dict[str, Any]:
