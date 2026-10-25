@@ -95,8 +95,9 @@ The relay is the code in [`cloud/`](../cloud/README.md). It stores:
   the whole, how it ended (ok, a provider error or timeout, a content-check
   refusal, a broken connection, an allowance refusal), how many messages and
   pictures the request carried, which tools the client offered and which the
-  reply called (names only), whether it was a screen-operation turn, and the
-  client platform. Never a word of the conversation. Rows older than
+  reply called (names only), whether it was a screen-operation turn, the
+  client platform and, from relay 0.31, how many of the prompt tokens the
+  provider served from its cache. Never a word of the conversation. Rows older than
   `CALLS_KEEP_DAYS` (90) are removed, and the operator's *Live* and *Usage*
   pages read these rows in aggregate (how busy the model endpoint is, how
   fast it answers, which platforms queue);
@@ -153,7 +154,8 @@ The relay is the code in [`cloud/`](../cloud/README.md). It stores:
   screenshot the app resends with every turn of a screen operation is one
   file. With the turn: the model, the platform, the device and conversation
   the app named (`X-NanoMuse-Device`, `X-NanoMuse-Conversation`, 1.0.7 on),
-  the token counts, and the address and client software like every request.
+  the token counts (from relay 0.31 with the cached part of the prompt), and
+  the address and client software like every request.
   It is the account's own data, so its devices can read it back and the
   operator can see a problem whole; it does not depend on either switch
   below. The section [The record](#the-record) says what is kept, who reads

@@ -2305,6 +2305,7 @@ class Cloud:
             "response": pack(response),
             "prompt_tokens": usage.prompt if usage else 0,
             "completion_tokens": usage.completion if usage else 0,
+            "cached_tokens": min(usage.cached, usage.prompt) if usage else 0,
             "meta": json.dumps(meta, ensure_ascii=False),
         }
         self.db.add_turn(row, media)

@@ -6,6 +6,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Cloud
 
+- The console's *Usage* page says how much of the prompts the provider served from its cache: overall, per day and per model for the hosted models (the ledger's figure, back to the first version that billed it), and per provider and model for the turns people ran on keys of their own and sent up. Each call's row and each kept turn carry the cached count too (`calls.cached_tokens`, `turns.cached_tokens`).
 - **A number the carrier has already sent enough codes to hears "wait", not "the relay failed".** Aliyun refuses a number with its own limit (one a minute, five an hour, ten a day) before the relay's would; the answer was `502 send_failed` and the apps said the code could not be sent. It is `429 code_too_often` now, the same as the relay's own limit, and the log keeps it as a warning, not an error.
 - The hub logs a refused socket (over 60 a minute from one address, or a 33rd device of one account) and keeps a reference to the close of a socket that stopped reading; the comment on the limits says when each is applied.
 

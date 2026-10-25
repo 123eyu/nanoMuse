@@ -288,6 +288,7 @@ CREATE TABLE IF NOT EXISTS calls (
     total_ms      INTEGER NOT NULL DEFAULT 0,    -- arrival → done
     prompt_tokens INTEGER NOT NULL DEFAULT 0,
     completion_tokens INTEGER NOT NULL DEFAULT 0,
+    cached_tokens INTEGER NOT NULL DEFAULT 0,    -- 0.31: of the prompt, served from the provider's cache
     messages      INTEGER NOT NULL DEFAULT 0,    -- messages in the request
     images        INTEGER NOT NULL DEFAULT 0,    -- pictures in the request
     tools         INTEGER NOT NULL DEFAULT 0,    -- tool definitions the client offered
@@ -344,6 +345,7 @@ CREATE TABLE IF NOT EXISTS turns (
     response      BLOB NOT NULL,               -- record.pack: {message, usage, finish_reason}
     prompt_tokens INTEGER NOT NULL DEFAULT 0,
     completion_tokens INTEGER NOT NULL DEFAULT 0,
+    cached_tokens INTEGER NOT NULL DEFAULT 0,  -- 0.31: of the prompt, from the provider's cache (0 before)
     media         INTEGER NOT NULL DEFAULT 0,  -- distinct pictures / clips referenced
     media_bytes   INTEGER NOT NULL DEFAULT 0,
     meta          TEXT NOT NULL DEFAULT '{}'   -- ua, lang, ip, provider (own), media [{sha256, mime, bytes}]
@@ -600,6 +602,12 @@ class Database:
         # loop a page at a time (Analytics.tokens_step); -1 marks one not filled in yet.
         add("sample_stats", "prompt_tokens", "INTEGER NOT NULL DEFAULT -1")
         add("sample_stats", "completion_tokens", "INTEGER NOT NULL DEFAULT -1")
+        # 0.31: how much of a prompt the provider served from its cache, beside the call's
+        # tokens and the turn's, so the Usage page says how well the cache works for the
+        # hosted models and for the keys people use themselves. Older rows read 0 (the
+        # ledger's `extra` has the hosted figure back to the first version that billed it).
+        add("calls", "cached_tokens", "INTEGER NOT NULL DEFAULT 0")
+        add("turns", "cached_tokens", "INTEGER NOT NULL DEFAULT 0")
 
     # -- 0.15: settings the operator changes while the relay runs ------------------------------
 
@@ -1248,8 +1256,8 @@ class Database:
         with self.tx() as c:
             c.execute(
                 "INSERT OR REPLACE INTO turns(id, account_id, ts, model, platform, device, conversation, source, status, "
-                "request, response, prompt_tokens, completion_tokens, media, media_bytes, meta) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "request, response, prompt_tokens, completion_tokens, cached_tokens, media, media_bytes, meta) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     row["id"],
                     row["account_id"],
@@ -1264,6 +1272,7 @@ class Database:
                     row["response"],
                     int(row.get("prompt_tokens") or 0),
                     int(row.get("completion_tokens") or 0),
+                    int(row.get("cached_tokens") or 0),
                     len(media),
                     sum(int(m.get("bytes") or 0) for m in media),
                     row.get("meta", "{}"),
@@ -2657,6 +2666,7 @@ class Database:
         "total_ms",
         "prompt_tokens",
         "completion_tokens",
+        "cached_tokens",
         "messages",
         "images",
         "tools",
@@ -2817,16 +2827,35 @@ class Database:
 
     # -- 0.28: the usage matrix and its drill-downs (analytics.py) --------------------------
 
+    #: a chat line's cached prompt tokens, as charge_chat wrote them into `extra` (JSON when
+    #: anything applied, '' otherwise; json_extract would fail on the empty string)
+    _LEDGER_CACHED = "CASE WHEN extra LIKE '{%' THEN COALESCE(json_extract(extra, '$.cached_tokens'), 0) ELSE 0 END"
+
     def usage_by_day_model(self, since: int, day_offset_s: int = 0) -> list[sqlite3.Row]:
-        """Per local day and model: requests, tokens, money, accounts (the usage matrix)."""
+        """Per local day and model: requests, tokens (and how many of the prompt's the provider
+        served from its cache), money, accounts (the usage matrix)."""
         with self._lock:
             return self._conn.execute(
                 f"""SELECT {self._DAY} AS day, model, kind, COUNT(*) AS requests, SUM(prompt_tokens) AS prompt_tokens,
-                           SUM(completion_tokens) AS completion_tokens, SUM(cost_uy) AS cost_uy,
-                           COUNT(DISTINCT account_id) AS accounts
+                           SUM(completion_tokens) AS completion_tokens, SUM({self._LEDGER_CACHED}) AS cached_tokens,
+                           SUM(cost_uy) AS cost_uy, COUNT(DISTINCT account_id) AS accounts
                     FROM ledger WHERE ts>=? AND charged>=0 AND kind IN ('chat','image','video','realtime')
                     GROUP BY day, model, kind ORDER BY day""",
                 (day_offset_s, day_offset_s, day_offset_s, since),
+            ).fetchall()
+
+    def own_usage_by_provider(self, since: int) -> list[sqlite3.Row]:
+        """The turns people ran on keys of their own and sent up (source 'own'), per provider
+        and model: turns, accounts, tokens and the cached part of the prompts (0.31 on; older
+        turns count 0 cached). `source` sits before the conversation in the row, so the turns
+        the relay answered itself are skipped without reading their bodies."""
+        with self._lock:
+            return self._conn.execute(
+                """SELECT COALESCE(json_extract(meta, '$.provider'), '') AS provider, model, COUNT(*) AS turns,
+                          COUNT(DISTINCT account_id) AS accounts, SUM(prompt_tokens) AS prompt_tokens,
+                          SUM(completion_tokens) AS completion_tokens, SUM(cached_tokens) AS cached_tokens
+                   FROM turns WHERE ts>=? AND source='own' GROUP BY provider, model ORDER BY turns DESC""",
+                (since,),
             ).fetchall()
 
     def usage_by_hour_model(self, since: int, until: int, day_offset_s: int = 0) -> list[sqlite3.Row]:
