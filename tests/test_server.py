@@ -1412,6 +1412,122 @@ def test_connections_model_key_goes_to_the_vault(server, settings: Settings):
     assert client.put("/api/connections/llm", json={"tool_mode": "bogus"}).status_code == 400
 
 
+OPENROUTER_KEY = "sk-" + "or-first"
+DEEPSEEK_KEY = "sk-" + "ds-second"
+DEEPSEEK_NEW_KEY = "sk-" + "ds-third"
+ENDPOINT_KEY = "sk-" + "gw-own"
+
+
+def test_connections_switching_provider_drops_the_other_provider_key(server, settings: Settings):
+    """The vault names one chat key, so the key a person typed for one provider is the
+    only key there. Switching provider without typing a new one must not keep the
+    reference: that would send the previous provider's key to the new one, and the app
+    would report a key present while the request came back 401.
+
+    The bodies below are what the form sends, not what a catalogue id looks like: every
+    preset submits ``provider: "openai"`` (``ConnectionsScreen.tsx:414``), so only the
+    address tells OpenRouter from DeepSeek."""
+    client, service, _ = server
+    first = client.put(
+        "/api/connections/llm",
+        json={
+            "provider": "openai",
+            "model": "openrouter/auto",
+            "base_url": "https://openrouter.ai/api/v1",
+            "api_key": OPENROUTER_KEY,
+        },
+    ).json()
+    assert first["key_source"] == "vault"
+    assert service.app.vault.get("LLM_API_KEY") == OPENROUTER_KEY
+
+    # the same form with another provider and an empty key field submits null, which is
+    # what the browser sends when the person does not retype the key
+    second = client.put(
+        "/api/connections/llm",
+        json={
+            "provider": "openai",
+            "model": "deepseek-chat",
+            "base_url": "https://api.deepseek.com",
+            "api_key": None,
+        },
+    ).json()
+    # no key rather than the previous provider's key
+    assert second["key_source"] == "none"
+    assert service.app.llm.settings.api_key == ""
+    assert settings.llm.api_key == ""
+
+    # saving again without touching the key keeps that state, and typing a key for the
+    # new provider is what puts one back
+    again = client.put("/api/connections/llm", json={"model": "deepseek-reasoner"}).json()
+    assert again["key_source"] == "none"
+    third = client.put(
+        "/api/connections/llm",
+        json={"api_key": DEEPSEEK_NEW_KEY},
+    ).json()
+    assert third["key_source"] == "vault"
+    assert service.app.vault.get("LLM_API_KEY") == DEEPSEEK_NEW_KEY
+
+
+def test_connections_keeping_the_provider_keeps_its_key(server, settings: Settings):
+    """Only a change of provider drops the reference. Saving the same provider, at the
+    same address, without a key is the ordinary *leave blank to keep it* path and must
+    not lose the key. The form sends the address again, and a trailing slash is not a
+    switch."""
+    client, service, _ = server
+    client.put(
+        "/api/connections/llm",
+        json={
+            "provider": "openai",
+            "model": "deepseek-chat",
+            "base_url": "https://api.deepseek.com",
+            "api_key": DEEPSEEK_KEY,
+        },
+    )
+    same = client.put(
+        "/api/connections/llm",
+        json={
+            "provider": "openai",
+            "model": "deepseek-reasoner",
+            "base_url": "https://api.deepseek.com/",
+        },
+    ).json()
+    assert same["key_source"] == "vault"
+    assert service.app.vault.get("LLM_API_KEY") == DEEPSEEK_KEY
+
+
+def test_connections_endpoint_slot_keeps_its_own_key_reference(server, settings: Settings):
+    """An endpoint sets the slot's key by reference itself, and that is never retyped
+    here. Switching to one from a preset must not clear the reference."""
+    client, service, _ = server
+    client.put(
+        "/api/connections/llm",
+        json={
+            "provider": "openai",
+            "model": "openrouter/auto",
+            "base_url": "https://openrouter.ai/api/v1",
+            "api_key": OPENROUTER_KEY,
+        },
+    )
+    # the ids are typed so no request is made to ask the server what it lists
+    response = client.post(
+        "/api/connections/endpoints",
+        json={
+            "label": "my gateway",
+            "base_url": "https://gw.example/v1",
+            "api_key": ENDPOINT_KEY,
+            "models": ["gw-model"],
+        },
+    )
+    assert response.status_code == 200, response.text
+    made = response.json()
+    assert "id" in made, made
+    switched = client.put("/api/connections/llm", json={"endpoint": made["id"]}).json()
+    # the endpoint's own entry answers, rather than an empty reference
+    assert switched["key_source"] == "vault"
+    assert switched["base_url"] == "https://gw.example/v1"
+    assert service.app.llm.settings.api_key == ENDPOINT_KEY
+
+
 def test_connections_model_proxy_is_written_masked_and_cleared(server, settings: Settings):
     """`[llm] proxy` from the app: http(s) or socks5(h) only, credentials never come back
     whole, "" clears it, and the model client is rebuilt with it."""
