@@ -88,7 +88,6 @@ export function ChatScreen() {
       .then(() => send(activeThread, picked))
       .catch((e: Error) => toast(e.message || t("Could not send")));
   };
-  const focusComposer = () => window.dispatchEvent(new Event("nanomuse:quick-chat"));
   // the stop the activity sheet offers, from the composer: end the run in progress and
   // drop what was queued behind it; ok:false means the race went to the run finishing
   const stopActive = async () => {
@@ -309,7 +308,7 @@ export function ChatScreen() {
           )}
           {/* the chooser for the agent's name, under the latest reply, until a pick or a typed name */}
           {bound && fr.phase === "ask_agent_name" && !thread?.busy && (
-            <NamingCard chips={fr.chips} chosen={fr.chosen} onPick={pickName} onElse={focusComposer} />
+            <NamingCard chips={fr.chips} chosen={fr.chosen} onPick={pickName} />
           )}
           {/* A message written on another device is never this device's unfinished turn (C9):
               nothing here ever offers to continue it. While that device works, this says so. */}
