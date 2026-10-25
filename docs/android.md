@@ -311,6 +311,13 @@ pack is unavailable still falls back once to the default service.
 The voice detector releases its allocated recorder if recording cannot start or is cancelled
 before capture begins. You can retry voice input without leaving that recorder allocated.
 
+A segment that closes on silence is transcribed and the microphone stops, and that stop used
+to free the voice detector's native object from inside its own callback, on the same thread,
+while the detector was still running: the app died with a native crash the moment a take of
+two seconds or more fell silent (1.0.8 fixes this; upstream OpenMinis 1.14 has the same
+change). A stop from inside a callback now takes effect once the detector has handed the
+frame back.
+
 ## Privacy and permissions
 
 The relay keeps an account id, a masked identifier, usage counts and the agent's name and
