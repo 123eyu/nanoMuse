@@ -439,7 +439,9 @@ async def test_the_live_view_shows_the_gate_the_queue_and_the_last_hour(stack):
     assert live["last_10m"]["requests"] == 3 and live["last_10m"]["ok"] == 3 and live["last_10m"]["waited_share"] > 0
     assert live["last_10m"]["p95_wait_ms"] >= 100 and live["last_hour"]["tokens_out"] == 18
     assert live["since_start"]["counts"]["ok"] == 3 and len(live["recent"]) == 3
-    assert live["minutes"][-1]["n"] == 3 and live["in_flight"] == {"requests": 0, "accounts": 0, "limit": 4}
+    # the three calls fall in the current minute's bucket, or the previous one when the clock
+    # turned over between them and the read (CI saw 0 == 3 once at hh:mm:00.7)
+    assert sum(m["n"] for m in live["minutes"][-2:]) == 3 and live["in_flight"] == {"requests": 0, "accounts": 0, "limit": 4}
 
 
 async def test_the_analytics_pages_answer_from_the_rows(stack):
