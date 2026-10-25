@@ -1183,4 +1183,9 @@
     <string name="nm_backup_delivery_failed">Zustellung fehlgeschlagen.</string>
     <string name="nm_backup_run_needs_passphrase">Die Verschlüsselung ist an, und die Passphrase wird auf der Backup-Seite eingegeben; ein Lauf aus der Shell kann nicht danach fragen. Starte das Backup auf der Seite oder schalte die Verschlüsselung dort aus.</string>
     <string name="nm_backup_run_started">Backup aus der Shell gestartet.</string>
+
+    <!-- The line under the typing dots while the model has not said anything yet -->
+    <string name="nm_wait_busy">Das Modell ist ausgelastet, bisher %1$d s</string>
+    <string name="nm_wait_queued">%1$d vor dir, bisher %2$d s</string>
+    <string name="nm_wait_next">Du bist als Nächstes dran, bisher %1$d s</string>
 </resources>

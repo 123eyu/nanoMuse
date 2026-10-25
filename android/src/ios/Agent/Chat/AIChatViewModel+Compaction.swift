@@ -22,7 +22,7 @@ extension AIChatViewModel {
         let contextWindow = effectiveContextWindow(for: entry.model)
         guard contextWindow > 0 else { return .ok }
 
-        let policy = ContextPolicy(contextWindow: contextWindow)
+        let policy = NanoMuseContextBudget.policy(contextWindow: contextWindow) // nanoMuse: compaction at 32k whatever the window
         let estimated = estimateContextTokens()
         let result = policy.check(estimatedTokens: estimated, contextWindow: contextWindow)
         let markerInfo: String

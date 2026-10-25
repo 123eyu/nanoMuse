@@ -966,6 +966,66 @@
         }
       }
     },
+    "%lld ahead of you, %lld s so far" : {
+      "comment" : "nanoMuse: the line under the typing dots while the model has not said anything yet",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld vor dir, bisher %2$lld s"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld ahead of you, %2$lld s so far"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld por delante de ti, %2$lld s hasta ahora"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld devant vous, %2$lld s pour l’instant"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前に %1$lld 件、%2$lld 秒経過"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "앞에 %1$lld건, %2$lld초 경과"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перед вами %1$lld, прошло %2$lld с"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前面还有 %1$lld 个，已等待 %2$lld 秒"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前面還有 %1$lld 個，已等待 %2$lld 秒"
+          }
+        }
+      }
+    },
     "%lld conversations, %lld messages, %lld files" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4020,6 +4080,66 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "語音提示給 nanoMuse"
+          }
+        }
+      }
+    },
+    "You are next, %lld s so far" : {
+      "comment" : "nanoMuse: the line under the typing dots while the model has not said anything yet",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du bist als Nächstes dran, bisher %lld s"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are next, %lld s so far"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eres el siguiente, %lld s hasta ahora"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous êtes le prochain, %lld s pour l’instant"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次はあなたの番です。%lld 秒経過"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다음은 내 차례입니다. %lld초 경과"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вы следующий, прошло %lld с"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下一个就到你，已等待 %lld 秒"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下一個就到你，已等待 %lld 秒"
           }
         }
       }
@@ -12910,6 +13030,66 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "金鑰只保存在這台手機上，只傳給 %@。涵蓋：%@。"
+          }
+        }
+      }
+    },
+    "The model is busy, %lld s so far" : {
+      "comment" : "nanoMuse: the line under the typing dots while the model has not said anything yet",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Modell ist ausgelastet, bisher %lld s"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The model is busy, %lld s so far"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El modelo está ocupado, %lld s hasta ahora"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le modèle est occupé, %lld s pour l’instant"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルが混み合っています。%lld 秒経過"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모델이 혼잡합니다. %lld초 경과"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Модель занята, прошло %lld с"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模型接口比较忙，已等待 %lld 秒"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模型介面比較忙，已等待 %lld 秒"
           }
         }
       }

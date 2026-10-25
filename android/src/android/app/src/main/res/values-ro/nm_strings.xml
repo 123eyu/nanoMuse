@@ -1187,4 +1187,9 @@
     <string name="nm_backup_delivery_failed">Livrarea a eșuat.</string>
     <string name="nm_backup_run_needs_passphrase">Criptarea este pornită, iar fraza de acces se introduce pe pagina Backup; o rulare din shell nu o poate cere. Pornește backupul din pagină sau oprește criptarea acolo.</string>
     <string name="nm_backup_run_started">Backup pornit din shell.</string>
+
+    <!-- The line under the typing dots while the model has not said anything yet -->
+    <string name="nm_wait_busy">Modelul este ocupat, %1$d s până acum</string>
+    <string name="nm_wait_queued">%1$d înaintea ta, %2$d s până acum</string>
+    <string name="nm_wait_next">Urmezi tu, %1$d s până acum</string>
 </resources>

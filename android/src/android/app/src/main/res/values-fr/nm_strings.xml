@@ -1184,4 +1184,9 @@
     <string name="nm_backup_delivery_failed">L\'envoi a échoué.</string>
     <string name="nm_backup_run_needs_passphrase">Le chiffrement est activé et la phrase secrète se saisit sur la page Sauvegarde ; un lancement depuis le shell ne peut pas la demander. Lancez la sauvegarde depuis la page, ou désactivez-y le chiffrement.</string>
     <string name="nm_backup_run_started">Sauvegarde lancée depuis le shell.</string>
+
+    <!-- The line under the typing dots while the model has not said anything yet -->
+    <string name="nm_wait_busy">Le modèle est occupé, %1$d s pour l’instant</string>
+    <string name="nm_wait_queued">%1$d devant vous, %2$d s pour l’instant</string>
+    <string name="nm_wait_next">Vous êtes le prochain, %1$d s pour l’instant</string>
 </resources>

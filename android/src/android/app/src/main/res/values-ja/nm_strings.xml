@@ -1179,4 +1179,9 @@
     <string name="nm_backup_delivery_failed">送信に失敗しました。</string>
     <string name="nm_backup_run_needs_passphrase">暗号化がオンで、パスフレーズはバックアップ画面で入力するものです。シェルからの実行では尋ねられません。画面からバックアップを開始するか、そこで暗号化をオフにしてください。</string>
     <string name="nm_backup_run_started">シェルからバックアップを開始しました。</string>
+
+    <!-- The line under the typing dots while the model has not said anything yet -->
+    <string name="nm_wait_busy">モデルが混み合っています。%1$d 秒経過</string>
+    <string name="nm_wait_queued">前に %1$d 件、%2$d 秒経過</string>
+    <string name="nm_wait_next">次はあなたの番です。%1$d 秒経過</string>
 </resources>

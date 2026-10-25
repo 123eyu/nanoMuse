@@ -234,6 +234,15 @@ a timeout on its side into the codes `unreachable` 503 and `timeout` 504).
 shows above the composer (what is left, the invite bonus, *See the ways*) once per pool
 size, as the phones show it in the chat and the web app above its composer.
 
+**The wait above the composer (1.0.8).** While a chat's turn on the account's model has no
+first token, the host lists the call in `live.waiting` (its session and when it began;
+`watchRelayStream` drops it at the first chunk, the end, or a stream that breaks) and
+`WaitLine` in that chat's input dock says nothing for ten seconds, then *The model is busy,
+15 s so far* with *Cancel*, the header's stop. The phones draw the same line under their
+typing dots and add *3 ahead of you* from the relay's status chunks (relay 0.31,
+[cloud.md](cloud.md#protocol)); the harness's parser does not hand those on, so the desktop
+says how long and nothing more.
+
 ### Checking a packaged runtime
 
 After building the bundled runtime, `python scripts/desktop-app/build-runtime.py --check-only`

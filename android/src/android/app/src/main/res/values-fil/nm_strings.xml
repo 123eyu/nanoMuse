@@ -1183,4 +1183,9 @@
     <string name="nm_backup_delivery_failed">Nabigo ang paghahatid.</string>
     <string name="nm_backup_run_needs_passphrase">Naka-on ang encryption, at itinatype ang passphrase sa pahina ng Backup; hindi ito mahihingi ng pagtakbo mula sa shell. Simulan ang backup sa pahina, o patayin doon ang encryption.</string>
     <string name="nm_backup_run_started">Nagsimula ang backup mula sa shell.</string>
+
+    <!-- The line under the typing dots while the model has not said anything yet -->
+    <string name="nm_wait_busy">Abala ang modelo, %1$d s na ang lumipas</string>
+    <string name="nm_wait_queued">%1$d ang nauuna sa iyo, %2$d s na ang lumipas</string>
+    <string name="nm_wait_next">Ikaw na ang susunod, %1$d s na ang lumipas</string>
 </resources>

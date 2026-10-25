@@ -250,6 +250,7 @@ final class OpenAIAgentProvider: AgentProvider {
                             logger.error("SSE stream error: \(message)")
                             throw LLMError.providerError(message: "[\(code ?? -1)] \(message)")
                         }
+                        if let status = event["nanomuse"] as? [String: Any] { NanoMuseStreamStatus.note(status) } // nanoMuse: the relay's "queued, N ahead" before the model speaks (docs/cloud.md)
 
                         // Usage
                         if let usage = event["usage"] as? [String: Any] {

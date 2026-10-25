@@ -24,6 +24,7 @@ import { renderFenceCards } from './FenceCards.ts'
 import { renderRemoteBubbles } from './RemoteBubbles.ts'
 import { makeFirstRunIntro } from './FirstRun.tsx'
 import { AllowanceHeadsUp } from './AllowanceWays.tsx'
+import { WaitLine } from './WaitLine.tsx'
 import { interceptComposer, makeAvatarChat } from './AvatarChat.tsx'
 import { makeCapsule } from './Capsule.tsx'
 import { prefillComposer } from './composer.ts'
@@ -421,6 +422,10 @@ export function apply(ctx: ClientContext): void {
   // The 80 % heads-up above the composer, once per pool size (the phones' one-line heads-up in the chat).
   slots.inject('conversation.input.dock', () =>
     slots.register({ name: 'conversation.input.dock', id: 'nanomuse.headsup', order: -10, locale: 'nanomuse' }, () => h(AllowanceHeadsUp, { t })))
+  // "The model is busy, 15 s so far" above the composer while the chat's turn has no first token (0.31; the phones' line under the dots).
+  slots.inject('conversation.input.dock', () =>
+    slots.register({ name: 'conversation.input.dock', id: 'nanomuse.wait', order: -9, locale: 'nanomuse', inject: (sessionId: string) => ({ sessionId }) },
+      ({ sessionId }: { sessionId?: string }) => h(WaitLine, { t, sessionId, stop })))
   // The document editor (IDENTITY / SOUL / MEMORY and Library texts) and ⌘K search, over the frame.
   const DocEditor = makeDocEditor(t, () => { layout.toggleSidebar() })
   slots.inject('shell.overlay', () =>

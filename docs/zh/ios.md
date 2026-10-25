@@ -80,6 +80,16 @@ scripts/gen-ios-icons.py         App 图标和四款备选图标，来自 assets
 - **智能体的步骤，状态行。** *设置 → 聊天 → 执行步骤* 让已完成的消息里不再出现工具胶囊，
   除非你要看；正在输入的那一行写的是 *〈名字〉正在处理*，不是 *正在思考*。两处都是上游
   `AssistantBlockView` / `ContentView` 里的单行改动，标了 `// nanoMuse:`。
+- **点点下面的等待（1.0.8；`NanoMuseStreamStatus.swift`）。** 一步还没等到第一个字时，
+  正在输入那一行下面的 `NanoMuseWaitLine` 前十秒什么都不说，然后是「模型接口比较忙，已等待
+  15 秒」和「取消」（聊天的停止）；nanoMuse Cloud 说请求正在等它的模型名额时（中继 0.31 的
+  `nanomuse: {phase, ahead}` chunk，[cloud.md](cloud.md#protocol)），改为「前面还有 3 个」或
+  「下一个就到你」。两个 OpenAI provider 的 SSE 循环里各一行标记的代码把字段递过来；
+  `ChatMessageViews` 里一行画出这行字。
+- **提示预算（1.0.8；`NanoMuseContextBudget.swift`、`NanoMusePromptDiet.swift`）。** 64k 以上
+  的窗口压缩线一律 32k token（上游的分级把它放在窗口往下 20k 处），旧的大段工具结果从 28k
+  起写到磁盘，`browser_use` 的 schema 改写得更紧凑而每个动作和参数都在；数据在 Android 那一页。
+  `AIChatViewModel` 里的三处调用点有标记；策略自己的分级和测试没有动。
 - **Muse 外壳（0.1.33；0.1.34 起 iPad 也有）。** `NanoMuseRoot` 在根上取代了上游的
   `ContentView`；*设置 → nanoMuse* 里有两个开关（*Muse 主页*、*在对话顶部显示形象和名字*），
   OpenMinis 的布局在抽屉里点一下就回得去。聊天的导航标题变成**形象 · 名字 · 状态行**

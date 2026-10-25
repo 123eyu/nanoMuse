@@ -1224,7 +1224,7 @@ class ChatViewModel(
      * fixed list of definition objects, no I/O.
      */
     private val agentTools: List<AgentToolDefinition>
-        get() = AgentTools.makeAgentTools(
+        get() = io.github.nanomuse.chat.PromptDiet.tools(AgentTools.makeAgentTools( // nanoMuse: browser_use worded densely (PromptDiet)
             // [T-android-vision-group / GH#182] The main model's own vision
             // capability. When false but a Vision Group is configured, read_image
             // is still exposed and routes through the group (see
@@ -1238,7 +1238,7 @@ class ChatViewModel(
                 providerRepository, context,
             ),
             memoryEnabled = _memoryEnabled.value,
-        )
+        ))
 
     /**
      * Per-session loop detector. Reset alongside [agentHistory] whenever the
@@ -10907,7 +10907,7 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
         }
         return io.github.nanomuse.chat.PromptCacheLayout.build(
             stableSections = listOf(
-                base,
+                io.github.nanomuse.chat.PromptDiet.prompt(base), // nanoMuse: the minis-* paragraphs condensed (PromptDiet)
                 io.github.nanomuse.guard.RiskPolicy.promptParagraph(),
                 io.github.nanomuse.hands.Hands.promptParagraph(context),
             ),

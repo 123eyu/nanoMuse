@@ -1469,6 +1469,9 @@ export const en = {
   huText: 'Nearly used up: ¥{left} of ¥{grant} left. Invite a friend (+¥{bonus} for each of you) or bring your own key; your sign-in keeps working either way.',
   huSee: 'See the ways',
   huDismiss: 'Dismiss',
+  // The line above the composer while the turn has no first token yet (0.31).
+  wlBusy: 'The model is busy, {seconds} s so far',
+  wlCancel: 'Cancel',
   // The relay’s refusals as cards under the turn (C12), and the generic one for any other model failure.
   rfTooLarge: 'That message is too large for the model’s window. Shorten it, leave out some attachments, or start a new chat.',
   rfContentRejected: 'The model provider’s content check declined this request. Try different words, or start a new chat if it keeps happening: the words it objects to can be earlier in the conversation.',
@@ -2952,6 +2955,8 @@ export const zh: typeof en = {
   huText: '快用完了：还剩 ¥{left}，共 ¥{grant}。邀请朋友（你们各 +¥{bonus}）或换成自己的 key，登录不受影响。',
   huSee: '看看办法',
   huDismiss: '关闭',
+  wlBusy: '模型接口比较忙，已等待 {seconds} 秒',
+  wlCancel: '取消',
   rfTooLarge: '这条消息超过了模型的窗口。缩短一些、去掉几个附件，或者开一个新聊天。',
   rfContentRejected: '模型服务商的内容审核没有放行这次请求。换个说法试试；如果反复出现，就开一个新聊天，被拦下的可能是对话里更早的内容。',
   rfSignedOut: '这次登录已失效。请在「设置 → nanoMuse Cloud」重新登录。',

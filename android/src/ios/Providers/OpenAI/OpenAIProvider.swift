@@ -615,6 +615,7 @@ final class OpenAIProvider: LLMProvider {
                             if let inline = event["error"] as? [String: Any], !inline.isEmpty {
                                 throw self.mapHTTPError(statusCode: 0, body: payload)
                             }
+                            if let status = event["nanomuse"] as? [String: Any] { NanoMuseStreamStatus.note(status) } // nanoMuse: the relay's "queued, N ahead" before the model speaks (docs/cloud.md)
                             if let choices = event["choices"] as? [[String: Any]],
                                let delta = choices.first?["delta"] as? [String: Any],
                                let text = delta["content"] as? String {

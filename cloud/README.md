@@ -23,7 +23,11 @@ its base URL.
   (streaming or not) go to the upstream with the relay's key. The hosted menu contains
   only `Qwen/Qwen3.6-27B-FP8`, including its image-input support for chat and GUI
   operation. Image and video generation require a provider and API key configured by
-  the person on their device.
+  the person on their device. A streamed turn that waits for one of the relay's
+  `CHAT_CONCURRENCY` slots, or for a slow provider's first bytes, hears about it: chunks
+  with `choices: []` and a `nanomuse: {phase: queued | working, ahead, waited_ms}` field
+  while it queues, SSE comment lines while the provider thinks (0.31; shapes every
+  client already skips; details in [docs/cloud.md](../docs/cloud.md#protocol)).
 - **Ledger.** Every request is charged from the account's grant using the
   upstream's own `usage` (for streams, from the final usage chunk). Cheaper
   models are charged with a multiplier; pictures cost a flat amount. One

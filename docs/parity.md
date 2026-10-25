@@ -53,6 +53,7 @@ Legend: **✓** done · **◐** partial (what is missing is in the note) · **�
 |---|---|---|---|---|
 | Status line says what it is on, never "Thinking" | ✓ | ✓ 0.1.32 *"is on it"* | ✓ | ✓ |
 | Status line = the step's own words (`step`: *打开携程网站*), never the raw command | ✓ 0.1.33 | ✓ 0.1.33 | ✓ 0.1.33 | ✓ 0.1.33 |
+| The wait before the first token: nothing for 10 s, then *The model is busy, 15 s so far* with *Cancel*; *3 ahead of you* from the relay's status chunks (relay 0.31) | ✓ 1.0.8 | ✓ 1.0.8 | ✓ 1.0.8 (the seconds only) | – |
 | "Show the agent's steps", on by default since 0.1.37 (a stored off stays off) | ✓ 0.1.37 (`nm.show_steps`) | ✓ 0.1.37 (`nanomuse.show_steps`) *(2)* | ✓ 0.1.37 | ✓ 0.1.37 |
 | Star asks at the relay's moments (`/v1/nudges`: sign-in · 3rd / 10th / 30th task · 7th / 30th day · a goal reached · a new look · allowance spent; 7 days apart, 4 per device; never in the first conversation). Every card has *I already starred* next to *Star on GitHub*; either ends the asks on that device for good | ✓ 0.1.35 | ✓ 0.1.35 *(3)* | ✓ 0.1.35 | ✓ 0.1.35 |
 | First conversation: the app speaks first, asks what to call you, the model's `nanomuse-naming` fence becomes the naming card | ✓ | ✓ 0.1.34 | ✓ 0.1.35 *(25)* | ✓ *(39)* |

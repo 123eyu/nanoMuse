@@ -1179,4 +1179,9 @@
     <string name="nm_backup_delivery_failed">전송에 실패했습니다.</string>
     <string name="nm_backup_run_needs_passphrase">암호화가 켜져 있고 암호 구문은 백업 화면에서 입력합니다. 셸에서 시작한 백업은 그것을 물어볼 수 없습니다. 화면에서 백업을 시작하거나 거기서 암호화를 끄세요.</string>
     <string name="nm_backup_run_started">셸에서 백업을 시작했습니다.</string>
+
+    <!-- The line under the typing dots while the model has not said anything yet -->
+    <string name="nm_wait_busy">모델이 혼잡합니다. %1$d초 경과</string>
+    <string name="nm_wait_queued">앞에 %1$d건, %2$d초 경과</string>
+    <string name="nm_wait_next">다음은 내 차례입니다. %1$d초 경과</string>
 </resources>

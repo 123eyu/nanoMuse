@@ -684,6 +684,8 @@ html[data-nm-platform='darwin']:not([data-nm-fullscreen]) .nm-pf-top { padding-t
 .nm-headsup-text { flex: 1; min-width: 0; }
 .nm-headsup-text .nm-ob-link.nm-inline { color: var(--nm-blue); font-weight: 600; font-size: 12.5px; }
 .nm-headsup-close { width: 22px; height: 22px; flex: none; }
+.nm-waitline { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; padding: 0 12px; font-size: 12px; line-height: 1.4; color: var(--dsw-alias-label-tertiary); }
+.nm-waitline .nm-ob-link.nm-inline { color: var(--nm-blue); font-weight: 600; font-size: 12px; }
 .nm-star-card { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border-radius: var(--nm-radius); background: var(--nm-card); border: 1px solid var(--nm-divider); }
 .nm-star-head { display: flex; gap: 10px; align-items: flex-start; }
 .nm-star-icon { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex: none; background: color-mix(in srgb, var(--nm-accent) 18%, transparent); color: var(--nm-accent); }

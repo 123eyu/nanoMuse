@@ -1179,4 +1179,9 @@
     <string name="nm_backup_delivery_failed">Pengiriman gagal.</string>
     <string name="nm_backup_run_needs_passphrase">Enkripsi aktif, dan frasa sandi diketik di halaman Cadangan; menjalankannya dari shell tidak bisa memintanya. Mulai pencadangan dari halaman, atau matikan enkripsi di sana.</string>
     <string name="nm_backup_run_started">Pencadangan dimulai dari shell.</string>
+
+    <!-- The line under the typing dots while the model has not said anything yet -->
+    <string name="nm_wait_busy">Model sedang sibuk, sudah %1$d dtk</string>
+    <string name="nm_wait_queued">%1$d di depan Anda, sudah %2$d dtk</string>
+    <string name="nm_wait_next">Anda berikutnya, sudah %1$d dtk</string>
 </resources>

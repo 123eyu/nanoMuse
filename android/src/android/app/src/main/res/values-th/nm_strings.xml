@@ -1179,4 +1179,9 @@
     <string name="nm_backup_delivery_failed">ส่งไม่สำเร็จ</string>
     <string name="nm_backup_run_needs_passphrase">เปิดการเข้ารหัสอยู่ และต้องพิมพ์รหัสผ่านในหน้าสำรองข้อมูล การเรียกจากเชลล์ขอรหัสไม่ได้ ให้เริ่มสำรองข้อมูลจากหน้านั้น หรือปิดการเข้ารหัสที่นั่น</string>
     <string name="nm_backup_run_started">เริ่มสำรองข้อมูลจากเชลล์แล้ว</string>
+
+    <!-- The line under the typing dots while the model has not said anything yet -->
+    <string name="nm_wait_busy">โมเดลกำลังยุ่ง รอมาแล้ว %1$d วินาที</string>
+    <string name="nm_wait_queued">มี %1$d รายการอยู่ก่อนหน้า รอมาแล้ว %2$d วินาที</string>
+    <string name="nm_wait_next">ถึงคิวคุณถัดไป รอมาแล้ว %1$d วินาที</string>
 </resources>

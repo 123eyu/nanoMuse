@@ -1183,4 +1183,9 @@
     <string name="nm_backup_delivery_failed">La entrega falló.</string>
     <string name="nm_backup_run_needs_passphrase">El cifrado está activado y la contraseña se escribe en la página de copias; una ejecución desde la shell no puede pedirla. Inicia la copia en la página o desactiva allí el cifrado.</string>
     <string name="nm_backup_run_started">Copia iniciada desde la shell.</string>
+
+    <!-- The line under the typing dots while the model has not said anything yet -->
+    <string name="nm_wait_busy">El modelo está ocupado, %1$d s hasta ahora</string>
+    <string name="nm_wait_queued">%1$d por delante de ti, %2$d s hasta ahora</string>
+    <string name="nm_wait_next">Eres el siguiente, %1$d s hasta ahora</string>
 </resources>

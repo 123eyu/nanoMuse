@@ -4515,7 +4515,11 @@ fun ChatScreen(
                                     )
                                 }
                             }
-                            is FlatChatItem.AssistantTyping -> TypingIndicator()
+                            // nanoMuse: under the dots, how long this step has waited and how many are ahead at the relay
+                            is FlatChatItem.AssistantTyping -> Column {
+                                TypingIndicator()
+                                io.github.nanomuse.ui.chat.NmWaitLine(onCancel = { viewModel.cancelStream() })
+                            }
                             // nanoMuse: a provider that could not be reached (or refused the
                             // region, or whose sign-in ran out) is a card, not the socket's text
                             is FlatChatItem.AssistantError -> io.github.nanomuse.ui.chat.NmProviderErrorOrBanner(
