@@ -1215,14 +1215,15 @@ class Database:
         back. With ``before_id`` (the id of the last row seen, at that ts) the page continues
         inside the same second, so rows that share a ts are not skipped; without it the page
         starts at the second before. The tie-break is the rowid, not the random id, so the
-        order is the order the turns happened in."""
+        order is the order the turns happened in. The explicit ts upper bound lets SQLite
+        seek past newer seconds before applying the rowid tie-break."""
         q = "SELECT * FROM samples WHERE ts>=?"
         args: list = [since]
         if account_id is not None:
             q += " AND account_id=?"
             args.append(account_id)
         if before and before_id:
-            q += " AND (ts<? OR (ts=? AND rowid<(SELECT rowid FROM samples WHERE id=?)))"
+            q += " AND ts<=? AND (ts<? OR rowid<(SELECT rowid FROM samples WHERE id=?))"
             args.extend([before, before, before_id])
         elif before:
             q += " AND ts<?"
@@ -1328,7 +1329,7 @@ class Database:
             q += " AND conversation=?"
             args.append(conversation)
         if before and before_id:
-            q += " AND (ts<? OR (ts=? AND rowid<(SELECT rowid FROM turns WHERE id=?)))"
+            q += " AND ts<=? AND (ts<? OR rowid<(SELECT rowid FROM turns WHERE id=?))"
             args.extend([before, before, before_id])
         elif before:
             q += " AND ts<?"
@@ -3093,7 +3094,7 @@ class Database:
                 ).fetchall()
             return self._conn.execute(
                 """SELECT rowid, id, account_id, ts, model, request, response, meta FROM samples
-                   WHERE ts<? OR (ts=? AND rowid<?) ORDER BY ts DESC, rowid DESC LIMIT ?""",
+                   WHERE ts<=? AND (ts<? OR rowid<?) ORDER BY ts DESC, rowid DESC LIMIT ?""",
                 (before_ts, before_ts, before_rowid, limit),
             ).fetchall()
 
