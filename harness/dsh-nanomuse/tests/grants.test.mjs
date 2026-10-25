@@ -3,7 +3,7 @@
 // grants — with the tier each belongs to, and the grouping by tier the page draws.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { appLabel, appNames, DEVICE_GRANT_PREFIX, GRANT_TIERS, grantCovers, groupGrants, REMOTE_CONTROL_GRANT_ID, scheduleRunIds, standingGrants, withGrant } from '../lib/desk.js'
+import { appLabel, appNames, DEVICE_GRANT_PREFIX, GRANT_TIERS, grantCovers, groupGrants, isOwnApp, REMOTE_CONTROL_GRANT_ID, scheduleRunIds, standingGrants, withGrant } from '../lib/desk.js'
 
 test('the three tiers, highest first, are the contract', () => {
   assert.deepEqual([...GRANT_TIERS], ['highest', 'confirm', 'notice'])
@@ -141,4 +141,11 @@ test('the tasks a reminder starts are read from the harness framing', () => {
   assert.deepEqual(scheduleRunIds(batch), ['schedule-a', 'schedule-b'])
   assert.deepEqual(scheduleRunIds('[SCHEDULE REMINDER BATCH]\nreminders_json: not json'), [])
   assert.deepEqual(scheduleRunIds('send [SCHEDULE REMINDER] now'), [])
+})
+
+test('the own window of nanoMuse is never an app to allow', () => {
+  assert.equal(isOwnApp('Electron'), true)
+  assert.equal(isOwnApp('nanoMuse (io.github.nanomuse.desktop)'), true)
+  assert.equal(isOwnApp('微信 (com.tencent.xinWeChat)'), false)
+  assert.equal(isOwnApp(''), false)
 })

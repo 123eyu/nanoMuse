@@ -61,6 +61,14 @@ export function appNames(app: string): string[] {
   return (m ? [m[1]!, m[2]!] : [app.trim()]).map((n) => n.trim()).filter(Boolean)
 }
 
+/**
+ * nanoMuse's own window (the installed app, or Electron when run from source): in front when
+ * the person answers a card, and never an app the hands are granted.
+ */
+export function isOwnApp(app: string): boolean {
+  return appNames(app).some((n) => /^(nanoMuse|Electron|io\.github\.nanomuse\.desktop|com\.github\.Electron)$/i.test(n))
+}
+
 /** The name an app is shown under: its display name, without the id. */
 export function appLabel(app: string): string {
   return appNames(app)[0] ?? app
