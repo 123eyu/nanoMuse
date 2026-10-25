@@ -90,10 +90,23 @@ def test_the_signature_is_the_rpc_hmac_sha1_over_the_sorted_query():
 
 def test_rejections_and_wrong_channels_are_send_errors_without_the_number(monkeypatch, caplog):
     sender = AliyunSmsSender(aliyun_settings())
-    monkeypatch.setattr(senders.httpx, "get", FakeGet({"Code": "BUSINESS_LIMIT_CONTROL", "Message": "too many"}))
-    with pytest.raises(SendError):
+    monkeypatch.setattr(senders.httpx, "get", FakeGet({"Code": "isv.BUSINESS_LIMIT_CONTROL", "Message": "too many"}))
+    with pytest.raises(SendError) as held:
         sender.send(parse("13800138000"), "000000")
+    # the carrier's limit for one number is the person's to wait out, and a warning, not an error
+    assert held.value.reason == "too_often"
     assert "BUSINESS_LIMIT_CONTROL" in caplog.text and "13800138000" not in caplog.text
+    assert caplog.records[-1].levelname == "WARNING"
+    for code in ("biz.FREQUENCY", "isv.DAY_LIMIT_CONTROL", "isv.MONTH_LIMIT_CONTROL"):
+        monkeypatch.setattr(senders.httpx, "get", FakeGet({"Code": code, "Message": "limit"}))
+        with pytest.raises(SendError) as held:
+            sender.send(parse("13800138000"), "000000")
+        assert held.value.reason == "too_often"
+    # anything else is the operator's to read: a fault, logged as an error
+    monkeypatch.setattr(senders.httpx, "get", FakeGet({"Code": "isv.MOBILE_NUMBER_ILLEGAL", "Message": "bad"}))
+    with pytest.raises(SendError) as fault:
+        sender.send(parse("13800138000"), "000000")
+    assert fault.value.reason == "" and caplog.records[-1].levelname == "ERROR"
     with pytest.raises(SendError):  # dypns is mainland only
         sender.send(parse("+85212345678"), "000000")
     with pytest.raises(SendError):  # and never mail

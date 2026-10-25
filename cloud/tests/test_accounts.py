@@ -975,6 +975,22 @@ async def test_gmail_dot_plus_and_googlemail_canonicalisation_and_legacy_lookup(
     assert plain["created"] is False and plain["account"]["id"] == merged_id
 
 
+async def test_the_carriers_limit_for_a_number_reads_as_too_often_not_as_a_fault(monkeypatch):
+    """Aliyun refuses a number that asked too often with its own limit (one a minute, five an
+    hour, ten a day) before ours would: the person hears the same `429 code_too_often` as for
+    our limit, and the relay keeps `502 send_failed` for a send that actually failed."""
+    from nanomuse_cloud.senders import SendError
+
+    app, client, sender, up, cloud, settings = make()
+    monkeypatch.setattr(sender, "send", lambda ident, code: (_ for _ in ()).throw(SendError("sms", reason="too_often")))
+    r = await client.post("/v1/auth/code", json={"identifier": "13800138000"})
+    assert r.status_code == 429 and r.json()["error"]["code"] == "code_too_often", r.text
+    assert "wait" in r.json()["error"]["message"] and "138" not in r.text
+    monkeypatch.setattr(sender, "send", lambda ident, code: (_ for _ in ()).throw(SendError("sms")))
+    r = await client.post("/v1/auth/code", json={"identifier": "13800138001"})
+    assert r.status_code == 502 and r.json()["error"]["code"] == "send_failed", r.text
+
+
 def test_code_limits_and_consumption_are_atomic_under_concurrency():
     """A barrier makes requests reach each atomic boundary together: one code occupies the
     only rate-limit slot, and one verification consumes it exactly once."""
