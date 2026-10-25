@@ -79,6 +79,8 @@ describe("Composer stop disc", () => {
     });
     expect(onStop).toHaveBeenCalledTimes(1);
     expect(discs(r).stop?.props.disabled).toBe(true);
+  });
+});
 
 // The presence frame from another device says what its run is doing — the line
 // under the message reads the step, and a run parked on a card reads as waiting.
@@ -110,3 +112,5 @@ describe("WorkingLine", () => {
     expect(
       line({ thread: "main", cid: "c", device: "phone-1", device_name: "", state: "waiting", at: 1 }),
     ).toBe("phone-1 is waiting for you");
+  });
+});

@@ -77,7 +77,7 @@ GET    /v1/sync/state                   → {enabled, cursor, counts{conversatio
 PUT    /v1/sync/state   {enabled}       → the same; false deletes everything stored, the counter keeps counting
 GET    /v1/sync/changes ?since=0&limit=500&scope=all|main&tail=K   → {cursor, more, conversations[], messages[], skipped?}
 POST   /v1/sync/changes {device, conversations[], messages[]}   → {cursor, accepted, rejected[{cid | mid, reason, cid_main?}]}
-POST   /v1/sync/working {cid, working, device?}   → 204; the hub tells the other devices   404 no_conversation
+POST   /v1/sync/working {cid, working, device?, state?, detail?}   → 204; the hub tells the other devices (0.31: state and step ride along)   404 no_conversation
 DELETE /v1/sync/changes                 → the state, counts at zero     everything stored, switch unchanged
 DELETE /v1/sync/conversations/{cid}     → {cursor, deleted: true}      a tombstone the other devices apply; 404 no_conversation
 ```
