@@ -13,6 +13,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Runtime
 
+- **A file listing or a search says when it stopped early.** `files` listed the first 500 names of a folder and the first 200 matches of a search and said nothing about the rest, so a model read a cut list as the whole folder and a cut search as every match there is; the report now ends with how many entries the folder holds, or the point at which the search stopped.
+
 - `nanomuse chat`'s `/help` lists the commands one per line; the file tool's description and two log lines read without dashes.
 
 - **API Route is in the own-key catalogue.** An OpenAI-compatible gateway at `https://global.api-route.com/v1`, a key from [api-route.com/api-keys](https://www.api-route.com/api-keys), paid from a prepaid balance at the chosen model's rates. The default model is `gpt-6.1-sol`, and any id from the key's `/v1/models` list can be set instead. Chat only here; picture input, image generation and video are not claimed. `providers.json` lists twenty-three providers now, and the desktop, the phones, the relay and the web console carry the same file. By @DennyHo0917 ([#603](https://github.com/nano-muse/nanoMuse/pull/603), for [#564](https://github.com/nano-muse/nanoMuse/issues/564)).

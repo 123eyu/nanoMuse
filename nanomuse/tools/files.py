@@ -66,6 +66,10 @@ def pdf_text(path: Path, max_pages: int = 60) -> str:
 
 # an unbounded `search` over a home directory would walk for minutes; this is plenty
 SEARCH_MAX_ENTRIES = 50_000
+# how many a report carries before it stops: a listing of a build folder is thousands of
+# lines the model cannot use, and a cut list it believes is whole is worse than a short one
+LIST_MAX = 500
+SEARCH_MAX_MATCHES = 200
 
 
 def shown_path(path: Path, workspace: Path) -> str:
@@ -196,7 +200,12 @@ class Files(BaseTool):
                 if target.is_file():
                     return ToolResult(output=f"{target.name} ({target.stat().st_size} bytes)")
                 entries = sorted(target.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower()))
-                lines = [f"{'[dir] ' if p.is_dir() else ''}{p.name}" for p in entries[:500]]
+                lines = [f"{'[dir] ' if p.is_dir() else ''}{p.name}" for p in entries[:LIST_MAX]]
+                if len(entries) > LIST_MAX:
+                    # the model reads the list as the whole folder unless it says otherwise
+                    lines.append(
+                        f"... [{len(entries)} entries in all; the first {LIST_MAX} are listed]"
+                    )
                 return ToolResult(output="\n".join(lines) or "(empty directory)")
             if action == "search":
                 if not pattern:
@@ -216,8 +225,12 @@ class Files(BaseTool):
                         scanned += 1
                         if p.is_file() and fnmatch.fnmatch(p.relative_to(root).as_posix(), glob):
                             matches.append(p.relative_to(ws).as_posix() if in_ws else str(p))
-                        if len(matches) >= 200:
-                            break
+                        if len(matches) >= SEARCH_MAX_MATCHES:
+                            # a cut list it reads as whole is worse than a short, honest one
+                            return matches, (
+                                f"\n(stopped at {SEARCH_MAX_MATCHES} matches; "
+                                "narrow the pattern or the `path`)"
+                            )
                         if scanned >= SEARCH_MAX_ENTRIES:
                             return matches, (
                                 f"\n(stopped after {SEARCH_MAX_ENTRIES} entries; "
