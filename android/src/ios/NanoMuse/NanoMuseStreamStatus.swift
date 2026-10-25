@@ -19,7 +19,7 @@ final class NanoMuseStreamStatus: ObservableObject {
     static let shared = NanoMuseStreamStatus()
 
     /// A queued status the relay has not refreshed for this long says nothing any more.
-    static let staleSeconds: TimeInterval = 15
+    nonisolated static let staleSeconds: TimeInterval = 15
 
     /// One `nanomuse` field: the phase, how many are ahead (-1 when the relay did not say), when it came.
     struct Status: Equatable, Sendable {
