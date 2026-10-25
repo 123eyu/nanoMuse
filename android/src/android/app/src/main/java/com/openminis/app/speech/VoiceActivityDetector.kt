@@ -213,13 +213,7 @@ class VoiceActivityDetector(
     @Volatile
     var maxSegmentSeconds: Int = 59
 
-    /**
-     * Guards every use of [vad]'s native side. Held across `processAudio` on
-     * the capture thread and across `release()` on whichever thread stops us,
-     * so the native object can never be freed mid-call. See the call site in
-     * [captureLoop] for the crash this prevents.
-     */
-    private val vadLock = Any()
+    // nanoMuse: the bare lock became ReentrantSafeRelease (upstream 1.14, T-android-vad-reentrant-release); see `vad` below
 
     /**
      * [T-android-vad] Optional tap on the RAW captured PCM16, before AGC.
@@ -241,8 +235,11 @@ class VoiceActivityDetector(
     @Volatile
     var rawAudioSink: ((ByteArray, Int) -> Unit)? = null
 
-    @Volatile
-    private var vad: VADWrapper? = null
+    // nanoMuse: upstream 1.14's gate. A stop from inside onVoiceEnd (same thread, inside
+    // processAudio) used to reach release() through the re-entrant monitor and free the native
+    // object algorithm() was still running on: SIGSEGV, fault addr 0x38 (#602). The gate defers
+    // that free until processAudio has returned; a stop from another thread still waits.
+    private val vad = ReentrantSafeRelease<VADWrapper> { it.release() }
     private var recorder: AudioRecord? = null
     private var captureJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.IO)
@@ -307,7 +304,7 @@ class VoiceActivityDetector(
             Log.e(TAG, "VAD init failed", t)
             return "Voice detection unavailable: ${t.javaClass.simpleName}"
         }
-        vad = wrapper
+        vad.attach(wrapper) // nanoMuse: through the gate (ReentrantSafeRelease)
 
         val minBuf = AudioRecord.getMinBufferSize(
             SAMPLE_RATE,
@@ -482,16 +479,16 @@ class VoiceActivityDetector(
             // the in-flight frame instead of pulling the object out from under
             // it. Frames are ~10 ms of audio and inference is well under that,
             // so the wait is bounded and stop() stays responsive.
+            //
+            // nanoMuse (upstream 1.14, T-android-vad-reentrant-release): the lock alone did
+            // not cover the SAME thread. onVoiceEnd fires inside processAudio, and a listener
+            // that stops the take there reached release() through the re-entrant monitor,
+            // freeing RealTimeCutVAD while algorithm() was still on the stack (SIGSEGV, fault
+            // addr 0x38, #602). ReentrantSafeRelease defers that free until processAudio has
+            // returned, and reports the take as torn down.
             var failure: Throwable? = null
-            val alive = synchronized(vadLock) {
-                val w = vad
-                when {
-                    w == null -> false // torn down; the stopper owns the state
-                    else -> {
-                        try { w.processAudio(frame) } catch (t: Throwable) { failure = t }
-                        true
-                    }
-                }
+            val alive = vad.call { w ->
+                try { w.processAudio(frame) } catch (t: Throwable) { failure = t }
             }
             if (!alive) break
             val err = failure
@@ -611,13 +608,9 @@ class VoiceActivityDetector(
         captureJob?.let { runCatching { it.cancel() } }
         captureJob = null
         recorder = null
-        // Null the reference and free the native object under the same lock the
-        // capture thread holds while inside processAudio, so release() waits for
-        // any in-flight frame instead of freeing underneath it.
-        synchronized(vadLock) {
-            val w = vad
-            vad = null
-            w?.let { runCatching { it.release() } }
-        }
+        // nanoMuse: detach and free the native object. From another thread this waits for
+        // any in-flight frame; from inside a VAD callback (same thread, already in
+        // processAudio) the free is deferred until processAudio returns (#602).
+        vad.tearDown()
     }
 }
