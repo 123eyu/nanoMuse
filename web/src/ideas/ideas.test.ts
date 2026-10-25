@@ -8,6 +8,14 @@ const COPIES = import.meta.glob<string>(
 );
 const copy = (suffix: string) => Object.entries(COPIES).find(([k]) => k.endsWith(suffix))?.[1];
 
+/**
+ * The copies as they are written, line endings aside. `.gitattributes` pins the Android and
+ * iPhone assets and the whole harness tree to LF, while a `core.autocrlf=true` checkout
+ * (Windows, the platform whose release is built there too) hands this tree's own copy over
+ * with CRLF: the four files are one text, and the comparison is about the words in it.
+ */
+const text = (body: string | undefined): string => (body ?? "").replace(/\r\n/g, "\n");
+
 describe("the Ideas catalogue", () => {
   it.each(["en", "zh"])("ideas.%s.json is identical to the Android and harness copies (contract C5)", (lang) => {
     const ours = copy(`/src/ideas/ideas.${lang}.json`) ?? copy(`./ideas.${lang}.json`);
@@ -16,8 +24,8 @@ describe("the Ideas catalogue", () => {
     expect(ours, "our copy").toBeTruthy();
     expect(android, "the Android asset").toBeTruthy();
     expect(harness, "the harness asset").toBeTruthy();
-    expect(ours === android, `web/src/ideas/ideas.${lang}.json differs from the Android asset`).toBe(true);
-    expect(ours === harness, `web/src/ideas/ideas.${lang}.json differs from the harness asset`).toBe(true);
+    expect(text(ours) === text(android), `web/src/ideas/ideas.${lang}.json differs from the Android asset`).toBe(true);
+    expect(text(ours) === text(harness), `web/src/ideas/ideas.${lang}.json differs from the harness asset`).toBe(true);
   });
 
   it("has six sections of four ideas in both languages, with the same ids", () => {
