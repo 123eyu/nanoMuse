@@ -187,6 +187,7 @@ platform :ios do
     upload_to_testflight(
       api_key: api_key,
       app_identifier: TARGETS["Minis"],
+      app_platform: "ios", # nothing to read it from without an .ipa; pilot would ask
       build_number: build_number.empty? ? nil : build_number,
       distribute_only: true,
       distribute_external: true,
