@@ -190,8 +190,10 @@ class AliyunSmsSender:
     - `ALIYUN_SMS_API=dysms`: 短信服务's `SendSms` (dysmsapi) with a template
       whose one variable is `code`, e.g. 「您的验证码为${code}，10分钟内有效。」.
 
-    Mainland numbers are sent without +86; dysms takes others with the country
-    code and no plus, dypns only mainland numbers.
+    Both reach mainland China numbers only, as the sign-in screens say (the
+    README's "plug in another sender" is the way to other countries; an
+    international SMS costs many times a domestic one and is what SMS-pumping
+    fraud dials). The number goes out without its +86.
     """
 
     ENDPOINTS = {"dypns": "https://dypnsapi.aliyuncs.com/", "dysms": "https://dysmsapi.aliyuncs.com/"}
@@ -215,15 +217,16 @@ class AliyunSmsSender:
         return aliyun_signed_query(self.s.aliyun_access_key_secret, params)
 
     def accepts(self, ident: Identifier) -> bool:
-        """Phones only; 号码认证 (dypns) reaches mainland numbers only, 短信服务 (dysms) any."""
-        return ident.channel == "phone" and (self.api == "dysms" or ident.value.startswith("+86"))
+        """Mainland China phones only, whichever of the two services sends."""
+        return ident.channel == "phone" and ident.value.startswith("+86")
 
     def params(self, ident: Identifier, code: str) -> dict[str, str]:
-        """The request for one code, before signing; a mainland number without +86."""
+        """The request for one code, before signing; the mainland number without its +86."""
         if ident.channel != "phone":
             raise SendError("this deployment sends codes by SMS only")
-        mainland = ident.value.startswith("+86")
-        number = ident.value[3:] if mainland else ident.value.lstrip("+")
+        if not ident.value.startswith("+86"):
+            raise SendError("this deployment sends codes to mainland numbers only")
+        number = ident.value[3:]
         minutes = str(max(1, self.s.code_ttl_s // 60))
         common = {
             **aliyun_common_params(self.s.aliyun_access_key_id),
@@ -231,8 +234,6 @@ class AliyunSmsSender:
             "TemplateCode": self.s.aliyun_sms_template,
         }
         if self.api == "dypns":
-            if not mainland:
-                raise SendError("this deployment sends codes to mainland numbers only")
             return {
                 **common,
                 "Action": "SendSmsVerifyCode",

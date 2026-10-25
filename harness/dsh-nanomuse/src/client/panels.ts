@@ -9,6 +9,9 @@ export const LIBRARY_PANEL = 'nanomuse-library'
 /** The Devices page: this computer on the account's hub and the other devices. */
 export const DEVICES_PANEL = 'nanomuse-devices'
 
+/** Settings › Data controls: what the relay keeps of the account's chats, and the only place of the Help-improve switch. */
+export const DATA_SECTION = 'nanomuse-data'
+
 export const ROOM_PANELS = [FEED_PANEL, IDEAS_PANEL, GOALS_PANEL, LIBRARY_PANEL, DEVICES_PANEL] as const
 
 /** Where a problem with nanoMuse is reported. */

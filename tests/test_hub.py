@@ -586,6 +586,12 @@ def test_sign_in_joins_hub_and_lists_devices(hub_server) -> None:
     assert (
         "task" in relay.hello["device"]["actions"] and "shell" in relay.hello["device"]["actions"]
     )
+    # the ids the model runs under (relay 0.28): plain ids, never the URL or the key
+    provider, model = service.hub.llm_ids()
+    assert relay.hello["device"]["llm"] == {"provider": provider, "model": model}
+    assert model == service.settings.llm.model and "http" not in json.dumps(
+        relay.hello["device"]["llm"]
+    )
     names = {d["name"]: d for d in hub["devices"]}
     assert names["Pixel"]["online"] is True and names["Desk"]["this"] is True
     assert "devices" in service.app.tools and "delegate" in service.app.tools
@@ -871,7 +877,13 @@ def test_remote_control_off_refuses_everything_but_info(hub_server) -> None:
     relay.call_runtime("info", {}, "i1")
     res = relay.next_frame("result")
     assert res["ok"] is True and res["body"]["kind"] == "computer"
+    # seen, not operated: nothing a caller would need to drive the computer
+    assert res["body"]["actions"] == ["info"]
+    assert not {"user", "home", "cwd", "shell"} & set(res["body"])
     client.put("/api/hub", json={"remote_control": True})
+    relay.call_runtime("info", {}, "i2")
+    res = relay.next_frame("result")
+    assert res["body"]["user"] and "shell" in res["body"]["actions"]
     relay.call_runtime("shell", {"command": "echo hi"}, "s2")
     # with remote control on, the person at this computer still agrees first: a card here,
     # addressed to the phone, offering once / always for that device
@@ -1433,6 +1445,10 @@ def test_connections_travel_by_name_only(hub_server, monkeypatch: pytest.MonkeyP
     service.settings.mcp.servers = [
         MCPServerSettings(name="notes", url="https://mcp.example.net/sse?key=SECRET-123"),
         MCPServerSettings(name="local-files", command="python", args=["-m", "files"]),
+        # a key in the user info or the fragment stays here too
+        MCPServerSettings(
+            name="cal", url="https://u:SECRET-456@cal.example.net:8443/mcp#SECRET-789"
+        ),
     ]
     assert client.get("/api/connections").json()["shared"] == []  # not signed in
     sign_in(client)
@@ -1444,8 +1460,9 @@ def test_connections_travel_by_name_only(hub_server, monkeypatch: pytest.MonkeyP
     client.put("/api/settings", json={"profile": {"name": "Nova II"}})
     wait_for(lambda: puts)
     mine = puts[0]["connectors"]
-    assert [c["id"] for c in mine] == ["notes"]
+    assert [c["id"] for c in mine] == ["notes", "cal"]
     assert mine[0]["url"] == "https://mcp.example.net/sse" and mine[0]["auth"] == "key"
+    assert mine[1]["url"] == "https://cal.example.net:8443/mcp" and mine[1]["auth"] == "key"
     assert mine[0]["device_id"] == service.hub.device_id and mine[0]["device"]
     assert "SECRET" not in json.dumps(puts[0])
     # the relay's word that another device connected something: pulled, and the one this
@@ -1466,7 +1483,22 @@ def test_connections_travel_by_name_only(hub_server, monkeypatch: pytest.MonkeyP
     }
     assert client.delete("/api/connections/mcp/notes").status_code == 200
     wait_for(lambda: len(puts) == 2)
-    assert puts[1]["connectors"] == []
+    assert [c["id"] for c in puts[1]["connectors"]] == ["cal"]
     client.post("/api/cloud/sign-out")
     assert service.hub.profile.shared_connectors == []
     assert client.get("/api/connections").json()["shared"] == []
+
+
+def test_hello_names_the_model_only_when_the_ids_are_plain() -> None:
+    """`device.llm` is two ids; a URL, a key or a space is not one, and then nothing is sent."""
+    from nanomuse.hub.client import HubClient
+
+    def make(provider: str, model: str) -> HubClient:
+        return HubClient("wss://x", "nm_k", "d", "Desk", actions=[], llm=lambda: (provider, model))
+
+    assert make("cloud", "Qwen/Qwen3.6-27B-FP8").llm_ids() == ("cloud", "Qwen/Qwen3.6-27B-FP8")
+    assert make("openai", "gpt-5.6").llm_ids() == ("openai", "gpt-5.6")
+    assert make("https://api.example.com/v1", "m").llm_ids() is None
+    assert make("openai", "sk-abc def").llm_ids() is None
+    assert make("", "m").llm_ids() is None
+    assert HubClient("wss://x", "nm_k", "d", "Desk", actions=[]).llm_ids() is None

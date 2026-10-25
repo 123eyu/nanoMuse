@@ -9,8 +9,10 @@ the person would: look at the screen, tap, type, swipe. Two things provide that 
 
 Both speak the same small protocol over the server's WebSocket (:mod:`nanomuse.phone.link`).
 The agent sees a :class:`~nanomuse.phone.screen.Screen` — a screenshot, which app, how big,
-keyboard or not; no accessibility tree, because a real phone cannot be relied on to have one
-— and acts by coordinates through the ``phone_*`` tools (:mod:`nanomuse.tools.phone`).
+keyboard or not, and the accessibility tree when the device sends one (``Screen.nodes``: the
+password-field check and the Sentinel's look at what a tap lands on use it); the screenshot
+is what the loop runs on, since a real phone cannot be relied on to have a tree — and acts
+by coordinates through the ``phone_*`` tools (:mod:`nanomuse.tools.phone`).
 Multi-step work on the screen runs in :class:`~nanomuse.phone.operator.PhoneOperator`, a
 loop with its own model speaking the Qwen-VL ``mobile_use`` dialect, with every action still
 passing through the Sentinel and every run leaving a trace (:mod:`nanomuse.phone.trace`).

@@ -412,8 +412,14 @@ class CodingService:
     async def close(self) -> None:
         with contextlib.suppress(Exception):
             self.stop_all()
-        for t in list(self._tasks.values()):
+        tasks = [t for t in self._tasks.values() if not t.done()]
+        for t in tasks:
             t.cancel()
+        if tasks:
+            # each run's cancellation waits for its agent to leave (start_run); a few
+            # seconds at most, and the service does not return with children behind it
+            with contextlib.suppress(BaseException):
+                await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), 10)
         logger.debug("coding: closed")
 
 

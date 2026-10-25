@@ -115,7 +115,9 @@ import hashlib
 import json
 import logging
 import math
+import os
 import secrets
+import tempfile
 import time
 import uuid
 from collections.abc import AsyncIterator
@@ -128,6 +130,7 @@ import httpx
 from fastapi import Depends, FastAPI, File, Form, Header, Request, Response, UploadFile, WebSocket
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.background import BackgroundTask
 from starlette.requests import ClientDisconnect
 
 from . import __version__
@@ -334,6 +337,14 @@ def relay_error_body(status: int, raw: bytes) -> dict:
 PROVIDER_HOST_SUFFIXES = (".aliyuncs.com", ".alicdn.com")
 
 
+def _unlink_quietly(path: str) -> None:
+    """Remove a temporary file once its response has gone out; one already gone is no error."""
+    try:
+        os.unlink(path)
+    except OSError:
+        pass
+
+
 def _provider_url_ok(url: object, own_hosts: tuple[str, ...] = ()) -> bool:
     """Only URLs on the provider's own hosts are fetched (the relay must not become an open proxy):
     the configured API hosts themselves, or https on Alibaba Cloud's storage domains."""
@@ -394,7 +405,7 @@ def create_app(
         # CALLS_KEEP_DAYS are swept once an hour
         analytics = app.state.analytics
         try:
-            warmed = await asyncio.to_thread(lambda: analytics.meter.warm(cloud.db.calls_since(int(time.time()) - 3600)))
+            warmed = await asyncio.to_thread(lambda: analytics.meter.warm(analytics.db.calls_since(int(time.time()) - 3600)))
             if warmed:
                 log.info("analytics: %d calls of the last hour read back", warmed)
         except Exception:
@@ -402,6 +413,8 @@ def create_app(
         # None, not 0.0: time.monotonic() counts from boot on Linux, so on a machine up for
         # less than an hour a zero start would hold the first sweep back until it is
         swept_at: float | None = None
+        repaired_at: float | None = None
+        optimized_at: float | None = None
         while True:
             try:
                 if not analytics.backfill_done:
@@ -410,11 +423,32 @@ def create_app(
                         log.info("analytics: %d kept turns described so far", analytics.backfill_rows)
                     await asyncio.sleep(0.5 if n else 60)
                     continue
+                if not analytics.tokens_done:
+                    # 0.30: the tokens of older kept turns copied beside their shape, a page at a
+                    # time (each page reads its turns' rows, so it is paced like the backfill)
+                    n = await asyncio.to_thread(analytics.tokens_step, 200)
+                    if n and analytics.tokens_rows % 20000 < 200:
+                        log.info("analytics: tokens of %d kept turns copied so far", analytics.tokens_rows)
+                    await asyncio.sleep(0.5 if n else 60)
+                    continue
+                if optimized_at is None or time.monotonic() - optimized_at > 3600:
+                    # the planner's statistics (Database.optimize): milliseconds, once an hour
+                    optimized_at = time.monotonic()
+                    await asyncio.to_thread(cloud.db.optimize)
+                if repaired_at is None or time.monotonic() - repaired_at > 86400:
+                    # once a day: the kept turns whose shape row never got written
+                    repaired_at = time.monotonic()
+                    fixed = await asyncio.to_thread(analytics.describe_missing, 500)
+                    if fixed:
+                        log.info("analytics: %d kept turns described late", fixed)
                 if swept_at is None or time.monotonic() - swept_at > 3600:
                     swept_at = time.monotonic()
                     gone = await asyncio.to_thread(cloud.db.sweep_calls, int(time.time()) - max(1, settings.calls_keep_days) * 86400)
                     if gone:
                         log.info("analytics: %d call rows older than %d days swept", gone, settings.calls_keep_days)
+                    gone = await asyncio.to_thread(cloud.db.sweep_events, int(time.time()) - max(1, settings.events_keep_days) * 86400)
+                    if gone:
+                        log.info("analytics: %d timeline lines older than %d days swept", gone, settings.events_keep_days)
                     # 0.29: the record's retention and the media store's cap
                     swept = await asyncio.to_thread(cloud.sweep_record)
                     if any(swept.values()):
@@ -735,7 +769,10 @@ def create_app(
         `blob:sha256:<hex>` where the picture was; or inline as data URLs within
         MAX_REQUEST_BYTES."""
         body = await _json(request)
-        return cloud.add_own_turn(caller, body, meta=_turn_meta(request), device=(request.headers.get("x-nanomuse-device") or "")[:80])
+        # off the loop: the pictures are decoded, hashed and written to disk, then the row
+        return await asyncio.to_thread(
+            cloud.add_own_turn, caller, body, meta=_turn_meta(request), device=(request.headers.get("x-nanomuse-device") or "")[:80]
+        )
 
     async def _raw(request: Request, limit: int) -> bytes:
         declared = request.headers.get("content-length", "")
@@ -761,9 +798,13 @@ def create_app(
         if not is_sha256(sha256.lower()):
             raise CloudError(400, "bad_request", "the path is the file's hex SHA-256")
         data = await _raw(request, settings.blob_max_bytes)
-        if hashlib.sha256(data).hexdigest() != sha256.lower():
-            raise CloudError(400, "hash_mismatch", "the body's SHA-256 is not the one in the path")
-        return cloud.put_blob(caller, data, request.headers.get("content-type") or "")
+
+        def store() -> dict:  # the hash of up to 32 MiB and the write, off the loop
+            if hashlib.sha256(data).hexdigest() != sha256.lower():
+                raise CloudError(400, "hash_mismatch", "the body's SHA-256 is not the one in the path")
+            return cloud.put_blob(caller, data, request.headers.get("content-type") or "")
+
+        return await asyncio.to_thread(store)
 
     @app.head("/v1/blobs/{sha256}")
     async def head_blob(sha256: str, caller: Caller = Depends(caller_dep)) -> Response:
@@ -1295,6 +1336,9 @@ def create_app(
                     cloud.charge_chat(caller, spec, usage.prompt, usage.completion, request_id, cached_tokens=usage.cached)
                     if sample_meta is not None:
                         cloud.keep_sample(caller, spec.id, sample_messages, "".join(reply), usage.prompt, usage.completion, sample_meta)
+                    # a turn kept short says why (0.30): `client_gone` is the app closing the
+                    # stream (the person stopped, or the app gave up waiting), `upstream_timeout`
+                    # and `broken` are the provider's end — the same words as the telemetry row
                     record_later(
                         caller,
                         spec.id,
@@ -1302,7 +1346,7 @@ def create_app(
                         assembler.message(),
                         usage,
                         request_id=request_id,
-                        meta=turn_meta,
+                        meta=turn_meta if status == "ok" else {**turn_meta, "ended": status or "client_gone"},
                         status="ok" if status == "ok" else "partial",
                         **turn_where,
                     )
@@ -1689,9 +1733,14 @@ def create_app(
         if not settings.admin_token or not secrets.compare_digest((x_admin_token or "").encode(), settings.admin_token.encode()):
             raise CloudError(401, "admin", "admin token required")
 
+    # The console's pages read through `cloud.reads` (the read-only connection) in a thread:
+    # a page that takes seconds on a large file (every account, a month of the ledger) then
+    # costs the operator the wait and nobody else anything. The handlers that write stay on
+    # the loop with the relay's own connection, as every request does for its few rows.
+
     @app.get("/v1/admin/accounts", dependencies=[Depends(admin_dep)])
     async def admin_accounts() -> dict:
-        accounts = cloud.admin_accounts()
+        accounts = await asyncio.to_thread(cloud.reads.admin_accounts)
         hub = getattr(app.state, "hub", None)
         if hub is not None:
             for a in accounts:
@@ -1700,7 +1749,7 @@ def create_app(
 
     @app.get("/v1/admin/usage", dependencies=[Depends(admin_dep)])
     async def admin_usage(days: int = 14) -> dict:
-        return {"days": cloud.admin_usage(max(1, min(days, 90)))}
+        return {"days": await asyncio.to_thread(cloud.reads.admin_usage, max(1, min(days, 90)))}
 
     @app.get("/v1/admin/health", dependencies=[Depends(admin_dep)])
     async def admin_health() -> dict:
@@ -1712,7 +1761,9 @@ def create_app(
         the provider is answering and only the words are the matter."""
         hub = getattr(app.state, "hub", None)
         t = int(time.time())
-        hour = cloud.db.events_since(t - 3600)
+        reads = cloud.reads.db
+        hour = await asyncio.to_thread(reads.events_since, t - 3600)
+        requests_hour = await asyncio.to_thread(reads.requests_since_all, t - 3600)
         in_flight = cloud.in_flight.snapshot()
         upstream_errors = int(hour.get("upstream.error", 0))
         db_health = cloud.db.health()
@@ -1724,7 +1775,7 @@ def create_app(
             "chat_upstream": {**chat_gate.snapshot(), "retries": chat_retry_limit},
             "hub": hub.stats() if hub is not None else None,
             "last_hour": {
-                "requests": cloud.db.requests_since_all(t - 3600),
+                "requests": requests_hour,
                 "upstream_errors": upstream_errors,
                 "content_rejected": int(hour.get("content.rejected", 0)),
                 "budget_refused": int(hour.get("budget.refused", 0)),
@@ -1745,7 +1796,7 @@ def create_app(
             problems.append("no upstream key")
         # invites being farmed: a code bringing many accounts in a day, or inviters whose
         # people never use anything; each alert is one sentence here and the detail below
-        alerts = cloud.invite_alerts()
+        alerts = await asyncio.to_thread(cloud.reads.invite_alerts)
         for alert in alerts:
             problems.append(f"{alert['message']}; {alert['hint']}")
         out["alerts"] = alerts
@@ -1755,7 +1806,7 @@ def create_app(
 
     @app.get("/v1/admin/overview", dependencies=[Depends(admin_dep)])
     async def admin_overview(days: int = 30) -> dict:
-        out = cloud.admin_overview(max(1, min(days, 365)))
+        out = await asyncio.to_thread(cloud.reads.admin_overview, max(1, min(days, 365)))
         hub = getattr(app.state, "hub", None)
         out["online_devices"] = hub.online_count() if hub is not None else 0
         out["version"] = __version__
@@ -1764,7 +1815,7 @@ def create_app(
 
     @app.get("/v1/admin/series", dependencies=[Depends(admin_dep)])
     async def admin_series(days: int = 30) -> dict:
-        out = cloud.admin_series(max(1, min(days, 365)))
+        out = await asyncio.to_thread(cloud.reads.admin_series, max(1, min(days, 365)))
         hub = getattr(app.state, "hub", None)
         out["online_devices"] = hub.online_count() if hub is not None else 0
         out["web"] = await web_info()
@@ -1807,7 +1858,7 @@ def create_app(
 
     @app.get("/v1/admin/traffic", dependencies=[Depends(admin_dep)])
     async def admin_traffic(days: int = 30) -> dict:
-        return cloud.admin_traffic(max(1, min(days, 365)))
+        return await asyncio.to_thread(cloud.reads.admin_traffic, max(1, min(days, 365)))
 
     @app.get("/v1/admin/places", dependencies=[Depends(admin_dep)])
     async def admin_places(days: int = 30) -> dict:
@@ -1817,7 +1868,7 @@ def create_app(
         database is there at all."""
         days = max(1, min(days, 365))
         geo.ensure()
-        counts = cloud.db.address_counts(int(time.time()) - days * 86400)
+        counts = await asyncio.to_thread(cloud.reads.db.address_counts, int(time.time()) - days * 86400)
         out: dict = {"days": days, "geo": geo.status()}
         for key, rows in counts.items():
             out[key] = group_places(rows, geo) if geo.ready else []
@@ -1843,11 +1894,11 @@ def create_app(
 
     @app.get("/v1/admin/data", dependencies=[Depends(admin_dep)])
     async def admin_data(days: int = 30) -> dict:
-        return cloud.admin_data(max(1, min(days, 365)))
+        return await asyncio.to_thread(cloud.reads.admin_data, max(1, min(days, 365)))
 
     @app.get("/v1/admin/accounts/{account_id}", dependencies=[Depends(admin_dep)])
     async def admin_account(account_id: str, days: int = 30) -> dict:
-        out = cloud.admin_account(account_id, max(1, min(days, 365)))
+        out = await asyncio.to_thread(cloud.reads.admin_account, account_id, max(1, min(days, 365)))
         hub = getattr(app.state, "hub", None)
         if hub is not None:
             out["devices"] = hub.devices(account_id)
@@ -1866,7 +1917,10 @@ def create_app(
         `q` (a text the model name or the note contains) narrow the page and its `total`."""
         if cloud.db.account(account_id) is None:
             raise CloudError(404, "no_account", "No such account")
-        return with_places(cloud.ledger_page(account_id, max(1, min(limit, 1000)), max(0, before), _kinds(kind), q.strip()[:80]))
+        page = await asyncio.to_thread(
+            cloud.reads.ledger_page, account_id, max(1, min(limit, 1000)), max(0, before), _kinds(kind), q.strip()[:80]
+        )
+        return with_places(page)
 
     @app.get("/v1/admin/accounts/{account_id}/events", dependencies=[Depends(admin_dep)])
     async def admin_account_events(account_id: str, limit: int = 200, before: int = 0, kind: str = "", q: str = "") -> dict:
@@ -1874,14 +1928,17 @@ def create_app(
         narrow it the same way as the statement, `q` matching the kind name or the detail."""
         if cloud.db.account(account_id) is None:
             raise CloudError(404, "no_account", "No such account")
-        return with_places(cloud.events_page(account_id, max(1, min(limit, 1000)), max(0, before), _kinds(kind), q.strip()[:80]))
+        page = await asyncio.to_thread(
+            cloud.reads.events_page, account_id, max(1, min(limit, 1000)), max(0, before), _kinds(kind), q.strip()[:80]
+        )
+        return with_places(page)
 
     @app.get("/v1/admin/address", dependencies=[Depends(admin_dep)])
     async def admin_address(ip: str = "") -> dict:
         """The accounts seen from one address, and where it is."""
         if not ip.strip():
             raise CloudError(400, "bad_request", "Say which address: ?ip=…")
-        out = cloud.admin_address(ip)
+        out = await asyncio.to_thread(cloud.reads.admin_address, ip)
         place = geo.place(ip.strip())
         out["place"] = place.as_dict() if place is not None else None
         return with_places(out)
@@ -1891,7 +1948,7 @@ def create_app(
         """The inviters in order of how many accounts their code brought, with what those
         accounts did and the newest `per` of them, and the funnel; an account's detail
         page lists its invitees in full."""
-        return with_places(cloud.admin_invites(max(1, min(limit, 1000)), max(0, min(per, 100))))
+        return with_places(await asyncio.to_thread(cloud.reads.admin_invites, max(1, min(limit, 1000)), max(0, min(per, 100))))
 
     @app.post("/v1/admin/invites/abuse", dependencies=[Depends(admin_dep)])
     async def admin_invite_abuse(request: Request) -> dict:
@@ -1917,16 +1974,17 @@ def create_app(
     async def admin_events(limit: int = 200, kind: str = "", before: int = 0) -> dict:
         """Everyone's timeline, newest first; `kind` is a comma list; `before` (0.26) is
         the id of the last row shown, so the page reads on past the first 200."""
-        return with_places({"events": cloud.admin_events(limit, _kinds(kind), max(0, before))})
+        return with_places({"events": await asyncio.to_thread(cloud.reads.admin_events, limit, _kinds(kind), max(0, before))})
 
     @app.get("/v1/admin/samples", dependencies=[Depends(admin_dep)])
     async def admin_samples(account_id: str = "", limit: int = 100, since: int = 0, before: int = 0, before_id: str = "") -> dict:
         """Contributed chat turns — only from accounts that turned contribution on. Pages
         with `before` (the last row's ts) and `before_id` (its id), newest first."""
+        reads = cloud.reads
         return with_places(
             {
-                "samples": cloud.admin_samples(account_id or None, since, limit, before, before_id[:64]),
-                "total": cloud.db.sample_count(account_id or None),
+                "samples": await asyncio.to_thread(reads.admin_samples, account_id or None, since, limit, before, before_id[:64]),
+                "total": await asyncio.to_thread(reads.db.sample_count, account_id or None),
             }
         )
 
@@ -1935,20 +1993,22 @@ def create_app(
         account_id: str = "", limit: int = 50, since: int = 0, before: int = 0, before_id: str = "", conversation: str = ""
     ) -> dict:
         """The record (0.29): whole turns, newest first, with the same paging as samples."""
+        reads = cloud.reads
         return with_places(
             {
-                "turns": cloud.admin_turns(account_id or None, since, limit, before, before_id[:96], conversation),
-                "total": cloud.db.turn_count(account_id or None),
+                "turns": await asyncio.to_thread(reads.admin_turns, account_id or None, since, limit, before, before_id[:96], conversation),
+                "total": await asyncio.to_thread(reads.db.turn_count, account_id or None),
             }
         )
 
     @app.get("/v1/admin/turns/export", dependencies=[Depends(admin_dep)])
     async def admin_turns_export(since: int = 0, account_id: str = "") -> Response:
         """The record as JSON lines, account ids included (it is the account's data, not the
-        training set); pictures stay references, fetched by hash from /v1/admin/blobs."""
+        training set); pictures stay references, fetched by hash from /v1/admin/blobs. A
+        generator over the read-only connection: Starlette pulls each line in a thread."""
         name = f"nanomuse-turns-{account_id[:8]}-{since}" if account_id else f"nanomuse-turns-{since}"
         return StreamingResponse(
-            cloud.export_turns(since, account_id or None),
+            cloud.reads.export_turns(since, account_id or None),
             media_type="application/x-ndjson",
             headers={"Content-Disposition": f'attachment; filename="{name}.jsonl"', "Cache-Control": "no-store"},
         )
@@ -1956,7 +2016,7 @@ def create_app(
     @app.get("/v1/admin/record", dependencies=[Depends(admin_dep)])
     async def admin_record(days: int = 30) -> dict:
         """What the record holds: turns and files in all and per day, the store against its cap."""
-        return cloud.admin_record(max(1, min(days, 365)))
+        return await asyncio.to_thread(cloud.reads.admin_record, max(1, min(days, 365)))
 
     @app.get("/v1/admin/blobs/{sha256}", dependencies=[Depends(admin_dep)])
     async def admin_blob(sha256: str) -> Response:
@@ -1970,19 +2030,27 @@ def create_app(
     async def admin_samples_export(since: int = 0, account_id: str = "") -> Response:
         """The training set as JSON lines (one turn per line, no account ids, no addresses);
         with `account_id`, one account's turns. One whole response with its length, not a
-        stream: the set is small, and a stream that stopped short — a proxy compressing it,
-        the connection dropping — reached the browser as "Failed to fetch" with nothing to
-        say why."""
-        body = "".join(cloud.export_samples(since, account_id or None)).encode()
+        stream: a stream that stopped short (a proxy compressing it, the connection dropping)
+        reached the browser as "Failed to fetch" with nothing to say why. The lines are
+        written to a temporary file in a thread, over the read-only connection, and the file
+        is sent and removed: the set is hundreds of thousands of turns, far too many to
+        build in memory, and far too slow a read to run on the loop."""
         name = f"nanomuse-samples-{account_id[:8]}-{since}" if account_id else f"nanomuse-samples-{since}"
-        return Response(
-            body,
+        reads = cloud.reads
+
+        def write() -> str:
+            with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".jsonl", delete=False) as f:
+                for line in reads.export_samples(since, account_id or None):
+                    f.write(line)
+                return f.name
+
+        path = await asyncio.to_thread(write)
+        return FileResponse(
+            path,
             media_type="application/x-ndjson",
-            headers={
-                "Content-Disposition": f'attachment; filename="{name}.jsonl"',
-                "Cache-Control": "no-store",
-                "Content-Length": str(len(body)),
-            },
+            filename=f"{name}.jsonl",
+            headers={"Cache-Control": "no-store"},
+            background=BackgroundTask(_unlink_quietly, path),
         )
 
     @app.get("/v1/admin/sync", dependencies=[Depends(admin_dep)])
@@ -2146,14 +2214,14 @@ def create_app(
     async def admin_stats(days: int = 30) -> dict:
         """Every metric of stats.py with its rows for the last `days` UTC days (1–365), its
         columns and how it is computed."""
-        return stats.all(max(1, min(days, 365)))
+        return await asyncio.to_thread(stats.all, max(1, min(days, 365)))
 
     @app.get("/v1/admin/stats/{metric_id}.csv", dependencies=[Depends(admin_dep)])
     async def admin_stat_csv(metric_id: str, days: int = 30) -> Response:
         m = stats.metric(metric_id)
         if m is None:
             raise CloudError(404, "not_found", "No such metric")
-        text = stats.csv(m, max(1, min(days, 365)))
+        text = await asyncio.to_thread(stats.csv, m, max(1, min(days, 365)))
         return Response(text, media_type="text/csv; charset=utf-8", headers={"Content-Disposition": f'attachment; filename="{m.id}.csv"'})
 
     @app.get("/v1/admin/stats/{metric_id}", dependencies=[Depends(admin_dep)])
@@ -2161,7 +2229,7 @@ def create_app(
         m = stats.metric(metric_id)
         if m is None:
             raise CloudError(404, "not_found", "No such metric")
-        return stats.build(m, max(1, min(days, 365)))
+        return await asyncio.to_thread(stats.build, m, max(1, min(days, 365)))
 
     # -- 0.28: the live view and the analytics pages (analytics.py) --------------------------------
 

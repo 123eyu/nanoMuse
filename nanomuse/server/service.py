@@ -9,6 +9,7 @@ user can fire off several requests without waiting for the last one to finish.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import mimetypes
 import re
@@ -442,6 +443,9 @@ class MuseService:
         self.app.tools.add(CodingAgents(coding=self.coding))
         self.token = self._load_token()
         self._scheduler: asyncio.Task[None] | None = None
+        # webhook deliveries accepted, by trigger id (monotonic seconds): the rate limit's
+        # word while the first run is still going (deliver_hook)
+        self._hook_accepted: dict[str, float] = {}
         # what start() is busy with, for /api/health and the log while the app comes up
         self.starting: str = "not started"
         self._tidying = False
@@ -508,10 +512,17 @@ class MuseService:
             logger.warning("starting: {} failed: {}: {}", name, type(exc).__name__, exc)
 
     async def stop(self) -> None:
-        if self._scheduler:
-            self._scheduler.cancel()
         loop = asyncio.get_running_loop()
         workers: list[asyncio.Task[None]] = []
+        scheduler = self._scheduler
+        if scheduler is not None and not scheduler.done() and scheduler.get_loop() is loop:
+            # the scheduler may be mid-pass (reading a mailbox, writing a delivery, asking a
+            # model for the Feed): it winds down with the workers, before the stores close
+            scheduler.cancel()
+            workers.append(scheduler)
+        elif scheduler is not None:
+            scheduler.cancel()
+        self._scheduler = None
         for t in self.threads.values():
             work = t.worker
             if work is None or work.done() or work.get_loop() is not loop:
@@ -1890,10 +1901,19 @@ class MuseService:
             raise KeyError(trigger_id)
         if item.status != "active":
             raise ValueError(f"trigger is {item.status}")
+        gap = self.settings.triggers.hook_min_seconds
         if item.last_fired_at:
             since = datetime.now(UTC) - datetime.fromisoformat(item.last_fired_at)
-            if since.total_seconds() < self.settings.triggers.hook_min_seconds:
+            if since.total_seconds() < gap:
                 raise RuntimeError("too soon after the last delivery")
+        # `last_fired_at` moves when the run completes; deliveries that arrive while the
+        # first still runs are measured against the last one accepted, so a burst of
+        # requests starts one run, not one per request (this method runs on the loop
+        # thread, so the check and the mark below are one step)
+        accepted = self._hook_accepted.get(item.id)
+        if accepted is not None and time.monotonic() - accepted < gap:
+            raise RuntimeError("too soon after the last delivery")
+        self._hook_accepted[item.id] = time.monotonic()
         body = body.strip()
         if content_type.startswith("application/json") and body:
             try:
@@ -1908,11 +1928,24 @@ class MuseService:
         return fired or item
 
     def _mail_mark(self) -> str:
-        """The meta key of the inbox high-water mark — one per mailbox, so a changed
-        account starts fresh instead of replaying by UID."""
+        """The meta key of the inbox high-water mark: one per mailbox, so a changed account
+        starts fresh instead of replaying by UID. The mailbox is named by a hash of the host
+        and the address: the address lives in the vault, and a key in the triggers database
+        is not where it gets written out in clear. A mark written by an earlier version
+        under the address itself is moved to the hashed key on the way."""
         email = self.settings.connectors.email
         account = self.app.vault.resolve(email.address, strict=False) or email.address
-        return f"mail_uid:{email.imap_host}:{account}"
+        digest = hashlib.sha256(f"{email.imap_host}\n{account}".encode()).hexdigest()[:24]
+        mark = f"mail_uid:{email.imap_host}:{digest}"
+        legacy = f"mail_uid:{email.imap_host}:{account}"
+        if legacy != mark:
+            store = self.app.triggers
+            old = store.get_meta(legacy, "")
+            if old:
+                if not store.get_meta(mark, ""):
+                    store.set_meta(mark, old)
+                store.delete_meta(legacy)
+        return mark
 
     async def _poll_mail(self) -> None:
         """Look at the inbox for the mail triggers, every ``mail_poll_minutes`` while at
@@ -1941,7 +1974,9 @@ class MuseService:
             return
         self.mail_watch_error = ""
         self.mail_checked_at = now_iso()
-        store.set_meta(mark, str(newest))
+        # the deliveries first, the high-water mark after: a crash between the two reads
+        # the same mails again, and a mail's key never fires twice (fire_trigger); the
+        # other order would skip a matching mail for good
         for mail in fresh:
             for trig in triggers:
                 if matches(trig.match, mail.sender, mail.subject):
@@ -1952,6 +1987,7 @@ class MuseService:
                         key=mail.key,
                         title=mail.subject or mail.sender,
                     )
+        store.set_meta(mark, str(newest))
         self.bus.publish({"kind": "triggers"})
 
     def _run_event_triggers(self) -> None:

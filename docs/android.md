@@ -122,7 +122,7 @@ prefix caching.
 
 | | |
 | --- | --- |
-| **The agent, on the phone** | A sandboxed Alpine Linux, a real shell, files, a browser, MCP servers, skills in the Agent Skills format, memory, scheduled tasks; approvals before deleting, sending or paying. The model is the account's or your own; nothing you say passes through the project's relay when you use your own key. |
+| **The agent, on the phone** | A sandboxed Alpine Linux, a real shell, files, a browser, MCP servers, skills in the Agent Skills format, memory, scheduled tasks; approvals before deleting, sending or paying. The model is the account's or your own; with your own key the chat itself goes from the phone to that provider and never through the project's relay, and from 1.0.7 the finished turn is added to your account's record afterwards (the model's id and the turn, never the key) so your other devices have it ([cloud.md](cloud.md#the-record)). |
 | **Hands** (`hands/`) | With *Hands* on and the accessibility service enabled, the agent looks at the phone's screen and taps, types and swipes in its apps: the last rung after APIs, fetches and the browser. A stage over the app shows where it is about to tap and a capsule with the step and **Stop**; a glow breathes along the screen's edges (blue working, amber waiting; 2.4 s in, 2.4 s out, like every working light on every client since round 9: nothing runs round the rim or slides down the screen, and the capsule's ring and bars breathe at the same pace; everything holds still under the system's reduce-motion setting); when a tap would send, post or delete, the capsule itself asks (**Allow** / **Deny**, the same request the chat card and the notification show), so you are not pulled back into nanoMuse (money is confirmed with the screen lock in the chat card; the capsule offers *Open* for that one); the capsule only ever answers its own request, never a shell or browser card of another conversation, and **Stop** while a card is waiting denies it and ends the run at once. Passwords and codes are always yours to type. The same action a third time on a screen that did not change gets a line in the history so the model changes tack, and a sixth ends the run as *infeasible* with the action named (`HandsLoopWatch`, the floor the runtime has too), instead of one model call per step until the thirty-minute limit. Every step's screenshot is written next to the run's trace under the session's `attachments/hands/<run>/`; the ten newest runs keep all of theirs, an older run keeps its trace and the last screen (the one the chat shows), and past 200 runs the oldest is removed (`HandsTraces`). [gui.md](gui.md) is the design record; the app's own hands are in `io.github.nanomuse.hands`. |
 | **Reach** (`reach/`) | Your computers, from the phone: "say it on the phone, it gets done there" (a shell command, a file, the computer's screen, or a whole task for the nanoMuse running there). The way in is the hub (next row): install nanoMuse Desktop on the computer and sign in with the same account, and it is under *Account → Devices* within seconds, on any network, the only way since 0.1.24 (the local-network host script is gone). *Settings → Computers* lists the account's computers and says which account the phone uses, since a missing computer has nearly always signed in with another one. Approvals are decided on the phone before anything is sent. [every-device.md](every-device.md). |
 | **The hub** (`hub/`) | Every signed-in device of the account meets on the relay's hub: the phone sees your computers, asks them to do things, gets their approvals as cards, and can be asked by them. A foreground service keeps it reachable in the background (Android 13+ asks for the notification permission for that). [hub.md](hub.md). |
@@ -294,9 +294,14 @@ before capture begins. You can retry voice input without leaving that recorder a
 ## Privacy and permissions
 
 The relay keeps an account id, a masked identifier, usage counts and the agent's name and
-look (so your devices match), and message content only as conversation sync, on by default
-when signed in and switched off under *Data controls* ([privacy.md](privacy.md),
-[sync.md](sync.md)); the first conversation says so in its fourth line. On the phone, API keys and the account key
+look (so your devices match); of your chats, the record (every turn with the relay's models
+in full, and from 1.0.7 the turns on your own key too, readable by your devices and by
+whoever runs the relay, deleted from *Data controls* with one tap), conversation sync (on by
+default when signed in, switched off under *Data controls*), and the training set only
+while *Help improve* is on ([privacy.md](privacy.md), [cloud.md](cloud.md#the-record),
+[sync.md](sync.md)); the first conversation says so in its fourth line. *Data controls* shows
+what the record holds of your account (turns, those on your own keys, pictures) and how long
+this relay keeps a turn. On the phone, API keys and the account key
 are in `EncryptedSharedPreferences`, and so is the proxy password of *Settings → Network*
 (since 1.0.4; on this phone only); since 0.1.40 the app takes no part in
 the device backup at all (`allowBackup="false"`: chats, memory and keys never go to Google,
@@ -326,7 +331,7 @@ cancelled recording's audio is dropped, never sent to the provider.
 
 ## Building it yourself
 
-JDK 17 or 21 (CI uses 21) and the Android SDK (Android Studio installs both); `scripts/android/env.sh` sets
+JDK 21 (what CI uses) and the Android SDK (Android Studio installs both); `scripts/android/env.sh` sets
 the environment on a bare machine. The project is under `android/src/android`:
 
 ```bash

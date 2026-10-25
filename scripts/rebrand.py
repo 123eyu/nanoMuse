@@ -302,6 +302,19 @@ COPY: dict[str, dict[str, str]] = {
 }
 
 
+# One word for the companies that sell model access. nanoMuse's own strings, the docs and the
+# desktop say 服务商 / 服務商; upstream's Chinese says 提供商 / 供應商 (and 提供方 crept into
+# ours). Android locale dir -> [(their word, ours)]; the iOS catalogue's locales below.
+TERMS: dict[str, list[tuple[str, str]]] = {
+    "values-zh": [("提供商", "服务商"), ("提供方", "服务商")],
+    "values-zh-rTW": [("供應商", "服務商"), ("提供商", "服務商")],
+}
+IOS_TERMS: dict[str, list[tuple[str, str]]] = {
+    "zh-Hans": TERMS["values-zh"],
+    "zh-Hant": TERMS["values-zh-rTW"],
+}
+
+
 def reword() -> None:
     for folder, strings in COPY.items():
         subs = [
@@ -309,6 +322,11 @@ def reword() -> None:
             for name, text in strings.items()
         ]
         edit(RES / folder / "strings.xml", subs)
+    # One word for the companies that sell model access: nanoMuse's own strings, the docs and the
+    # other clients say 服务商 / 服務商; upstream's zh and zh-rTW say 提供商 / 供應商.
+    for folder, pairs in TERMS.items():
+        for name in ("strings.xml", "nm_strings.xml"):
+            edit(RES / folder / name, pairs)
     # "<name> is browsing": the product name becomes a placeholder in every locale.
     for path in sorted(RES.glob("values*/strings.xml")):
         edit(
@@ -527,6 +545,30 @@ def ios_colours() -> None:
         changed.append(str(path.relative_to(ROOT)))
 
 
+def ios_terms() -> None:
+    """The one word for a model vendor in the catalogue's Chinese (see TERMS)."""
+    xc = IOS / "Localizable.xcstrings"
+    if not xc.exists():
+        return
+    raw = xc.read_text(encoding="utf-8")
+    data = json.loads(raw)
+    hits = 0
+    for entry in data.get("strings", {}).values():
+        for loc, pairs in IOS_TERMS.items():
+            unit = entry.get("localizations", {}).get(loc, {}).get("stringUnit")
+            if not isinstance(unit, dict) or not isinstance(unit.get("value"), str):
+                continue
+            value = unit["value"]
+            for theirs, ours in pairs:
+                value = value.replace(theirs, ours)
+            if value != unit["value"]:
+                unit["value"] = value
+                hits += 1
+    if hits:
+        xc.write_text(xcstrings_dumps(data, raw), encoding="utf-8")
+        changed.append(str(xc.relative_to(ROOT)))
+
+
 def ios() -> None:
     if not IOS.is_dir():
         return
@@ -537,6 +579,7 @@ def ios() -> None:
     ios_links()
     ios_soul_defaults()
     ios_colours()
+    ios_terms()
 
 
 def ios_check() -> int:

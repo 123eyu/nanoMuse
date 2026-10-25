@@ -62,7 +62,11 @@ Two kinds of request travel over the hub:
   after the step in flight, answers `{stopped: true}`, and the `task` call
   itself then fails with `cancelled`. `{stopped: false}` means there was
   nothing of the caller's to stop; a device never stops another device's
-  task. The runtime, the desktop app and the phone all do this.
+  task. The runtime, the desktop app and the phone all do this. A `task`
+  for a conversation that is already running one fails at once with `busy`
+  (the runtime): the caller waits for the first to answer, or stops it, and
+  asks again. A task that has not answered within the hub's limit fails with
+  `timeout`, one the target's Muse could not run with `failed`.
   `stream: true` says the caller draws each `text` in place of the text since the last `tool`;
   nanoMuse Desktop then also sends `text {text, interim, partial: true}` with the text of the
   message the model is writing, at most every 250 ms, and the finished message as before. A
@@ -96,7 +100,10 @@ Two kinds of request travel over the hub:
 
 Each device decides what it lets others do. On the phone, *Let other devices
 operate this phone* (*Settings → nanoMuse Cloud → Devices*) off makes the phone
-answer `info` and nothing else; it still sees and drives the others.
+answer `info` and nothing else; it still sees and drives the others. The
+runtime's `info` then names the computer and its system only (no account
+name, home or working directory, no shell) and lists `info` as the one
+action.
 With it on, a raw action that does something *to* the device (`shell`, `files`,
 `file.get`, `file.put`, `open`, `screen`, `coding.send`, `coding.stop`) is first
 agreed to by the person at that device: the usual approval card, *once* or
@@ -167,7 +174,7 @@ the key in `hello` instead).
 
 ```
 → hello    {device:{id,name,kind,os,version,actions[],llm?}}   kind: phone | computer | web
-           llm (relay 0.28, optional): {provider, model} — the ids the device runs its model under ("cloud",
+           llm (relay 0.28, optional): {provider, model}, the ids the device runs its model under ("cloud",
            "openrouter", a model id); plain ids only, never a key or a URL; kept on the device row for the operator
 ← welcome  {device_id, devices:[…], server:{version,frame_limit,time}}
 ← devices  {devices:[{id,name,kind,os,version,actions[],online,last_seen,controllable,ip}]}
@@ -176,7 +183,7 @@ the key in `hello` instead).
 ← call     {id, from:{id,name,kind}, action, args}          (delivered to the target)
 → event    {id, body}          ← event  {id, from, body}    progress, approvals, images
 → result   {id, ok, body | error, message}                  ← result (to the caller)
-← error    {code, message, id?}   device_offline · not_controllable · self_call · unknown_call · timeout
+← error    {code, message, id?}   device_offline · not_controllable · self_call · duplicate_call · unknown_call · timeout
                                   too_large · rate_limited · bad_frame · device_online · bad_key · bad_device
 
 → devices  {}        → rename {name}        → forget {device_id}        → ping  ← pong
@@ -198,7 +205,10 @@ by a newer connection of the same device id, or, with the reason
 `hub_paused` (relay 0.22), the operator switched the hub or the whole service
 off: a client waits and reconnects later instead of retrying at once
 ([cloud.md › Controls](cloud.md#controls)); `4008` too many frames (the
-rate limit below was ignored); and `4009` slow consumer (the relay had 512
+rate limit below was ignored) or, with the reason `too_many_connections`
+(relay 0.30), too many sockets: one address opened more than 60 in a minute,
+or the account already has 32 devices connected (a device taking its own
+place again is not counted); and `4009` slow consumer (the relay had 512
 frames or 32 MB queued for a socket that was not reading them; the client
 reconnects with backoff like after any network close).
 

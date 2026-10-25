@@ -634,6 +634,37 @@ def test_a_helper_left_behind_does_not_keep_the_run_open(
     assert time.monotonic() - t0 < 10
 
 
+def test_a_cancelled_run_takes_its_agent_down_with_it(
+    coding_home: Path, fake_cursor: Path, tmp_path: Path
+) -> None:
+    """The chat that waited for the run was stopped: the agent's process group is ended,
+    nothing of ours keeps reading its pipes, and the run says it was stopped."""
+    fake_cursor.write_text(
+        "#!/bin/sh\n"
+        f'echo $$ > "{tmp_path}/pid"\n'
+        'echo \'{"type":"system","subtype":"init","session_id":"S-new","model":"m"}\'\n'
+        "sleep 60\n"  # an agent still at work
+    )
+
+    async def scenario() -> Run:
+        runs: list[Run] = []
+        task = asyncio.create_task(start_run("cursor", "hi", timeout_s=30, register=runs.append))
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and not (tmp_path / "pid").exists():
+            await asyncio.sleep(0.05)
+        await asyncio.sleep(0.2)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        return runs[0]
+
+    t0 = time.monotonic()
+    run = asyncio.run(scenario())
+    assert run.status == "stopped" and run.ended_at is not None
+    assert run.process is not None and run.process.returncode is not None
+    assert time.monotonic() - t0 < 10
+
+
 # ----------------------------------------------------------------------------- the runtime API
 @pytest.fixture()
 def server(
@@ -708,8 +739,9 @@ def test_api_lists_sessions_sends_and_follows(
         )
     )
     assert "Renamed --foo" in out.output
-    a = tool.assess({"action": "send", "agent": "cursor", "text": "do it"})
-    assert a.risk.value == "moderate" and a.summary.startswith("tell cursor")
+    a = tool.assess({"action": "send", "agent": "cursor", "text": "do it", "workspace": "/w/app"})
+    assert a.risk.value == "sensitive" and a.summary == "tell cursor in /w/app: do it"
+    assert tool.assess({"action": "sessions", "agent": "cursor"}).risk.value == "safe"
 
 
 def test_runs_survive_a_restart(

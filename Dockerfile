@@ -8,6 +8,8 @@
 #   docker build --build-arg WITH_BROWSER=1 -t nanomuse:browser .
 #
 FROM python:3.12-slim
+LABEL org.opencontainers.image.licenses="GPL-3.0-or-later" \
+      org.opencontainers.image.source="https://github.com/nano-muse/nanoMuse"
 
 # Override for a regional PyPI mirror, e.g.
 #   docker build --build-arg PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple .

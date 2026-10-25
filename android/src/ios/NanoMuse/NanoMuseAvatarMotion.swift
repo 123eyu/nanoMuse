@@ -9,8 +9,10 @@
 //  pictures (`avatar/motion/<mood>.mp4`) and the face view plays whichever
 //  exists for the current mood, falling back to the still. Clips are made
 //  one after another (each takes a few minutes and costs the person per
-//  second) and only when a video model is set and the animation is on.
-//  Android: avatar/AvatarMotion.kt.
+//  second) and only when a video model is set and the animation is on. A clip
+//  drawn here goes to the account's other devices through the profile's `clips`
+//  (relay 0.29, NanoMuseProfileSync), and theirs land here, so a face is
+//  animated once per account, not once per device. Android: avatar/AvatarMotion.kt.
 //
 
 import Foundation
@@ -105,6 +107,12 @@ final class NanoMuseAvatarMotion: ObservableObject {
         if progress?.running == false { progress = nil }
     }
 
+    /// A clip another device drew arrived as a file (NanoMuseProfileSync): the players rebuild.
+    func clipLanded() {
+        clipVersion += 1
+        rescan()
+    }
+
     /// After a face was adopted or arrived from the profile: the clips, in the background, when enabled.
     func animateIfEnabled() {
         guard enabled else { return }
@@ -146,6 +154,8 @@ final class NanoMuseAvatarMotion: ObservableObject {
                     try bytes.write(to: Self.clipFile(mood), options: .atomic)
                     clipVersion += 1
                     rescan()
+                    // the account's other devices get the clip instead of drawing their own (relay 0.29)
+                    NanoMuseProfileSync.shared.shareClip(mood, bytes: bytes)
                 } catch is CancellationError {
                     break
                 } catch {

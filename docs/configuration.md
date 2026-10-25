@@ -53,7 +53,7 @@ temperature   = 0.3
 timeout       = 180                # seconds per request
 max_retries   = 5                  # exponential back-off on 429 / 5xx / timeouts
 stream        = true
-tool_mode     = "auto"             # "auto" | "native" | "prompt" — see below
+tool_mode     = "auto"             # "auto" | "native" | "prompt"; see below
 vision        = "auto"             # pictures attached in chat go to the model: "auto" | "on" | "off"
 pass_reasoning = false             # send reasoning_content back with assistant turns (some DeepSeek endpoints)
 extra_headers = {}                 # e.g. { "X-End-User-Id" = "nanomuse" }
@@ -360,7 +360,7 @@ Mail triggers need the [email connector](#email); event triggers need a [calenda
 ```toml
 [browser]
 enabled    = true      # pip install "nanomuse[browser]" && playwright install chromium
-backend    = "auto"    # auto | playwright | device — the phone's own WebView when a nanoMuse app is connected, Chromium otherwise
+backend    = "auto"    # auto | playwright | device; device: the phone's own WebView when a nanoMuse app is connected, Chromium otherwise
 profile    = ""        # mobile | desktop | "" (mobile on the phone, desktop on a computer)
 headless   = true      # Playwright only
 timeout_ms = 30000
@@ -373,9 +373,9 @@ Logins made in Chromium live in `<workspace>/browser-profile/` and survive a res
 ```toml
 [hands]
 enabled         = false    # the switch is Devices → Hands on this computer in the app
-backend         = "auto"   # auto | desktop | pyautogui | xdotool (X11) — desktop: the desktop app's own hands (auto takes them when the app set NANOMUSE_OPERATOR_URL)
-mode            = "auto"   # auto | screen | window — window: one app's window on macOS, events to its process, your mouse untouched; auto = window on macOS once an app is named
-coords          = "pixels" # pixels | norm1000 — what the model's x, y mean: pixels of the picture it was shown (default), or a 0–1000 grid over it
+backend         = "auto"   # auto | desktop | pyautogui | xdotool (X11); desktop: the desktop app's own hands (auto takes them when the app set NANOMUSE_OPERATOR_URL)
+mode            = "auto"   # auto | screen | window; window: one app's window on macOS, events to its process, your mouse untouched; auto = window on macOS once an app is named
+coords          = "pixels" # pixels | norm1000; what the model's x, y mean: pixels of the picture it was shown (default), or a 0–1000 grid over it
 max_image_width = 1600
 settle_s        = 0.6
 ```
@@ -392,7 +392,7 @@ With this on, the agent can look at a connected phone's screen and tap, type and
 [gui]
 enabled          = false
 provider         = "openai"          # the operator's own model; openai | openai_responses | chatgpt | a catalogue id
-model            = ""                # empty: the main [llm] model does it — it must take images, the screen is a picture
+model            = ""                # empty: automatic (the order below: the relay's hands model, the chat provider's own, or the chat model); whichever it is must take images, the screen is a picture
 base_url         = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 api_key          = "{{vault:GUI_API_KEY}}"
 max_steps        = 0                 # the most one phone_task may take; 0 = no cap
@@ -422,6 +422,8 @@ url                = "http://localhost:8000/mcp"   # streamable HTTP; falls back
 risk               = "sensitive"
 egress             = true         # counts as network egress for taint tracking
 reads_private_data = true         # taints the conversation when called
+connect_timeout_s  = 30           # the handshake (connect, initialize, the tool list); over it the server is skipped
+call_timeout_s     = 120          # one call; over it the call fails and the run goes on
 
 # one tool of a server may differ from the server's defaults
 [mcp.servers.tools.list_events]
@@ -430,6 +432,8 @@ risk               = "moderate"
 risk               = "sensitive"
 reads_private_data = false
 ```
+
+`egress` left out is read from the address: a `url` on another host sends every argument of a call there, so it counts as egress to that host (taint tracking asks before a call that follows private data, unless the host is on `egress_allowlist`); a `command` or a loopback address does not. Set `egress` to say otherwise. The approval card and the audit log name the tool and the shape of its arguments (a string's length, a list's length, an object's keys), never their values.
 
 `tools` is optional and per tool name (without the `<server>__` prefix); anything not set falls back to the server's values. It is how the phone's own tools get their defaults: on a phone the app's capabilities appear as the server `device` without any configuration ([device.md](device.md)), with the per-tool table from `nanomuse/runtime.py`.
 

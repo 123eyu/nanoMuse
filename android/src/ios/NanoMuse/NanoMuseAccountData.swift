@@ -38,8 +38,15 @@ final class NanoMuseAccountData {
         static let installed = "nanomuse.installed"
     }
 
-    /// The UserDefaults keys that are the account's rather than the phone's, by prefix.
-    nonisolated static let prefPrefixes = ["nanomuse.main_chat.", "nanomuse.first_conversation.", "nanomuse.feed."]
+    /// The UserDefaults keys that are the account's rather than the phone's, by prefix: the
+    /// main chat and first-conversation state, the feed's, the per-session addenda and routine
+    /// wakes (keyed by the account's session and row ids), and the hub's conversation → session
+    /// map (a conversation id such as `main` recurs from account to account; left in place it
+    /// sent another account's hub task into this one's chat).
+    nonisolated static let prefPrefixes = [
+        "nanomuse.main_chat.", "nanomuse.first_conversation.", "nanomuse.feed.",
+        "nanomuse.addenda", "nanomuse.routine_wakes", "hub.session.",
+    ]
 
     /// The relay's error code for a key whose account no longer exists (relay 0.1.40).
     nonisolated static let accountDeleted = "account_deleted"
@@ -303,6 +310,7 @@ final class NanoMuseAccountData {
             ("goals.json", NanoMuseDirs.root.appendingPathComponent("goals.json")),
             ("routines.json", NanoMuseDirs.root.appendingPathComponent("routines.json")),
             ("avatar", NanoMuseFaceStore.directory),
+            ("avatar-options", NanoMuseDirs.root.appendingPathComponent("avatar-options", isDirectory: true)),
         ]
     }
 
@@ -317,10 +325,46 @@ final class NanoMuseAccountData {
         do {
             try fm.moveItem(at: src, to: dst)
         } catch {
-            // across containers (the app group and Application Support): copy, then delete
-            try? fm.copyItem(at: src, to: dst)
-            try? fm.removeItem(at: src)
+            // across containers (the app group and Application Support): copy, then delete,
+            // and only once the copy is whole. A copy that failed half way (no space, a
+            // file busy) left a torn stash and then deleted the only good one.
+            do {
+                try fm.copyItem(at: src, to: dst)
+                guard sameShape(src, dst) else {
+                    try? fm.removeItem(at: dst)
+                    return
+                }
+                try? fm.removeItem(at: src)
+            } catch {
+                try? fm.removeItem(at: dst)
+            }
         }
+    }
+
+    /// The copy has every file of the original, at the same size: the whole tree is compared
+    /// by relative path and byte count (contents are not re-read; the copy was just written).
+    nonisolated private static func sameShape(_ a: URL, _ b: URL) -> Bool {
+        func shape(_ root: URL) -> [String: Int]? {
+            let fm = FileManager.default
+            var isDir: ObjCBool = false
+            guard fm.fileExists(atPath: root.path, isDirectory: &isDir) else { return nil }
+            var out: [String: Int] = [:]
+            if !isDir.boolValue {
+                out[""] = (try? fm.attributesOfItem(atPath: root.path)[.size] as? Int) ?? -1
+                return out
+            }
+            guard let walk = fm.enumerator(at: root, includingPropertiesForKeys: [.isRegularFileKey, .fileSizeKey], options: [.skipsHiddenFiles]) else { return nil }
+            let prefix = root.standardizedFileURL.path
+            for case let url as URL in walk {
+                let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
+                guard values?.isRegularFile == true else { continue }
+                let rel = String(url.standardizedFileURL.path.dropFirst(prefix.count))
+                out[rel] = values?.fileSize ?? -1
+            }
+            return out
+        }
+        guard let one = shape(a), let two = shape(b) else { return false }
+        return one == two
     }
 
     private func deleteChats(of account: String) async {
@@ -343,6 +387,7 @@ final class NanoMuseAccountData {
         NanoMuseGoalStore.shared.reload()
         NanoMuseFaceStore.shared.reload()
         NanoMuseOwnClip.shared.rescan()
+        NanoMuseRoutineWakes.shared.reload() // its map is in the defaults that just changed hands
         SoulStore.refreshCache()
     }
 

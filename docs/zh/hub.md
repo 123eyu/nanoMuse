@@ -29,13 +29,13 @@ web  ───┘        /v1/hub          └── another phone / computer
 hub 上传递两类请求：
 
 - **动作。** `info`、`shell`、`files`、`file.get`、`file.put`、`open`、`screen`、`notify`。原始、即时。一条 `shell` 命令在发出之前先在*发起方*判定，用的和本地命令同一套阶梯（手机的 ShellGuard、桌面的 `guard.py`）：读取和构建静默放行，删除 / 发送 / 付款 / 系统命令则等发起设备上的审批卡片。
-- **任务。** `task {text, conversation?, language?, stream?}`：用自然语言描述的一整件事，交给目标设备自己的 Muse，在它自己的一个对话里完成（`conversation` 指定是哪个对话，缺省时用发起方的 id）。`language`（运行时 1.0.0 起，可选）是发起设备界面语言的 BCP-47 标签；目标设备用这个语言作答，而不是从文字里猜。可能要几分钟。那个 Muse 碰到需要审批的事时不会自己拿主意：问题以 `event {stage:"approval"}` 传回来，发起设备显示它惯常的卡片（手机上是 RiskGate，桌面上是终端提示，网页控制台里是一张卡片）。回答以 `approve {approval_id, allow}` 传回去。发起设备可以用 `stop {call}`（它那条 `task` 帧的 id）或 `stop {conversation}`（它指定的对话，没指定时就是它自己的那个按设备分的对话）结束自己发起的任务：目标设备在进行中的一步之后取消运行，回答 `{stopped: true}`，随后那条 `task` 调用本身以 `cancelled` 失败。`{stopped: false}` 表示没有属于发起方的可停之事；一台设备绝不会停掉别的设备发起的任务。运行时、桌面版和手机都这样做。`stream: true` 表示发起方把每条 `text` 画在上一个 `tool` 之后那段文字的位置上；nanoMuse 桌面版这时还会发 `text {text, interim, partial: true}`，带着模型正在写的那条消息的文字，最多每 250 毫秒一次，写完的消息照旧发。没有要求的发起方每条消息只收到一次（Android 的 `nanomuse-pc task` 把每条 `text` 列成一步）；运行时暂时忽略 `stream`。
+- **任务。** `task {text, conversation?, language?, stream?}`：用自然语言描述的一整件事，交给目标设备自己的 Muse，在它自己的一个对话里完成（`conversation` 指定是哪个对话，缺省时用发起方的 id）。`language`（运行时 1.0.0 起，可选）是发起设备界面语言的 BCP-47 标签；目标设备用这个语言作答，而不是从文字里猜。可能要几分钟。那个 Muse 碰到需要审批的事时不会自己拿主意：问题以 `event {stage:"approval"}` 传回来，发起设备显示它惯常的卡片（手机上是 RiskGate，桌面上是终端提示，网页控制台里是一张卡片）。回答以 `approve {approval_id, allow}` 传回去。发起设备可以用 `stop {call}`（它那条 `task` 帧的 id）或 `stop {conversation}`（它指定的对话，没指定时就是它自己的那个按设备分的对话）结束自己发起的任务：目标设备在进行中的一步之后取消运行，回答 `{stopped: true}`，随后那条 `task` 调用本身以 `cancelled` 失败。`{stopped: false}` 表示没有属于发起方的可停之事；一台设备绝不会停掉别的设备发起的任务。运行时、桌面版和手机都这样做。对一个已经在跑任务的对话再发 `task`，会立刻以 `busy` 失败（运行时）：发起方等前一个答完，或者先停掉它，再问一次。超过 hub 时限还没答的任务以 `timeout` 失败，目标那边的 Muse 跑不起来的以 `failed` 失败。`stream: true` 表示发起方把每条 `text` 画在上一个 `tool` 之后那段文字的位置上；nanoMuse 桌面版这时还会发 `text {text, interim, partial: true}`，带着模型正在写的那条消息的文字，最多每 250 毫秒一次，写完的消息照旧发。没有要求的发起方每条消息只收到一次（Android 的 `nanomuse-pc task` 把每条 `text` 列成一步）；运行时暂时忽略 `stream`。
 
   任务运行期间，目标设备发送 `event` 帧，`body.stage` 告诉发起方该画什么，于是这次运行在发起方的聊天里读起来和在目标设备自己那里一样：工具开始时是 `tool {id, name, summary}`，结束时是 `tool_result {id, name, ok, summary}`（同一个 `id`）；`approval {approval_id, preview, risk, reason, device, timeout, grant_key}`，以及任一方作出决定后的 `approval_result {approval_id, status}`；`text {text, interim}` 是 Muse 一路上说的话；`image` 和 `file` 是它做出来的东西；`error`。`result` 帧带着最终答案。发起方把一条 `text` 画在上一个 `tool` 之后那段文字的位置上，所以目标设备可以把同一条消息越写越长地发好几次，发起方随之显示；每条消息只发一次的目标设备显示效果不变。`grant_key`（1.0.6 起）是发起方记住的回答所覆盖的范围：运行时发的是它自己的授权所用的键（工具和目标，如 `shell:git`），桌面版发的是工具加完整的主参数；没有这个字段的发送方，照旧按 `preview` 的前 60 个字符记，而两个不同的步骤可能开头相同。
 
 - **编程助手。** `coding.agents`、`coding.sessions`、`coding.session`、`coding.send`、`coding.stop`、`coding.runs`：电脑上的 Cursor / Codex / Claude Code 会话，由那里的运行时或桌面版从磁盘读取，并通过这些助手自己的 CLI 来驱动。`coding.send {agent, text, session_id?, workspace?, wait}` 以 `event` 帧把运行过程流式传回（`started`、`text`、`tool`、`done`、`error`，每个都带运行 id，发起方据此可以 `coding.stop`），最后以完成的运行作答。只有电脑会宣告这些动作：装了这个模块的运行时，或者桌面版。[coding-agents.md](coding-agents.md)。
 
-每台设备自己决定允许别人做什么。手机上，「允许其他设备操作这台手机」（*设置 → nanoMuse Cloud → 设备*）关着时，这台手机只回答 `info`，别的一概不答；它仍然能看见并操纵其他设备。开着时，任何*对*这台设备做事的原始动作（`shell`、`files`、`file.get`、`file.put`、`open`、`screen`、`coding.send`、`coding.stop`）都要先经这台设备旁的人同意：惯常的审批卡片，「允许一次」或「对这台设备总是允许」；后一种长期有效的回答是「权限」下的一条授权（`remote_control:<device id>`）。nanoMuse 桌面版默认用同一张卡片询问；它的「免询问远程控制」（设置 → 设备）让账号下的每台设备都能不经卡片在那里做事。旁边没人，卡片过期后发起方听到的是 `not_allowed`。`info` 和 `notify` 从不询问；`task` 在设备自己的哨兵（Sentinel）之下运行，它的卡片照旧传回发起方。一台设备只能 `approve` 发给它的、属于它自己发起的运行的卡片，绝不能回答「是否允许它运行某事」的那张卡片。
+每台设备自己决定允许别人做什么。手机上，「允许其他设备操作这台手机」（*设置 → nanoMuse Cloud → 设备*）关着时，这台手机只回答 `info`，别的一概不答；它仍然能看见并操纵其他设备。运行时这时的 `info` 只报电脑的名字和系统（没有账号名、主目录、工作目录和 shell），动作列表里只有 `info`。开着时，任何*对*这台设备做事的原始动作（`shell`、`files`、`file.get`、`file.put`、`open`、`screen`、`coding.send`、`coding.stop`）都要先经这台设备旁的人同意：惯常的审批卡片，「允许一次」或「对这台设备总是允许」；后一种长期有效的回答是「权限」下的一条授权（`remote_control:<device id>`）。nanoMuse 桌面版默认用同一张卡片询问；它的「免询问远程控制」（设置 → 设备）让账号下的每台设备都能不经卡片在那里做事。旁边没人，卡片过期后发起方听到的是 `not_allowed`。`info` 和 `notify` 从不询问；`task` 在设备自己的哨兵（Sentinel）之下运行，它的卡片照旧传回发起方。一台设备只能 `approve` 发给它的、属于它自己发起的运行的卡片，绝不能回答「是否允许它运行某事」的那张卡片。
 
 ### 提案 `proxy_fetch`：手机借用电脑的网络 {#proposed-proxy-fetch-the-phone-uses-the-computer-s-connection}
 
@@ -75,7 +75,7 @@ hub 上传递两类请求：
 ← call     {id, from:{id,name,kind}, action, args}          (delivered to the target)
 → event    {id, body}          ← event  {id, from, body}    progress, approvals, images
 → result   {id, ok, body | error, message}                  ← result (to the caller)
-← error    {code, message, id?}   device_offline · not_controllable · self_call · unknown_call · timeout
+← error    {code, message, id?}   device_offline · not_controllable · self_call · duplicate_call · unknown_call · timeout
                                   too_large · rate_limited · bad_frame · device_online · bad_key · bad_device
 
 → devices  {}        → rename {name}        → forget {device_id}        → ping  ← pong
@@ -84,7 +84,7 @@ hub 上传递两类请求：
 ← working  {cid, from, device_name, working, at}  another device started (true) or finished (false) a turn in that synced conversation
 ```
 
-关闭码：`4000` 期待 hello（15 秒内没有 hello，或第一帧不是 hello，二进制帧也算）、`4001` key 无效（原因 `bad_key` 或 `account_deleted`；账号在连接期间被删除或停用时为 `account_gone`；从中继 0.25.0 起，连接期间 key 刚被吊销时也会收到 `bad_key`：另一台设备点了「在所有设备上退出」、在账号页退出了这个登录，或这台设备自己退出登录，这样丢失的手机会立刻断线，其他设备看到它离线）、`4002` 设备无效、`4003` 被同一设备 id 的更新连接顶替，或者，带原因 `hub_paused`（中继 0.22）时，是运营者关掉了 hub 或整个服务：客户端应等一会儿再重连，而不是立刻重试（[cloud.md › 控制](cloud.md#controls)）；`4008` 帧太多（无视了下面的限速），以及 `4009` 读得太慢（这条连接上已经积压了 512 帧或 32 MB 而对方一直不读；客户端像遇到任何网络断开一样退避重连）。发往某台设备的帧从不等那台设备：每条连接各有一个队列，按顺序随 socket 排空写出；一部卡住的手机不会拖住正在呼叫它的电脑。
+关闭码：`4000` 期待 hello（15 秒内没有 hello，或第一帧不是 hello，二进制帧也算）、`4001` key 无效（原因 `bad_key` 或 `account_deleted`；账号在连接期间被删除或停用时为 `account_gone`；从中继 0.25.0 起，连接期间 key 刚被吊销时也会收到 `bad_key`：另一台设备点了「在所有设备上退出」、在账号页退出了这个登录，或这台设备自己退出登录，这样丢失的手机会立刻断线，其他设备看到它离线）、`4002` 设备无效、`4003` 被同一设备 id 的更新连接顶替，或者，带原因 `hub_paused`（中继 0.22）时，是运营者关掉了 hub 或整个服务：客户端应等一会儿再重连，而不是立刻重试（[cloud.md › 控制](cloud.md#controls)）；`4008` 帧太多（无视了下面的限速），或者带原因 `too_many_connections`（中继 0.30）时是连接太多：同一个地址一分钟内开了 60 条以上，或者这个账号已经有 32 台设备在线（同一台设备重新顶替自己的位置不算），以及 `4009` 读得太慢（这条连接上已经积压了 512 帧或 32 MB 而对方一直不读；客户端像遇到任何网络断开一样退避重连）。发往某台设备的帧从不等那台设备：每条连接各有一个队列，按顺序随 socket 排空写出；一部卡住的手机不会拖住正在呼叫它的电脑。
 
 `Authorization` 头里的 key 被拒时，处理方式与 `hello` 里的 key 被拒一致：握手完成，先发一个带 code 的 `error` 帧，再以 `4001` 关闭。客户端看到 `4001` 或 `4002` 就离开退避重连，把 hub 显示为「被拒绝」并请人重新登录（运行时仍每分钟试一次，这样在中继上恢复的 key 不用重启也能接回来）；其他关闭都视为网络问题，按退避重试。网络已经断了而 socket 还开着（笔记本睡过一觉、换了 Wi-Fi）时收不到 `pong`：运行时的客户端用协议自带的 ping，超时 20 秒；桌面版的客户端在两个 `ping` 帧之间什么都没收到（约 50 秒）就丢掉这条 socket，照样退避重连。
 

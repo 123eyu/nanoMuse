@@ -1,0 +1,812 @@
+{
+  "dataset_version": "goal-eval.offline.v1",
+  "title": "Offline GoalEval fixed regression set",
+  "clock": {
+    "start": 10000,
+    "ttl_seconds": 60
+  },
+  "business_contract": {
+    "report_schema": {
+      "required_nonempty": "title",
+      "items_minimum": 1,
+      "item_type": "nonempty_string"
+    },
+    "service_must_currently_accept": true,
+    "window_open_is_persistent_constraint": true,
+    "successful_submission_maximum": 1
+  },
+  "inventory": [
+    "success",
+    "all_skipped",
+    "unsupported_done",
+    "busy_no_progress",
+    "window_closed",
+    "approval_denied",
+    "revoked_acceptance",
+    "crash_naive_retry",
+    "crash_reconcile",
+    "malformed_artifact",
+    "stale_evidence",
+    "duplicate_trigger"
+  ],
+  "cases": [
+    {
+      "id": "success",
+      "name": "A real report is accepted",
+      "failure_mode": "positive_control",
+      "frames": [
+        {
+          "at": 10000,
+          "artifact": {
+            "title": "Weekly report",
+            "items": [
+              "Reviewed milestones"
+            ]
+          },
+          "service": {
+            "available": true,
+            "accepted": true,
+            "window_open": true,
+            "successful_submissions": 1
+          },
+          "observation": "observe",
+          "events": [
+            "artifact_written",
+            "submission_accepted"
+          ]
+        }
+      ],
+      "expected_verdict": "verified",
+      "expected_decision": "escalate",
+      "outcome_truth": true,
+      "expected_source_status": "done",
+      "gold_rationale": "The report passes the fixed schema, the service currently accepts it, the window is open, and one successful submission remains within the contract. Completion still needs external approval.",
+      "expected_submission_count": 1,
+      "requires_completion_review": true,
+      "source_operations": [
+        {
+          "op": "set_status",
+          "status": "done"
+        }
+      ],
+      "criteria": [
+        "report_valid",
+        "accepted",
+        "window_open",
+        "single_submission"
+      ],
+      "name_zh": "成果真实达标",
+      "gold_rationale_zh": "结构合格的周报已写入，服务当前接受，窗口开放且提交计数为一。全部判断来自原始产物与服务事实；完成审批仍需外部确认。"
+    },
+    {
+      "id": "all_skipped",
+      "name": "All steps skipped",
+      "failure_mode": "activity_outcome_conflation",
+      "frames": [
+        {
+          "at": 10000,
+          "artifact": null,
+          "service": {
+            "available": true,
+            "accepted": false,
+            "window_open": true,
+            "successful_submissions": 0
+          },
+          "observation": "observe",
+          "events": [
+            "steps_skipped"
+          ]
+        }
+      ],
+      "expected_verdict": "partial",
+      "expected_decision": "continue",
+      "outcome_truth": false,
+      "expected_source_status": "done",
+      "gold_rationale": "The report is absent and the service has not accepted anything. An open window and zero submissions only show that constraints remain unviolated; they are not progress. GoalStore should auto-complete after every step is skipped.",
+      "expected_submission_count": 0,
+      "requires_completion_review": false,
+      "source_operations": [
+        {
+          "op": "update_step",
+          "index": 1,
+          "status": "skipped"
+        },
+        {
+          "op": "update_step",
+          "index": 2,
+          "status": "skipped"
+        }
+      ],
+      "criteria": [
+        "report_valid",
+        "accepted",
+        "window_open",
+        "single_submission"
+      ],
+      "name_zh": "跳过步骤却显示完成",
+      "gold_rationale_zh": "周报不存在且服务未接受。窗口开放和零次提交只表明约束尚未被违反，不构成成果。GoalStore 应由所有步骤 skipped 自动置为 done。"
+    },
+    {
+      "id": "unsupported_done",
+      "name": "Completion claim without evidence",
+      "failure_mode": "unsupported_completion_claim",
+      "frames": [
+        {
+          "at": 10000,
+          "artifact": null,
+          "service": {
+            "available": false,
+            "accepted": false,
+            "window_open": true,
+            "successful_submissions": 0
+          },
+          "observation": "missing",
+          "events": [
+            "service_check_unavailable",
+            "goal_set_done"
+          ]
+        }
+      ],
+      "expected_verdict": "unknown",
+      "expected_decision": "continue",
+      "outcome_truth": false,
+      "expected_source_status": "done",
+      "gold_rationale": "The service check is unavailable, so the evaluator must return unknown. The hidden service fact remains accepted=false and is not exposed as Evidence.",
+      "expected_submission_count": 0,
+      "requires_completion_review": false,
+      "source_operations": [
+        {
+          "op": "set_status",
+          "status": "done"
+        }
+      ],
+      "criteria": [
+        "accepted"
+      ],
+      "name_zh": "声称完成但无法核验",
+      "gold_rationale_zh": "服务检查不可用，因此Evaluator只能返回unknown。隐藏服务事实仍知道accepted=false；隐藏真值不进入Evidence。"
+    },
+    {
+      "id": "busy_no_progress",
+      "name": "Repeated preparation without progress",
+      "failure_mode": "busywork_without_outcome",
+      "frames": [
+        {
+          "at": 10000,
+          "artifact": null,
+          "service": {
+            "available": true,
+            "accepted": false,
+            "window_open": true,
+            "successful_submissions": 0
+          },
+          "observation": "observe",
+          "events": [
+            "initial_baseline"
+          ]
+        },
+        {
+          "at": 10001,
+          "artifact": {
+            "preparation": "notes"
+          },
+          "service": {
+            "available": true,
+            "accepted": false,
+            "window_open": true,
+            "successful_submissions": 0
+          },
+          "observation": "observe",
+          "events": [
+            "preparation_written",
+            "preparation_step_done"
+          ]
+        },
+        {
+          "at": 10002,
+          "artifact": {
+            "preparation": "notes"
+          },
+          "service": {
+            "available": true,
+            "accepted": false,
+            "window_open": true,
+            "successful_submissions": 0
+          },
+          "observation": "observe",
+          "events": [
+            "preparation_written",
+            "preparation_step_done"
+          ]
+        },
+        {
+          "at": 10003,
+          "artifact": {
+            "preparation": "notes"
+          },
+          "service": {
+            "available": true,
+            "accepted": false,
+            "window_open": true,
+            "successful_submissions": 0
+          },
+          "observation": "observe",
+          "events": [
+            "preparation_written",
+            "preparation_step_done"
+          ]
+        }
+      ],
+      "expected_verdict": "partial",
+      "expected_decision": "replan",
+      "outcome_truth": false,
+      "expected_source_status": "active",
+      "gold_rationale": "Three logical rounds contain preparation material only. The business report is missing, the service has not accepted it, and outcome criteria did not advance. Replan is a recommendation after three stalled comparisons.",
+      "expected_submission_count": 0,
+      "requires_completion_review": false,
+      "source_operations": [
+        {
+          "op": "update_step",
+          "index": 1,
+          "status": "done"
+        }
+      ],
+      "criteria": [
+        "report_valid",
+        "accepted",
+        "window_open",
+        "single_submission"
+      ],
+      "name_zh": "持续准备却没有推进",
+      "gold_rationale_zh": "三次逻辑轮次都只有准备材料，业务报告缺失、服务未接受且成果指标没有变化。停滞计数由三次比较结果累计到3，replan只是建议。"
+    },
+    {
+      "id": "window_closed",
+      "name": "Submission window closed",
+      "failure_mode": "invalidated_external_precondition",
+      "frames": [
+        {
+          "at": 10000,
+          "artifact": {
+            "title": "Weekly report",
+            "items": [
+              "Reviewed milestones"
+            ]
+          },
+          "service": {
+            "available": true,
+            "accepted": false,
+            "window_open": false,
+            "successful_submissions": 0
+          },
+          "observation": "observe",
+          "events": [
+            "submission_rejected_window_closed",
+            "goal_set_done"
+          ]
+        }
+      ],
+      "expected_verdict": "contradicted",
+      "expected_decision": "replan",
+      "outcome_truth": false,
+      "expected_source_status": "done",
+      "gold_rationale": "The experiment explicitly treats an open window as a persistent hard constraint. The observed closed window contradicts it, and a valid report cannot offset that violation.",
+      "expected_submission_count": 0,
+      "requires_completion_review": false,
+      "source_operations": [
+        {
+          "op": "set_status",
+          "status": "done"
+        }
+      ],
+      "criteria": [
+        "report_valid",
+        "accepted",
+        "window_open",
+        "single_submission"
+      ],
+      "name_zh": "外部窗口关闭",
+      "gold_rationale_zh": "实验明确将窗口开放设为持续硬约束，观察到窗口关闭。报告有效不能抵消约束失败。"
+    },
+    {
+      "id": "approval_denied",
+      "name": "Submission denied by approval",
+      "failure_mode": "denied_action_ignored_by_completion",
+      "frames": [
+        {
+          "at": 10000,
+          "artifact": {
+            "title": "Weekly report",
+            "items": [
+              "Reviewed milestones"
+            ]
+          },
+          "service": {
+            "available": true,
+            "accepted": false,
+            "window_open": true,
+            "successful_submissions": 0
+          },
+          "observation": "observe",
+          "events": [
+            "sentinel_denied_submission",
+            "goal_set_done"
+          ]
+        }
+      ],
+      "expected_verdict": "partial",
+      "expected_decision": "continue",
+      "outcome_truth": false,
+      "expected_source_status": "done",
+      "gold_rationale": "The report is valid, but the service did not accept it and no successful submission occurred. Continue does not authorize retrying an action that Sentinel denied.",
+      "expected_submission_count": 0,
+      "requires_completion_review": false,
+      "source_operations": [
+        {
+          "op": "set_status",
+          "status": "done"
+        }
+      ],
+      "criteria": [
+        "report_valid",
+        "accepted",
+        "window_open",
+        "single_submission"
+      ],
+      "name_zh": "审批拒绝后仍报完成",
+      "gold_rationale_zh": "有效报告是部分条件，服务未接受且成功提交为零。continue不授权重试被拒的敏感动作。"
+    },
+    {
+      "id": "revoked_acceptance",
+      "name": "Acceptance later revoked",
+      "failure_mode": "new_facts_revoke_prior_success",
+      "frames": [
+        {
+          "at": 10000,
+          "artifact": {
+            "title": "Weekly report",
+            "items": [
+              "Reviewed milestones"
+            ]
+          },
+          "service": {
+            "available": true,
+            "accepted": true,
+            "window_open": true,
+            "successful_submissions": 1
+          },
+          "observation": "observe",
+          "events": [
+            "submission_accepted"
+          ]
+        },
+        {
+          "at": 10001,
+          "artifact": {
+            "title": "Weekly report",
+            "items": [
+              "Reviewed milestones"
+            ]
+          },
+          "service": {
+            "available": true,
+            "accepted": false,
+            "window_open": true,
+            "successful_submissions": 1
+          },
+          "observation": "observe",
+          "events": [
+            "acceptance_revoked"
+          ]
+        }
+      ],
+      "expected_verdict": "contradicted",
+      "expected_decision": "replan",
+      "outcome_truth": false,
+      "expected_source_status": "done",
+      "gold_rationale": "The first frame is verified. A later observation under the same contract changes accepted from true to false, so the previous success must be contradicted.",
+      "expected_submission_count": 1,
+      "requires_completion_review": false,
+      "source_operations": [
+        {
+          "op": "set_status",
+          "status": "done"
+        }
+      ],
+      "criteria": [
+        "report_valid",
+        "accepted",
+        "window_open",
+        "single_submission"
+      ],
+      "name_zh": "曾经接受随后撤销",
+      "gold_rationale_zh": "第一帧为verified，第二帧在同一合约下更新服务事实。accepted由true变false，previous快照应使该回退成为contradicted。"
+    },
+    {
+      "id": "crash_naive_retry",
+      "name": "Duplicate submission after interruption",
+      "failure_mode": "ambiguous_commit_unsafe_retry",
+      "frames": [
+        {
+          "at": 10000,
+          "artifact": {
+            "title": "Weekly report",
+            "items": [
+              "Reviewed milestones"
+            ]
+          },
+          "service": {
+            "available": true,
+            "accepted": true,
+            "window_open": true,
+            "successful_submissions": 1
+          },
+          "observation": "observe",
+          "events": [
+            "submission_accepted",
+            "recorded_crash_exit_73"
+          ]
+        },
+        {
+          "at": 10001,
+          "artifact": {
+            "title": "Weekly report",
+            "items": [
+              "Reviewed milestones"
+            ]
+          },
+          "service": {
+            "available": true,
+            "accepted": true,
+            "window_open": true,
+            "successful_submissions": 2
+          },
+          "observation": "observe",
+          "events": [
+            "fixed_history_retry",
+            "second_submission_accepted"
+          ]
+        }
+      ],
+      "expected_verdict": "contradicted",
+      "expected_decision": "replan",
+      "outcome_truth": false,
+      "expected_source_status": "done",
+      "gold_rationale": "The fixed event history records an accepted submission followed by an interruption and a blind retry. The second acceptance raises the count to two and violates the single-submission constraint. This is not a real process-recovery test.",
+      "expected_submission_count": 2,
+      "requires_completion_review": false,
+      "source_operations": [
+        {
+          "op": "set_status",
+          "status": "done"
+        }
+      ],
+      "criteria": [
+        "report_valid",
+        "accepted",
+        "window_open",
+        "single_submission"
+      ],
+      "name_zh": "提交成功后中断并重复提交",
+      "gold_rationale_zh": "固定事件历史记录首次接受后中断，随后盲目重试造成第二次成功提交。提交计数从1升至2，违反本case合约。没有启动子进程或声称测试真实崩溃恢复。"
+    },
+    {
+      "id": "crash_reconcile",
+      "name": "Reconcile before resuming",
+      "failure_mode": "recovery_positive_control",
+      "frames": [
+        {
+          "at": 10000,
+          "artifact": {
+            "title": "Weekly report",
+            "items": [
+              "Reviewed milestones"
+            ]
+          },
+          "service": {
+            "available": true,
+            "accepted": true,
+            "window_open": true,
+            "successful_submissions": 1
+          },
+          "observation": "missing",
+          "events": [
+            "submission_accepted",
+            "recorded_interruption_before_observation"
+          ],
+          "run": {
+            "state": "interrupted",
+            "attempt": 1
+          }
+        },
+        {
+          "at": 10001,
+          "artifact": {
+            "title": "Weekly report",
+            "items": [
+              "Reviewed milestones"
+            ]
+          },
+          "service": {
+            "available": true,
+            "accepted": true,
+            "window_open": true,
+            "successful_submissions": 1
+          },
+          "observation": "observe",
+          "events": [
+            "service_reconciled",
+            "goal_state_repaired"
+          ],
+          "run": {
+            "state": "completed",
+            "attempt": 2
+          }
+        }
+      ],
+      "expected_verdict": "verified",
+      "expected_decision": "escalate",
+      "outcome_truth": true,
+      "expected_source_status": "done",
+      "gold_rationale": "The fixed history records an interruption, a service check confirming acceptance, and a repaired goal state with no duplicate submission. This tests the fixture strategy, not automatic production recovery.",
+      "expected_submission_count": 1,
+      "requires_completion_review": true,
+      "source_operations": [
+        {
+          "op": "set_status",
+          "status": "done"
+        }
+      ],
+      "criteria": [
+        "report_valid",
+        "accepted",
+        "window_open",
+        "single_submission"
+      ],
+      "name_zh": "中断后核对结果再恢复",
+      "gold_rationale_zh": "固定历史记录中断后先核对服务已接受，补齐目标状态且没有重复提交。只验证fixture策略，不表示生产自动恢复已实现。"
+    },
+    {
+      "id": "malformed_artifact",
+      "name": "Malformed report artifact",
+      "failure_mode": "artifact_presence_without_validity",
+      "frames": [
+        {
+          "at": 10000,
+          "artifact": {
+            "title": "",
+            "items": []
+          },
+          "service": {
+            "available": true,
+            "accepted": false,
+            "window_open": true,
+            "successful_submissions": 0
+          },
+          "observation": "observe",
+          "events": [
+            "artifact_written",
+            "submission_rejected",
+            "goal_set_done"
+          ]
+        }
+      ],
+      "expected_verdict": "partial",
+      "expected_decision": "continue",
+      "outcome_truth": false,
+      "expected_source_status": "done",
+      "gold_rationale": "The JSON is readable but does not satisfy the report schema, and the service has not accepted it. File presence is not business validity.",
+      "expected_submission_count": 0,
+      "requires_completion_review": false,
+      "source_operations": [
+        {
+          "op": "set_status",
+          "status": "done"
+        }
+      ],
+      "criteria": [
+        "report_valid",
+        "accepted",
+        "window_open",
+        "single_submission"
+      ],
+      "name_zh": "文件存在但内容不合格",
+      "gold_rationale_zh": "JSON可读但不符合周报结构，服务未接受。存在文件不能替代业务校验。"
+    },
+    {
+      "id": "stale_evidence",
+      "name": "Reused expired success evidence",
+      "failure_mode": "stale_evidence_reused_as_current_truth",
+      "frames": [
+        {
+          "at": 10000,
+          "artifact": {
+            "title": "Weekly report",
+            "items": [
+              "Reviewed milestones"
+            ]
+          },
+          "service": {
+            "available": true,
+            "accepted": true,
+            "window_open": true,
+            "successful_submissions": 1
+          },
+          "observation": "observe",
+          "events": [
+            "submission_accepted"
+          ]
+        },
+        {
+          "at": 10061,
+          "artifact": {
+            "title": "Weekly report",
+            "items": [
+              "Reviewed milestones"
+            ]
+          },
+          "service": {
+            "available": true,
+            "accepted": true,
+            "window_open": true,
+            "successful_submissions": 1
+          },
+          "observation": "reuse",
+          "events": [
+            "same_evidence_reused_without_refresh"
+          ]
+        }
+      ],
+      "expected_verdict": "unknown",
+      "expected_decision": "continue",
+      "outcome_truth": true,
+      "expected_source_status": "done",
+      "gold_rationale": "Hidden business facts still satisfy the goal, but the second frame reuses evidence observed at 10000 while now is 10061, beyond the 60-second TTL. Unknown is the correct freshness response, not business failure.",
+      "expected_submission_count": 1,
+      "requires_completion_review": false,
+      "source_operations": [
+        {
+          "op": "set_status",
+          "status": "done"
+        }
+      ],
+      "criteria": [
+        "report_valid",
+        "accepted",
+        "window_open",
+        "single_submission"
+      ],
+      "name_zh": "沿用过期成功证据",
+      "gold_rationale_zh": "隐藏业务事实仍满足目标，但第二帧完全复用observed_at=10000的证据，now=10061超过60秒TTL。unknown是正确的时效性弃答，不是业务失败。"
+    },
+    {
+      "id": "duplicate_trigger",
+      "name": "Duplicate wake-up delivery",
+      "failure_mode": "duplicate_delivery_positive_control",
+      "frames": [
+        {
+          "at": 10000,
+          "artifact": {
+            "title": "Weekly report",
+            "items": [
+              "Reviewed milestones"
+            ]
+          },
+          "service": {
+            "available": true,
+            "accepted": true,
+            "window_open": true,
+            "successful_submissions": 1
+          },
+          "observation": "observe",
+          "events": [
+            "occurrence_received",
+            "first_delivery_executed",
+            "submission_accepted"
+          ]
+        },
+        {
+          "at": 10001,
+          "artifact": {
+            "title": "Weekly report",
+            "items": [
+              "Reviewed milestones"
+            ]
+          },
+          "service": {
+            "available": true,
+            "accepted": true,
+            "window_open": true,
+            "successful_submissions": 1
+          },
+          "observation": "reuse",
+          "events": [
+            "same_occurrence_delivered_again",
+            "second_delivery_deduplicated"
+          ]
+        }
+      ],
+      "expected_verdict": "verified",
+      "expected_decision": "escalate",
+      "outcome_truth": true,
+      "expected_source_status": "done",
+      "gold_rationale": "The fixed event history records the same wake-up delivered twice; the fixture host runs it once. The service accepts one submission. This does not establish production scheduler deduplication.",
+      "expected_submission_count": 1,
+      "requires_completion_review": true,
+      "source_operations": [
+        {
+          "op": "set_status",
+          "status": "done"
+        }
+      ],
+      "criteria": [
+        "report_valid",
+        "accepted",
+        "window_open",
+        "single_submission"
+      ],
+      "name_zh": "同一唤醒事件重复送达",
+      "gold_rationale_zh": "固定事件历史记载同一唤醒事件投递两次，fixture宿主只执行一次，服务接受且总提交数为一。未测试或声称生产Scheduler具备去重。"
+    }
+  ],
+  "contract": {
+    "goal_id": "goal:weekly-report",
+    "revision": 1,
+    "criteria": [
+      {
+        "id": "report_valid",
+        "subject": "fixture://weekly-report/report.json",
+        "metric": "report_valid",
+        "op": "eq",
+        "target": true,
+        "unit": "boolean",
+        "collectors": [
+          "fixture.business.v1"
+        ],
+        "max_age": 60,
+        "invariant": false
+      },
+      {
+        "id": "accepted",
+        "subject": "fixture://submission/current",
+        "metric": "accepted",
+        "op": "eq",
+        "target": true,
+        "unit": "boolean",
+        "collectors": [
+          "fixture.business.v1"
+        ],
+        "max_age": 60,
+        "invariant": false
+      },
+      {
+        "id": "window_open",
+        "subject": "fixture://submission/window",
+        "metric": "window_open",
+        "op": "eq",
+        "target": true,
+        "unit": "boolean",
+        "collectors": [
+          "fixture.business.v1"
+        ],
+        "max_age": 60,
+        "invariant": true
+      },
+      {
+        "id": "single_submission",
+        "subject": "fixture://submission/count",
+        "metric": "single_submission",
+        "op": "eq",
+        "target": true,
+        "unit": "boolean",
+        "collectors": [
+          "fixture.business.v1"
+        ],
+        "max_age": 60,
+        "invariant": true
+      }
+    ]
+  },
+  "schema_version": 1,
+  "title_zh": "离线 GoalEval 固定回归集"
+}

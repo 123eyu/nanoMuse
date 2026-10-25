@@ -190,3 +190,74 @@ async def test_a_refused_key_is_not_written_to_the_log():
     assert "?key=***&v=***" in joined, joined
     # the vault's redaction is applied too, for a secret outside the query
     assert manager._scrub("spawn failed: k-123 x") == "spawn failed: [REDACTED:MCP_KEY] x"
+
+
+def test_a_server_on_another_host_sends_data_out_unless_the_owner_says_otherwise():
+    """Every argument of a call travels to the server: a `url` on another machine counts
+    as egress to that host by default, a command or a loopback address does not, and an
+    explicit `egress` wins either way."""
+    remote = MCPServerSettings(name="maps", url="https://mcp.example.com/mcp?key={{vault:K}}")
+    assert remote.remote_host == "mcp.example.com" and remote.sends_out is True
+    local = MCPServerSettings(name="cal", url="http://localhost:8000/mcp")
+    assert local.remote_host is None and local.sends_out is False
+    assert MCPServerSettings(name="fs", command="npx").sends_out is False
+    assert (
+        MCPServerSettings(name="maps", url="https://mcp.example.com/", egress=False).sends_out
+        is False
+    )
+    assert MCPServerSettings(name="fs", command="npx", egress=True).sends_out is True
+
+    manager = MCPManager([remote])
+    assert (
+        manager._add_tools(remote, object(), NS(tools=[NS(name="geocode", description="")])) is True
+    )
+    tool = manager.tools[0]
+    assert tool.egress is True and tool.remote_host == "mcp.example.com"
+    assessment = tool.assess(
+        {"address": "1 Main St", "api_key": "k-123", "n": 3, "tags": ["a", "b"]}
+    )
+    assert assessment.egress_target == "mcp.example.com" and assessment.target == "mcp.example.com"
+    # the audit line carries the shape of the arguments, never their values
+    assert "1 Main St" not in assessment.summary and "k-123" not in assessment.summary
+    assert (
+        assessment.summary
+        == 'mcp:maps.geocode({"address":"str[9]","api_key":"***","n":3,"tags":"list[2]"})'
+    )
+
+
+async def test_a_call_the_server_never_answers_fails_after_its_timeout():
+    """One call has a clock; a server that stops answering costs the model a failed call,
+    not the whole run."""
+    from nanomuse.tools.mcp_tools import MCPTool
+
+    class Hangs:
+        async def call_tool(self, name, args):
+            await asyncio.sleep(5)
+
+    tool = MCPTool(
+        name="slow__wait",
+        description="",
+        parameters={"type": "object", "properties": {}},
+        session=Hangs(),
+        server="slow",
+        original_name="wait",
+        call_timeout_s=0.05,
+    )
+    result = await tool.execute()
+    assert not result.ok and "did not answer within 0.05 s" in result.error
+
+
+async def test_a_handshake_that_stalls_skips_the_server(monkeypatch):
+    """A server that accepts the connection and then says nothing is skipped at start, like
+    one that is down; the runtime starts without its tools."""
+    manager = MCPManager(
+        [
+            MCPServerSettings(
+                name="echo", command=sys.executable, args=[str(SERVER)], connect_timeout_s=0.01
+            )
+        ]
+    )
+    try:
+        assert await manager.connect() == []
+    finally:
+        await manager.close()

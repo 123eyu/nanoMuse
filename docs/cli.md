@@ -41,7 +41,7 @@ One task, then exit. Non-zero exit if the agent fails.
 nanomuse daemon [--interval 3600] [--once]
 ```
 
-Advance every active goal, sleep, repeat. Runs in Sentinel `auto` mode, so pair it with deny rules and a tight `egress_allowlist`. The app's *Background work* switch does the same thing inside `nanomuse serve`, one goal per interval, with updates posted to the chat.
+Advance every active goal in its own one-off session, sleep, repeat; what each pass did is printed here. Runs in Sentinel `auto` mode, so pair it with deny rules and a tight `egress_allowlist`. It is the plain, unattended cousin of the app's *Background work* switch inside `nanomuse serve`: that one picks one goal per interval, runs it in the chat's own context with the chat's Sentinel, posts the progress to the chat and remembers across restarts what it owes ([app.md](app.md#background-work)); the daemon has no chat and no memory of passes, it just runs.
 
 ## Goals
 
@@ -188,7 +188,7 @@ nanomuse audit [-n 20] [--json]        # recent decisions, approvals, tool calls
 nanomuse config init [--path config/config.toml] [--force]
 nanomuse config show                   # effective settings, secrets masked
 nanomuse config path                   # which file is in use
-nanomuse doctor [--no-model]           # config, data dir, model, connectors — one screen
+nanomuse doctor [--no-model]           # config, data dir, model, connectors, one screen
 nanomuse version                       # also: nanomuse --version / -V
 nanomuse mcp                           # this computer's screen and hands as an MCP server on stdio, for another host
 ```

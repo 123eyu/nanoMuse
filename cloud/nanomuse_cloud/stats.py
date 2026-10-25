@@ -99,7 +99,10 @@ DAY = Column("day", "Day (UTC)", "日期（UTC）", "day")
 class Stats:
     def __init__(self, cloud: Cloud, sync_store: SyncStore, collector: GitHubCollector | None, hub_getter: Callable[[], Hub | None]):
         self.cloud = cloud
-        self.db = cloud.db
+        # the metrics read through the read-only connection (Database.reader), off the loop
+        # (api.py), so a slow one never holds the requests' lock; the one write, the health
+        # probe, goes through cloud.db (see _relay)
+        self.db = cloud.db.reader()
         self.sync_store = sync_store
         self.collector = collector
         self.hub_getter = hub_getter
@@ -174,19 +177,24 @@ def _csv_cell(v: Any, kind: str) -> Any:
 
 def _accounts_daily(s: Stats, days: int) -> list[dict[str, Any]]:
     since, _today, window = s.window(days)
+    # the sign-ups of a day: the accounts still there plus those deleted since (a count per
+    # sign-up day written at deletion; deletions before 0.29 left no such count)
     new = {int(r["day"]): int(r["n"]) for r in s.db.accounts_by_day(since, 0, s.cloud.review_hashes)}
+    for r in s.db.daily_rows("accounts", since, "gone"):
+        new[int(r["day"])] = new.get(int(r["day"]), 0) + int(r["value"])
     active_model = {int(r["day"]): int(r["n"]) for r in s.db.active_by_day(since, 0)}
     active_any = {int(r["day"]): int(r["n"]) for r in s.db.daily_distinct("active", since)}
     events: dict[int, dict[str, int]] = {}
     for r in s.db.events_by_day(since, 0):
         events.setdefault(int(r["day"]), {})[str(r["kind"])] = int(r["n"])
     total_now = s.db.account_counts()["total"]
-    # the total at each day's end: today's count less what was created after that day
+    # the total at each day's end: today's count less what was created after that day, plus
+    # what was deleted after it (the `account.deleted` line outlives the account)
     after = 0
     totals: dict[int, int] = {}
     for d in reversed(window):
         totals[d] = total_now - after
-        after += new.get(d, 0)
+        after += new.get(d, 0) - events.get(d, {}).get("account.deleted", 0)
     rows = []
     for d in window:
         e = events.get(d, {})
@@ -462,7 +470,7 @@ def _github_assets(s: Stats, days: int) -> list[dict[str, Any]]:
 def _relay(s: Stats, days: int) -> list[dict[str, Any]]:
     t = int(time.time())
     hub = s.hub_getter()
-    db = s.db.health()
+    db = s.cloud.db.health()  # a write probe: the relay's own connection, not the read-only one
     paused = [k for k, v in s.cloud.controls.paused().items() if v]
     sync = s.sync_store.admin_totals()
     gh_ok = s.collector.last_ok if s.collector is not None else None

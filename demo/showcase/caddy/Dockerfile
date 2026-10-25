@@ -56,5 +56,7 @@ RUN xcaddy build \
     --with github.com/WeidiDeng/caddy-cloudflare-ip
 
 FROM caddy:2
+LABEL org.opencontainers.image.licenses="GPL-3.0-or-later" \
+      org.opencontainers.image.source="https://github.com/nano-muse/nanoMuse"
 COPY --from=caddy-build /usr/bin/caddy /usr/bin/caddy
 COPY --from=site /src/mobilegym/dist /srv/site

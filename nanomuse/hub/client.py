@@ -12,6 +12,7 @@ import asyncio
 import contextlib
 import json
 import platform
+import re
 import ssl
 import uuid
 from collections.abc import Awaitable, Callable
@@ -26,6 +27,8 @@ from nanomuse.logger import logger
 
 PING_EVERY_S = 25.0
 MAX_FRAME = 16 * 1024 * 1024
+#: a provider or model id as `hello` may carry it: no URL, no key, no space
+_ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9.:/_-]{0,79}")
 
 
 class HubError(Exception):
@@ -109,6 +112,7 @@ class HubClient:
         on_state: OnState | None = None,
         on_profile: OnProfile | None = None,
         on_sync: OnSync | None = None,
+        llm: Callable[[], tuple[str, str]] | None = None,
     ):
         self.url = url
         self.api_key = api_key
@@ -116,6 +120,9 @@ class HubClient:
         self.name = name
         self.kind = kind
         self.actions = actions
+        # the ids this device runs its chat model under, asked for at each hello (relay
+        # 0.28, `device.llm`): a provider id and a model id, plain, never a key or a URL
+        self._llm = llm
         self.on_call = on_call
         self.on_devices = on_devices
         self.on_state = on_state
@@ -150,14 +157,36 @@ class HubClient:
             with contextlib.suppress(asyncio.CancelledError, Exception):
                 await self._task
             self._task = None
-        for t in list(self._calls):
+        handlers = [t for t in self._calls if not t.done()]
+        for t in handlers:
             t.cancel()
+        if handlers:
+            # a handler may be mid-action, or about to answer: it gets a moment to wind
+            # down before the services it uses are closed behind it
+            with contextlib.suppress(BaseException):
+                await asyncio.wait_for(asyncio.gather(*handlers, return_exceptions=True), 5)
+        self._calls.clear()
         self._fail_all("closed", "the hub connection was closed")
         self._set_state("stopped")
 
     @property
     def running(self) -> bool:
         return self._task is not None and not self._task.done()
+
+    def llm_ids(self) -> tuple[str, str] | None:
+        """What `hello` says of the model: ``(provider, model)`` when both are plain ids
+        (letters, digits and ``.:/_-``, 80 characters at most), else nothing. A URL, a key
+        or anything with a space or a query in it is not an id and is not sent."""
+        if self._llm is None:
+            return None
+        try:
+            provider, model = self._llm()
+        except Exception:  # noqa: BLE001 - the hello goes out either way
+            return None
+        for value in (provider, model):
+            if not _ID_RE.fullmatch(value or "") or "://" in value:
+                return None
+        return provider, model
 
     def _set_state(self, state: str, detail: str = "") -> None:
         self.state, self.state_detail = state, detail
@@ -170,20 +199,25 @@ class HubClient:
     async def _run(self) -> None:
         delay = 1.0
         while not self._stop.is_set():
+            refused = False  # a bad key, a paused hub, a certificate: a minute, not a backoff
             try:
                 await self._session()
                 delay = 1.0
+                if not self._stop.is_set():
+                    # the socket closed without an error (the relay restarting, an idle
+                    # close): the state says so until the next session is up
+                    self._set_state("disconnected", "the connection closed")
             except ConnectionClosed as exc:
                 self.last_error = str(exc)
                 code = exc.rcvd.code if exc.rcvd else None
                 reason = (exc.rcvd.reason if exc.rcvd else "") or ""
                 if code in (4001, 4002):  # bad key, bad device: no point retrying quickly
                     self._set_state("refused", reason or str(code))
-                    delay = 60.0
+                    refused = True
                 elif code == 4003 and reason == "hub_paused":
                     # the operator switched the hub off (docs/hub.md): wait, do not hammer
                     self._set_state("disconnected", "the relay's hub is paused")
-                    delay = 60.0
+                    refused = True
                 else:
                     self._set_state("disconnected", str(exc))
             except InvalidStatus as exc:
@@ -191,7 +225,7 @@ class HubClient:
                 status = exc.response.status_code
                 if status in (401, 403):
                     self._set_state("refused", f"HTTP {status}")
-                    delay = 60.0
+                    refused = True
                 else:
                     self._set_state("disconnected", f"HTTP {status}")
             except ssl.SSLCertVerificationError as exc:
@@ -201,7 +235,7 @@ class HubClient:
                     "disconnected",
                     f"the relay's certificate could not be verified here: {exc.verify_message or exc}",
                 )
-                delay = 60.0
+                refused = True
             except (InvalidURI, ValueError) as exc:
                 self.last_error = str(exc)
                 self._set_state("refused", str(exc))
@@ -218,11 +252,21 @@ class HubClient:
             finally:
                 self.connected.clear()
                 self._fail_all("disconnected", "the hub connection dropped")
+                # the calls this session was carrying out can answer nobody now: the relay
+                # told their callers `device_offline` the moment the socket went. A side
+                # chat a `task` started runs on in its thread (it is the person's own and
+                # syncs); what stops is the following and answering of it.
+                for t in [t for t in self._calls if not t.done()]:
+                    t.cancel()
             if self._stop.is_set():
                 break
+            if refused:
+                # a minute every time, as docs/hub.md says; the network's backoff below
+                # starts over once the relay lets the device in again
+                delay = 60.0
             with contextlib.suppress(asyncio.TimeoutError):
                 await asyncio.wait_for(self._stop.wait(), delay)
-            delay = min(delay * 2, 30.0)
+            delay = 1.0 if refused else min(delay * 2, 30.0)
 
     async def _session(self) -> None:
         self._set_state("connecting", self.url)
@@ -239,22 +283,18 @@ class HubClient:
             open_timeout=20,
         ) as ws:
             self._ws = ws
-            await ws.send(
-                json.dumps(
-                    {
-                        "type": "hello",
-                        "device": {
-                            "id": self.device_id,
-                            "name": self.name,
-                            "kind": self.kind,
-                            "os": f"{platform.system()} {platform.release()}".strip(),
-                            "version": __version__,
-                            "actions": self.actions,
-                        },
-                    },
-                    ensure_ascii=False,
-                )
-            )
+            device: dict[str, Any] = {
+                "id": self.device_id,
+                "name": self.name,
+                "kind": self.kind,
+                "os": f"{platform.system()} {platform.release()}".strip(),
+                "version": __version__,
+                "actions": self.actions,
+            }
+            llm = self.llm_ids()
+            if llm is not None:
+                device["llm"] = {"provider": llm[0], "model": llm[1]}
+            await ws.send(json.dumps({"type": "hello", "device": device}, ensure_ascii=False))
             pinger = asyncio.create_task(self._pinger(ws), name="hub-ping")
             try:
                 async for raw in ws:

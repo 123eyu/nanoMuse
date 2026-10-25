@@ -53,7 +53,7 @@ temperature   = 0.3
 timeout       = 180                # seconds per request
 max_retries   = 5                  # exponential back-off on 429 / 5xx / timeouts
 stream        = true
-tool_mode     = "auto"             # "auto" | "native" | "prompt" — see below
+tool_mode     = "auto"             # "auto" | "native" | "prompt"; see below
 vision        = "auto"             # pictures attached in chat go to the model: "auto" | "on" | "off"
 pass_reasoning = false             # send reasoning_content back with assistant turns (some DeepSeek endpoints)
 extra_headers = {}                 # e.g. { "X-End-User-Id" = "nanomuse" }
@@ -360,7 +360,7 @@ hook_min_seconds  = 10   # deliveries to one webhook closer together than this g
 ```toml
 [browser]
 enabled    = true      # pip install "nanomuse[browser]" && playwright install chromium
-backend    = "auto"    # auto | playwright | device — the phone's own WebView when a nanoMuse app is connected, Chromium otherwise
+backend    = "auto"    # auto | playwright | device; device: the phone's own WebView when a nanoMuse app is connected, Chromium otherwise
 profile    = ""        # mobile | desktop | "" (mobile on the phone, desktop on a computer)
 headless   = true      # Playwright only
 timeout_ms = 30000
@@ -373,9 +373,9 @@ timeout_ms = 30000
 ```toml
 [hands]
 enabled         = false    # the switch is Devices → Hands on this computer in the app
-backend         = "auto"   # auto | desktop | pyautogui | xdotool (X11) — desktop: the desktop app's own hands (auto takes them when the app set NANOMUSE_OPERATOR_URL)
-mode            = "auto"   # auto | screen | window — window: one app's window on macOS, events to its process, your mouse untouched; auto = window on macOS once an app is named
-coords          = "pixels" # pixels | norm1000 — what the model's x, y mean: pixels of the picture it was shown (default), or a 0–1000 grid over it
+backend         = "auto"   # auto | desktop | pyautogui | xdotool (X11); desktop: the desktop app's own hands (auto takes them when the app set NANOMUSE_OPERATOR_URL)
+mode            = "auto"   # auto | screen | window; window: one app's window on macOS, events to its process, your mouse untouched; auto = window on macOS once an app is named
+coords          = "pixels" # pixels | norm1000; what the model's x, y mean: pixels of the picture it was shown (default), or a 0–1000 grid over it
 max_image_width = 1600
 settle_s        = 0.6
 ```
@@ -392,7 +392,7 @@ settle_s        = 0.6
 [gui]
 enabled          = false
 provider         = "openai"          # the operator's own model; openai | openai_responses | chatgpt | a catalogue id
-model            = ""                # empty: the main [llm] model does it — it must take images, the screen is a picture
+model            = ""                # 留空 = 自动（按下面的顺序：中继的手的模型、聊天服务商自己的、或者聊天模型）；不管是哪个都得能看图，屏幕是一张图
 base_url         = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 api_key          = "{{vault:GUI_API_KEY}}"
 max_steps        = 0                 # 一次 phone_task 最多走多少步；0 = 不设上限
@@ -422,6 +422,8 @@ url                = "http://localhost:8000/mcp"   # streamable HTTP; falls back
 risk               = "sensitive"
 egress             = true         # counts as network egress for taint tracking
 reads_private_data = true         # taints the conversation when called
+connect_timeout_s  = 30           # 握手（连接、initialize、工具列表）的秒数；超时就跳过这个服务器
+call_timeout_s     = 120          # 一次调用的秒数；超时这次调用失败，任务继续
 
 # one tool of a server may differ from the server's defaults
 [mcp.servers.tools.list_events]
@@ -430,6 +432,8 @@ risk               = "moderate"
 risk               = "sensitive"
 reads_private_data = false
 ```
+
+`egress` 不写时由地址决定：`url` 指向别的主机，每次调用的参数都会发过去，就按向那台主机外发算（污点追踪会在读过私密数据之后、调用它之前先问一句，除非主机在 `egress_allowlist` 里）；`command` 或回环地址不算。想说得不一样就显式写 `egress`。审批卡片和审计日志只记工具名和参数的形状（字符串的长度、列表的长度、对象的键），从不记参数的值。
 
 `tools` 是可选的，按工具名（不带 `<server>__` 前缀）逐个写；没写的都回退到服务器的值。手机自带的工具就是这样拿到默认值的：在手机上，App 的能力不用任何配置就以 `device` 这个服务器的身份出现（[device.md](device.md)），逐工具的表来自 `nanomuse/runtime.py`。
 

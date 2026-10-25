@@ -23,13 +23,13 @@ import { IconArchive, IconChevronLeft, IconChevronRight, IconClose, IconCpu, Ico
 import { openShortcutsReference } from './keys.ts'
 import { useLive } from './live.ts'
 import type { RenderSlot } from './MuseSidebar.tsx'
-import { REPO_URL } from './panels.ts'
+import { DATA_SECTION, REPO_URL } from './panels.ts'
 import { AppBehaviorRows, ConversationRows, DeveloperRows, HotkeyField } from './Sections.tsx'
 import { clearMarks, filterPages, hitLabel, markMatches, queryWords } from './settings-search.ts'
 
 /** The pages that make up the everyday group, in Muse's order; the rest are Advanced. */
 export const COMPUTER_SECTION = 'nanomuse-computer'
-export const DATA_SECTION = 'nanomuse-data'
+export { DATA_SECTION }
 export const HELP_SECTION = 'nanomuse-help'
 export const LEGAL_SECTION = 'nanomuse-legal'
 export const WALLET_SECTION = 'nanomuse-wallet'

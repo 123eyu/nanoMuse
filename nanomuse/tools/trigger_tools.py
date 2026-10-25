@@ -76,6 +76,8 @@ class Triggers(BaseTool):
             a.risk = RiskLevel.MODERATE
             detail = f"{args.get('kind') or '?'} “{args.get('match') or '*'}”: {str(args.get('text') or '')[:60]}"
         elif action == "cancel":
+            # and taking one away is a change too: the standing work stops happening
+            a.risk = RiskLevel.MODERATE
             detail = str(args.get("trigger_id") or "")
         else:
             detail = ""
@@ -122,10 +124,14 @@ class Triggers(BaseTool):
                 self._changed()
                 out = f"Trigger set.\n{item.render()}"
                 if item.kind == "hook":
-                    url = f"{self.base_url}/api/hooks/{item.id}?key={item.secret}"
+                    # the key stays out of the conversation (it would sit in the transcript,
+                    # the logs and whatever the model repeats): the person copies the full
+                    # address, key included, from the app
                     out += (
-                        f"\nWebhook URL (POST, any body; keep the key private): {url}\n"
-                        "The user can copy it from the app under Upcoming."
+                        f"\nWebhook: POST {self.base_url}/api/hooks/{item.id} with any body, "
+                        "and the hook's key (as `?key=` or the `X-Hook-Key` header). The key is "
+                        "not shown here: the user copies the full address from the app under "
+                        "Upcoming."
                     )
                 elif item.kind == "event":
                     out += (

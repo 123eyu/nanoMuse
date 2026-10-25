@@ -403,8 +403,9 @@ async function fetchSameOrigin(fetchImpl: typeof fetch, url: string, init: Reque
 
 /**
  * The models an endpoint lists, by protocol: `GET /models` with the key (OpenAI's shape, which
- * the compatible providers speak), `/v1/models` with `x-api-key` for Anthropic, `/models?key=`
- * for Gemini. Empty when it does not answer in time — the catalogue's defaults stand in.
+ * the compatible providers speak), `/v1/models` with `x-api-key` for Anthropic, `/models` with
+ * `x-goog-api-key` for Gemini (the key rides in a header, never in the address, so it stays out
+ * of proxy and access logs). Empty when it does not answer in time — the catalogue's defaults stand in.
  */
 export async function listModels(protocol: Protocol, baseURL: string, apiKey: string, fetchImpl: typeof fetch = fetch, timeoutMs = 8000): Promise<string[]> {
   return (await listModelRows(protocol, baseURL, apiKey, fetchImpl, timeoutMs)).map((m) => m.id)
@@ -426,7 +427,7 @@ export async function listModelRows(protocol: Protocol, baseURL: string, apiKey:
     if (protocol === 'anthropic') {
       request = fetchSameOrigin(fetchImpl, `${base}/v1/models?limit=200`, { headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' }, signal }, Boolean(apiKey))
     } else if (protocol === 'gemini' && apiOf(protocol, base) === 'google-generative-ai') {
-      request = fetchSameOrigin(fetchImpl, `${base}/models?pageSize=200&key=${encodeURIComponent(apiKey)}`, { signal }, Boolean(apiKey))
+      request = fetchSameOrigin(fetchImpl, `${base}/models?pageSize=200`, { headers: apiKey ? { 'x-goog-api-key': apiKey } : {}, signal }, Boolean(apiKey))
     } else {
       request = fetchSameOrigin(fetchImpl, `${base}/models`, { headers: apiKey ? { authorization: `Bearer ${apiKey}` } : {}, signal }, Boolean(apiKey))
     }

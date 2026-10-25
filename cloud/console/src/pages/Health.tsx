@@ -47,7 +47,7 @@ export function HealthPage() {
                 <div className="sub">{fmt(h.in_flight.accounts)} {T.g.accounts}</div>
               </div>
             </Panel>
-            <Panel title={T.he.hub} sub={h.hub ? T.he.hubDrops(h.hub.dropped_frames, h.hub.flood_closes, h.hub.slow_closes) : T.lv.noHub}>
+            <Panel title={T.he.hub} sub={h.hub ? T.he.hubDrops(h.hub.dropped_frames, h.hub.flood_closes, h.hub.slow_closes, h.hub.refused_connections ?? 0) : T.lv.noHub}>
               <div className="kpi">
                 <div className="v">{h.hub ? fmt(h.hub.online) : "·"}</div>
                 <div className="sub">{h.hub ? `${T.he.hubOnline(h.hub.online, h.hub.accounts_online)} · ${T.he.pending} ${h.hub.pending_calls}` : ""}</div>

@@ -6,7 +6,9 @@ from __future__ import annotations
 
 import asyncio
 import json
+import sqlite3
 import time
+from dataclasses import replace
 
 import httpx
 import pytest
@@ -587,17 +589,36 @@ async def test_kept_turns_get_a_shape_row_and_older_ones_are_backfilled(stack):
     r = await client.delete("/v1/me/samples", headers=headers)
     assert r.status_code in (200, 204), r.text
     assert cloud.db.sample_count() == 0 and cloud.db.sample_stats_count() == 0
+    # a turn whose shape row never got written (the second write failed) is not lost to the
+    # figures: the daily pass finds it by its missing row, and finds nothing the next day
+    cloud.db.add_sample(aid, "qwen3.8-27b", json.dumps([{"role": "user", "content": "Draft the invoice mail"}]), "Sure", 5, 5, "{}")
+    assert cloud.db.sample_count() == 1 and cloud.db.sample_stats_count() == 0
+    assert fresh.describe_missing() == 1 and cloud.db.sample_stats_count() == 1
+    assert fresh.describe_missing() == 0
+    # the pass looks a few days back only (older turns are the paged backfill's): a turn
+    # without its row from before the window is left alone, so the walk stays short
+    cloud.db.add_sample(aid, "qwen3.8-27b", json.dumps([{"role": "user", "content": "An old one"}]), "Yes", 5, 5, "{}")
+    with cloud.db.tx() as c:
+        c.execute(
+            "UPDATE samples SET ts=? WHERE id NOT IN (SELECT sample_id FROM sample_stats)", (int(time.time()) - fresh.REPAIR_WINDOW_S - 60,)
+        )
+    assert cloud.db.sample_count() == 2 and fresh.describe_missing() == 0
 
 
 async def test_the_analytics_loop_warms_the_meter_sweeps_old_calls_and_backfills():
     """The lifespan task: on start the last hour's rows come back into the meter, the
     backfill runs to the end, and rows older than CALLS_KEEP_DAYS go."""
     up = fake_upstream()
-    settings = make_settings(calls_keep_days=1)
+    settings = make_settings(calls_keep_days=1, events_keep_days=1)
     sender = LogSender()
     cloud = Cloud(settings, Database(":memory:"), sender)
     aid = cloud.db.create_account("hash", "phone", "138****8000", 0, account_id="a")["id"]
     now = int(time.time())
+    # the timelines' lines age out the same way; the trace of a deletion does not
+    with cloud.db.tx() as c:
+        c.execute("INSERT INTO events(account_id, ts, kind, detail) VALUES (?,?,?,?)", (aid, now - 3 * 86400, "sign_in.code", "pixel"))
+        c.execute("INSERT INTO events(account_id, ts, kind, detail) VALUES (?,?,?,?)", ("", now - 3 * 86400, "account.deleted", "x"))
+        c.execute("INSERT INTO events(account_id, ts, kind, detail) VALUES (?,?,?,?)", (aid, now - 120, "sign_in.code", "mac"))
     base = {
         "account_id": aid,
         "model": "m",
@@ -626,11 +647,102 @@ async def test_the_analytics_loop_warms_the_meter_sweeps_old_calls_and_backfills
     with TestClient(app):
         meter = app.state.meter
         deadline = time.time() + 5
-        while time.time() < deadline and (not app.state.analytics.backfill_done or cloud.db.calls_count() > 1):
+
+        # the events sweep follows the calls sweep in the same tick: wait for both (a slow runner
+        # can be between the two when the calls are already gone)
+        def events_left() -> int:
+            return int(cloud.db._conn.execute("SELECT COUNT(*) FROM events").fetchone()[0])
+
+        while time.time() < deadline and (not app.state.analytics.backfill_done or cloud.db.calls_count() > 1 or events_left() > 2):
             time.sleep(0.05)
         assert meter.summary(now - 3600)["requests"] == 1  # the recent row, back in the meter
         assert app.state.analytics.backfill_done is True and cloud.db.sample_stats_count() == 1
         assert cloud.db.calls_count() == 1  # the three-day-old row is gone
+        kinds = sorted(str(r["kind"]) for r in cloud.db._conn.execute("SELECT kind FROM events").fetchall())
+        assert kinds == ["account.deleted", "sign_in.code"]
+
+
+# -- 0.30: the long reads run on a connection of their own ---------------------------------------
+
+
+def test_the_reader_sees_committed_rows_and_refuses_to_write(tmp_path):
+    """A file database hands the pages a second, read-only connection: it reads what the
+    first committed, a write through it fails, and an in-memory database (one connection)
+    hands back itself."""
+    db = Database(str(tmp_path / "relay.sqlite"))
+    reader = db.reader()
+    assert reader is not db and reader.read_only is True and db.reader() is reader
+    aid = db.create_account("hash", "phone", "138****8000", 0, account_id="a")["id"]
+    assert reader.account(aid) is not None and reader.account_counts()["total"] == 1
+    with pytest.raises(sqlite3.OperationalError, match="readonly"):
+        reader.add_event(aid, "sign_in.code", "x")
+    assert Database(":memory:").reader() is not None
+    mem = Database(":memory:")
+    assert mem.reader() is mem
+    db.optimize()  # the planner's statistics: a no-op on a small file, never an error
+
+
+def test_the_pages_read_through_the_read_only_service(tmp_path):
+    """`Cloud.reads` is the service over the reader: the pages it serves see every committed
+    row and leave the relay's own connection alone; writing through it fails."""
+    settings = replace(make_settings(), database=str(tmp_path / "relay.sqlite"))
+    cloud = Cloud(settings, Database(settings.database), LogSender())
+    aid = cloud.db.create_account("hash", "phone", "138****8000", 0, account_id="a")["id"]
+    reads = cloud.reads
+    assert reads.db is cloud.db.reader() and reads.db is not cloud.db and reads.s is cloud.s
+    assert reads.admin_overview(7)["accounts"]["total"] == 1
+    assert reads.admin_data(7)["accounts"]["total"] == 1
+    assert reads.admin_invites()["funnel"]["invited"] == 0
+    assert reads.admin_account(aid, 7)["account"]["id"] == aid
+    assert [m["id"] for m in reads.admin_turns()] == []
+    with pytest.raises(sqlite3.OperationalError, match="readonly"):
+        reads.note(aid, "sign_in.code", "x")
+    # a setting the operator changes is the one the next view reads (a fresh copy each time)
+    cloud.admin_update_settings({"allowance_cny": 12.5}, actor="test")
+    assert cloud.reads.s.allowance_cny == 12.5
+
+
+async def test_the_data_view_sums_tokens_from_the_shape_rows_and_fills_older_ones_in(stack):
+    """The Data view's sums come from `sample_stats`, never from the conversation rows; a
+    shape row written before 0.30 has no tokens (-1) until the tokens backfill copies them
+    from the turn, a page at a time, remembering where it was."""
+    app, client, sender, up, cloud = stack
+    headers, aid = await sign_up(client, sender)
+    assert (await client.post("/v1/me/contribute", headers=headers, json={"on": True})).status_code == 200
+    # two turns kept before 0.30: a shape row each, without tokens
+    for text in ("Plan my week around two deadlines", "Draft the invoice mail"):
+        sid = cloud.db.add_sample(aid, "qwen3.8-27b", json.dumps([{"role": "user", "content": text}]), "Sure " * 10, 100, 50, "{}")
+        cloud.db.add_sample_stats([an.sample_shape(sid, aid, int(time.time()), "qwen3.8-27b", "[]", "", "{}")])
+    assert cloud.db.sample_stats_without_tokens() == 2
+    # a turn kept now carries its tokens at once
+    r = await client.post(
+        "/v1/chat/completions",
+        headers=headers,
+        json={"model": "qwen3.8-27b", "messages": [{"role": "user", "content": "What is the capital of Peru"}]},
+    )
+    assert r.status_code == 200
+    view = cloud.reads.admin_data(7)
+    assert view["tokens_pending"] == 2 and view["totals"]["samples"] == 3
+    fresh_tokens = view["totals"]["prompt_tokens"] + view["totals"]["completion_tokens"]
+    assert fresh_tokens > 0  # the new turn's only; the two older rows count as nothing yet
+    analytics = app.state.analytics
+    assert analytics.tokens_step(2) == 2 and cloud.db.sample_stats_without_tokens() == 1
+    assert cloud.db.settings_get("sample_stats.tokens_cursor")[0] != [-1, -1]
+    assert analytics.tokens_step(2) == 1 and analytics.tokens_done is True
+    assert cloud.db.sample_stats_without_tokens() == 0
+    view = cloud.reads.admin_data(7)
+    assert view["tokens_pending"] == 0
+    assert view["totals"]["prompt_tokens"] + view["totals"]["completion_tokens"] == fresh_tokens + 2 * 150
+    assert view["by_account"][0]["prompt_tokens"] == 200 + view["recent"][0]["prompt_tokens"]
+    assert {p["platform"]: p["samples"] for p in view["by_platform"]} == {"other": 2, "ios": 1}  # the two synthetic rows carry no UA
+    # a fresh Analytics (a restart) sees the finished cursor and reads nothing
+    fresh = an.Analytics(cloud, an.LiveMeter(), lambda: None, lambda: {"active": 0, "waiting": 0, "limit": 1})
+    assert fresh.tokens_step(2) == 0 and fresh.tokens_done is True
+    # the export runs in a thread over a temporary file, whole and with its length
+    r = await client.get("/v1/admin/samples/export?since=0", headers=ADMIN)
+    assert r.status_code == 200 and r.headers["content-length"] == str(len(r.content))
+    lines = [json.loads(line) for line in r.text.splitlines()]
+    assert len(lines) == 3 and all("account_id" not in line for line in lines)
 
 
 # -- the hub: a device may say which model it runs on --------------------------------------------
@@ -678,3 +790,42 @@ def test_a_device_reports_its_own_model_by_ids_only():
         assert platforms["own_models"] == [
             {"provider": "cloud", "devices": 1, "accounts": 1, "models": [{"model": "Qwen/Qwen3.6-27B-FP8", "devices": 1}]}
         ]
+
+
+def test_platform_percentiles_from_sqlite_match_the_nearest_rank_helper():
+    """The platform page's latencies are ranked in SQLite; they are the figures the Python
+    helper gives, call for call, with the waits over every call and the rest over the calls
+    that went well."""
+    import random
+
+    db = Database(":memory:")
+    rng = random.Random(7)
+    now = int(time.time())
+    rows: dict[str, list[dict]] = {"ios": [], "desktop": []}
+    for platform, n in (("ios", 37), ("desktop", 4)):
+        for i in range(n):
+            status = "ok" if rng.random() < 0.8 else rng.choice(["refused", "upstream_error"])
+            row = {
+                "ts": now - 60 - i,
+                "account_id": "a",
+                "model": "m",
+                "platform": platform,
+                "family": "app",
+                "status": status,
+                "wait_ms": rng.randint(0, 900),
+                "ttft_ms": rng.randint(100, 9000),
+                "total_ms": rng.randint(1000, 60000),
+            }
+            rows[platform].append(row)
+            db.add_call(row)
+    got = {str(r["platform"]): dict(r) for r in db.calls_latency_by_platform(now - 3600, now + 1)}
+    counts = {str(r["platform"]): dict(r) for r in db.calls_by_platform(now - 3600, now + 1)}
+    for platform, calls in rows.items():
+        ok = [c for c in calls if c["status"] == "ok"]
+        assert got[platform]["p95_wait_ms"] == an.percentile([c["wait_ms"] for c in calls], 0.95)
+        assert got[platform]["p50_ttft_ms"] == an.percentile([c["ttft_ms"] for c in ok], 0.5)
+        assert got[platform]["p95_ttft_ms"] == an.percentile([c["ttft_ms"] for c in ok], 0.95)
+        assert got[platform]["p50_total_ms"] == an.percentile([c["total_ms"] for c in ok], 0.5)
+        assert counts[platform]["n"] == len(calls) and counts[platform]["ok"] == len(ok)
+        assert counts[platform]["errors"] == sum(1 for c in calls if c["status"] == "upstream_error")
+        assert counts[platform]["refused"] == sum(1 for c in calls if c["status"] == "refused")

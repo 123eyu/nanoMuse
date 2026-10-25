@@ -510,10 +510,39 @@ class MCPServerSettings(BaseModel):
     env: dict[str, str] = Field(default_factory=dict)
     url: str | None = None  # Streamable-HTTP / SSE endpoint
     risk: RiskLevel = RiskLevel.MODERATE
-    egress: bool = False
+    # Whether a call sends data off this machine. Unset, it is read from the address: a
+    # `url` on another host does (every argument travels there), a command or a loopback
+    # address does not. Set it to say otherwise.
+    egress: bool | None = None
     reads_private_data: bool = False
     # per-tool overrides, by the tool's own name on the server
     tools: dict[str, MCPToolPolicy] = Field(default_factory=dict)
+    # seconds the handshake (connect, initialize, the tool list) and one call may take; a
+    # server that stops answering is skipped at start, or its call fails, instead of
+    # holding the runtime
+    connect_timeout_s: float = 30.0
+    call_timeout_s: float = 120.0
+
+    @property
+    def remote_host(self) -> str | None:
+        """The host a `url` points at when it is not this machine, else None."""
+        if not self.url:
+            return None
+        from urllib.parse import urlsplit
+
+        host = (urlsplit(self.url).hostname or "").lower()
+        if (
+            not host
+            or host in ("localhost", "127.0.0.1", "::1", "0.0.0.0")
+            or host.startswith("127.")
+        ):
+            return None
+        return host
+
+    @property
+    def sends_out(self) -> bool:
+        """`egress` as set, else whether the address is on another host."""
+        return self.egress if self.egress is not None else self.remote_host is not None
 
 
 class MCPSettings(BaseModel):

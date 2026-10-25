@@ -102,6 +102,7 @@ object AccountData {
      */
     suspend fun leave(context: Context, account: String, keep: Boolean) {
         val ctx = context.applicationContext
+        stopWork()
         runCatching { reconcile(ctx, account) }.onFailure { AppLogger.warning(TAG, "reconcile before leaving: ${it.message}") }
         if (!keep) deleteChats(ctx, account)
         val stash = File(ctx.filesDir, "$STASH/${AccountScope.dirName(account)}")
@@ -129,6 +130,19 @@ object AccountData {
         }.onFailure { AppLogger.warning(TAG, "routines not put aside: ${it.message}") }
         reloadStores(ctx)
         AppLogger.info(TAG, "account left: ${if (keep) "kept aside" else "removed"}")
+    }
+
+    /**
+     * What runs for the account stops before its files move: the face being drawn or animated,
+     * a screen task under way. Each is asked to stop and waited for, so a result arriving late
+     * cannot land in the next account's folder (a feed run ends on its own: the agent runner
+     * owns it and writes through the stores, which [reloadStores] re-points).
+     */
+    private suspend fun stopWork() {
+        runCatching { io.github.nanomuse.avatar.AvatarFlow.cancel() }
+        runCatching { io.github.nanomuse.avatar.AvatarStudio.stopRuns() }
+        runCatching { io.github.nanomuse.avatar.AvatarMotion.stop() }
+        runCatching { io.github.nanomuse.hands.Hands.stopCurrent("the account left this phone") }
     }
 
     /**

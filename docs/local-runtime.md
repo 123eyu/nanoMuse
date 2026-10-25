@@ -118,9 +118,9 @@ Nothing is due → no alarm, and the runtime idles until the WebView or a notifi
 - **Storage.** About 330 MB after unpacking, plus whatever the user installs. The compressed rootfs is under 70 MB; the APK a little more.
 - **Background limits.** Android may still kill the service under memory pressure or aggressive vendor battery managers (the per-vendor battery allowances are in [archive/android-python-line.md](archive/android-python-line.md#keeping-it-running)). The service is `START_STICKY` and restarts; the alarm above survives the process, and the scheduler catches up on missed routines when it is back.
 - **What is in the box.** Alpine's `apk`, `git`, `curl`, `jq`, `bash`, `openssh-client`, `python3` with `pip`, and Node with `npm`. `uv` is not (35 MB); `pip install uv` gets it. `nanomuse-mirror cn|default` switches apk, pip and npm between the upstream servers and mirrors in mainland China; the first start picks from the phone's region.
-- **Node is optional.** `NODE=0 scripts/rootfs/build.sh` produces a rootfs without it, about 12 MB smaller compressed. The default includes it because the showcase's Chinese services (lark-cli, `@tencentcloud/tmeet`, `12306-mcp`) are npm packages.
+- **Node is optional.** `NODE=0 scripts/rootfs/build.sh` produced a rootfs without it, about 12 MB smaller compressed. The default includes it because the showcase's Chinese services (lark-cli, `@tencentcloud/tmeet`, `12306-mcp`) are npm packages.
 
-## Building the pieces
+## Building the pieces (as it was, at `pre-openminis`)
 
 ```bash
 # the root file system (Docker with QEMU for arm64: docker run --privileged --rm tonistiigi/binfmt --install arm64)
@@ -144,7 +144,7 @@ PRoot is built from the [Termux fork](https://github.com/termux/proot) (`5.1.107
 
 In the Python line's CI a `rootfs.yml` workflow built both and put them into the `local` APK; neither workflow exists any more (the current `android.yml` builds the OpenMinis-based APK, [android.md](android.md)).
 
-## Files
+## Files (at `pre-openminis`)
 
 | File | Does |
 | --- | --- |

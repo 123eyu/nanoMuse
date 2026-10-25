@@ -15,8 +15,8 @@ agent ◄── redact(result)   ◄── taint bookkeeping ◄─────�
 
 | 级别 | 含义 | 例子 |
 |---|---|---|
-| `safe` | 可逆、本地 | `files`（工作区之内）、`web_search`、`remember`、`goals`、`reminders` 和 `triggers`（列出、取消、记账类动作）、`contacts`、`skills`（列出、使用）、`phone_screen` |
-| `moderate` | 触及外部或改变状态 | `web_fetch`、`python_execute`、`read_emails`、`browser`、`forget`、`phone_act`、`goals`、`reminders` 和 `triggers`（创建：这是模型以后会自己接着做的长期工作，所以 `strict` 模式在设立之前会问） |
+| `safe` | 可逆、本地 | `files`（工作区之内）、`goals`、`reminders` 和 `triggers`（列出、查看、目标计划里一步一步的记账）、`contacts`（查找、查看、列出）、`skills`（列出、使用）、`phone_screen`、`computer_screen` |
+| `moderate` | 触及外部或改变状态 | `web_fetch`、`web_search`（查询词会发给搜索服务）、`python_execute`、`read_emails`、`browser`、`remember` 和 `forget`（记住的东西会影响之后的每一轮）、`contacts`（添加、删除）、`phone_act`、`goals`、`reminders` 和 `triggers`（创建：这是模型以后会自己接着做的长期工作，所以 `strict` 模式在设立之前会问；取消，以及目标的 `set_status` 和 `update`：长期工作改变了或停下了） |
 | `sensitive` | 难以撤销或外部可见 | `shell`、`send_email`、`skills`（保存、删除；技能是模型以后会照着做的长期指令，所以写一个技能总是会问） |
 
 工具可以在 `assess()` 里为某一次调用提高级别：`shell` 遇到 `rm -rf`、`sudo`、`curl | sh` 这类模式会附上一条警告；`python_execute` 对纯计算和工作区内的文件是 `moderate`（前提是沙箱在工作；没有沙箱时，在 macOS、Windows 或没装 bubblewrap 的 Linux 机器上，每个脚本都是 `sensitive`，因为静态检查是仅剩的一道墙），而当代码访问网络、启动其他程序、读环境变量、删文件或触及工作区之外的路径时是 `sensitive`，原因写在卡片上；`web_fetch` 直接拒绝私有地址和回环地址，每一跳重定向都查；`phone_act` 在一次点击的 `label`（操作器对手指下面是什么的描述）含有 确认支付、转账、提交订单、发送、删除 或 `[gui] sensitive_words` 里的另一个词时，或者一步同时输入并提交时，是带警告的 `sensitive`；没有 label 的点击自带一条警告（[gui.md](gui.md)）。工具还声明 `reads_private_data`（污染这段对话）和 `egress`，可选带 `egress_target`（这次调用把数据发往的主机；`shell` 和 `python_execute` 未知；手机上是 App 的 id），供污点追踪使用。

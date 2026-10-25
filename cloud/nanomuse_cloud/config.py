@@ -444,6 +444,10 @@ class Settings:
     # 0.28: how long the per-request telemetry rows (`calls`: timings, how a request ended,
     # its shape — never its words) are kept for the console's live page and drill-downs.
     calls_keep_days: int = field(default_factory=lambda: _int("CALLS_KEEP_DAYS", 90))
+    # how long the timelines' lines (`events`: sign-ins, devices joining, errors, refusals;
+    # never content) are kept; the `account.deleted` lines stay, the statistics count them.
+    # The ledger is the account's money and is never swept.
+    events_keep_days: int = field(default_factory=lambda: _int("EVENTS_KEEP_DAYS", 365))
     # 0.29: the record (record.py) — every chat turn in full, with its pictures as files
     # under MEDIA_DIR (next to the database when unset). RECORD_TURNS=0 keeps none of it;
     # RECORD_KEEP_DAYS=0 keeps a turn until the person deletes it; past MEDIA_MAX_GB the
@@ -454,6 +458,14 @@ class Settings:
     media_dir: str = field(default_factory=lambda: _env("MEDIA_DIR", ""))
     media_max_gb: float = field(default_factory=lambda: float(_env("MEDIA_MAX_GB", "50")))
     blob_max_bytes: int = field(default_factory=lambda: _int("BLOB_MAX_BYTES", 32 * 1024 * 1024))
+    # 0.30: what one account may put up — files referenced by its turns, profile and
+    # uploads together (MEDIA_ACCOUNT_MAX_MB; 0 = no cap short of MEDIA_MAX_GB), and how
+    # many own-key turns and files a minute (RECORD_UPLOADS_PER_MINUTE; 0 = no limit). A
+    # device catching up after a day offline sends a few hundred turns; a script filling
+    # the disk sends thousands. Past the store's cap nothing more is taken until the
+    # hourly trim has run, whoever asks.
+    media_account_max_mb: int = field(default_factory=lambda: _int("MEDIA_ACCOUNT_MAX_MB", 2048))
+    record_uploads_per_minute: int = field(default_factory=lambda: _int("RECORD_UPLOADS_PER_MINUTE", 120))
     # Pictures: DashScope allows an account only a couple of image tasks at a time and
     # answers 429 past that, so the relay draws at most IMAGE_CONCURRENCY pictures at once
     # for everyone together (the rest queue) and, on a 429 or 5xx, tries again up to

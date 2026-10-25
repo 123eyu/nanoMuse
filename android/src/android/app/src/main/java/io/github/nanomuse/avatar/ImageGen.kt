@@ -248,7 +248,8 @@ object ImageGen {
             provider = ep.instance.providerType.name,
             outputModalities = listOf("image"),
         )
-        return ProviderFactory.create(ep.instance, ep.apiKey, model, context) as? OpenAIProvider
+        // record = false: a picture is not a chat turn, and the concrete provider is needed
+        return ProviderFactory.create(ep.instance, ep.apiKey, model, context, record = false) as? OpenAIProvider
             ?: throw ImageGenException("${ep.label} is not an OpenAI-compatible provider")
     }
 
