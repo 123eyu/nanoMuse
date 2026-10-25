@@ -44,6 +44,7 @@ jobs:
             web:
               - "web/**"
               - "nanomuse/server/static/**"
+              - "nanomuse/llm/providers.json" # bundled into the console (web/src/providers.ts)
               - ".github/workflows/ci.yml"
             relay:
               - "cloud/**"

@@ -83,7 +83,7 @@ class Files(BaseTool):
     name: str = "files"
     description: str = (
         "Work with files in the workspace. Actions: "
-        "`read` (path; PDFs come back as text, page by page), `write` (path, content – overwrites), `append` (path, content), "
+        "`read` (path; PDFs come back as text, page by page), `write` (path, content; overwrites), `append` (path, content), "
         "`list` (path, optional), `search` (pattern glob such as '**/*.md'). "
         "Paths are relative to the workspace unless they start with '/' or '~'."
     )

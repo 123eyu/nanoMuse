@@ -76,9 +76,10 @@ SEND_QUEUE_BYTES = 32 * 1024 * 1024
 
 # 0.30: what comes before the first frame is bounded too. One address may open this many
 # sockets a minute (every device of a household reconnecting after the router came back
-# fits several times over); one account may have this many sockets open at once (phones,
-# computers, browser tabs). Over either, the socket is closed before any key is checked
-# or any device row written: 4008 `too_many_connections`.
+# fits several times over): over it, the socket is closed before any key is checked. One
+# account may have this many sockets open at once (phones, computers, browser tabs): a
+# further one is closed once its hello has named the account, before its device row is
+# written. Both close with 4008 `too_many_connections`.
 HELLOS_PER_MINUTE = 60
 MAX_ONLINE_PER_ACCOUNT = 32
 
@@ -129,6 +130,7 @@ class Connection:
     wake: asyncio.Event = field(default_factory=asyncio.Event)
     writer: asyncio.Task | None = None
     overflowed: bool = False  # closed for not reading fast enough
+    closer: asyncio.Task | None = None  # the close of an overflowed socket, held until it is done
     frames: Bucket = field(default_factory=lambda: Bucket(FRAMES_PER_S, 2 * FRAMES_PER_S))
     bytes: Bucket = field(default_factory=lambda: Bucket(BYTES_PER_S, 2 * BYTES_PER_S))
     dropped: int = 0  # frames dropped in a row for flooding
@@ -176,7 +178,8 @@ class Connection:
             )
             self.overflowed = True
             self.stop()
-            asyncio.get_running_loop().create_task(self._close(4009, "slow_consumer"))
+            # kept on the connection: a task nothing references may be collected before it runs
+            self.closer = asyncio.get_running_loop().create_task(self._close(4009, "slow_consumer"))
             return
         self.queue.append((text, size))
         self.queued_bytes += size
@@ -373,6 +376,7 @@ class Hub:
         ip = _client.current().ip
         if ip and not self._hellos.allow(ip):
             self.refused_connections += 1
+            log.info("hub: over %d sockets a minute from one address; refused", HELLOS_PER_MINUTE)
             await self._close(ws, 4008, "too_many_connections")
             return
         try:
@@ -403,6 +407,7 @@ class Hub:
         if conn.device_id not in live and len(live) >= MAX_ONLINE_PER_ACCOUNT:
             # a device taking its own place again is fine; a thirty-third is not
             self.refused_connections += 1
+            log.info("hub: account %s has %d devices connected; one more refused", conn.account_id[:8], len(live))
             await ws.send_text(
                 json.dumps(
                     {

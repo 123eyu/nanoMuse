@@ -321,7 +321,7 @@ extension AIChatViewModel {
             return "\(raw)-\(n)"
         }
 
-        let stallTimeoutSeconds: TimeInterval = 120
+        let stallTimeoutSeconds: TimeInterval = NanoMuseCloud.streamStallTimeout(for: provider) // nanoMuse: 300 s through the relay, 120 s elsewhere
         var _streamError: Error? = nil
         let iterBox = StreamIteratorBox(stream)
         // [StreamDiag] (#181) Diagnostics for the "No response from the server

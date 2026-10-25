@@ -181,7 +181,7 @@ class ToolCollection:
     def add(self, *tools: BaseTool) -> ToolCollection:
         for tool in tools:
             if tool.name in self.tool_map:
-                logger.warning("tool '{}' already registered – replacing", tool.name)
+                logger.warning("tool '{}' already registered; replacing", tool.name)
                 self.tools = [t for t in self.tools if t.name != tool.name]
             self.tools.append(tool)
             self.tool_map[tool.name] = tool

@@ -6,19 +6,34 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Cloud
 
+- **A number the carrier has already sent enough codes to hears "wait", not "the relay failed".** Aliyun refuses a number with its own limit (one a minute, five an hour, ten a day) before the relay's would; the answer was `502 send_failed` and the apps said the code could not be sent. It is `429 code_too_often` now, the same as the relay's own limit, and the log keeps it as a warning, not an error.
+- The hub logs a refused socket (over 60 a minute from one address, or a 33rd device of one account) and keeps a reference to the close of a socket that stopped reading; the comment on the limits says when each is applied.
+
 ### Runtime
+
+- `nanomuse chat`'s `/help` lists the commands one per line; the file tool's description and two log lines read without dashes.
 
 - **API Route is in the own-key catalogue.** An OpenAI-compatible gateway at `https://global.api-route.com/v1`, a key from [api-route.com/api-keys](https://www.api-route.com/api-keys), paid from a prepaid balance at the chosen model's rates. The default model is `gpt-6.1-sol`, and any id from the key's `/v1/models` list can be set instead. Chat only here; picture input, image generation and video are not claimed. `providers.json` lists twenty-three providers now, and the desktop, the phones, the relay and the web console carry the same file. By @DennyHo0917 ([#603](https://github.com/nano-muse/nanoMuse/pull/603), for [#564](https://github.com/nano-muse/nanoMuse/issues/564)).
 
 ### Web
 
+- The built console carries the own-key catalogue with API Route in it (the bundle was last built before [#603](https://github.com/nano-muse/nanoMuse/pull/603)), and a change to `nanomuse/llm/providers.json` now runs the web build check in CI, since the console bundles that file.
+- The sentence for a relay that no longer generates pictures or clips reads in Chinese too; it was the one line of the runtime's refusal table without a translation.
+
 ### Desktop
+
+- **The hands carry fewer screenshots to the model.** A request through nanoMuse Cloud held its pictures to 5 MiB of base64, which let a computer-use turn carry up to 23 screenshots (13 at the 95th percentile over the last week), each read again at every step. The bound is 2 MiB now, about the newest four to eight pictures, the same intent as the runtime's `max_context_images = 4`; the older ones are replaced by a line, as before. An installed app rewrites its provider row on the next start.
+- **A refused sign-in is explained in the app's language.** A wrong or expired code, a wrong password, too many codes or wrong passwords in a row, an address the relay does not take (not on a private relay's list, sign-ups paused, a number outside mainland China, a disabled account) came back as "That did not work:" and the relay's English sentence, and a wrong password read as "the sign-in has expired". Each has its own sentence now, in English and Chinese, the same as on the phones and in the console.
 
 ### Android
 
 ### iOS
 
+- **A slow answer through nanoMuse Cloud is waited for, up to 300 seconds.** The app gave a stream up after 120 seconds without an event and sent the turn again from the start; through the relay, which holds a request while the model is busy and gives the provider up itself after 180 seconds, that cut off the slow turns and put them at the back of the queue again (over the last week, half of the iPhone's abandoned calls ended at exactly 120 seconds). The relay's streams get 300 seconds now, as on the desktop; a provider of your own keeps the app's 120.
+
 ### Project
+
+- The harness bundle workflow builds a branch once, through its pull request (and main and the release tags as before); a push to a branch with a pull request open ran the Linux and Windows jobs twice.
 
 ## [1.0.7] - 2026-10-25 · Logbook
 

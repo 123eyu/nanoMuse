@@ -68,6 +68,7 @@ Errors carry a stable `code` the app can turn into a sentence:
 | 400 | `phone_region` | a number the SMS sender cannot reach (the Aliyun sender covers mainland China only); e-mail works everywhere |
 | 400 | `code_wrong` / `code_expired` | verification code |
 | 400 | `channel_unsupported` | this relay's `CODE_SENDER` does not send codes that way (SMS or e-mail); the sentence says which |
+| 429 | `code_too_often` | too many codes for the identifier in ten minutes or from the address in an hour, or the SMS carrier's own limit for the number (Aliyun: one a minute, five an hour, ten a day); wait |
 | 502 | `send_failed` | the SMS or mail provider refused or did not answer; the code was not sent |
 | 400 | `bad_credentials` / `password_short` / `password_long` / `password_weak` / `password_wrong` / `password_required` | the password sign-in and the password form (`bad_credentials` is 401; `locked` is 429 after too many wrong passwords) |
 | 404 | `no_session` | the sign-in to revoke no longer exists |

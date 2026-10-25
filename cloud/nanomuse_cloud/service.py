@@ -864,6 +864,10 @@ class Cloud:
         try:
             self.sender.send(ident, code)
         except SendError as e:
+            if e.reason == "too_often":
+                # the carrier's own limit for the number, tighter than ours: the same answer
+                # as our limit, so the app says "wait" and not that the relay is broken
+                raise CloudError(429, "code_too_often", "Too many codes for this number; wait a few minutes") from e
             raise CloudError(502, "send_failed", f"Could not send the code ({e})") from e
 
     def verify_code(

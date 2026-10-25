@@ -245,6 +245,21 @@ enum NanoMuseCloud {
         AppLocalized("Text-message codes reach mainland-China numbers only. Use an e-mail address instead.")
     }
 
+    // MARK: - Streams through the relay
+
+    /// How long the chat waits for the next event of a model stream before it gives the turn
+    /// up as stalled and sends it again (`AIChatViewModel+SSEStream`). The app's own figure is
+    /// 120 s. Through the relay it is 300 s: the relay holds a request while the model is busy
+    /// (a place in its queue, then the first token) and gives the provider up itself after
+    /// 180 s with an error the app shows, so a 120 s watchdog only cut the slow turns off and
+    /// put them at the back of the queue again. The desktop allows a stream the same 300 s.
+    nonisolated static func streamStallTimeout(for provider: any AgentProvider) -> TimeInterval {
+        guard let openAI = provider as? OpenAIAgentProvider,
+              let base = openAI.provider.customBaseURL.flatMap(normalizedRelay) else { return 120 }
+        let custom = UserDefaults.standard.string(forKey: Keys.base).flatMap(normalizedRelay)
+        return base == (custom ?? defaultBase) ? 300 : 120
+    }
+
     /// The provider instance the relay is signed in as, if it still exists.
     static var instance: ProviderInstance? {
         guard let id = UserDefaults.standard.string(forKey: Keys.instance) else { return nil }
