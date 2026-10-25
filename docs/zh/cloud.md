@@ -52,6 +52,8 @@
 
 **谁能读。** 账号的各台设备：`GET /v1/turns`（最新在前；用 `before` 和 `before_id` 翻页；`conversation=` 只看一个对话）、`GET /v1/turns/{id}`，以及 `GET /v1/blobs/{sha256}` 取文件；只对持有这个文件引用的账号打开（它的某一轮、它 profile 里的短视频、它自己上传的），知道哈希本身打不开任何东西。本人的视图不含地址。运营者：`GET /v1/admin/turns`、JSON lines 导出（`/v1/admin/turns/export`，含账号 id：这是账号的数据，不是训练集；训练集仍是不含 id 的 `/v1/admin/samples/export`）、`/v1/admin/blobs/{sha256}` 取一个文件，以及 `GET /v1/admin/record` 看数字：总计和按天的轮次与文件数、存储量对上限。
 
+历史记录和样本分页利用现有时间索引跳过较新的秒，再按插入顺序处理同一秒内的记录。导出和分析回填沿用这一分页边界，无需迁移数据库。
+
 **用自己 key 跑的轮次。** 1.0.7 起，App 用自己的 key 跑完一轮后把它传上来，这样不论模型在哪，记录都是完整的：先对每张图 `PUT /v1/blobs/{sha256}`（请求体是原始字节，带 `Content-Type`；哈希会被校验；先 `HEAD` 一下，或者看返回里的 `known: true`，就知道别的设备是不是已经传过），再 `POST /v1/turns`，带 `model`、`messages`（引用，或者内联的 data URL）、`response: {message, usage?}`，以及 App 手里的 `provider`、`ts`、`conversation`、`id` 和 `status`（`status: partial` 时再带一个 `ended`，用 App 自己的词：`aborted`、`error`、`abandoned`）；这一行记 `source: own`。引用一个账号从未上传的文件，返回 400 `unknown_blob`。一个账号每分钟最多传 `RECORD_UPLOADS_PER_MINUTE` 个轮次和文件（120；超过回 429 `rate_limited`，剩下的晚点再传），文件总量最多 `MEDIA_ACCOUNT_MAX_MB`（2048；超过回 413 `quota_exceeded`）；整个存储超过 `MEDIA_MAX_GB` 后，在每小时的清理跑过之前谁的文件都不收（507 `store_full`）。两者都在请求的事件循环之外写入。
 
 **形象的短视频。** 同一套文件也把画出来的形象的短视频在设备间传递：做了动画的那台设备把短视频传上来，在 profile 里指明（`PUT /v1/me/profile` 的 `clips: {mood: {sha256, mime, bytes}}`），其他设备直接下载，不用各自再渲染。短视频随形象走：`clips: null`、换成别的形象或 `DELETE /v1/me/profile` 都会清掉。
