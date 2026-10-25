@@ -89,6 +89,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 ### Project
 
 - The contributors list in the ten READMEs is current.
+- **The privacy page says what the hub keeps about each device.** [docs/privacy.md](docs/privacy.md) gained the device rows (id, name, kind, system, version, actions, first and last seen, address) with the two model ids a 1.0.7 client reports in its hello (`cloud`, or the provider and model of an own key; never a key or a setting), the per-call rows of relay 0.28 and the shape rows kept beside training turns, in English and Chinese.
 - **The READMEs' News notes the two-thousandth star and the first place on Trending.** The ten READMEs gained a 2026-10-21 line: 2,000 stars on GitHub and first on GitHub Trending's Swift list (third on October 20, first on October 21, as Trendshift records it), twenty-six days after the first release, with the thank-you and the roadmap; the 2026-10-13 line is down to the thousandth star and the eighteen days, since the Trending detail now lives in the newer line.
 - **The READMEs' contributors keep themselves current.** A *Contributors* workflow runs `scripts/readme-contributors.py` every night and after every push to `main`, and opens one pull request when GitHub's contributors list has someone the ten READMEs do not; until now the avatars were refreshed by hand at release time and fell behind between releases. The three people missing today are in.
 
