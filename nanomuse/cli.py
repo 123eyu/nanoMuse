@@ -93,7 +93,7 @@ def _root(
 ) -> None:
     """nanoMuse: an open-source personal agent for every device you own. This is its runtime: the agent, the Sentinel that decides what may run, and the web app."""
     from nanomuse import loopback
-    from nanomuse.console import utf8_console
+    from nanomuse.stdio import utf8_console
 
     loopback.install()  # Windows: a self-pipe that fails with a reason instead of hanging
     utf8_console()  # a console whose code page is not UTF-8 still prints the report

@@ -82,7 +82,7 @@ def serve(
     """Run the app server (blocking). Prints the URL and a QR code for your phone."""
     import uvicorn
 
-    from nanomuse.console import utf8_console
+    from nanomuse.stdio import utf8_console
 
     utf8_console()
     ensure_ca_bundle()
