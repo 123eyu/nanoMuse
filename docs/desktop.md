@@ -149,7 +149,8 @@ speaking as nanoMuse through the `nanomuse` preset, with:
   it lets the most through: every device of the account may run things here; a device
   allowed with *always* on a remote-control card; the hands in an app, from *Always in
   <app>* on a permission card), *In one chat* (the hands in an app within one chat, from
-  *Always in this chat*; the row is titled with the chat) and *In one scheduled task* (the
+  *Always in this chat*; the row is titled with the chat and names the scheduled tasks in
+  it, which the grant covers too) and *In one scheduled task* (the
   hands in an app only when that task runs, from *Always in this task*; the row is titled
   with the task and names its chat, and says so when the task was deleted). The three
   groups are always there; an empty one says which button on a permission card puts a grant
