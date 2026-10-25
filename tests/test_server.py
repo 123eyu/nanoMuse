@@ -125,10 +125,11 @@ def test_the_startup_watchdog_writes_where_every_thread_is(capsys):
     assert "still not serving" not in capsys.readouterr().err
 
 
-def test_a_taken_port_is_named_before_the_service_starts():
+def test_a_taken_port_is_named_before_the_service_starts(dead_proxy: str):
     """A second ``nanomuse serve`` on a busy port says who holds it, instead of announcing
     itself as ready and dying on the bind: another nanoMuse by its /api/health, anything
-    else as another program; a free port is None."""
+    else as another program; a free port is None. The probe is a call to this machine, so
+    the proxy the environment names (``dead_proxy``) must not be consulted for it."""
     import http.server
     import socket
 

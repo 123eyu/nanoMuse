@@ -136,6 +136,57 @@ def test_with_a_server_the_api_is_called(
     assert r.exit_code == 1 and "switch it on" in r.output
 
 
+def test_the_api_is_called_without_the_environment_s_proxy(tmp_path: Path, dead_proxy: str) -> None:
+    """The command calls this machine's own server with its token in the header. ``httpx``
+    used to read the environment's proxy for that call: the token went to the proxy, and
+    with a proxy that answers nothing a running server looked like no server at all, so the
+    offline files were read instead of the server's live answer."""
+    import http.server
+    import threading
+
+    answer = {
+        "channels": [
+            {
+                "name": "telegram",
+                "label": "Telegram",
+                "enabled": True,
+                "status": {"state": "connected", "detail": "@muse_bot"},
+                "paired": [],
+            }
+        ],
+        "pending": [],
+    }
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self) -> None:  # noqa: N802 - the handler's name
+            body = json.dumps(answer).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args: Any) -> None:
+            pass
+
+    server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        path = tmp_path / "config.toml"
+        path.write_text(
+            f'data_dir = "{(tmp_path / "data").as_posix()}"\n'
+            f'[agent]\nworkspace = "{(tmp_path / "ws").as_posix()}"\n'
+            f'[llm]\napi_key = "k"\n[server]\nport = {server.server_address[1]}\n',
+            "utf-8",
+        )
+        r = run("status", "--config", str(path))
+    finally:
+        server.shutdown()
+        server.server_close()
+    assert r.exit_code == 0, r.output
+    assert "@muse_bot" in r.output and "not running" not in r.output
+
+
 def test_a_bad_setting_is_named(tmp_path: Path):
     """The same sentence as the main CLI's: each setting pydantic refused, with its path,
     not a count of problems the person has to go and find."""

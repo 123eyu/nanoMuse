@@ -146,6 +146,47 @@ def test_client_reports_an_unreachable_server(monkeypatch):
     assert result["ok"] is False and "cannot reach" in result["error"]
 
 
+def test_the_bridge_does_not_send_its_call_through_the_environment_s_proxy(dead_proxy: str):
+    """The call token goes to the server on this machine. ``urllib`` used to read the
+    environment's proxy for that request, so the proxy received the token, and with a proxy
+    that answers nothing every ``nanomuse-device`` call failed."""
+    import http.server
+    import threading
+
+    calls: list[dict[str, Any]] = []
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_POST(self) -> None:  # noqa: N802 - the handler's name
+            length = int(self.headers.get("Content-Length") or 0)
+            calls.append(
+                {
+                    "path": self.path,
+                    "token": self.headers.get("X-Nanomuse-Bridge"),
+                    "body": json.loads(self.rfile.read(length) or b"{}"),
+                }
+            )
+            body = json.dumps({"ok": True, "output": "hello from the clipboard"}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args: Any) -> None:
+            pass
+
+    server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        client = BridgeClient(url=f"http://127.0.0.1:{server.server_address[1]}", token="t0k")
+        result = client.post("device", {"tool": "clipboard_read", "args": {}})
+    finally:
+        server.shutdown()
+        server.server_close()
+    assert result["ok"] is True and result["output"] == "hello from the clipboard"
+    assert calls[-1]["token"] == "t0k" and calls[-1]["path"] == "/api/bridge/device"
+
+
 # ----------------------------------------------------------------------------- where it runs
 def test_a_bridge_program_prints_utf8_whatever_the_console():
     """The shell tool reads a command's output as UTF-8 (`nanomuse/tools/shell.py`), and a
