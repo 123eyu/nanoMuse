@@ -13,9 +13,11 @@ object RiskText {
     }
 
     /** The target as the card names it: for another device's request, the device's name. */
-    fun targetLabel(context: Context, request: RiskRequest): String? =
-        if (request.kind == GuardKind.DEVICE) request.pageUrl ?: targetLabel(context, request.assessment.target)
-        else targetLabel(context, request.assessment.target)
+    fun targetLabel(context: Context, request: RiskRequest): String? = when (request.kind) {
+        GuardKind.DEVICE -> request.pageUrl ?: targetLabel(context, request.assessment.target)
+        GuardKind.SCHEDULED -> request.elementText
+        else -> targetLabel(context, request.assessment.target)
+    }
 
     /** The target without its scope prefix (`app:`, `pc:`, `lark:`, `git:`, `device:`), for prose. */
     fun plainTarget(target: String?): String =
@@ -31,6 +33,7 @@ object RiskText {
         val a = request.assessment
         val target = targetLabel(context, a.target)
         if (request.kind == GuardKind.DEVICE) return context.getString(R.string.nm_risk_title_device, request.pageUrl ?: target ?: "")
+        if (request.kind == GuardKind.SCHEDULED) return context.getString(R.string.nm_risk_title_scheduled, agentName, request.pageUrl ?: "")
         if (a.warnings.isNotEmpty()) return context.getString(R.string.nm_risk_title_warning, agentName)
         return when (a.riskClass) {
             RiskClass.DESTRUCTIVE -> if (target != null) context.getString(R.string.nm_risk_title_destructive, agentName, target)
@@ -57,6 +60,12 @@ object RiskText {
         }
         if (request.kind == GuardKind.DEVICE) {
             return context.getString(R.string.nm_risk_desc_device, request.pageUrl ?: "", request.elementText ?: "")
+        }
+        if (request.kind == GuardKind.SCHEDULED) {
+            val task = request.elementText.orEmpty()
+            val computer = request.pageUrl.orEmpty()
+            return if (request.app.isNullOrBlank()) context.getString(R.string.nm_risk_desc_scheduled, task, computer)
+            else context.getString(R.string.nm_risk_desc_scheduled_app, task, computer, request.app)
         }
         val target = targetLabel(context, a.target)
         val shell = when (a.riskClass) {

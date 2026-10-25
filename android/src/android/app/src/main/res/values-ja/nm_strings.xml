@@ -625,6 +625,12 @@
     <string name="nm_risk_title_device">「%1$s」にこの端末の操作を許可しますか？</string>
     <string name="nm_risk_desc_device">アカウント上の別のデバイス「%1$s」が、この端末で次の操作をしようとしています: %2$s。具体的な内容は下に表示されています。「常に」を選ぶと、そのデバイスは確認なしでここでこうした操作ができます。取り消すには権限から。</string>
     <string name="nm_risk_preview_device">デバイスからの依頼内容</string>
+    <string name="nm_risk_title_scheduled">%1$sが「%2$s」でこの操作をしてもよいですか？</string>
+    <string name="nm_risk_desc_scheduled">スケジュールされたタスク「%1$s」が「%2$s」で実行中で、あなたの返事を待っています。操作はこの端末ではなく、そのコンピュータで行われます。</string>
+    <string name="nm_risk_desc_scheduled_app">スケジュールされたタスク「%1$s」が「%2$s」で実行中で、%3$s を操作しようとしています。返事を待っています。操作はこの端末ではなく、そのコンピュータで行われます。</string>
+    <string name="nm_risk_preview_scheduled">コンピュータでの操作</string>
+    <string name="nm_risk_allow_task">このタスクでは常に許可</string>
+    <string name="nm_risk_task_remembered_toast">「%1$s」に記録しました。このタスクはそこで確認しなくなります。そのコンピュータの「設定 → 権限」で取り消せます。</string>
     <string name="nm_risk_preview_show_all">すべて表示（%1$d 行）</string>
     <string name="nm_risk_preview_show_less">折りたたむ</string>
     <string name="nm_risk_class_remote">リモート操作</string>

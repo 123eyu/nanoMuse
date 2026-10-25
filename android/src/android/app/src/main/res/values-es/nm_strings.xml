@@ -628,6 +628,12 @@
     <string name="nm_risk_title_device">¿Permitir que “%1$s” maneje este teléfono?</string>
     <string name="nm_risk_desc_device">“%1$s”, otro dispositivo de tu cuenta, quiere %2$s en este teléfono. Abajo se muestra exactamente qué. “Siempre” deja que ese dispositivo haga estas cosas aquí sin preguntar; retíralo en Permisos.</string>
     <string name="nm_risk_preview_device">Qué pidió el dispositivo</string>
+    <string name="nm_risk_title_scheduled">¿Permitir que %1$s haga este paso en «%2$s»?</string>
+    <string name="nm_risk_desc_scheduled">La tarea programada «%1$s» se está ejecutando en «%2$s» y espera tu respuesta. El paso se hace allí, no en este teléfono.</string>
+    <string name="nm_risk_desc_scheduled_app">La tarea programada «%1$s» se está ejecutando en «%2$s» y quiere actuar en %3$s. Espera tu respuesta; el paso se hace allí, no en este teléfono.</string>
+    <string name="nm_risk_preview_scheduled">El paso en el ordenador</string>
+    <string name="nm_risk_allow_task">Siempre en esta tarea</string>
+    <string name="nm_risk_task_remembered_toast">Guardado en «%1$s»: esta tarea deja de preguntar allí. Revócalo en Ajustes → Permisos de ese ordenador.</string>
     <string name="nm_risk_preview_show_all">Mostrar todo (%1$d líneas)</string>
     <string name="nm_risk_preview_show_less">Mostrar menos</string>
     <string name="nm_risk_class_remote">Control remoto</string>

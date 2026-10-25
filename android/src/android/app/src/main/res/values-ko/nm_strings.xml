@@ -625,6 +625,12 @@
     <string name="nm_risk_title_device">“%1$s”이(가) 이 휴대전화를 조작하도록 허용할까요?</string>
     <string name="nm_risk_desc_device">내 계정의 다른 기기 “%1$s”이(가) 이 휴대전화에서 %2$s하려고 합니다. 정확한 내용은 아래에 있습니다. “항상”을 고르면 그 기기는 묻지 않고 여기서 이런 일을 할 수 있습니다. 권한에서 되돌릴 수 있습니다.</string>
     <string name="nm_risk_preview_device">기기가 요청한 내용</string>
+    <string name="nm_risk_title_scheduled">%1$s이(가) “%2$s”에서 이 단계를 실행해도 될까요?</string>
+    <string name="nm_risk_desc_scheduled">예약된 작업 “%1$s”이(가) “%2$s”에서 실행 중이며 답을 기다리고 있습니다. 이 단계는 이 휴대폰이 아니라 그 컴퓨터에서 실행됩니다.</string>
+    <string name="nm_risk_desc_scheduled_app">예약된 작업 “%1$s”이(가) “%2$s”에서 실행 중이며 %3$s에서 동작하려고 합니다. 답을 기다리고 있으며, 이 단계는 이 휴대폰이 아니라 그 컴퓨터에서 실행됩니다.</string>
+    <string name="nm_risk_preview_scheduled">컴퓨터에서 할 단계</string>
+    <string name="nm_risk_allow_task">이 작업에서 항상 허용</string>
+    <string name="nm_risk_task_remembered_toast">“%1$s”에 저장됨: 이 작업은 그곳에서 더 묻지 않습니다. 그 컴퓨터의 설정 → 권한에서 취소할 수 있습니다.</string>
     <string name="nm_risk_preview_show_all">모두 표시(%1$d줄)</string>
     <string name="nm_risk_preview_show_less">접기</string>
     <string name="nm_risk_class_remote">원격 제어</string>

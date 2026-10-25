@@ -105,4 +105,27 @@ class RiskGateTest {
         assertEquals(RiskDecision.ALLOW_ONCE, front.await())
         assertNull(RiskGate.pending.value)
     }
+
+    @Test fun `a computer that took its question back clears the card without a decision`() = runTest(dispatcher) {
+        val req = RiskRequest(
+            sessionId = "hub:pc-1",
+            kind = GuardKind.SCHEDULED,
+            assessment = RiskAssessment(RiskClass.REMOTE, "send the report", "task:Daily report"),
+            preview = "Press Enter in WeChat",
+            pageUrl = "Desk",
+            elementText = "Daily report",
+            timeoutMs = 600_000,
+        )
+        // a scheduled task's card offers once and "always in this task", never "for this chat"
+        assertTrue(req.canAlways)
+        assertTrue(!req.canSession)
+        val answer = async { RiskGate.ask(req) }
+        runCurrent()
+        assertEquals(req.id, RiskGate.pending.value?.id)
+        RiskGate.withdraw(req.id)
+        runCurrent()
+        assertEquals(RiskDecision.DENY, answer.await())
+        assertNull(RiskGate.pending.value)
+        assertTrue(RiskGate.recent.value.none { it.first.id == req.id })
+    }
 }

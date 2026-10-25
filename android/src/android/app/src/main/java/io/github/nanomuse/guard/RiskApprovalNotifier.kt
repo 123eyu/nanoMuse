@@ -66,7 +66,7 @@ class RiskApprovalNotifier(
             .setOnlyAlertOnce(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
-            .setTimeoutAfter(RiskGate.TIMEOUT_MS)
+            .setTimeoutAfter(request.timeoutMs)
             .build()
         return try {
             nm.notify(TAG_NOTIF, request.id.hashCode(), notification)

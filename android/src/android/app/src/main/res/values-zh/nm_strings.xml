@@ -611,6 +611,12 @@
     <string name="nm_risk_title_device">允许「%1$s」操作这台手机吗？</string>
     <string name="nm_risk_desc_device">「%1$s」是你账号下的另一台设备，想在这台手机上 %2$s。具体内容见下方。选「始终」后，那台设备以后在这里做这类事不再询问；可在「权限」里收回。</string>
     <string name="nm_risk_preview_device">那台设备的请求</string>
+    <string name="nm_risk_title_scheduled">允许%1$s在「%2$s」上执行这一步吗？</string>
+    <string name="nm_risk_desc_scheduled">定时任务「%1$s」正在「%2$s」上运行，等你回答。这一步在那台电脑上执行，不在这部手机上。</string>
+    <string name="nm_risk_desc_scheduled_app">定时任务「%1$s」正在「%2$s」上运行，要在 %3$s 里操作，正等你回答。这一步在那台电脑上执行，不在这部手机上。</string>
+    <string name="nm_risk_preview_scheduled">电脑上的这一步</string>
+    <string name="nm_risk_allow_task">此定时任务中始终允许</string>
+    <string name="nm_risk_task_remembered_toast">已记在「%1$s」上：这个任务在那里不再询问。可在那台电脑的「设置 → 权限」里撤回。</string>
     <string name="nm_risk_preview_show_all">全部显示（%1$d 行）</string>
     <string name="nm_risk_preview_show_less">收起</string>
     <string name="nm_risk_class_remote">远程控制</string>
