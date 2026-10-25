@@ -20,6 +20,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Web
 
+- **The composer’s send disc becomes a stop disc while the agent works.** The only stop for a run in progress hid in the activity sheet; in the chat itself a working turn had no control, so the person waited however long the run took. With an empty box the disc now stops the run — the same `/api/threads/{id}/stop` the sheet calls, which expires its pending approvals and drops what was queued — and typing brings the send disc back, since what is sent while busy stays queued, as the hint line already says. The stop is also one tap closer on the phone, where the sheet was two gestures away.
 - The built console carries the own-key catalogue with API Route in it (the bundle was last built before [#603](https://github.com/nano-muse/nanoMuse/pull/603)), and a change to `nanomuse/llm/providers.json` now runs the web build check in CI, since the console bundles that file.
 - The sentence for a relay that no longer generates pictures or clips reads in Chinese too; it was the one line of the runtime's refusal table without a translation.
 
