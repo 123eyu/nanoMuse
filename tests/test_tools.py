@@ -48,6 +48,28 @@ async def test_files_workspace_scoping(tmp_path: Path):
     assert r.ok and r.output == str(tmp_path / "docs" / "x.md")
 
 
+async def test_files_says_when_a_listing_or_a_search_was_cut(tmp_path: Path):
+    from nanomuse.tools import files as files_module
+
+    for name in ("a.md", "b.md", "c.md"):
+        (tmp_path / name).write_text("x")
+    files = Files(workspace=tmp_path)
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(files_module, "LIST_MAX", 2)
+        r = await files.execute(action="list", path=".")
+        assert r.ok and "3 entries in all; the first 2 are listed" in r.output
+        patch.setattr(files_module, "SEARCH_MAX_MATCHES", 2)
+        r = await files.execute(action="search", pattern="*.md")
+        # the walk's order is the file system's (APFS hands names back unsorted), so the
+        # two kept are any two of the three
+        assert r.ok and sum(line.endswith(".md") for line in r.output.splitlines()) == 2
+        assert "stopped at 2 matches; narrow the pattern" in r.output
+    r = await files.execute(action="list", path=".")
+    assert "entries in all" not in r.output
+    r = await files.execute(action="search", pattern="*.md")
+    assert "stopped" not in r.output
+
+
 async def test_files_read_truncates_without_loading_the_whole_file(tmp_path: Path):
     from nanomuse.tools import files as files_module
 
