@@ -341,7 +341,9 @@ link's target: an update that moved the app, say from `Programs\nanoMuse\nanomus
 to `Programs\nanomuse-desktop`, leaves a link pointing nowhere, and 0.1.39 could not start
 over it (`EEXIST: file already exists, symlink …` in `desktop.log`). Since 0.1.40 the stale
 link is removed as a link and remade; should that still fail, the message names the path to
-remove by hand.
+remove by hand. An entry the file system reports as busy, as the installer still holds it
+just after an in-app update, is tried again for about a second before the start is reported
+as failed.
 
 On Windows, read-only and workspace-write PowerShell commands run through DSH's restricted-token
 ACL sandbox. Because the Electron-hosted process has no console of its own, nanoMuse puts a
