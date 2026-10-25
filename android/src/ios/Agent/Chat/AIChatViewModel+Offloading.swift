@@ -371,7 +371,7 @@ extension AIChatViewModel {
     ///   the kept messages.
     func offloadContextIfNeeded(model: LLMModel, lastContextTokens: Int, force: Bool = false) {
         let contextWindow = effectiveContextWindow(for: model)
-        let policy = ContextPolicy(contextWindow: contextWindow)
+        let policy = NanoMuseContextBudget.policy(contextWindow: contextWindow) // nanoMuse: offload from 28k whatever the window
 
         // Policy disables offloading for this context window tier
         if !force && policy.offloadThreshold == 0 {

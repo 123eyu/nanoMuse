@@ -4792,7 +4792,7 @@ final class AIChatViewModel: ObservableObject, SpeechControlling {
                 activeGroupId = gid
             }
         }
-        let tools = makeAgentTools()
+        let tools = NanoMusePromptDiet.tools(makeAgentTools()) // nanoMuse: browser_use worded densely
 
         let activeModel = ProviderConfigStore.shared.entry(for: entry.id)?.model ?? selectedModel
         let skillFragment = sessionId.flatMap { SkillStore.shared.skillPromptFragment(for: $0) }

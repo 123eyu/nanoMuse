@@ -544,6 +544,7 @@ struct ChatMessageRow: View {
             // ROUND. See `ChatMessage.shouldShowTypingIndicator`.
             if isActiveMessage && message.shouldShowTypingIndicator {
                 TypingIndicator()
+                NanoMuseWaitLine(onCancel: onStop) // nanoMuse: under the dots, how long this step has waited and how many are ahead at the relay
             }
 
             // Inline error + retry

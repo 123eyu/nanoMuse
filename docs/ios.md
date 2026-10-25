@@ -89,6 +89,17 @@ Ours, in `NanoMuse/`:
 - **The agent's steps, the status line.** *Settings → Chat → Steps* keeps the tool capsules out of
   finished messages unless asked for; the typing line reads *〈name〉 is on it*, not *is thinking*.
   Both are one-line edits in upstream's `AssistantBlockView` / `ContentView`, marked `// nanoMuse:`.
+- **The wait under the dots (1.0.8; `NanoMuseStreamStatus.swift`).** While a step has no first
+  token, `NanoMuseWaitLine` under the typing line says nothing for ten seconds, then *The model is
+  busy, 15 s so far* with *Cancel* (the chat's stop); when nanoMuse Cloud has said the request is
+  waiting for one of its provider slots (relay 0.31's `nanomuse: {phase, ahead}` chunks,
+  [cloud.md](cloud.md#protocol)), *3 ahead of you* or *You are next* instead. One marked line in
+  each OpenAI provider's SSE loop hands the field over; one in `ChatMessageViews` draws the line.
+- **The prompt budget (1.0.8; `NanoMuseContextBudget.swift`, `NanoMusePromptDiet.swift`).** The
+  compaction line is 32k tokens on every window from 64k up (upstream's tiers put it 20k short of
+  the window), old big tool results go to disk from 28k, and the `browser_use` schema is worded
+  densely with every action and parameter kept; the Android page has the figures behind it. The
+  three call sites in `AIChatViewModel` are marked; the policy's own tiers and tests are untouched.
 - **The Muse shell (0.1.33; iPad too since 0.1.34).** `NanoMuseRoot` replaces upstream's
   `ContentView` at the root; *Settings → nanoMuse* has the two switches (*Muse home*, *Face and
   name in the chat header*), and the OpenMinis layout stays one tap away in the drawer. The chat's
