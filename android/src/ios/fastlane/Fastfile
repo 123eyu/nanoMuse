@@ -1,11 +1,13 @@
 # nanoMuse iOS · fastlane
 #
-# One lane: `beta` archives the app for the App Store with manual signing — the team's Apple
+# Two lanes. `beta` archives the app for the App Store with manual signing — the team's Apple
 # Distribution certificate from the repository's secrets, the App Store provisioning profiles from
 # the account over the App Store Connect API — and uploads the build to TestFlight for the
-# internal testers. Nothing that signs lives in the repository. Run by
-# .github/workflows/ios-testflight.yml, or by hand on a Mac from android/src/ios with the same
-# environment variables:
+# internal testers. `external` takes a build that is on TestFlight already, adds it to the
+# external group (EXTERNAL_GROUP, the public link) and submits it for Apple's beta review; it
+# needs the three App Store Connect variables only. Nothing that signs lives in the repository.
+# Run by .github/workflows/ios-testflight.yml and ios-beta-external.yml, or by hand on a Mac from
+# android/src/ios with the same environment variables:
 #
 #   APP_STORE_CONNECT_KEY_ID      the key's ID (10 characters)
 #   APP_STORE_CONNECT_ISSUER_ID   the issuer ID (a UUID)
@@ -13,7 +15,9 @@
 #   APPLE_TEAM_ID                 the team the bundle ids are registered under
 #   IOS_DIST_P12_BASE64           the Apple Distribution certificate with its private key, a .p12, base64
 #   IOS_DIST_P12_PASSWORD         the .p12's password
-#   BUILD_NUMBER                  optional; CFBundleVersion for this upload (CI: the run number)
+#   BUILD_NUMBER                  optional; CFBundleVersion for this upload (CI: the run number);
+#                                 for `external`, the build to hand on (empty: the newest)
+#   WHAT_TO_TEST                  optional, `external` only: the "What to Test" text the testers see
 #
 # Why not Xcode's automatic signing with -allowProvisioningUpdates: an archive signs with a
 # *development* profile first, and a development profile needs at least one registered device —
@@ -39,6 +43,9 @@ TARGETS = {
   "AgentWidgetExtension" => "io.github.nanomuse.app.AgentWidget"
 }.freeze
 KEYCHAIN = "nanomuse-ci".freeze
+# The external TestFlight group (its public link is in docs/ios.md); Apple reviews a version once
+# before the first build reaches it.
+EXTERNAL_GROUP = "nanoMuse Beta".freeze
 # The intermediates Apple issues its signing certificates under; the runner may lack them.
 WWDR = %w[AppleWWDRCAG3 AppleWWDRCAG4 AppleWWDRCAG5 AppleWWDRCAG6].freeze
 
@@ -148,6 +155,47 @@ platform :ios do
     )
   ensure
     delete_keychain(name: KEYCHAIN) if File.exist?(File.expand_path("~/Library/Keychains/#{KEYCHAIN}-db"))
+    FileUtils.rm_rf(scratch) if scratch
+  end
+
+  # A build the `beta` lane put on TestFlight, on to the external group: the "What to Test"
+  # note, the beta review submission (Apple's, once per version), the testers notified. The
+  # build must be processed (a few minutes after the upload); without BUILD_NUMBER the newest
+  # build of the app is taken.
+  lane :external do
+    key_id = ENV.fetch("APP_STORE_CONNECT_KEY_ID")
+    issuer_id = ENV.fetch("APP_STORE_CONNECT_ISSUER_ID")
+    build_number = ENV.fetch("BUILD_NUMBER", "").strip
+    notes = ENV.fetch("WHAT_TO_TEST", "").strip
+    scratch = Dir.mktmpdir("nanomuse-asc")
+
+    key_path = File.join(scratch, "AuthKey_#{key_id}.p8")
+    File.write(key_path, ENV.fetch("APP_STORE_CONNECT_KEY_P8"))
+    File.chmod(0o600, key_path)
+    api_key = app_store_connect_api_key(
+      key_id: key_id,
+      issuer_id: issuer_id,
+      key_filepath: key_path,
+      duration: 1200,
+      in_house: false
+    )
+
+    if notes.empty?
+      which = build_number.empty? ? "the newest build" : "build #{build_number}"
+      notes = "nanoMuse, #{which}. What changed: https://github.com/nano-muse/nanoMuse/releases"
+    end
+    upload_to_testflight(
+      api_key: api_key,
+      app_identifier: TARGETS["Minis"],
+      build_number: build_number.empty? ? nil : build_number,
+      distribute_only: true,
+      distribute_external: true,
+      groups: [EXTERNAL_GROUP],
+      changelog: notes,
+      notify_external_testers: true,
+      skip_waiting_for_build_processing: false
+    )
+  ensure
     FileUtils.rm_rf(scratch) if scratch
   end
 end
