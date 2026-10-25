@@ -138,11 +138,16 @@ export function grantRowWords(t: Translate, g: StandingGrant): { title: string; 
     case 'device': return { title: t('sgDevice', { name: g.target }), sub: [t('sgDeviceSub'), when].filter(Boolean).join(' · ') }
     case 'computer_app': {
       const hands = t('sgHands', { app: g.target })
+      // a title that has quotes of its own takes the inner kind inside ours: 「发『我讨厌你』」
+      const quoted = (name: string) => t('sgQuoted', { name: name.replace(/「/g, '『').replace(/」/g, '』') })
       switch (grantScope(g)) {
         case 'general': return { title: hands, sub: when }
-        case 'chat': return { title: g.sessionTitle ? t('sgQuoted', { name: g.sessionTitle.slice(0, 60) }) : t('sgChatUntitled'), sub: [hands, when].filter(Boolean).join(' · ') }
+        case 'chat': return {
+          title: g.sessionTitle ? quoted(g.sessionTitle.slice(0, 60)) : t('sgChatUntitled'),
+          sub: [hands, g.chatTasks?.length ? t('sgChatTasks', { tasks: g.chatTasks.map(quoted).join(t('sgListSep')) }) : '', when].filter(Boolean).join(' · '),
+        }
         case 'task': return {
-          title: g.scheduleTitle ? t('sgQuoted', { name: g.scheduleTitle.slice(0, 60) }) : t('sgTaskUntitled'),
+          title: g.scheduleTitle ? quoted(g.scheduleTitle.slice(0, 60)) : t('sgTaskUntitled'),
           sub: [g.scheduleGone ? t('sgTaskGone') : '', hands, g.sessionTitle ? t('sgTaskChat', { chat: g.sessionTitle.slice(0, 40) }) : '', when].filter(Boolean).join(' · '),
         }
       }

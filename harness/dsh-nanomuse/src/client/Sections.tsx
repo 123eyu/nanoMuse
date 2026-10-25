@@ -102,7 +102,7 @@ export function makeComputerSection(t: Translate) {
             h('span', { className: 'nm-row-sub nm-wrap' }, t('cuRiskNote'))))),
       // "always allow" given on the stage, per app (C2): listed here by where it holds, revocable here
       h('h2', null, t('pfApprovalsAlways')),
-      groupGrants(standingGrants({ grants: live.grants, goneSchedules: live.goneSchedules })).map(({ scope, grants }) => {
+      groupGrants(standingGrants({ grants: live.grants, goneSchedules: live.goneSchedules, chatTasks: live.chatTasks })).map(({ scope, grants }) => {
             const head = grantGroupWords(t, scope)
             return h('div', { key: scope, className: 'nm-card' },
               h('div', { className: 'nm-row' },

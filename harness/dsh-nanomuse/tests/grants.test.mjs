@@ -149,3 +149,11 @@ test('the own window of nanoMuse is never an app to allow', () => {
   assert.equal(isOwnApp('微信 (com.tencent.xinWeChat)'), false)
   assert.equal(isOwnApp(''), false)
 })
+
+test('a grant in one chat lists the scheduled tasks of that chat, which it covers too', () => {
+  const grants = [{ id: 'c', target: 'computer_app:WeChat', at: 1, sessionId: 's1', sessionTitle: 'From iPhone' }, { id: 't', target: 'computer_app:WeChat', at: 2, sessionId: 's1', scheduleId: 'schedule-a' }]
+  const [chat, task] = standingGrants({ grants, chatTasks: { s1: ['Morning note'] } })
+  assert.deepEqual(chat.chatTasks, ['Morning note'])
+  assert.equal(task.chatTasks, undefined)
+  assert.equal(standingGrants({ grants }).at(0).chatTasks, undefined)
+})

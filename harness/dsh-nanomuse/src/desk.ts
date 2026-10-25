@@ -160,6 +160,8 @@ export interface StandingGrant {
   scheduleTitle?: string
   /** That task was deleted: the grant no longer does anything and is listed for revoking. */
   scheduleGone?: boolean
+  /** For a grant in one chat: the titles of the scheduled tasks in that chat, which it covers too. */
+  chatTasks?: string[]
   /** When it was given; 0 when the store does not say (the switch). */
   at: number
 }
@@ -169,14 +171,15 @@ export const DEVICE_GRANT_PREFIX = 'device:'
 
 /**
  * Every remembered permission as one list: the hands' grants, the trusted devices, the
- * remote-control switch. `goneSchedules` are the tasks the schedule service no longer has.
+ * remote-control switch. `goneSchedules` are the tasks the schedule service no longer has;
+ * `chatTasks` the titles of the tasks in each chat a grant is limited to, by session id.
  */
-export function standingGrants(input: { grants?: readonly Grant[]; trusted?: readonly { id: string; name: string; at: number }[]; remoteControl?: boolean; goneSchedules?: readonly string[] }): StandingGrant[] {
+export function standingGrants(input: { grants?: readonly Grant[]; trusted?: readonly { id: string; name: string; at: number }[]; remoteControl?: boolean; goneSchedules?: readonly string[]; chatTasks?: Readonly<Record<string, readonly string[]>> }): StandingGrant[] {
   const gone = new Set(input.goneSchedules ?? [])
   const out: StandingGrant[] = []
   if (input.remoteControl === true) out.push({ id: REMOTE_CONTROL_GRANT_ID, kind: 'remote_control', tier: 'highest', target: '', at: 0 })
   for (const d of input.trusted ?? []) out.push({ id: `${DEVICE_GRANT_PREFIX}${d.id}`, kind: 'device', tier: 'confirm', target: d.name || d.id, at: d.at })
-  for (const g of input.grants ?? []) out.push({ id: g.id, kind: 'computer_app', tier: 'confirm', target: appLabel(g.target.replace(/^computer_app:/, '')), at: g.at, ...(g.sessionId ? { sessionId: g.sessionId, sessionTitle: g.sessionTitle ?? '' } : {}), ...(g.scheduleId ? { scheduleId: g.scheduleId, scheduleTitle: g.scheduleTitle ?? '', ...(gone.has(g.scheduleId) ? { scheduleGone: true } : {}) } : {}) })
+  for (const g of input.grants ?? []) out.push({ id: g.id, kind: 'computer_app', tier: 'confirm', target: appLabel(g.target.replace(/^computer_app:/, '')), at: g.at, ...(g.sessionId ? { sessionId: g.sessionId, sessionTitle: g.sessionTitle ?? '' } : {}), ...(g.scheduleId ? { scheduleId: g.scheduleId, scheduleTitle: g.scheduleTitle ?? '', ...(gone.has(g.scheduleId) ? { scheduleGone: true } : {}) } : {}), ...(g.sessionId && !g.scheduleId && input.chatTasks?.[g.sessionId]?.length ? { chatTasks: [...input.chatTasks[g.sessionId]!] } : {}) })
   return out
 }
 

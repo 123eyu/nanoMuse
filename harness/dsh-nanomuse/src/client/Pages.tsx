@@ -86,7 +86,7 @@ export function makePermissionsSection(t: Translate) {
  */
 function StandingGrants({ t, live }: { t: Translate; live: Live }): ReactNode {
   const [busy, setBusy] = useState<string | undefined>()
-  const groups = groupGrants(standingGrants({ grants: live.grants, trusted: live.hub.trusted, remoteControl: live.hub.remoteControl, goneSchedules: live.goneSchedules }))
+  const groups = groupGrants(standingGrants({ grants: live.grants, trusted: live.hub.trusted, remoteControl: live.hub.remoteControl, goneSchedules: live.goneSchedules, chatTasks: live.chatTasks }))
   const revoke = (id: string) => {
     setBusy(id)
     void call('grants/revoke', { id }).catch(() => undefined).finally(() => setBusy(undefined))

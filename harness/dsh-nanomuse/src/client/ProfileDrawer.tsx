@@ -106,7 +106,7 @@ function Drawer({ t, stop, openSchedules, useSessions, useSessionStatus }: Profi
   if (editing === 'name') body = h(NameEditor, { t, profile: live.profile, onDone: () => setEditing('none') })
   else if (editing === 'look') body = h(LookEditor, { t, profile: live.profile, onDone: () => setEditing('none') })
   else if (tab === 'activity') body = h(Activity, { t, name, stop, useSessions, open: (id) => setDetail(id) })
-  else if (tab === 'approvals') body = h(Approvals, { t, name, approvals: prefs.approvals, grants: live.grants, goneSchedules: live.goneSchedules })
+  else if (tab === 'approvals') body = h(Approvals, { t, name, approvals: prefs.approvals, grants: live.grants, goneSchedules: live.goneSchedules, chatTasks: live.chatTasks })
   else if (tab === 'reminders') body = h(Reminders, { t, name, openSchedules: () => { profileBus.close(); openSchedules() } })
   else body = h(Identity, { t, name, onEditName: () => setEditing('name') })
 
@@ -243,7 +243,7 @@ function Activity({ t, name, stop, useSessions, open }: { t: Translate; name: st
         : h('span', { className: 'nm-pf-row-time' }, clockLabel(r.at, rooms.lang)))))))
 }
 
-function Approvals({ t, name, approvals, grants, goneSchedules }: { t: Translate; name: string; approvals: { at: number; toolName: string; reason: string; outcome: 'allowed' | 'rejected' }[]; grants: Grant[]; goneSchedules: string[] }): ReactNode {
+function Approvals({ t, name, approvals, grants, goneSchedules, chatTasks }: { t: Translate; name: string; approvals: { at: number; toolName: string; reason: string; outcome: 'allowed' | 'rejected' }[]; grants: Grant[]; goneSchedules: string[]; chatTasks: Record<string, string[]> }): ReactNode {
   const [openRow, setOpenRow] = useState<number | null>(null)
   const openPermissions = () => { profileBus.close(); settingsBus.openSection?.(COMPUTER_SECTION) }
   const manage = h('div', { className: 'nm-pf-row nm-clickable', role: 'button', tabIndex: 0, onClick: openPermissions, onKeyDown: (e: { key: string; preventDefault(): void }) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPermissions() } } },
@@ -252,7 +252,7 @@ function Approvals({ t, name, approvals, grants, goneSchedules }: { t: Translate
     h('span', { className: 'nm-pf-row-chev' }, h(IconChevronRight, { size: 16 })))
   // the standing grants first (the phone's list), by where they hold, then what was answered on cards
   const standing = h(Fragment, null,
-        groupGrants(standingGrants({ grants, goneSchedules })).map(({ scope, grants: group }) => h(Fragment, { key: scope },
+        groupGrants(standingGrants({ grants, goneSchedules, chatTasks })).map(({ scope, grants: group }) => h(Fragment, { key: scope },
           h('div', { className: 'nm-pf-day' }, grantGroupWords(t, scope).title),
           group.length === 0 ? h('p', { className: 'nm-pf-empty' }, grantGroupWords(t, scope).none) : null,
           group.map((g) => {
