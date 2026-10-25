@@ -1,4 +1,4 @@
-import { ArrowUp, ChevronDown, FileText, Loader2, Menu, MessageSquarePlus, Monitor, MonitorSmartphone, Moon, Phone, Plus, Smartphone, Table2, Trash2, Wand2, X } from "lucide-react";
+import { ArrowUp, ChevronDown, FileText, Loader2, Menu, MessageSquarePlus, Monitor, MonitorSmartphone, Moon, Phone, Plus, Smartphone, Square, Table2, Trash2, Wand2, X } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { api, fileUrl } from "../api";
 import { AllowanceHeadsUp } from "../components/AllowanceWays";
@@ -89,6 +89,16 @@ export function ChatScreen() {
       .catch((e: Error) => toast(e.message || t("Could not send")));
   };
   const focusComposer = () => window.dispatchEvent(new Event("nanomuse:quick-chat"));
+  // the stop the activity sheet offers, from the composer: end the run in progress and
+  // drop what was queued behind it; ok:false means the race went to the run finishing
+  const stopActive = async () => {
+    try {
+      const r = await api.stopThread(activeThread);
+      if (!r.ok) toast(t("Nothing to stop"));
+    } catch (e) {
+      toast((e as Error).message);
+    }
+  };
 
   // A task this browser saw through (contract C1): busy → idle, the turn started by the person
   // here (a `user` bubble, not a background notice or another device's ask) and ended with a
@@ -324,6 +334,7 @@ export function ChatScreen() {
         name={name}
         busy={!!thread?.busy && pendingApprovals === 0}
         waiting={events.some((e) => e.type === "question" && e.status === "pending")}
+        onStop={stopActive}
         onSend={(text, files) =>
           send(activeThread, text, files).catch((e: Error) => {
             toast(e.message || t("Could not send"));
@@ -706,20 +717,23 @@ function EmptyChat({ name, device, onSend }: { name: string; device?: string; on
   );
 }
 
-function Composer({
+export function Composer({
   name,
   busy,
   waiting,
   onSend,
+  onStop,
 }: {
   name: string;
   busy: boolean;
   waiting: boolean;
   onSend: (text: string, files: string[]) => Promise<void>;
+  onStop?: () => Promise<void>;
 }) {
   const { state, draft, draftFiles, toast } = useStore();
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [stopping, setStopping] = useState(false);
   // voice input: the words recognised so far replace what dictation put in the box, after
   // whatever was typed before the mic was tapped
   const typedBefore = useRef("");
@@ -842,6 +856,16 @@ function Composer({
   const pickDevice = (d: HubDevice) => {
     setText(`@${d.name} `);
     ref.current?.focus();
+  };
+
+  // while the agent works with an empty box, the send disc becomes a stop disc: the same
+  // stop the activity sheet offers, one tap closer. Text in the box keeps send — what is
+  // sent while busy is queued and picked up, not lost.
+  const canStop = busy && !!onStop && !text.trim() && attached.length === 0 && !uploading && !sending;
+  const stop = () => {
+    if (!onStop || stopping) return;
+    setStopping(true);
+    onStop().finally(() => setStopping(false));
   };
 
   const submit = (e?: FormEvent) => {
@@ -989,19 +1013,31 @@ function Composer({
           className="flex-1 resize-none bg-transparent px-1 py-2 text-[15px] leading-[1.4] outline-none placeholder:text-muted"
         />
         {dictation.supported && <MicButton listening={dictation.listening} onClick={toggleDictation} />}
-        <button
-          type="submit"
-          disabled={(!text.trim() && attached.length === 0) || uploading}
-          aria-label={t("Send")}
-          className={cx(
-            // the ink disc of the phone: black with a white arrow in the light theme, inverted in the dark
-            "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition active:scale-95",
-            text.trim() || attached.length > 0 ? "bg-ink text-ink-fg" : "bg-surface-2 text-muted",
-            "disabled:opacity-60",
-          )}
-        >
-          <ArrowUp size={19} strokeWidth={2.5} />
-        </button>
+        {canStop ? (
+          <button
+            type="button"
+            onClick={stop}
+            disabled={stopping}
+            aria-label={t("Stop")}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-ink-fg transition active:scale-95 disabled:opacity-60"
+          >
+            <Square size={15} fill="currentColor" strokeWidth={0} />
+          </button>
+        ) : (
+          <button
+            type="submit"
+            disabled={(!text.trim() && attached.length === 0) || uploading}
+            aria-label={t("Send")}
+            className={cx(
+              // the ink disc of the phone: black with a white arrow in the light theme, inverted in the dark
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition active:scale-95",
+              text.trim() || attached.length > 0 ? "bg-ink text-ink-fg" : "bg-surface-2 text-muted",
+              "disabled:opacity-60",
+            )}
+          >
+            <ArrowUp size={19} strokeWidth={2.5} />
+          </button>
+        )}
       </div>
     </form>
   );
