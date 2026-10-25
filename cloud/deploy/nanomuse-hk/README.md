@@ -195,7 +195,8 @@ so the daily 6 GB travel over the private network and cost no traffic):
 
    ```bash
    ssh nanomuse-hk 'sudo apt-get install -y age rclone && umask 077 && age-keygen -o /tmp/backup-age.key 2>/dev/null \
-     && sudo install -m 600 /tmp/backup-age.key /root/backup-age.key && grep -o "age1[a-z0-9]*" /root/backup-age.key'
+     && sudo install -m 600 /tmp/backup-age.key /root/backup-age.key && shred -u /tmp/backup-age.key \
+     && sudo grep -o "age1[a-z0-9]*" /root/backup-age.key'
    ```
 
    prints the public key (`age1…`). Copy the private half out (`ssh nanomuse-hk sudo cat
