@@ -1516,6 +1516,8 @@ const zhCN: Record<string, string> = {
   "This account has used its tokens.": "这个账号的额度已经用完。",
   "This account is disabled.": "这个账号已被停用。",
   "That model is not offered here.": "这里不提供这个模型。",
+  "nanoMuse Cloud no longer generates pictures or clips. Add your own image or video provider and API key under Models.":
+    "nanoMuse Cloud 不再生成图片和视频。请在「模型」里添加自己的图片或视频服务商和 API key。",
   "Too many requests; slow down a little.": "请求太频繁了，稍微慢一点。",
   "The free allowance is used up. Invite a friend (the relay adds to both your allowances) or add your own model key; your sign-in and your devices keep working either way.":
     "免费额度已用完。邀请一位新用户（你和对方的额度都会增加），或者换成自己的 key；无论选哪个，登录和多设备功能都不受影响。",
