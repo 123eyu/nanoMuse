@@ -128,6 +128,8 @@ nanoMuse 只求一样回报：在 [GitHub](https://github.com/nano-muse/nanoMuse
 
 ## 自己部署 {#running-your-own}
 
+API 请求和错误计数在线程池中写入。响应会等待计数写入完成；计数写入等待数据库锁时，不占用事件循环。
+
 任何人都可以跑一个中继（给一家人、一个班、一家公司），然后把 App 指向它。服务器是 SQLite 之上的单个 Python 进程；一台装了 Docker 的 VPS 加一个域名就够了：
 
 ```bash

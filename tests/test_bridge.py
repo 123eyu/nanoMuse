@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import shlex
+import subprocess
 import sys
 import time
 from typing import Any
@@ -186,6 +188,53 @@ def test_the_bridge_does_not_send_its_call_through_the_environment_s_proxy(dead_
 
 
 # ----------------------------------------------------------------------------- where it runs
+def test_a_bridge_program_prints_utf8_whatever_the_console():
+    """The shell tool reads a command's output as UTF-8 (`nanomuse/tools/shell.py`), and a
+    Chinese Windows console is code page 936: the program printed GBK, so a name in Chinese
+    reached the model as replacement characters. ``PYTHONIOENCODING=gbk`` is that console on
+    any machine."""
+    import http.server
+    import threading
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_POST(self) -> None:  # noqa: N802 - the handler's name
+            self.rfile.read(int(self.headers.get("Content-Length") or 0))
+            body = json.dumps(
+                {"ok": True, "output": "张三 · 13800000000"}, ensure_ascii=False
+            ).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args: Any) -> None:
+            pass
+
+    server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        env = {
+            **os.environ,
+            "PYTHONIOENCODING": "gbk",
+            "PYTHONUTF8": "0",
+            "NANOMUSE_BRIDGE": f"http://127.0.0.1:{server.server_address[1]}",
+            "NANOMUSE_BRIDGE_TOKEN": "t0k",
+        }
+        code = (
+            "from nanomuse.bridge.cli import device_main; "
+            "raise SystemExit(device_main(['contacts', 'search', 'q=x']))"
+        )
+        result = subprocess.run(
+            [sys.executable, "-c", code], capture_output=True, env=env, timeout=120
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+    assert result.returncode == 0, result.stderr.decode("utf-8", "replace")
+    assert result.stdout.decode("utf-8").strip() == "张三 · 13800000000"
+
+
 def test_device_is_read_from_the_environment():
     assert device({}) is None
     dev = device(
