@@ -108,8 +108,10 @@ The relay is the code in [`cloud/`](../cloud/README.md). It stores:
 - since relay 0.28, a device may say in its hub hello which model it runs on
   (`llm {provider, model}`, the two ids and nothing else: never a key, an
   address or a setting), so the operator can see which providers people
-  configure for themselves. The apps of 1.0.6 and earlier say nothing, and a
-  later app says it only when the person runs their own key;
+  configure for themselves. The apps of 1.0.6 and earlier say nothing; from
+  1.0.7 every client says `cloud` while the account's models answer and the
+  catalogue's vendor id (`openrouter`, `bailian`) with the model id on a key
+  of its own;
 - a timeline of account events (signed in, failed sign-in, password set or
   changed, signed out, refused for budget, upstream error) with a
   device name, a model or an error code as the detail, never message content;
@@ -142,7 +144,7 @@ The relay is the code in [`cloud/`](../cloud/README.md). It stores:
   [Conversation sync](#conversation-sync) below has the shape.
 
 - since relay 0.29, **the record**: every chat turn the relay answered, in
-  full — the request as the relay sent it to the model (every message: the
+  full: the request as the relay sent it to the model (every message: the
   system prompt with your memory, SOUL and instructions, what you wrote, what
   tools returned; the tool definitions; the sampling fields) and the answer as
   the model gave it (content, reasoning, tool calls, finish reason, usage).
@@ -210,8 +212,8 @@ nothing more is stored (the place is computed when the page is drawn).
 ## The record
 
 Since relay 0.29 the relay keeps every chat turn it answered, in full, as the
-account's own data — so a person's devices show the same history with the
-screenshots in it, and so the operator can see a problem whole instead of
+account's own data, so that a person's devices show the same history with the
+screenshots in it, and the operator can see a problem whole instead of
 guessing from counts. A turn is:
 
 - the request as the relay sent it to the model: every message (the system
@@ -219,10 +221,13 @@ guessing from counts. A turn is:
   returned), the tool definitions, the sampling fields and the relay's
   defaults, with the model named as the app knows it and the relay's own
   `user` and `stream_options` left out;
-- the answer as the model gave it: the assistant's message whole — content,
-  reasoning, tool calls, finish reason — assembled from the stream when it
+- the answer as the model gave it: the assistant's message whole (content,
+  reasoning, tool calls, finish reason), assembled from the stream when it
   streamed, with the usage; a stream that broke off is kept with what arrived
-  and `status: partial`;
+  and `status: partial`, and `meta.ended` says why (relay 0.30):
+  `client_gone` is the app closing the stream (the person stopped it, or the
+  app gave up waiting), `upstream_timeout` and `broken` are the provider's
+  end;
 - the pictures, audio and clips, taken out of the messages and written once
   each to a file named by its SHA-256 (`MEDIA_DIR`, next to the database);
   `blob:sha256:<hex>` stands where each was and the turn's `meta.media` lists
@@ -240,15 +245,17 @@ copy of a chat); `RECORD_TURNS=0` on a relay you run keeps none of it.
 
 **Who reads it.** The account's devices: `GET /v1/turns` (newest first; paged
 with `before` and `before_id`; `conversation=` for one chat), `GET
-/v1/turns/{id}`, and the files at `GET /v1/blobs/{sha256}` — a file opens
+/v1/turns/{id}`, and the files at `GET /v1/blobs/{sha256}`; a file opens
 only for an account that holds a reference to it (one of its turns, its
 profile's clips, an upload of its own); knowing a hash opens nothing. The
 person's view leaves the address out. The operator: `GET /v1/admin/turns`,
-the export as JSON lines (`/v1/admin/turns/export`, account ids included —
+the export as JSON lines (`/v1/admin/turns/export`, account ids included:
 this is the account's data, not the training set, which stays
 `/v1/admin/samples/export` without them), one file at
 `/v1/admin/blobs/{sha256}`, and `GET /v1/admin/record` for the figures:
 turns and files in all and per day, the store against its cap.
+
+History and sample pages use the existing timestamp indexes to skip newer seconds before applying the insertion-order tie-break. Exports and the analytics backfill use the same paging boundary; no database migration is needed.
 
 **Turns on your own key.** From 1.0.7 an app that ran a turn on a key of its
 own sends it up afterwards, so the record is whole wherever the model was:
@@ -257,8 +264,14 @@ the hash is checked; `HEAD` first, or `known: true` in the answer, says
 another device already sent it), then `POST /v1/turns` with `model`,
 `messages` (references, or data URLs inline), `response: {message, usage?}`,
 and `provider`, `ts`, `conversation`, `id` and `status` as the app has
-them; the row says `source: own`. A reference to a file the account never put
-up is a 400 `unknown_blob`.
+them (with `status: partial`, `ended` in the app's word: `aborted`, `error`,
+`abandoned`); the row says `source: own`. A reference to a file the account
+never put up is a 400 `unknown_blob`. One account sends at most
+`RECORD_UPLOADS_PER_MINUTE` turns and files a minute (120; a 429
+`rate_limited` says to send the rest later) and holds at most
+`MEDIA_ACCOUNT_MAX_MB` of files (2048; a 413 `quota_exceeded`); past
+`MEDIA_MAX_GB` in all, nothing is taken from anyone until the hourly trim
+has run (507 `store_full`). Both are written off the request's loop.
 
 **The face's clips.** The same files carry the drawn face's clips between
 devices: the device that animated it puts the clips up and names them in the
@@ -268,13 +281,19 @@ the face: `clips: null`, another avatar or `DELETE /v1/me/profile` clears
 them.
 
 **How it goes.** *Settings → Data controls*' delete removes the record with
-the training turns — every turn of the account and every file only it
+the training turns: every turn of the account and every file only it
 referenced; deleting the account does the same; `RECORD_KEEP_DAYS` (0 on
 `cloud.nanomuse.cn`: kept until you delete it) sweeps older turns once an
 hour. The files are bounded by `MEDIA_MAX_GB`: past it the least recently
 used go first, the turns stay and show a reference to nothing where those
-pictures were. `/v1/me.contribute.record` tells the apps what is held:
-`{on, turns, own, files, media_bytes, keep_days}`.
+pictures were; a clip a profile wears is never trimmed. A file the disk would
+not let go of at the moment of a delete is tried again at every sweep until
+it is gone. `/v1/me.contribute.record` tells the apps what is held:
+`{on, turns, own, files, media_bytes, keep_days}`, and the answer to `POST
+/v1/me/contribute` carries the same `record`. The account page at `/app`
+shows the record (turns, own-key turns, files, how long the relay keeps
+them) above the *Help improve* switch, and offers the one delete whenever
+either holds anything.
 
 ## Conversation sync
 

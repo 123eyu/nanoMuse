@@ -98,6 +98,13 @@ object NanoMuseCloud {
     private const val KEY_ENDED = "cloud.sign_in_ended"
     private const val KEY_WARNED_GRANT = "cloud.warned_grant"
     private const val KEY_SAMPLES = "cloud.samples"
+    // 1.0.7: the record (relay 0.29) — every turn in full, whatever the switch says
+    private const val KEY_RECORD_ON = "cloud.record_on"
+    private const val KEY_RECORD_TURNS = "cloud.record_turns"
+    private const val KEY_RECORD_OWN = "cloud.record_own"
+    private const val KEY_RECORD_FILES = "cloud.record_files"
+    private const val KEY_RECORD_BYTES = "cloud.record_bytes"
+    private const val KEY_RECORD_KEEP_DAYS = "cloud.record_keep_days"
     /** The relay's menu and what lies beyond it, so the picker and the hands can tell them apart. */
     private const val KEY_MENU_IDS = "cloud.menu_ids"
     private const val KEY_CATALOG_IDS = "cloud.catalog_ids"
@@ -161,6 +168,20 @@ object NanoMuseCloud {
     /** One line of the account's own history (sign-ins, password changes, refusals). */
     data class Event(val ts: Long, val kind: String, val detail: String)
 
+    /**
+     * The record (relay 0.29): what the relay holds of this account's chats in full — turns,
+     * those answered on the person's own keys, the files (pictures) and their size, and how
+     * long a turn is kept (0 = until deleted). `on` is false on a relay that keeps none.
+     */
+    data class Record(
+        val on: Boolean = false,
+        val turns: Int = 0,
+        val own: Int = 0,
+        val files: Int = 0,
+        val mediaBytes: Long = 0,
+        val keepDays: Int = 0,
+    )
+
     /** What the settings page shows. Cached from the last `/v1/me` (or the sign-in itself). */
     data class Account(
         val channel: String,
@@ -221,6 +242,8 @@ object NanoMuseCloud {
          */
         val contribute: Boolean = false,
         val samples: Int = 0,
+        /** The record the relay keeps of this account (relay 0.29); null on an older relay. */
+        val record: Record? = null,
         /** How the relay starts new accounts (relay 0.9); null when it did not say. */
         val contributeDefaultOn: Boolean? = null,
         /** The relay's privacy policy; empty when it did not say. */
@@ -372,6 +395,14 @@ object NanoMuseCloud {
             inviteEarnedCny = p.getFloat(KEY_INVITE_EARNED, 0f).toDouble(),
             contribute = p.getBoolean(KEY_CONTRIBUTE, false),
             samples = p.getInt(KEY_SAMPLES, 0),
+            record = if (p.contains(KEY_RECORD_ON)) Record(
+                on = p.getBoolean(KEY_RECORD_ON, false),
+                turns = p.getInt(KEY_RECORD_TURNS, 0),
+                own = p.getInt(KEY_RECORD_OWN, 0),
+                files = p.getInt(KEY_RECORD_FILES, 0),
+                mediaBytes = p.getLong(KEY_RECORD_BYTES, 0),
+                keepDays = p.getInt(KEY_RECORD_KEEP_DAYS, 0),
+            ) else null,
             contributeDefaultOn = if (p.contains(KEY_CONTRIBUTE_DEFAULT)) p.getBoolean(KEY_CONTRIBUTE_DEFAULT, false) else null,
             privacyUrl = p.getString(KEY_PRIVACY_URL, "") ?: "",
         )
@@ -420,6 +451,7 @@ object NanoMuseCloud {
             .putBoolean(KEY_CONTRIBUTE, r.optBoolean("on", on))
             .putInt(KEY_SAMPLES, r.optInt("samples", 0))
         if (r.has("default_on")) e.putBoolean(KEY_CONTRIBUTE_DEFAULT, r.optBoolean("default_on", false))
+        putRecord(e, r.optJSONObject("record"))
         r.optString("privacy_url", "").takeIf { it.isNotBlank() }?.let { e.putString(KEY_PRIVACY_URL, it) }
         e.apply()
         account(context)!!
@@ -441,12 +473,81 @@ object NanoMuseCloud {
         return callBlocking(context, "PUT", "/v1/me/profile", body, token = key)
     }
 
-    /** Delete every turn the relay kept from this account; returns how many went. */
-    suspend fun deleteSamples(context: Context): Int = withContext(Dispatchers.IO) {
+    // ── the record (relay 0.29): files by hash, turns run on a key of one's own ──────────
+    // Blocking, for the workers that run no coroutine ([OwnTurns], [AvatarMotion]).
+
+    /** `HEAD /v1/blobs/{sha256}`: whether the account can already read the file (another device put it up). */
+    fun hasBlob(context: Context, sha256: String): Boolean {
         val key = apiKey(context) ?: throw CloudException("bad_key", "Not signed in")
-        val n = call(context, "DELETE", "/v1/me/samples", null, token = key).optInt("deleted", 0)
-        prefs(context).edit().putInt(KEY_SAMPLES, 0).apply()
-        n
+        val req = Request.Builder().url(baseUrl(context) + "/v1/blobs/$sha256").head()
+            .header("Authorization", "Bearer $key").header("User-Agent", "nanoMuse-Android/${BuildConfig.VERSION_NAME}").build()
+        val r = try { http.newCall(req).execute() } catch (e: IOException) { throw CloudException("unreachable", e.message ?: "unreachable") }
+        r.use { if (it.code == 404) return false; if (it.isSuccessful) return true; read(it) }
+        return false
+    }
+
+    /** `PUT /v1/blobs/{sha256}` with the bytes and their type; the relay stores a file once, whoever sends it. */
+    fun putBlob(context: Context, sha256: String, mime: String, data: ByteArray): JSONObject {
+        val key = apiKey(context) ?: throw CloudException("bad_key", "Not signed in")
+        val req = Request.Builder().url(baseUrl(context) + "/v1/blobs/$sha256")
+            .put(data.toRequestBody(mime.toMediaType()))
+            .header("Authorization", "Bearer $key").header("User-Agent", "nanoMuse-Android/${BuildConfig.VERSION_NAME}").build()
+        val r = try { http.newCall(req).execute() } catch (e: IOException) { throw CloudException("unreachable", e.message ?: "unreachable") }
+        return read(r)
+    }
+
+    /** `GET /v1/blobs/{sha256}`: the file's type and bytes, or null when the account has no such file. */
+    fun getBlob(context: Context, sha256: String): Pair<String, ByteArray>? {
+        val key = apiKey(context) ?: throw CloudException("bad_key", "Not signed in")
+        val req = Request.Builder().url(baseUrl(context) + "/v1/blobs/$sha256").get()
+            .header("Authorization", "Bearer $key").header("User-Agent", "nanoMuse-Android/${BuildConfig.VERSION_NAME}").build()
+        val r = try { http.newCall(req).execute() } catch (e: IOException) { throw CloudException("unreachable", e.message ?: "unreachable") }
+        r.use {
+            if (it.code == 404) return null
+            if (!it.isSuccessful) read(it)
+            val body = it.body ?: return null
+            return (body.contentType()?.toString()?.substringBefore(';')?.trim() ?: "application/octet-stream") to body.bytes()
+        }
+    }
+
+    /** `POST /v1/turns`: a turn this phone ran on a key of the person's own, for the account's record (docs/cloud.md). */
+    fun postTurn(context: Context, turn: JSONObject): JSONObject {
+        val key = apiKey(context) ?: throw CloudException("bad_key", "Not signed in")
+        val req = request(context, "POST", "/v1/turns", turn, key).newBuilder()
+            .header(CloudHeaders.DEVICE, io.github.nanomuse.hub.Hub.deviceId(context).take(80)).build()
+        val r = try { http.newCall(req).execute() } catch (e: IOException) { throw CloudException("unreachable", e.message ?: "unreachable") }
+        return read(r)
+    }
+
+    /** What one tap under Data controls removed: training turns, and (relay 0.29) the record's turns and files. */
+    data class Deleted(val samples: Int, val turns: Int, val files: Int)
+
+    /**
+     * Delete everything the relay kept of this account's chats: the training turns and, on a
+     * relay from 0.29 on, the record with them (every turn in full and every file only this
+     * account referenced). Returns what went.
+     */
+    suspend fun deleteSamples(context: Context): Deleted = withContext(Dispatchers.IO) {
+        val key = apiKey(context) ?: throw CloudException("bad_key", "Not signed in")
+        val r = call(context, "DELETE", "/v1/me/samples", null, token = key)
+        val e = prefs(context).edit().putInt(KEY_SAMPLES, 0)
+        if (prefs(context).contains(KEY_RECORD_ON)) e.putInt(KEY_RECORD_TURNS, 0).putInt(KEY_RECORD_OWN, 0).putInt(KEY_RECORD_FILES, 0).putLong(KEY_RECORD_BYTES, 0)
+        e.apply()
+        Deleted(samples = r.optInt("deleted", 0), turns = r.optInt("turns", 0), files = r.optInt("files", 0))
+    }
+
+    /** The record's figures as `/v1/me` and `/v1/me/contribute` carry them (relay 0.29); absent on an older relay. */
+    private fun putRecord(e: android.content.SharedPreferences.Editor, record: JSONObject?) {
+        if (record == null) {
+            e.remove(KEY_RECORD_ON).remove(KEY_RECORD_TURNS).remove(KEY_RECORD_OWN).remove(KEY_RECORD_FILES).remove(KEY_RECORD_BYTES).remove(KEY_RECORD_KEEP_DAYS)
+            return
+        }
+        e.putBoolean(KEY_RECORD_ON, record.optBoolean("on", false))
+            .putInt(KEY_RECORD_TURNS, record.optInt("turns", 0))
+            .putInt(KEY_RECORD_OWN, record.optInt("own", 0))
+            .putInt(KEY_RECORD_FILES, record.optInt("files", 0))
+            .putLong(KEY_RECORD_BYTES, record.optLong("media_bytes", 0))
+            .putInt(KEY_RECORD_KEEP_DAYS, record.optInt("keep_days", 0))
     }
 
     /**
@@ -1025,6 +1126,8 @@ object NanoMuseCloud {
                 // relay 0.9 says how new accounts start; an older one does not, and the page says nothing
                 val ct = reply.optJSONObject("contribute")
                 if (ct != null && ct.has("default_on")) e.putBoolean(KEY_CONTRIBUTE_DEFAULT, ct.optBoolean("default_on", false)) else e.remove(KEY_CONTRIBUTE_DEFAULT)
+                // relay 0.29: the record's figures
+                putRecord(e, ct?.optJSONObject("record"))
             }
             .putLong(KEY_CHECKED_AT, System.currentTimeMillis())
             .apply()
@@ -1093,6 +1196,7 @@ object NanoMuseCloud {
             .remove(KEY_ACCOUNT_ID).remove(KEY_CREATED_AT).remove(KEY_HAS_PASSWORD).remove(KEY_SESSIONS).remove(KEY_VIA).remove(KEY_REGION).remove(KEY_USAGE)
             .remove(KEY_INVITE_CODE).remove(KEY_INVITE_URL).remove(KEY_INVITES).remove(KEY_INVITE_BONUS).remove(KEY_INVITE_EARNED)
             .remove(KEY_CONTRIBUTE).remove(KEY_SAMPLES).remove(KEY_CONTRIBUTE_DEFAULT).remove(KEY_PRIVACY_URL).remove(KEY_FRESH).remove(KEY_WARNED_GRANT)
+            .remove(KEY_RECORD_ON).remove(KEY_RECORD_TURNS).remove(KEY_RECORD_OWN).remove(KEY_RECORD_FILES).remove(KEY_RECORD_BYTES).remove(KEY_RECORD_KEEP_DAYS)
             .remove(KEY_MENU_IDS).remove(KEY_CATALOG_IDS).remove(KEY_RECOMMENDED).remove(KEY_SIGHTED).remove(KEY_CHAT_IDS).remove(KEY_GUI_IDS).remove(KEY_MODELS_AT)
             .apply()
         ProfileSync.forget(context)

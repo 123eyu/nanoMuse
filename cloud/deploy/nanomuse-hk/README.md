@@ -11,7 +11,7 @@ relay itself is [`cloud/`](../../README.md).
 | relay | `/opt/nanomuse/relay/` — `docker-compose.yml`, `.env`, `src/`, `data/cloud.db` |
 | container | `nanomuse-relay`, on the `showcase_edge` network, no published ports; runs as uid 10001, which owns `data/` on the host (`deploy.sh` keeps it so) |
 | TLS / vhost | `demo/showcase/sites.d/cloud.nanomuse.cn.caddy` → `nanomuse-relay:8787` |
-| backups | `/opt/nanomuse/backups/cloud-*.db.gz`, daily 04:10 UTC, 30 days (`backup.sh`, systemd timer) |
+| backups | `/opt/nanomuse/backups/cloud-*.db.gz`, daily 04:10 UTC, 14 days (`KEEP_DAYS` in the service unit; the script's own default is 30), and a mirror of the record's files in `/opt/nanomuse/backups/blobs/` (`backup.sh`, systemd timer) |
 | self-check | `selfcheck.sh` every 10 min (systemd timer): the public `/healthz`, the relay's `/v1/admin/health` (aggregates only: requests under way, hub counters, the hour's upstream errors, content-check refusals and refusals, the database), free disk, and the age of the newest `cloud-*.db.gz` under `/opt/nanomuse/backups` (a problem when it is older than 48 hours, `BACKUP_MAX_H`, or there is none) — one line in the journal (`journalctl -t nanomuse-selfcheck`); with `ALERT_URL` in `.env` (a webhook taking `{"text": …}`) a problem is posted there, once an hour per problem |
 | admin | `https://cloud.nanomuse.cn/app/admin/`, token in `/opt/nanomuse/relay/ADMIN_TOKEN.txt` (0600) |
 | DNS | DNSPod: `cloud` A → the box's address, same as the apex |
@@ -136,6 +136,10 @@ ssh nanomuse-hk 'cd /opt/nanomuse/relay && docker compose stop \
      | docker compose run --rm --no-deps -T relay sh -c "cat > data/cloud.db && rm -f data/cloud.db-wal data/cloud.db-shm" \
   && docker compose start'
 ```
+
+The record's files go back with `sudo rsync -a /opt/nanomuse/backups/blobs/
+/opt/nanomuse/relay/data/blobs/` (then `sudo chown -R 10001:10001` on it); a
+turn whose file is missing is still read back, with the reference and no picture.
 
 No `sudo`: the copies under `/opt/nanomuse/backups` belong to the deploying
 user (`backup.sh` hands each one over, mode 0600; `BACKUP_OWNER` in the

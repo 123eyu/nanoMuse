@@ -120,7 +120,10 @@ fun DataControlsScreen(
                 )
             }
             val privacy = a?.privacyUrl?.takeIf { it.isNotBlank() } ?: NanoMuseCloud.PRIVACY_URL
+            val record = a?.record?.takeIf { signedIn && it.on }
             val caption = buildString {
+                // the record (relay 0.29) is kept whatever the switch says: it is explained first
+                if (record != null) append(stringResource(R.string.nm_data_record_why)).append(' ')
                 append(stringResource(R.string.nm_data_why))
                 when {
                     !signedIn -> append(' ').append(stringResource(R.string.nm_data_sign_in))
@@ -128,6 +131,18 @@ fun DataControlsScreen(
                     a?.contributeDefaultOn == false -> append(' ').append(stringResource(R.string.nm_data_default_off))
                 }
                 if (signedIn && (a?.samples ?: 0) > 0) append(' ').append(stringResource(R.string.nm_data_kept, a!!.samples))
+                if (record != null) {
+                    append(' ')
+                    append(
+                        if (record.turns > 0) stringResource(R.string.nm_data_record_held, record.turns, record.own, record.files)
+                        else stringResource(R.string.nm_data_record_empty),
+                    )
+                    append(' ')
+                    append(
+                        if (record.keepDays > 0) stringResource(R.string.nm_data_record_keep_days, record.keepDays)
+                        else stringResource(R.string.nm_data_record_keep_forever),
+                    )
+                }
             }
             MuseCaption(text = caption)
             Text(
@@ -140,14 +155,16 @@ fun DataControlsScreen(
                     .padding(vertical = 4.dp),
             )
 
-            if (signedIn && (a?.samples ?: 0) > 0) {
+            // the delete is there whenever the relay holds anything of the account: training turns or the record
+            val held = maxOf(a?.samples ?: 0, record?.turns ?: 0)
+            if (signedIn && held > 0) {
                 MuseGap()
                 MuseCard {
                     MuseRow(
                         title = stringResource(R.string.nm_data_delete),
                         icon = Icons.Outlined.DeleteOutline,
                         titleColor = MaterialTheme.colorScheme.error,
-                        value = stringResource(R.string.nm_data_turns, a!!.samples),
+                        value = stringResource(R.string.nm_data_turns, held),
                         chevron = false,
                         onClick = { if (!busy) confirmDelete = true },
                     )
@@ -190,9 +207,11 @@ fun DataControlsScreen(
                         busy = true
                         scope.launch {
                             try {
-                                val n = NanoMuseCloud.deleteSamples(context)
-                                notice = context.getString(R.string.nm_data_deleted, n)
+                                val gone = NanoMuseCloud.deleteSamples(context)
+                                notice = context.getString(R.string.nm_data_deleted, gone.turns, gone.files, gone.samples)
                                 account = NanoMuseCloud.account(context)
+                                // the relay's own count of what is left (nothing, or what arrived meanwhile)
+                                runCatching { account = NanoMuseCloud.refresh(context) }
                             } catch (e: Exception) {
                                 error = NanoMuseCloud.describe(context, e)
                             }

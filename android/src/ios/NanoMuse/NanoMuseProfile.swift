@@ -174,6 +174,8 @@ enum NanoMuseRelayMedia {
         var face: [String: String]?
         /// Contract C3: which device of the account connected what (raw entries).
         var connectors: [[String: Any]]
+        /// The face's short clips as the relay holds them (relay 0.29): mood -> `{sha256, mime, bytes}`.
+        var clips: [String: [String: Any]] = [:]
     }
 
     @MainActor
@@ -191,7 +193,8 @@ enum NanoMuseRelayMedia {
             faceId: reply["face_id"] as? String ?? "",
             hasFace: (reply["has_face"] as? Bool) ?? (reply["face"] != nil && !(reply["face"] is NSNull)),
             face: reply["face"] as? [String: String],
-            connectors: reply["connectors"] as? [[String: Any]] ?? []
+            connectors: reply["connectors"] as? [[String: Any]] ?? [],
+            clips: reply["clips"] as? [String: [String: Any]] ?? [:]
         )
     }
 
@@ -221,6 +224,28 @@ enum NanoMuseRelayMedia {
         var samples: Int
         var defaultOn: Bool
         var privacyURL: String
+        /// The account's record on this relay (relay 0.29); nil from an older relay.
+        var record: Record?
+    }
+
+    /// `contribute.record` of `/v1/me`: what the relay keeps of the account's turns in full
+    /// (Android: `NanoMuseCloud.Record`).
+    struct Record: Equatable {
+        var on: Bool
+        var turns: Int
+        /// Turns answered on the person's own key and added by the app.
+        var own: Int
+        var files: Int
+        var mediaBytes: Int64
+        /// 0: kept until deleted.
+        var keepDays: Int
+    }
+
+    /// What `DELETE /v1/me/samples` removed: the training turns, the record's turns, the files.
+    struct Deleted: Equatable {
+        var samples: Int
+        var turns: Int
+        var files: Int
     }
 
     @MainActor
@@ -240,19 +265,93 @@ enum NanoMuseRelayMedia {
     }
 
     @MainActor
-    static func deleteSamples() async throws -> Int {
+    static func deleteSamples() async throws -> Deleted {
         let request = try authorized("DELETE", "/v1/me/samples")
         let reply = try await perform(request)
-        return (reply["deleted"] as? Int) ?? Int((reply["deleted"] as? Double) ?? 0)
+        return Deleted(samples: int(reply["deleted"]), turns: int(reply["turns"]), files: int(reply["files"]))
+    }
+
+    private static func int(_ value: Any?) -> Int {
+        if let n = value as? NSNumber { return n.intValue }
+        if let s = value as? String { return Int(s) ?? 0 }
+        return 0
     }
 
     private static func parseContribute(_ d: [String: Any]) -> Contribute {
-        Contribute(
+        var record: Record?
+        if let r = d["record"] as? [String: Any] {
+            record = Record(
+                on: (r["on"] as? Bool) ?? false,
+                turns: int(r["turns"]), own: int(r["own"]), files: int(r["files"]),
+                mediaBytes: (r["media_bytes"] as? NSNumber)?.int64Value ?? 0,
+                keepDays: int(r["keep_days"])
+            )
+        }
+        return Contribute(
             on: (d["on"] as? Bool) ?? false,
-            samples: (d["samples"] as? Int) ?? Int((d["samples"] as? Double) ?? 0),
+            samples: int(d["samples"]),
             defaultOn: (d["default_on"] as? Bool) ?? false,
-            privacyURL: d["privacy_url"] as? String ?? ""
+            privacyURL: d["privacy_url"] as? String ?? "",
+            record: record
         )
+    }
+
+    // MARK: The record (relay 0.29): files by hash, turns answered on the person's own key
+
+    /// Whether the relay already has the file (`HEAD /v1/blobs/<sha256>`).
+    @MainActor
+    static func hasBlob(_ sha256: String) async throws -> Bool {
+        let request = try authorized("HEAD", "/v1/blobs/\(sha256)")
+        let (_, response) = try await raw(request, accept: [200, 404])
+        return response.statusCode == 200
+    }
+
+    /// Puts the file; the relay checks the hash. Idempotent.
+    @MainActor
+    static func putBlob(_ sha256: String, mime: String, data: Data) async throws {
+        var request = try authorized("PUT", "/v1/blobs/\(sha256)")
+        request.setValue(mime, forHTTPHeaderField: "Content-Type")
+        request.httpBody = data
+        _ = try await perform(request)
+    }
+
+    /// The file back, with its type; nil when the relay has no such file for this account.
+    @MainActor
+    static func getBlob(_ sha256: String) async throws -> (mime: String, data: Data)? {
+        let request = try authorized("GET", "/v1/blobs/\(sha256)")
+        let (data, response) = try await raw(request, accept: [200, 404])
+        guard response.statusCode == 200 else { return nil }
+        return (response.value(forHTTPHeaderField: "Content-Type") ?? "application/octet-stream", data)
+    }
+
+    /// One finished turn answered on the person's own key, into the account's record
+    /// (`POST /v1/turns`; docs/cloud.md "The record"). Files it names must be put first.
+    @MainActor
+    static func postTurn(_ turn: [String: Any]) async throws {
+        var request = try authorized("POST", "/v1/turns")
+        request.setValue("application/json; charset=utf-8", forHTTPHeaderField: "Content-Type")
+        request.setValue(NanoMuseHub.shared.deviceId, forHTTPHeaderField: NanoMuseCloudHeaders.device)
+        request.httpBody = try JSONSerialization.data(withJSONObject: turn)
+        _ = try await perform(request)
+    }
+
+    /// A request whose answer is bytes, not JSON; statuses outside `accept` are relay errors.
+    private static func raw(_ request: URLRequest, accept: Set<Int>) async throws -> (Data, HTTPURLResponse) {
+        let result: (Data, URLResponse)
+        do {
+            result = try await session.data(for: request)
+        } catch {
+            throw NanoMuseCloudError(code: "unreachable", message: error.localizedDescription, status: 0)
+        }
+        guard let response = result.1 as? HTTPURLResponse else {
+            throw NanoMuseCloudError(code: "bad_reply", message: "No HTTP response", status: 0)
+        }
+        if accept.contains(response.statusCode) { return (result.0, response) }
+        let object = (try? JSONSerialization.jsonObject(with: result.0)) as? [String: Any]
+        let err = object?["error"] as? [String: Any]
+        let code = (err?["code"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "http_\(response.statusCode)"
+        let message = (err?["message"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "HTTP \(response.statusCode)"
+        throw NanoMuseCloudError(code: code, message: message, status: response.statusCode)
     }
 }
 
@@ -273,6 +372,9 @@ final class NanoMuseProfileSync: ObservableObject {
         /// The name the relay last heard from or gave this phone (Android: `KEY_PUSHED_NAME`).
         /// A local name that differs from it is a rename not yet pushed, and a pull must not undo it.
         static let pushedName = "nanomuse.profile.pushed_name"
+        /// The face's clips as the relay has them, mood -> {sha256, mime, bytes} (relay 0.29), so a
+        /// clip shared from here is added to the others', not sent in their place.
+        static let clips = "nanomuse.profile.clips"
     }
 
     /// Android's `PUSH_DELAY_MS`: a rename is pushed once the typing has settled.
@@ -282,6 +384,10 @@ final class NanoMuseProfileSync: ObservableObject {
     @Published private(set) var lastError: String?
 
     private var pulling = false
+    /// The account the pull or push in flight is for (`NanoMuseAccountData.current`). A reply that
+    /// lands after the phone moved to another account, or signed out, is dropped: it would write
+    /// account A's name, face and connections over B's (Android: `ProfileSync.accountOf`).
+    private var who: String { NanoMuseAccountData.shared.current }
     /// True while a pulled name is being written to SOUL.md, so the write does not push itself back.
     private var applying = false
     private var namePush: Task<Void, Never>?
@@ -353,10 +459,12 @@ final class NanoMuseProfileSync: ObservableObject {
     func pull() {
         guard NanoMuseCloud.isSignedIn, !pulling else { return }
         pulling = true
+        let forAccount = who
         Task { @MainActor [self] in
             defer { pulling = false }
             do {
                 let head = try await NanoMuseRelayMedia.profile(withFace: false)
+                guard forAccount == who else { return }
                 let known = UserDefaults.standard.integer(forKey: Keys.rev)
                 // the other devices' connections come with every read, whatever the rev
                 NanoMuseSharedConnectors.shared.absorb(["connectors": head.connectors])
@@ -390,9 +498,13 @@ final class NanoMuseProfileSync: ObservableObject {
                 } else if head.hasFace {
                     if head.faceId == store.meta.faceId && store.hasCustomFace {
                         UserDefaults.standard.set(head.rev, forKey: Keys.rev)
+                        // the same face; another device may have drawn a clip of it since
+                        remember(clips: head.clips)
+                        await adoptClips(head.clips, forAccount: forAccount)
                         return
                     }
                     let full = try await NanoMuseRelayMedia.profile(withFace: true)
+                    guard forAccount == who else { return }
                     var stills: [NanoMuseMood: UIImage] = [:]
                     for (key, b64) in full.face ?? [:] {
                         if let mood = NanoMuseMood(rawValue: key), let bytes = Data(base64Encoded: b64), let img = UIImage(data: bytes) {
@@ -401,16 +513,23 @@ final class NanoMuseProfileSync: ObservableObject {
                     }
                     if stills[.idle] != nil {
                         store.wear(remote: stills, faceId: full.faceId, description: full.description, style: full.style)
-                        // nanoMuse: clips are per device — the old ones went with `wear`; new ones when enabled (contract C3)
+                        // the clips travel with the face (relay 0.29): the ones another device drew come
+                        // down as files; whatever mood is still missing is drawn here when enabled
+                        remember(clips: full.clips)
+                        await adoptClips(full.clips, forAccount: forAccount)
                         NanoMuseAvatarMotion.shared.animateIfEnabled()
                     }
                 } else if head.rev > 0, store.source != .dragon {
                     // Another device went back to the dragon: the drawn face or the emoji look goes.
                     store.reset(sync: false)
+                    remember(clips: [:])
+                } else {
+                    remember(clips: [:])
                 }
                 UserDefaults.standard.set(head.rev, forKey: Keys.rev)
                 lastError = nil
             } catch {
+                guard forAccount == who else { return }
                 lastError = NanoMuseCloud.describe(error)
             }
         }
@@ -420,6 +539,7 @@ final class NanoMuseProfileSync: ObservableObject {
     func faceChanged() {
         guard NanoMuseCloud.isSignedIn else { return }
         syncing = true
+        let forAccount = who
         Task { @MainActor [self] in
             defer { syncing = false }
             do {
@@ -452,11 +572,95 @@ final class NanoMuseProfileSync: ObservableObject {
                 let mine = NanoMuseSharedConnectors.shared.mine()
                 body["connectors"] = mine
                 let rev = try await NanoMuseRelayMedia.putProfile(body)
+                guard forAccount == who else { return }
                 UserDefaults.standard.set(rev, forKey: Keys.rev)
                 UserDefaults.standard.set(NanoMuseSharedConnectors.stamp(mine), forKey: Keys.pushedConnectors)
                 if !name.isEmpty { Self.pushedName = name }
+                // the relay dropped the old face's clips with the face; the ones here are the new face's
+                remember(clips: [:])
+                if store.hasCustomFace {
+                    for (mood, url) in NanoMuseAvatarMotion.shared.clips {
+                        if let bytes = try? Data(contentsOf: url) { shareClip(mood, bytes: bytes) }
+                    }
+                }
                 lastError = nil
             } catch {
+                guard forAccount == who else { return }
+                lastError = NanoMuseCloud.describe(error)
+            }
+        }
+    }
+
+    // MARK: Clips (relay 0.29): the face's short videos travel with it as files
+
+    private func remember(clips: [String: [String: Any]]) {
+        if clips.isEmpty {
+            UserDefaults.standard.removeObject(forKey: Keys.clips)
+        } else if let data = try? JSONSerialization.data(withJSONObject: clips) {
+            UserDefaults.standard.set(data, forKey: Keys.clips)
+        }
+    }
+
+    private func rememberedClips() -> [String: [String: Any]] {
+        guard let data = UserDefaults.standard.data(forKey: Keys.clips),
+              let map = (try? JSONSerialization.jsonObject(with: data)) as? [String: [String: Any]] else { return [:] }
+        return map
+    }
+
+    private static let sha256Pattern = try? NSRegularExpression(pattern: "^[0-9a-f]{64}$")
+
+    /// The clips the profile names, down to this phone's motion folder: a mood whose file is
+    /// already here is left alone; a file whose hash is not the one named is dropped.
+    private func adoptClips(_ clips: [String: [String: Any]], forAccount: String) async {
+        let motion = NanoMuseAvatarMotion.shared
+        var landed = false
+        for (key, ref) in clips {
+            guard let mood = NanoMuseMood(rawValue: key), NanoMuseAvatarMotion.animated.contains(mood),
+                  let sha = ref["sha256"] as? String,
+                  Self.sha256Pattern?.firstMatch(in: sha, range: NSRange(sha.startIndex..., in: sha)) != nil else { continue }
+            if motion.clips[mood] != nil { continue }
+            guard let got = try? await NanoMuseRelayMedia.getBlob(sha), forAccount == who else { continue }
+            guard got.mime.hasPrefix("video/") || (ref["mime"] as? String) == got.mime, NanoMuseOwnTurns.sha256(got.data) == sha else { continue }
+            let fm = FileManager.default
+            try? fm.createDirectory(at: NanoMuseAvatarMotion.directory, withIntermediateDirectories: true)
+            let tmp = NanoMuseAvatarMotion.directory.appendingPathComponent("\(mood.rawValue).part")
+            do {
+                try got.data.write(to: tmp, options: .atomic)
+                let dst = NanoMuseAvatarMotion.clipFile(mood)
+                try? fm.removeItem(at: dst)
+                try fm.moveItem(at: tmp, to: dst)
+                landed = true
+            } catch {
+                try? fm.removeItem(at: tmp)
+            }
+        }
+        if landed { motion.clipLanded() }
+    }
+
+    /// A clip this phone drew (or had before signing in) goes up for the account's other
+    /// devices: the file first, then the profile's `clips`, this one added to the others'.
+    /// Only while signed in, wearing the face, on a relay that keeps the account's files.
+    func shareClip(_ mood: NanoMuseMood, bytes: Data) {
+        guard NanoMuseCloud.isSignedIn, NanoMuseCloud.account?.recordOn == true,
+              NanoMuseFaceStore.shared.hasCustomFace, NanoMuseAvatarMotion.animated.contains(mood) else { return }
+        let forAccount = who
+        let faceId = NanoMuseFaceStore.shared.meta.faceId
+        let sha = NanoMuseOwnTurns.sha256(bytes)
+        Task { @MainActor [self] in
+            do {
+                if !(try await NanoMuseRelayMedia.hasBlob(sha)) {
+                    try await NanoMuseRelayMedia.putBlob(sha, mime: "video/mp4", data: bytes)
+                }
+                // the face changed hands or changed while the file went up: the clip is not its
+                guard forAccount == who, NanoMuseFaceStore.shared.meta.faceId == faceId else { return }
+                var clips = rememberedClips()
+                clips[mood.rawValue] = ["sha256": sha, "mime": "video/mp4", "bytes": bytes.count]
+                let rev = try await NanoMuseRelayMedia.putProfile(["avatar": "face", "clips": clips])
+                guard forAccount == who else { return }
+                UserDefaults.standard.set(rev, forKey: Keys.rev)
+                remember(clips: clips)
+            } catch {
+                guard forAccount == who else { return }
                 lastError = NanoMuseCloud.describe(error)
             }
         }
@@ -494,6 +698,7 @@ final class NanoMuseProfileSync: ObservableObject {
     /// One PUT with the name and the connectors, the face left as the relay has it.
     private func pushKeepingFace() async {
         guard NanoMuseCloud.isSignedIn else { return }
+        let forAccount = who
         let mine = NanoMuseSharedConnectors.shared.mine()
         let stamp = NanoMuseSharedConnectors.stamp(mine)
         let name = Self.localName
@@ -511,21 +716,27 @@ final class NanoMuseProfileSync: ObservableObject {
             // renamed the muse before its first pull had landed.
             if !name.isEmpty { body["name"] = String(name.prefix(60)) }
             let rev = try await NanoMuseRelayMedia.putProfile(body)
+            guard forAccount == who else { return }
             UserDefaults.standard.set(rev, forKey: Keys.rev)
             UserDefaults.standard.set(stamp, forKey: Keys.pushedConnectors)
             if !name.isEmpty { Self.pushedName = name }
             lastError = nil
         } catch {
+            guard forAccount == who else { return }
             lastError = NanoMuseCloud.describe(error)
         }
     }
 
-    /// Signed out: another account's devices are not ours to list.
+    /// Signed out, or another account signed in: the cursors (`rev`, what was pushed) were the
+    /// account's that left, and another account's devices are not ours to list. Without this a
+    /// second account's first pull compared the relay's `rev` with the first account's and
+    /// skipped its name and face.
     func forget() {
         NanoMuseSharedConnectors.shared.forget()
         namePush?.cancel()
         UserDefaults.standard.removeObject(forKey: Keys.rev)
         UserDefaults.standard.removeObject(forKey: Keys.pushedConnectors)
         UserDefaults.standard.removeObject(forKey: Keys.pushedName)
+        UserDefaults.standard.removeObject(forKey: Keys.clips)
     }
 }

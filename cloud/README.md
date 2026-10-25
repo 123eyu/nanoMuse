@@ -74,6 +74,8 @@ Errors carry a stable `code` the app can turn into a sentence:
 | 409 | `device_online` | `DELETE /v1/devices/{id}` (or the hub's `forget`) for a device that is connected right now; sign out on it first |
 | 409 | `sync_off` | a `/v1/sync/*` call while the person has conversation sync turned off |
 | 413 | `too_large` | the body is over `MAX_REQUEST_BYTES`, or a profile over its limit; `too_many_conversations` / `too_many_messages` are the sync push's own 413s |
+| 413 | `quota_exceeded` | a file (`PUT /v1/blobs`, or a picture inlined in a turn) would take the account past `MEDIA_ACCOUNT_MAX_MB`; delete the record or send fewer pictures (0.30) |
+| 507 | `store_full` | the relay's file store is at `MEDIA_MAX_GB` and the hourly trim has not run yet; the file was not taken, send it later (0.30) |
 | 400 | `bad_request` | the body did not parse or a field is wrong; the message says which |
 | 400 | `client_disconnected` | the app went away while its request body was still arriving; nothing reached the provider |
 | 404 | `no_task` | an image or video job id the relay does not know (or not this account's) |
@@ -87,7 +89,7 @@ Errors carry a stable `code` the app can turn into a sentence:
 | 400 | `no_secrets_in_profile` | a profile `connectors` entry carried a key named like a credential; nothing was stored |
 | 400 | `too_many_connectors` | the write would leave more than 64 connectors on the account |
 | 429 | `allowance_exhausted` | the account's pool is spent; the body also carries `left`, `grant`, `region`, `ways` (the ways on in order for that person), `guidance` (0.21: every provider for the region with what each covers, the plans an app can sign in with), `invite_url`, `invite_bonus_cny`, `own_key_docs`, `openrouter_url` |
-| 429 | `code_too_often` / `rate_limited` / `daily_cap` | (`daily_cap` only with the legacy token cap on) |
+| 429 | `code_too_often` / `rate_limited` / `daily_cap` | (`daily_cap` only with the legacy token cap on; `rate_limited` is also what `POST /v1/turns` and `PUT /v1/blobs` answer past `RECORD_UPLOADS_PER_MINUTE`) |
 | 429 | `too_many_in_flight` | `MAX_IN_FLIGHT` requests of the account are already under way; `retry_after` in the body |
 | 429 | `provider_busy` | the image provider answered 429 even after the relay queued and retried (`IMAGE_CONCURRENCY`, `IMAGE_RETRIES`); `retry_after` seconds in the body |
 | 400 | `content_rejected` | the provider's content check declined the words (a chat request or an image prompt); the provider's own line rides along under `upstream` |
@@ -201,6 +203,8 @@ for the full list. The ones that matter:
 | `MEDIA_DIR` | `<database dir>/blobs` | where the record's files live, one per distinct picture, audio or clip, named by SHA-256 (`<aa>/<sha256>`); back it up with the database if you want the pictures back |
 | `MEDIA_MAX_GB` | 50 | the files' ceiling in all; past it the least recently used go first and their turns keep a reference to nothing (the words stay) |
 | `BLOB_MAX_BYTES` | 32 MiB | the largest file one `PUT /v1/blobs/{sha256}` may carry (a clip of the face, a picture) |
+| `MEDIA_ACCOUNT_MAX_MB` | 2048 | the most files one account may hold on the relay (its turns', its profile's and its uploads' together); a `PUT /v1/blobs` or an inlined picture past it answers 413 `quota_exceeded`, and once the store itself is at `MEDIA_MAX_GB` nothing more is taken until the hourly trim has run (507 `store_full`). 0 = no per-account cap (0.30) |
+| `RECORD_UPLOADS_PER_MINUTE` | 120 | own-key turns and files one account may send up a minute (`POST /v1/turns`, `PUT /v1/blobs`); past it 429 `rate_limited`, and the app sends the rest later (0.30) |
 | `CHAT_RETRY_BASE_S` | 0.5 | first retry pause in seconds; each later pause doubles |
 | `TRUSTED_PROXIES` | empty | whose `X-Forwarded-For` to believe, comma-separated addresses or networks (`*` for every peer); empty = every loopback, private, link-local and shared address (Caddy on this box or the compose network, a tailnet). Set, it is the whole list: a non-global peer not on it is not believed either |
 | `PASSWORD_MIN_LEN` | 8 | the shortest password the relay accepts (`400 password_short` below it) |
@@ -222,7 +226,7 @@ for the full list. The ones that matter:
 | `CLOUD_GEOIP` | `1` | name where an address is on the operator's page — country, province, city — from ip2region's offline database, fetched once into the data directory (0.11); `0` = addresses only |
 | `CLOUD_GEOIP_DB`, `CLOUD_GEOIP_URL`, `CLOUD_GEOIP_V6_URL` | next to the database; the project's `ip2region_v4.xdb`; empty | the file, where to fetch it, and the IPv6 file (37 MB) for a relay reached over IPv6 |
 | `HUB_ENABLED` | `true` | the devices hub at `/v1/hub` and the web console at `/app` ([docs/hub.md](../docs/hub.md)) |
-| `HUB_FRAME_LIMIT` | 16 MB | largest hub frame (files and screenshots travel inside frames); one socket may also send at most 60 frames and 8 MB a second sustained (twice that in a burst) — over it frames are dropped with one `rate_limited` error a second, and a socket that keeps flooding is closed with 4008 (0.13) |
+| `HUB_FRAME_LIMIT` | 16 MB | largest hub frame (files and screenshots travel inside frames); one socket may also send at most 60 frames and 8 MB a second sustained (twice that in a burst); over it frames are dropped with one `rate_limited` error a second, and a socket that keeps flooding is closed with 4008 (0.13); one address may open 60 sockets a minute and one account may have 32 devices connected at once, over either the socket is closed with 4008 `too_many_connections` before any key is checked (0.30) |
 | `MAX_REQUEST_BYTES` | 16 MB (0.20; was 6) | largest REST request body — a chat request with a few screenshots, a sync push of 200 messages; over it the answer is 413 `too_large`, *Request body is N MB; this relay accepts up to M MB*. A declared `Content-Length` over the limit is refused before a byte is read, and a body that grows past it is refused as it arrives, so the relay never buffers more than the limit for one request. Both Caddy sites (`cloud/Caddyfile`, `deploy/nanomuse-hk/cloud.nanomuse.cn.caddy`) cap bodies at `request_body max_size 20MB`: just above 16 MiB plus multipart overhead for `/v1/images/edits`, so a legitimate payload always reaches the relay's own 413 message and nothing larger reaches the relay at all; raise both together if you raise this |
 | `GITHUB_REPO` | read off `REPO_URL` (`nano-muse/nanoMuse`) | the repository whose stars, forks, watchers, open issues and release downloads the relay reads (0.22, *Site* on the operator's page) — `owner/name` |
 | `GITHUB_TOKEN` | empty | optional; without one GitHub allows 60 requests an hour, the collector uses two every six hours. Set it only if the relay shares its address with something else that polls GitHub (a `403` from GitHub shows on the page and says so) |

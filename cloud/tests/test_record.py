@@ -6,6 +6,7 @@ import asyncio
 import base64
 import hashlib
 import json
+from dataclasses import replace
 
 import httpx
 import pytest
@@ -52,6 +53,8 @@ async def settled(app) -> None:
     """The record is written off the loop after the answer left; wait for it."""
     while app.state.record_tasks:
         await asyncio.gather(*list(app.state.record_tasks))
+        # gather may finish immediately; let the queued discard callbacks run.
+        await asyncio.sleep(0)
 
 
 FULL_TURN = [
@@ -318,8 +321,14 @@ async def test_a_turn_on_an_own_key_is_put_up_with_its_files(tmp_path):
     }
     assert own["media"] == 1 and own["media_bytes"] == len(PNG_1PX)
     assert turns[0]["status"] == "partial" and turns[0]["request"]["messages"][0]["content"][0]["image_url"]["url"] == BLOB_PREFIX + PNG_SHA
+    # `status` is the turn's, not a field of the request the model saw
+    assert "status" not in turns[0]["request"]
     me = (await client.get("/v1/me", headers=headers)).json()
-    assert me["contribute"]["record"] == {"on": True, "turns": 2, "own": 2, "files": 1, "media_bytes": len(PNG_1PX), "keep_days": 0}
+    record = {"on": True, "turns": 2, "own": 2, "files": 1, "media_bytes": len(PNG_1PX), "keep_days": 0}
+    assert me["contribute"]["record"] == record
+    # the flip answers the same figures (0.30): an app that redraws Data controls from it keeps them
+    flipped = (await client.post("/v1/me/contribute", headers=headers, json={"on": False})).json()
+    assert flipped["on"] is False and flipped["record"] == record
     assert (await client.get("/v1/admin/record", headers=ADMIN)).json()["totals"]["own"] == 2
     # the record's events never carry words
     events = (await client.get("/v1/me/events", headers=headers)).json()["events"]
@@ -461,6 +470,12 @@ async def test_the_faces_clips_travel_with_the_profile(tmp_path):
     assert (await client.get(f"/v1/blobs/{sha}", headers=ha)).content == clip
     assert (await client.put("/v1/me/profile", headers=ha, json={"device": "pixel-1", "name": "Mu"})).status_code == 200
     assert (await client.get("/v1/me/profile", headers=ha)).json()["clips"]["idle"]["sha256"] == sha
+    # a new face drawn without a word about clips: the old face's clips do not fit it and go (0.30)
+    other = {"idle": base64.b64encode(b"RIFF\0\0\0\0WEBPVP8 other").decode()}
+    assert (await client.put("/v1/me/profile", headers=ha, json={"device": "pixel-1", "avatar": "face", "face": other})).status_code == 200
+    assert (await client.get("/v1/me/profile", headers=ha)).json()["clips"] is None
+    assert (await client.put("/v1/me/profile", headers=ha, json={"device": "mac-1", "clips": {"idle": {"sha256": sha}}})).status_code == 200
+    assert (await client.get("/v1/me/profile", headers=ha)).json()["clips"]["idle"]["sha256"] == sha
     # `clips: null` clears them; so does leaving the drawn face
     assert (await client.put("/v1/me/profile", headers=ha, json={"device": "pixel-1", "clips": None})).status_code == 200
     assert (await client.get("/v1/me/profile", headers=ha)).json()["clips"] is None
@@ -480,3 +495,144 @@ async def test_a_blob_name_is_a_hash(tmp_path, bad):
     ha = {"Authorization": f"Bearer {a['api_key']}"}
     assert (await client.get(f"/v1/blobs/{bad}", headers=ha)).status_code == 404
     assert (await client.get(f"/v1/admin/blobs/{bad}", headers=ADMIN)).status_code == 404
+
+
+async def test_uploads_are_paced_and_the_account_and_the_store_have_caps(tmp_path):
+    """0.30: one account sends so many turns and files a minute, holds so many MB of files,
+    and nothing is taken past the store's cap until the trim has run. A file the account
+    already holds costs nothing again."""
+    app, client, sender, up, cloud = relay(tmp_path, record_uploads_per_minute=4, media_account_max_mb=1)
+    a = await sign_up(client, sender, identifier="pace-a@example.com")
+    ha = {"Authorization": f"Bearer {a['api_key']}"}
+    big = b"\x89PNG" + b"\7" * (700 * 1024)
+    sha = hashlib.sha256(big).hexdigest()
+    r = await client.put(f"/v1/blobs/{sha}", headers={**ha, "Content-Type": "image/png"}, content=big)
+    assert r.status_code == 200 and r.json()["known"] is False
+    # the same file again: known, and not counted against the cap a second time
+    r = await client.put(f"/v1/blobs/{sha}", headers={**ha, "Content-Type": "image/png"}, content=big)
+    assert r.status_code == 200 and r.json()["known"] is True
+    other = b"\x89PNG" + b"\8" * (700 * 1024)
+    r = await client.put(f"/v1/blobs/{hashlib.sha256(other).hexdigest()}", headers={**ha, "Content-Type": "image/png"}, content=other)
+    assert r.status_code == 413 and r.json()["error"]["code"] == "quota_exceeded"
+    assert not cloud.media.has(hashlib.sha256(other).hexdigest())  # refused before anything was written
+    # an own-key turn with pictures inline is measured the same way, before it is decoded
+    turn = {
+        "model": "gpt-x",
+        "messages": [
+            {
+                "role": "user",
+                "content": [{"type": "image_url", "image_url": {"url": "data:image/png;base64," + base64.b64encode(other).decode()}}],
+            }
+        ],
+        "response": {"message": {"role": "assistant", "content": "a picture"}},
+    }
+    r = await client.post("/v1/turns", headers=ha, json=turn)
+    assert r.status_code == 413 and r.json()["error"]["code"] == "quota_exceeded"
+    # the pace: four uploads this minute were the three PUTs and the POST; the fifth waits
+    small = {
+        "model": "gpt-x",
+        "messages": [{"role": "user", "content": "hi"}],
+        "response": {"message": {"role": "assistant", "content": "hello"}},
+    }
+    r = await client.post("/v1/turns", headers=ha, json=small)
+    assert r.status_code == 429 and r.json()["error"]["code"] == "rate_limited"
+    assert cloud.db.turn_count(a["account"]["id"]) == 0
+    # another account is not slowed by it, and the store's cap stops everyone
+    b = await sign_up(client, sender, identifier="pace-b@example.com")
+    hb = {"Authorization": f"Bearer {b['api_key']}"}
+    assert (await client.post("/v1/turns", headers=hb, json=small)).status_code == 201
+    cloud.s = replace(cloud.s, media_max_gb=0.000001)  # ~1 KB, already passed by the 700 KB file
+    r = await client.put(f"/v1/blobs/{hashlib.sha256(other).hexdigest()}", headers={**hb, "Content-Type": "image/png"}, content=other)
+    assert r.status_code == 507 and r.json()["error"]["code"] == "store_full"
+    # a turn without pictures still goes up: the cap is about the files
+    assert (await client.post("/v1/turns", headers=hb, json=small)).status_code == 201
+
+
+async def test_the_trim_spares_the_clips_a_profile_wears(tmp_path):
+    app, client, sender, up, cloud = relay(tmp_path, media_max_gb=0.000001)  # ~1 KB cap
+    a = await sign_up(client, sender, identifier="clip-trim@example.com")
+    clip = b"\x00\x00\x00\x18ftypmp42" + b"\1" * 800
+    clip_sha, _ = cloud.media.put(clip)
+    cloud.db.add_blob(clip_sha, "video/mp4", len(clip), a["account"]["id"], "profile")
+    pics = []
+    for i in range(3):
+        pic = b"\x89PNG" + bytes([i]) * 600
+        sha, _ = cloud.media.put(pic)
+        cloud.db.add_blob(sha, "image/png", len(pic), a["account"]["id"], "turn")
+        cloud.db._conn.execute("UPDATE blobs SET last_used_at=? WHERE sha256=?", (1000 + i, sha))
+        pics.append(sha)
+    cloud.db._conn.execute("UPDATE blobs SET last_used_at=1 WHERE sha256=?", (clip_sha,))  # the oldest use of all
+    swept = cloud.sweep_record()
+    # the three pictures go (1800 bytes over a ~1 KB cap with the 800-byte clip staying); the clip never does
+    assert swept["trimmed"] == 3 and cloud.media.has(clip_sha) and not any(cloud.media.has(s) for s in pics)
+    assert cloud.db.blob(clip_sha) is not None
+    assert cloud.sweep_record()["trimmed"] == 0  # over the cap still, with nothing left to trim
+
+
+async def test_a_delete_the_disk_refused_is_tried_again_at_the_sweep(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    app, client, sender, up, cloud = relay(tmp_path)
+    a = await sign_up(client, sender, identifier="stuck@example.com")
+    ha = {"Authorization": f"Bearer {a['api_key']}"}
+    r = await client.put(f"/v1/blobs/{PNG_SHA}", headers={**ha, "Content-Type": "image/png"}, content=PNG_1PX)
+    assert r.status_code == 200
+    real_unlink = Path.unlink
+    refused: list[str] = []
+
+    def stuck_unlink(self, *args, **kwargs):
+        if self.name == PNG_SHA and not refused:
+            refused.append(self.name)
+            raise PermissionError(13, "Permission denied")
+        return real_unlink(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", stuck_unlink)
+    r = await client.delete("/v1/me/samples", headers=ha)
+    assert r.status_code == 200 and r.json()["files"] == 0  # the row went, the file did not
+    assert cloud.media.has(PNG_SHA) and cloud.db.blob(PNG_SHA) is None
+    assert (cloud.media.root / MediaStore.RETRY_FILE).read_text().strip() == PNG_SHA
+    assert cloud.sweep_record()["files"] == 1  # the sweep tries again and it goes
+    assert not cloud.media.has(PNG_SHA) and not (cloud.media.root / MediaStore.RETRY_FILE).exists()
+    assert cloud.media.retry_deletes() == 0
+
+
+async def test_a_partial_turn_says_why_it_ended(tmp_path):
+    app, client, sender, up, cloud = relay(tmp_path)
+    a = await sign_up(client, sender, identifier="ended@example.com")
+    ha = {"Authorization": f"Bearer {a['api_key']}"}
+    turn = {
+        "model": "gpt-x",
+        "messages": [{"role": "user", "content": "hi"}],
+        "response": {"message": {"role": "assistant", "content": "hel"}},
+    }
+    r = await client.post("/v1/turns", headers=ha, json={**turn, "id": "t1", "status": "partial", "ended": "aborted"})
+    assert r.status_code == 201
+    r = await client.post("/v1/turns", headers=ha, json={**turn, "id": "t2", "status": "partial", "ended": "Not A Word!"})
+    assert r.status_code == 201
+    r = await client.post("/v1/turns", headers=ha, json={**turn, "id": "t3", "status": "ok", "ended": "aborted"})
+    assert r.status_code == 201
+    turns = {t["id"].rsplit("-", 1)[-1]: t for t in (await client.get("/v1/turns", headers=ha)).json()["turns"]}
+    assert turns["t1"]["status"] == "partial" and turns["t1"]["meta"]["ended"] == "aborted"
+    assert turns["t2"]["status"] == "partial" and "ended" not in turns["t2"]["meta"]
+    assert turns["t3"]["status"] == "ok" and "ended" not in turns["t3"]["meta"]
+    assert "ended" not in turns["t1"]["request"] and "status" not in turns["t1"]["request"]
+
+
+def test_pace_counts_within_a_sliding_window():
+    from nanomuse_cloud.service import Pace
+
+    t = [100.0]
+    pace = Pace(2, 60.0, clock=lambda: t[0])
+    assert pace.allow("a") and pace.allow("a") and not pace.allow("a")
+    assert pace.allow("b")  # another key, its own count
+    t[0] = 159.0
+    assert not pace.allow("a")
+    t[0] = 161.0
+    assert pace.allow("a")  # the first two slid out of the window
+    assert Pace(0, 60.0).allow("anyone")  # a limit of 0 is no limit
+    # the table is bounded: a flood of keys does not grow it without end
+    pace = Pace(1, 60.0, clock=lambda: t[0])
+    pace.MAX_KEYS = 10
+    for i in range(30):
+        assert pace.allow(f"k{i}")
+    assert len(pace._seen) <= 10

@@ -5,4 +5,8 @@ Requires=docker.service
 
 [Service]
 Type=oneshot
+# a copy is 6 GB gzipped and grows with the database (22 GB, 1 to 2 GB a day): thirty of
+# them would fill the data disk within two months; two weeks is the window a bad deploy
+# or a wrong delete is noticed in
+Environment=KEEP_DAYS=14
 ExecStart=/opt/nanomuse/relay/backup.sh
