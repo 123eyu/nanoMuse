@@ -24,8 +24,8 @@ import type { ChatListState, ChatStatus } from './MuseChats.tsx'
 import { usePrefs } from './prefs.ts'
 import { useRooms, type ActivityRecord, type GoalAutomation } from './rooms.ts'
 import { TaskDetail } from './TaskDetail.tsx'
-import { ago, clockLabel, dayLabel, grantWhere } from './ui.tsx'
-import { appLabel } from '../desk.ts'
+import { ago, clockLabel, dayLabel, grantGroupWords, grantRowWords } from './ui.tsx'
+import { groupGrants, standingGrants, type Grant } from '../desk.ts'
 import { win } from './win.ts'
 
 const COMPUTER_SECTION = 'nanomuse-computer'
@@ -243,23 +243,27 @@ function Activity({ t, name, stop, useSessions, open }: { t: Translate; name: st
         : h('span', { className: 'nm-pf-row-time' }, clockLabel(r.at, rooms.lang)))))))
 }
 
-function Approvals({ t, name, approvals, grants }: { t: Translate; name: string; approvals: { at: number; toolName: string; reason: string; outcome: 'allowed' | 'rejected' }[]; grants: { id: string; target: string; at: number; sessionId?: string; sessionTitle?: string }[] }): ReactNode {
+function Approvals({ t, name, approvals, grants }: { t: Translate; name: string; approvals: { at: number; toolName: string; reason: string; outcome: 'allowed' | 'rejected' }[]; grants: Grant[] }): ReactNode {
   const [openRow, setOpenRow] = useState<number | null>(null)
   const openPermissions = () => { profileBus.close(); settingsBus.openSection?.(COMPUTER_SECTION) }
   const manage = h('div', { className: 'nm-pf-row nm-clickable', role: 'button', tabIndex: 0, onClick: openPermissions, onKeyDown: (e: { key: string; preventDefault(): void }) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPermissions() } } },
     h('span', { className: 'nm-pf-row-icon' }, h(IconShield, { size: 18 })),
     h('div', { className: 'nm-pf-row-main' }, h('div', { className: 'nm-pf-row-title' }, t('pfManagePermissions'))),
     h('span', { className: 'nm-pf-row-chev' }, h(IconChevronRight, { size: 16 })))
-  // the standing grants first (the phone's list), then what was answered on cards
+  // the standing grants first (the phone's list), by where they hold, then what was answered on cards
   const standing = grants.length
     ? h(Fragment, null,
-        h('div', { className: 'nm-pf-day' }, t('pfApprovalsAlways')),
-        grants.map((g) => h('div', { key: g.id, className: 'nm-pf-row' },
-          h('span', { className: 'nm-pf-row-icon' }, h(IconCheck, { size: 18 })),
-          h('div', { className: 'nm-pf-row-main' },
-            h('div', { className: 'nm-pf-row-title' }, t('pfAlwaysAllowed', { target: appLabel(g.target.replace(/^computer_app:/, '')) })),
-            h('div', { className: 'nm-pf-row-sub' }, [grantWhere(t, g), ago(t, g.at)].filter(Boolean).join(' · '))),
-          h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', onClick: () => void call('grants/revoke', { id: g.id }).catch(() => undefined) }, t('pmRevoke')))))
+        groupGrants(standingGrants({ grants })).map(({ scope, grants: group }) => h(Fragment, { key: scope },
+          h('div', { className: 'nm-pf-day' }, grantGroupWords(t, scope).title),
+          group.map((g) => {
+            const w = grantRowWords(t, g)
+            return h('div', { key: g.id, className: 'nm-pf-row' },
+              h('span', { className: 'nm-pf-row-icon' }, h(IconCheck, { size: 18 })),
+              h('div', { className: 'nm-pf-row-main' },
+                h('div', { className: 'nm-pf-row-title' }, w.title),
+                h('div', { className: 'nm-pf-row-sub' }, w.sub)),
+              h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', onClick: () => void call('grants/revoke', { id: g.id }).catch(() => undefined) }, t('pmRevoke')))
+          }))))
     : h('p', { className: 'nm-pf-empty' }, t('pfApprovalsEmpty', { name }))
   if (approvals.length === 0) return h('div', { className: 'nm-pf-rows' }, standing, manage)
   return h('div', { className: 'nm-pf-rows' },

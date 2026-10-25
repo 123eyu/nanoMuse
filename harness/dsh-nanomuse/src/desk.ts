@@ -166,9 +166,26 @@ export function standingGrants(input: { grants?: readonly Grant[]; trusted?: rea
   return out
 }
 
-/** The list by tier, highest first, newest first inside a tier; tiers with nothing in them are left out. */
-export function groupGrants(list: readonly StandingGrant[]): { tier: GrantTier; grants: StandingGrant[] }[] {
-  return GRANT_TIERS.map((tier) => ({ tier, grants: list.filter((g) => g.tier === tier).sort((a, b) => b.at - a.at) })).filter((group) => group.grants.length > 0)
+/**
+ * Where a remembered permission holds, the way the lists group them: `general` everywhere (the
+ * remote-control switch, a trusted device, the hands in an app in every chat), `chat` in one
+ * conversation, `task` in one scheduled task's runs.
+ */
+export type GrantScope = 'general' | 'chat' | 'task'
+
+export const GRANT_SCOPES: readonly GrantScope[] = ['general', 'chat', 'task']
+
+export function grantScope(g: { sessionId?: string; scheduleId?: string }): GrantScope {
+  return g.scheduleId ? 'task' : g.sessionId ? 'chat' : 'general'
+}
+
+/**
+ * The list by where it holds, general first; inside a group the remote-control switch leads
+ * (it lets the most through), then newest first. Groups with nothing in them are left out.
+ */
+export function groupGrants(list: readonly StandingGrant[]): { scope: GrantScope; grants: StandingGrant[] }[] {
+  const rank = (g: StandingGrant) => (g.kind === 'remote_control' ? 0 : 1)
+  return GRANT_SCOPES.map((scope) => ({ scope, grants: list.filter((g) => grantScope(g) === scope).sort((a, b) => rank(a) - rank(b) || b.at - a.at) })).filter((group) => group.grants.length > 0)
 }
 
 /**

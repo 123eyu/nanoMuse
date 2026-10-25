@@ -38,18 +38,23 @@ test('the switch off and no devices leaves the hands alone in the card tier', ()
   assert.equal(list[0].target, 'Finder')
 })
 
-test('groups come in tier order, newest first inside, empty tiers left out', () => {
-  const groups = groupGrants([
-    { id: 'g-old', kind: 'computer_app', tier: 'confirm', target: 'Safari', at: 100 },
-    { id: 'device:x', kind: 'device', tier: 'confirm', target: 'Pixel', at: 300 },
-    { id: 'remote-control', kind: 'remote_control', tier: 'highest', target: '', at: 0 },
-    { id: 'g-new', kind: 'computer_app', tier: 'confirm', target: 'Mail', at: 200 },
-  ])
-  assert.deepEqual(groups.map((g) => g.tier), ['highest', 'confirm'])
-  assert.deepEqual(groups[0].grants.map((g) => g.id), ['remote-control'])
-  assert.deepEqual(groups[1].grants.map((g) => g.id), ['device:x', 'g-new', 'g-old'])
-  // only the card tier: one group
-  assert.deepEqual(groupGrants(standingGrants({ grants: [{ id: 'g-1', target: 'computer_app:Safari', at: 1 }] })).map((g) => g.tier), ['confirm'])
+test('groups come by where they hold, general first, the switch leading, newest first inside', () => {
+  const groups = groupGrants(standingGrants({
+    grants: [
+      { id: 'g-old', target: 'computer_app:Safari', at: 100 },
+      { id: 'g-new', target: 'computer_app:Mail', at: 200 },
+      { id: 'g-chat', target: 'computer_app:WeChat', at: 150, sessionId: 's1', sessionTitle: 'Morning' },
+      { id: 'g-task', target: 'computer_app:WeChat', at: 160, sessionId: 's1', scheduleId: 'schedule-a', scheduleTitle: 'Note' },
+    ],
+    trusted: [{ id: 'x', name: 'Pixel', at: 300 }],
+    remoteControl: true,
+  }))
+  assert.deepEqual(groups.map((g) => g.scope), ['general', 'chat', 'task'])
+  assert.deepEqual(groups[0].grants.map((g) => g.id), ['remote-control', 'device:x', 'g-new', 'g-old'])
+  assert.deepEqual(groups[1].grants.map((g) => g.id), ['g-chat'])
+  assert.deepEqual(groups[2].grants.map((g) => g.id), ['g-task'])
+  // only grants in one chat: one group
+  assert.deepEqual(groupGrants(standingGrants({ grants: [{ id: 'g-1', target: 'computer_app:Safari', at: 1, sessionId: 's1' }] })).map((g) => g.scope), ['chat'])
 })
 
 test('a grant in one conversation covers that conversation only; one for every conversation covers all', () => {

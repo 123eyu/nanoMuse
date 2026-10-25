@@ -8,6 +8,7 @@
  */
 import { Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import { createElement as h, Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
+import { grantScope, type GrantScope, type StandingGrant } from '../desk.ts'
 import type { Translate } from './api.ts'
 import { openLink } from './bridge.ts'
 import { IconMore, IconPanelLeft } from './icons.tsx'
@@ -116,11 +117,37 @@ export function Empty({ icon, text, children }: { icon: ReactNode; text: string;
     children ?? null)
 }
 
-/** Where a hands grant holds: '' for every conversation, else the one task or the one conversation it was given in. */
-export function grantWhere(t: Translate, g: { sessionId?: string; sessionTitle?: string; scheduleId?: string; scheduleTitle?: string }): string {
-  if (!g.sessionId) return ''
-  if (g.scheduleId) return g.scheduleTitle ? t('grantInTask', { task: g.scheduleTitle.slice(0, 40) }) : t('grantInOneTask')
-  return g.sessionTitle ? t('grantInChat', { chat: g.sessionTitle.slice(0, 40) }) : t('grantInOneChat')
+/** A group of remembered permissions, by where they hold: its heading and the line under it. */
+export function grantGroupWords(t: Translate, scope: GrantScope): { title: string; sub: string } {
+  switch (scope) {
+    case 'general': return { title: t('sgScopeGeneral'), sub: t('sgScopeGeneralSub') }
+    case 'chat': return { title: t('sgScopeChat'), sub: t('sgScopeChatSub') }
+    case 'task': return { title: t('sgScopeTask'), sub: t('sgScopeTaskSub') }
+  }
+}
+
+/**
+ * One remembered permission as a row: in its group, the title is what a person looks for (the
+ * chat or the task for a limited grant, the app or the device otherwise) and the line under it
+ * says what is allowed.
+ */
+export function grantRowWords(t: Translate, g: StandingGrant): { title: string; sub: string } {
+  const when = ago(t, g.at)
+  switch (g.kind) {
+    case 'remote_control': return { title: t('sgRemoteControl'), sub: t('sgRemoteControlSub') }
+    case 'device': return { title: t('sgDevice', { name: g.target }), sub: [t('sgDeviceSub'), when].filter(Boolean).join(' · ') }
+    case 'computer_app': {
+      const hands = t('sgHands', { app: g.target })
+      switch (grantScope(g)) {
+        case 'general': return { title: hands, sub: when }
+        case 'chat': return { title: g.sessionTitle ? t('sgQuoted', { name: g.sessionTitle.slice(0, 60) }) : t('sgChatUntitled'), sub: [hands, when].filter(Boolean).join(' · ') }
+        case 'task': return {
+          title: g.scheduleTitle ? t('sgQuoted', { name: g.scheduleTitle.slice(0, 60) }) : t('sgTaskUntitled'),
+          sub: [hands, g.sessionTitle ? t('sgTaskChat', { chat: g.sessionTitle.slice(0, 40) }) : '', when].filter(Boolean).join(' · '),
+        }
+      }
+    }
+  }
 }
 
 /** `2 min ago`-style, from the shared words. */
