@@ -22,7 +22,7 @@ import { access, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promise
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { SharedConnector } from './desk.ts'
-import type { Relay, RelayProfile } from './relay.ts'
+import type { ProfileClip, Relay, RelayProfile } from './relay.ts'
 
 // ---- the package's own files ---------------------------------------------------------
 
@@ -78,6 +78,8 @@ const FACE_ID = /^[a-f0-9]{6,40}$/
 export class ProfileStore {
   private profile: Profile = DEFAULT_PROFILE
   private readonly listeners = new Set<() => void>()
+  /** The face's clips as the account last listed them (relay 0.29), with the face they belong to; the motion takes them in. */
+  private clips: { faceId: string; clips: Record<string, ProfileClip> } | undefined
 
   /** @param dir - `$DSH_HOME/nanomuse`; the profile file and the `faces/` folder live under it. */
   constructor(
@@ -87,6 +89,17 @@ export class ProfileStore {
 
   current(): Profile {
     return this.profile
+  }
+
+  /** The clips the account lists for the worn face, or nothing (another face, no clips, never pulled). */
+  accountClips(): Record<string, ProfileClip> | undefined {
+    const p = this.profile
+    return p.avatar === 'face' && this.clips && this.clips.faceId === p.faceId ? this.clips.clips : undefined
+  }
+
+  /** The account listed these clips (a write of this device's own, or a pull): kept for `accountClips`. */
+  rememberClips(faceId: string, clips: Record<string, ProfileClip> | undefined): void {
+    this.clips = faceId && clips ? { faceId, clips } : undefined
   }
 
   onChange(listener: () => void): () => void {
@@ -144,6 +157,8 @@ export class ProfileStore {
         next.faceId = faceId
       }
     }
+    // the clips go with the face: another look, or a face without them, forgets what was listed
+    this.rememberClips(next.faceId, next.avatar === 'face' ? light.clips : undefined)
     await this.wear(next)
     return true
   }

@@ -13,7 +13,7 @@ export interface Account {
   /** The pool in yuan (relay 0.14+): what was spent, the grant, what is left, and the 80% heads-up. */
   spend?: { grant?: number; total: number; left: number | null; unlimited: boolean; warn: boolean; usdCny?: number; inviteBonusCny?: number; inviteeBonusCny?: number; ownKeyDocs?: string }
   /** Data controls (relay 0.9); absent on an older relay. */
-  contribute?: { on: boolean; samples: number; defaultOn?: boolean; privacyUrl: string }
+  contribute?: { on: boolean; samples: number; defaultOn?: boolean; privacyUrl: string; record?: { on: boolean; turns: number; own: number; files: number; mediaBytes: number; keepDays: number } }
 }
 
 export interface Model {

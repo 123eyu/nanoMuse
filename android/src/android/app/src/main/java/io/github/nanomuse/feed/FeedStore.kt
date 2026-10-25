@@ -7,8 +7,6 @@ import io.github.nanomuse.sandbox.FeedSandboxScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 /**
@@ -77,7 +75,7 @@ object FeedStore {
     /** Writes a batch of posts for today, continuing today's numbering. Returns what was written. */
     fun append(drafts: List<Draft>, now: Long = System.currentTimeMillis()): List<FeedPost> {
         if (drafts.isEmpty()) return emptyList()
-        val day = DAY.format(Date(now))
+        val day = java.time.Instant.ofEpochMilli(now).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString()
         val dir = File(root, day).apply { mkdirs() }
         var next = (dir.listFiles()?.mapNotNull { FeedPost.parse(it)?.index }?.maxOrNull() ?: 0) + 1
         val written = mutableListOf<FeedPost>()
@@ -120,8 +118,6 @@ object FeedStore {
         val body: String,
         val source: List<String>,
     )
-
-    private val DAY = SimpleDateFormat("yyyy-MM-dd", Locale.US)
 
     /**
      * The order of one day's posts on the page. A batch is written in one go, so its posts share

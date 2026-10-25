@@ -175,6 +175,13 @@ export function makeCloudSection(t: Translate, part: 'account' | 'data' = 'accou
               a.contribute.defaultOn === undefined ? '' : t(a.contribute.defaultOn ? 'dataDefaultOn' : 'dataDefaultOff'), ' ',
               a.contribute.samples > 0 ? t('dataKept', { n: a.contribute.samples }) : '', ' ',
               h('a', { href: a.contribute.privacyUrl || PRIVACY_URL, target: '_blank', rel: 'noopener noreferrer' }, t('dataPrivacy'))),
+            // the record's figures (relay 0.29): what is held of this account, own-key turns among it
+            a.contribute.record?.on
+              ? h('div', { style: muted }, a.contribute.record.turns > 0
+                  ? t('dataRecordHeld', { n: a.contribute.record.turns, own: a.contribute.record.own, files: a.contribute.record.files })
+                  : t('dataRecordEmpty'), ' ',
+                  a.contribute.record.keepDays > 0 ? t('dataRecordKeepDays', { days: a.contribute.record.keepDays }) : t('dataRecordKeepForever'))
+              : null,
             // the record (relay 0.29) is kept whether or not any training turn is: the delete is always there
             h('div', { style: { marginTop: 6 } }, h(Button, { variant: 'outline', size: 'sm', disabled: busy, onClick: deleteSamples }, t('dataDelete'))),
             notice ? h('div', { style: muted }, notice) : null)

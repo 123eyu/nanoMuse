@@ -151,6 +151,10 @@ final class NanoMuseScheduler: ObservableObject {
     /// C12: the file changed under the store — another account's routines are in place (or
     /// none). The list and the notifications follow.
     func reload() {
+        // a catch-up under way was the account's that left: the routines still in its list
+        // are not started (a run already talking to the model finishes in its own session)
+        catchUpTask?.cancel()
+        catchUpTask = nil
         routines = []
         load()
         refreshNotifications()
@@ -263,11 +267,16 @@ final class NanoMuseScheduler: ObservableObject {
         let now = Date()
         let due = routines.filter { $0.isDue(at: now) && !running.contains($0.id) }
         guard !due.isEmpty else { return }
-        catchUpTask = Task { @MainActor [self] in
-            defer { catchUpTask = nil }
+        let task = Task { @MainActor [self] in
             for r in due {
+                if Task.isCancelled { break }
                 _ = await run(r.id, trigger: reason)
             }
+        }
+        catchUpTask = task
+        Task { @MainActor [self] in
+            await task.value
+            if catchUpTask == task { catchUpTask = nil }
         }
     }
 

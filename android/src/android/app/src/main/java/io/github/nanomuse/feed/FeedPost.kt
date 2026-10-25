@@ -1,8 +1,6 @@
 package io.github.nanomuse.feed
 
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 /**
@@ -31,7 +29,7 @@ data class FeedPost(
         appendLine("type: $type")
         if (emoji.isNotBlank()) appendLine("emoji: $emoji")
         if (source.isNotEmpty()) appendLine("source: ${source.joinToString("; ") { escape(it) }}")
-        appendLine("created: ${ISO.format(Date(createdAt))}")
+        appendLine("created: ${ISO.format(java.time.Instant.ofEpochMilli(createdAt).atZone(java.time.ZoneId.systemDefault()))}")
         if (liked) appendLine("liked: true")
         appendLine("---")
         appendLine()
@@ -40,7 +38,8 @@ data class FeedPost(
     }
 
     companion object {
-        private val ISO = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US)
+        /** `2026-10-25T08:00:00+0800`, as the files have always been written; thread-safe, the feed is written and read from several threads. */
+        private val ISO = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US)
         private val FILE_NAME = Regex("^(\\d{2})\\.md$")
         private val DAY_NAME = Regex("^\\d{4}-\\d{2}-\\d{2}$")
 
@@ -51,7 +50,7 @@ data class FeedPost(
             val index = FILE_NAME.find(file.name)?.groupValues?.get(1)?.toIntOrNull() ?: return null
             val text = runCatching { file.readText() }.getOrNull() ?: return null
             val (meta, body) = splitFrontMatter(text)
-            val created = meta["created"]?.let { runCatching { ISO.parse(it)?.time }.getOrNull() } ?: file.lastModified()
+            val created = meta["created"]?.let { runCatching { java.time.OffsetDateTime.parse(it.trim(), ISO).toInstant().toEpochMilli() }.getOrNull() } ?: file.lastModified()
             return FeedPost(
                 day = day,
                 index = index,

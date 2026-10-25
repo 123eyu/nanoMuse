@@ -217,8 +217,17 @@ Ours, in `NanoMuse/`:
   and the client-id ask with the callback address to copy for the eight services that register no
   clients. The Settings row that was *MCP Integrations* is **Connectors**; *Your own servers* at
   its end is upstream's MCP page.
-- **Data controls** (`NanoMuseDataControls.swift`): the relay's switch, the kept-turns count, the
-  privacy page, deletion with a confirmation. **Reach** (`NanoMuseReach.swift`): a sheet per device
+- **Data controls** (`NanoMuseDataControls.swift`): what the relay's record holds of the account
+  (turns, those on your own keys, pictures, how long this relay keeps a turn; relay 0.29), the
+  training-set switch with its count, the privacy page, one deletion with a confirmation that
+  removes the record and the training turns together. From 1.0.7 the phone takes part in the
+  record itself ([cloud.md](cloud.md#the-record)): its chat requests to the account carry
+  `X-NanoMuse-Device` and `X-NanoMuse-Conversation` (`NanoMuseCloudHeaders.swift`), a turn
+  answered on a key of your own goes up afterwards with its pictures as files
+  (`NanoMuseOwnTurns.swift`, wrapping the agent provider; never the key or the base URL), the
+  hub's hello names what answers new chats (`device.llm`), and the face's clips travel with the
+  face through the profile's `clips` (`NanoMuseProfile.swift`: a clip drawn here is put up for
+  the other devices, theirs land in the motion folder, so a face is animated once per account). **Reach** (`NanoMuseReach.swift`): a sheet per device
   of the account (open a link, send a note, a shell line, a screenshot) over the hub.
   **A task for another device** (`NanoMuseDeviceMention.swift`, `NanoMuseRemoteApproval.swift`):
   a message that starts with `@〈device〉` goes to that device's Muse as a hub `task` (the `@` menu

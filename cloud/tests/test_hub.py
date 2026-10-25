@@ -865,3 +865,55 @@ def test_connectors_are_merged_by_device_and_never_hold_a_secret(client):
         "clips": None,
         "connectors": [],
     }
+
+
+def test_too_many_sockets_are_refused_before_the_hello_is_read(client, monkeypatch):
+    """0.30: an address opening sockets faster than HELLOS_PER_MINUTE, or an account past
+    MAX_ONLINE_PER_ACCOUNT devices, is closed with 4008 `too_many_connections`; a device
+    taking its own place again is not a new one."""
+    from nanomuse_cloud import hub as hub_mod
+    from nanomuse_cloud.service import Pace
+
+    # three sign-ins of one account: a key is one installation's credential
+    pc_key, phone_key, laptop_key = (sign_up(client, "13800138000") for _ in range(3))
+    hub = client.app.state.hub
+    monkeypatch.setattr(hub_mod, "MAX_ONLINE_PER_ACCOUNT", 2)
+    with connect(client, pc_key) as first:
+        first.send_json(hello("computer", "pc-1", "desk"))
+        first.receive_json()
+        with connect(client, phone_key) as second:
+            second.send_json(hello("phone", "ph-1", "pocket"))
+            second.receive_json()
+            with connect(client, laptop_key) as third:
+                third.send_json(hello("computer", "pc-2", "laptop"))
+                err = third.receive_json()
+                assert err["type"] == "error" and err["code"] == "too_many_connections"
+                with pytest.raises(WebSocketDisconnect) as closed:
+                    third.receive_json()
+                assert closed.value.code == 4008
+            # the first device again, under its own id: a replacement, never a third
+            with connect(client, pc_key) as again:
+                again.send_json(hello("computer", "pc-1", "desk"))
+                assert again.receive_json()["type"] == "welcome"
+    assert hub.stats()["refused_connections"] == 1
+    # the pace per address: the third socket in the window is closed with no hello read
+    hub._hellos = Pace(2, 60.0)
+    with connect(client, pc_key) as a, connect(client, phone_key) as b:
+        a.send_json(hello("computer", "pc-1", "desk"))
+        b.send_json(hello("phone", "ph-1", "pocket"))
+        assert a.receive_json()["type"] == "welcome" and b.receive_json()["type"] == "welcome"
+        with connect(client, laptop_key) as c:
+            with pytest.raises(WebSocketDisconnect) as closed:
+                c.receive_json()
+            assert closed.value.code == 4008
+    assert hub.stats()["refused_connections"] == 2
+
+
+def test_session_keys_are_paced(client):
+    from nanomuse_cloud.service import Cloud
+
+    key = sign_up(client, "13800138001")
+    for _ in range(Cloud.SESSION_KEYS_PER_HOUR):
+        assert client.post("/v1/auth/session-key", headers={"Authorization": f"Bearer {key}"}, json={"device": "web"}).status_code == 200
+    r = client.post("/v1/auth/session-key", headers={"Authorization": f"Bearer {key}"}, json={"device": "web"})
+    assert r.status_code == 429 and r.json()["error"]["code"] == "rate_limited"

@@ -232,9 +232,21 @@ def normalise_message(text: str) -> str:
     return _WS.sub(" ", str(text or "")).strip().lower()
 
 
-def sample_shape(sample_id: str, account_id: str, ts: int, model: str, request: str, response: str, meta: str) -> dict[str, Any]:
+def sample_shape(
+    sample_id: str,
+    account_id: str,
+    ts: int,
+    model: str,
+    request: str,
+    response: str,
+    meta: str,
+    prompt_tokens: int = -1,
+    completion_tokens: int = -1,
+) -> dict[str, Any]:
     """The `sample_stats` row of one kept turn, from what `samples` holds. Reads the turn
-    once, keeps nothing of its words but a hash of the person's last message."""
+    once, keeps nothing of its words but a hash of the person's last message. The tokens
+    are -1 when the caller does not have them (a shape written late); the tokens backfill
+    copies them from the turn."""
     try:
         messages = json.loads(request) if request else []
     except ValueError:
@@ -281,6 +293,8 @@ def sample_shape(sample_id: str, account_id: str, ts: int, model: str, request: 
         "trivial": 1 if trivial else 0,
         "user_hash": hashlib.sha1(norm.encode("utf-8")).hexdigest()[:16] if norm else "",
         "bytes": len(request or "") + len(response or ""),
+        "prompt_tokens": int(prompt_tokens),
+        "completion_tokens": int(completion_tokens),
     }
 
 
@@ -531,13 +545,19 @@ def _week_of(ts: int) -> int:
 class Analytics:
     def __init__(self, cloud: Cloud, meter: LiveMeter, hub_getter: Callable[[], Hub | None], gate_getter: Callable[[], dict[str, int]]):
         self.cloud = cloud
-        self.db = cloud.db
+        # the pages and the backfills' page reads go through the read-only connection
+        # (Database.reader): seconds of reading never hold the lock the requests take;
+        # the few writes (shape rows, cursors) go through the relay's own
+        self.db = cloud.db.reader()
+        self.store = cloud.db
         self.s = cloud.s
         self.meter = meter
         self.hub_getter = hub_getter
         self.gate_getter = gate_getter
         self.backfill_done = False
         self.backfill_rows = 0
+        self.tokens_done = False
+        self.tokens_rows = 0
 
     # -- helpers ------------------------------------------------------------------------------
 
@@ -1351,17 +1371,14 @@ class Analytics:
         table so a restart carries on where it stopped."""
         if self.backfill_done:
             return 0
-        pos = self.db.settings_get("sample_stats.cursor")
-        before_ts, before_rowid = 0, 0
-        if pos is not None and isinstance(pos[0], list) and len(pos[0]) == 2:
-            before_ts, before_rowid = int(pos[0][0]), int(pos[0][1])
-            if before_ts < 0:  # finished on an earlier run; the turns kept since carry their own row
-                self.backfill_done = True
-                return 0
+        before_ts, before_rowid, done = self._cursor("sample_stats.cursor")
+        if done:  # finished on an earlier run; the turns kept since carry their own row
+            self.backfill_done = True
+            return 0
         rows = self.db.samples_page_before(before_ts, before_rowid, batch)
         if not rows:
             self.backfill_done = True
-            self.db.settings_put("sample_stats.cursor", [-1, -1])
+            self.store.settings_put("sample_stats.cursor", [-1, -1])
             return 0
         stats = [
             sample_shape(
@@ -1375,12 +1392,46 @@ class Analytics:
             )
             for r in rows
         ]
-        self.db.add_sample_stats(stats)
+        self.store.add_sample_stats(stats)
         last = rows[-1]
-        self.db.settings_put("sample_stats.cursor", [int(last["ts"]), int(last["rowid"])])
+        self.store.settings_put("sample_stats.cursor", [int(last["ts"]), int(last["rowid"])])
         self.backfill_rows += len(rows)
         if len(rows) < batch:
             self.backfill_done = True
+        return len(rows)
+
+    def _cursor(self, key: str) -> tuple[int, int, bool]:
+        """A backfill's (ts, rowid) position from the settings table: (0, 0) when it has not
+        started, and `done` when an earlier run finished (written as [-1, -1])."""
+        pos = self.db.settings_get(key)
+        if pos is not None and isinstance(pos[0], list) and len(pos[0]) == 2:
+            before_ts, before_rowid = int(pos[0][0]), int(pos[0][1])
+            return before_ts, before_rowid, before_ts < 0
+        return 0, 0, False
+
+    def tokens_step(self, batch: int = 200) -> int:
+        """0.30: copy the tokens of the next `batch` older turns (newest first) into their shape
+        rows, so the Data view sums them there; returns how many were read, 0 when caught up.
+        The cursor lives in the settings table like the shape backfill's. Each page reads its
+        turns' rows (the tokens are stored past the conversation), off the loop and on the
+        read-only connection; the update is the small write."""
+        if self.tokens_done:
+            return 0
+        before_ts, before_rowid, done = self._cursor("sample_stats.tokens_cursor")
+        if done:
+            self.tokens_done = True
+            return 0
+        rows = self.db.samples_tokens_page(before_ts, before_rowid, batch)
+        if not rows:
+            self.tokens_done = True
+            self.store.settings_put("sample_stats.tokens_cursor", [-1, -1])
+            return 0
+        self.store.set_sample_stats_tokens([(int(r["prompt_tokens"] or 0), int(r["completion_tokens"] or 0), str(r["id"])) for r in rows])
+        last = rows[-1]
+        self.store.settings_put("sample_stats.tokens_cursor", [int(last["ts"]), int(last["rowid"])])
+        self.tokens_rows += len(rows)
+        if len(rows) < batch:
+            self.tokens_done = True
         return len(rows)
 
     #: how far back the daily repair looks for a kept turn without its shape row
@@ -1395,7 +1446,7 @@ class Analytics:
         rows = self.db.samples_without_stats(batch, int(time.time()) - self.REPAIR_WINDOW_S)
         if not rows:
             return 0
-        self.db.add_sample_stats(
+        self.store.add_sample_stats(
             [
                 sample_shape(
                     str(r["id"]),

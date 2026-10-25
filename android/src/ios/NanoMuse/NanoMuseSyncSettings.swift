@@ -97,7 +97,7 @@ struct NanoMuseSyncSection: View {
                     Text(AppLocalized("Removes what nanoMuse Cloud holds of your conversations. Every device keeps its own chats; the switch stays as it is."))
                 }
             } footer: {
-                Text(AppLocalized("Deleting a chat on one device deletes it on all of them. Nobody but your devices can read the text; the operator sees counts, not words."))
+                Text(AppLocalized("Deleting a chat on one device deletes it on all of them. The text is stored as it is: your devices and whoever runs the relay can read it, nobody else."))
             }
             .task { await sync.refreshState() }
         }
