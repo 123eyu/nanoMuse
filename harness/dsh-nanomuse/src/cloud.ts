@@ -27,7 +27,7 @@
  */
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { ApprovalDesk, appOf, checkForUpdate, compareVersions, DEVICE_GRANT_PREFIX, grantCovers, HoldDesk, modelFor, pickChatModel, pickHandsModel, REMOTE_CONTROL_GRANT_ID, sharedConnectors, standingGrants, takesImages, UPDATE_RETRY_MS, updateCacheFresh, withGrant, type Grant, type Hold, type HoldTool, type PendingApproval, type StandingGrant, type UpdateInfo } from './desk.ts'
+import { ApprovalDesk, appOf, type ApprovalScope, checkForUpdate, compareVersions, DEVICE_GRANT_PREFIX, grantCovers, HoldDesk, modelFor, pickChatModel, pickHandsModel, REMOTE_CONTROL_GRANT_ID, scheduleRunIds, sharedConnectors, standingGrants, takesImages, UPDATE_RETRY_MS, updateCacheFresh, withGrant, type Grant, type Hold, type HoldTool, type PendingApproval, type StandingGrant, type UpdateInfo } from './desk.ts'
 import { arch, homedir, hostname, release, type, userInfo } from 'node:os'
 import { dirname, join } from 'node:path'
 import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto'
@@ -652,7 +652,17 @@ export default class NanomuseCloud extends Service {
    */
   private readonly logCache = new Map<string, { title?: { at: number; title: string }; lines?: SessionLine[]; prompts?: Array<{ key: string; time: number }> }>()
   /** Approvals the stage may answer (C2) and holds of the hands (C1). */
-  private readonly approvalDesk = new ApprovalDesk(() => this.deskMoved(), (req) => this.granted(req.toolName, String(req.agent.session.id)), (req) => this.handsApp(req.toolName))
+  /**
+   * The scheduled tasks whose reminder opened a session's current turn (dsh-schedule posts it as a
+   * user message from `schedule`); gone at the turn's end or when the person writes in that turn.
+   */
+  private readonly scheduledTurns = new Map<string, string[]>()
+  private readonly approvalDesk = new ApprovalDesk(
+    () => this.deskMoved(),
+    (req) => this.granted(req.toolName, String(req.agent.session.id)),
+    (req) => this.handsApp(req.toolName),
+    (req) => this.scheduleAsking(req.toolName, String(req.agent.session.id)),
+  )
   private readonly holdDesk = new HoldDesk(() => this.deskMoved())
   /** Sessions the other devices were last told are waiting on a card or a hold here (0.31). */
   private waitingSessions = new Set<string>()
@@ -1025,7 +1035,14 @@ export default class NanomuseCloud extends Service {
           if (event.type === 'turn/start') {
             this.turns.began(id)
             if (this.gateClosed) void this.abortSession(id, { kind: 'hook', reason: 'this computer is ending its work; nothing starts under the hand-over' })
-          } else if (event.type === 'turn/end') this.turns.ended(id)
+          } else if (event.type === 'turn/end') {
+            this.turns.ended(id)
+            this.scheduledTurns.delete(id)
+          } else if (event.type === 'user/message') {
+            const kind: string = event.data.source?.kind ?? ''
+            if (kind === 'schedule') this.scheduledTurns.set(id, scheduleRunIds(textOf(event.data.content)))
+            else if (!HARNESS_CONTEXT_KINDS.has(kind)) this.scheduledTurns.delete(id)
+          }
         }),
       'nanomuse cloud: turns for the protected exit',
     )
@@ -1286,14 +1303,15 @@ export default class NanomuseCloud extends Service {
   // ---- approvals and holds on the stage (C1, C2) -----------------------------------
 
   /** The stage's answer to a question the agent asked; false when it was answered already. */
-  decideApproval(id: string, approved: boolean, scope: 'once' | 'conversation' | 'always'): boolean {
+  decideApproval(id: string, approved: boolean, scope: ApprovalScope): boolean {
     const row = this.approvalDesk.list().find((a) => a.id === id)
     const ok = this.approvalDesk.decide(id, approved, scope)
     // "Always" on a hands step: the app it asked in is allowed from now on, in every conversation
-    // ("always") or in this one only ("conversation"), until revoked on the Permissions page.
-    if (ok && approved && scope !== 'once' && row?.app) {
-      const sessionId = scope === 'conversation' ? row.sessionId : undefined
-      void this.grant(`computer_app:${row.app}`, sessionId).catch((error: unknown) => this.ctx.logger.warn('nanomuse cloud: grant not kept: %s', message(error)))
+    // ("always"), in this one only ("conversation") or in the runs of the task that asked
+    // ("schedule"), until revoked on the Permissions page.
+    if (ok && approved && scope !== 'once' && row?.app && (scope !== 'schedule' || row.scheduleId)) {
+      const sessionId = scope === 'always' ? undefined : row.sessionId
+      void this.grant(`computer_app:${row.app}`, sessionId, scope === 'schedule' ? row.scheduleId : undefined).catch((error: unknown) => this.ctx.logger.warn('nanomuse cloud: grant not kept: %s', message(error)))
     }
     return ok
   }
@@ -1306,16 +1324,30 @@ export default class NanomuseCloud extends Service {
 
   /** Whether a standing grant covers a request right now: a hands step while the granted app is in front, in a conversation the grant holds in. */
   private granted(toolName: string, sessionId: string): boolean {
-    return grantCovers(this.state.grants ?? [], this.handsApp(toolName), sessionId)
+    return grantCovers(this.state.grants ?? [], this.handsApp(toolName), sessionId, this.scheduledTurns.get(sessionId) ?? [])
   }
 
-  private async grant(target: string, sessionId?: string): Promise<void> {
+  /** The one scheduled task whose run a hands step asks in, for *Always in this task*; '' outside such a run. */
+  private scheduleAsking(toolName: string, sessionId: string): string {
+    const ids = this.scheduledTurns.get(sessionId) ?? []
+    return this.handsApp(toolName) && ids.length === 1 ? ids[0]! : ''
+  }
+
+  private async grant(target: string, sessionId?: string, scheduleId?: string): Promise<void> {
     const ctx = this.sessionCtx
     const sessionTitle = sessionId && ctx ? await this.sessionTitle(ctx, sessionId as SessionId, Date.now()) : ''
-    const grant: Grant = { id: `g-${randomBytes(4).toString('hex')}`, target, at: Date.now(), ...(sessionId ? { sessionId, sessionTitle } : {}) }
+    const scheduleTitle = sessionId && scheduleId ? await this.scheduleTitle(sessionId, scheduleId) : ''
+    const grant: Grant = { id: `g-${randomBytes(4).toString('hex')}`, target, at: Date.now(), ...(sessionId ? { sessionId, sessionTitle } : {}), ...(scheduleId ? { scheduleId, scheduleTitle } : {}) }
     this.state = { ...this.state, grants: withGrant(this.state.grants ?? [], grant) }
     await this.writeState()
     this.broadcast()
+  }
+
+  /** A scheduled task's title, for the grant lists; '' when the schedule service does not know it. */
+  private async scheduleTitle(sessionId: string, scheduleId: string): Promise<string> {
+    const schedule = this.ctx.get('schedule') as { list(request: { sessionId: SessionId }): Promise<{ id: string; title: string }[]> } | undefined
+    const list = await schedule?.list({ sessionId: sessionId as SessionId }).catch(() => [])
+    return list?.find((r) => r.id === scheduleId)?.title.slice(0, 80) ?? ''
   }
 
   async revokeGrant(id: string): Promise<boolean> {
@@ -3460,7 +3492,7 @@ export default class NanomuseCloud extends Service {
         ...(typeof raw.deviceName === 'string' && raw.deviceName ? { deviceName: raw.deviceName } : {}),
         ...(typeof raw.handsModel === 'string' && raw.handsModel ? { handsModel: raw.handsModel } : {}),
         // a grant 0.1.37 kept for the "app" "Done. Screen now:" (the mis-read head line) names nothing — dropped
-        ...(Array.isArray(raw.grants) ? { grants: (raw.grants as Grant[]).filter((g) => g && typeof g.id === 'string' && typeof g.target === 'string' && !MISREAD_GRANT.test(g.target)).map((g) => ({ id: g.id, target: g.target, at: Number(g.at) || 0, ...(typeof g.sessionId === 'string' && g.sessionId ? { sessionId: g.sessionId, sessionTitle: String(g.sessionTitle ?? '') } : {}) })) } : {}),
+        ...(Array.isArray(raw.grants) ? { grants: (raw.grants as Grant[]).filter((g) => g && typeof g.id === 'string' && typeof g.target === 'string' && !MISREAD_GRANT.test(g.target)).map((g) => ({ id: g.id, target: g.target, at: Number(g.at) || 0, ...(typeof g.sessionId === 'string' && g.sessionId ? { sessionId: g.sessionId, sessionTitle: String(g.sessionTitle ?? '') } : {}), ...(typeof g.sessionId === 'string' && g.sessionId && typeof g.scheduleId === 'string' && g.scheduleId ? { scheduleId: g.scheduleId, scheduleTitle: String(g.scheduleTitle ?? '') } : {}) })) } : {}),
         ...(raw.update && typeof raw.update === 'object' && typeof (raw.update as UpdateInfo).checkedAt === 'number' ? { update: updateForThisVersion(raw.update as UpdateInfo) } : {}),
         ...(raw.remoteControl === true ? { remoteControl: true } : {}),
         ...(raw.trusted && typeof raw.trusted === 'object' ? { trusted: trustedOf(raw.trusted) } : {}),
@@ -3838,7 +3870,7 @@ export default class NanomuseCloud extends Service {
       if (req.method === 'GET' && route === '/approvals') return send(res, 200, { approvals: this.approvalDesk.list() })
       if (req.method === 'POST' && route.startsWith('/approvals/')) {
         const body = await json(req)
-        const scope = body.scope === 'conversation' || body.scope === 'always' ? body.scope : 'once'
+        const scope = body.scope === 'schedule' || body.scope === 'conversation' || body.scope === 'always' ? body.scope : 'once'
         const ok = this.decideApproval(decodeURIComponent(route.slice('/approvals/'.length)), body.approved === true, scope)
         return ok ? send(res, 204) : send(res, 404, { error: { code: 'not_found', message: 'That question was answered already' } })
       }
@@ -4104,6 +4136,12 @@ export function stageAction(args: unknown): StageAction {
     at: Date.now(),
   }
 }
+
+/**
+ * The user messages the harness adds to a turn on its own (the time, the runtime, the skills): they
+ * do not end a scheduled run. Any other kind is someone writing, and the run is theirs from then on.
+ */
+const HARNESS_CONTEXT_KINDS = new Set(['time-context', 'runtime-context', 'skill-catalog', 'agent-instructions', 'model-selection', 'tool-jobs', 'tool-registry', 'system-prompt', 'ptc-mode', 'user-approval'])
 
 /** The grant target 0.1.37 wrote when it took `computer_act`'s first line for the window title. */
 export const MISREAD_GRANT = /^computer_app:Done\. Screen now:?$/
