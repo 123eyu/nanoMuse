@@ -151,9 +151,9 @@ speaking as nanoMuse through the `nanomuse` preset, with:
   <app>* on a permission card), *In one chat* (the hands in an app within one chat, from
   *Always in this chat*; the row is titled with the chat) and *In one scheduled task* (the
   hands in an app only when that task runs, from *Always in this task*; the row is titled
-  with the task and names its chat, and says so when the task was deleted). A group with
-  nothing in it is left out. Each row says what was allowed and when, and has *Revoke*;
-  the empty state says that *always* on a card is what puts a row here. The Computer use
+  with the task and names its chat, and says so when the task was deleted). The three
+  groups are always there; an empty one says which button on a permission card puts a grant
+  in it. Each row says what was allowed and when, and has *Revoke*. The Computer use
   page and the profile drawer list the hands' grants in the same groups; this one is the
   complete one. The host answers `GET /nanomuse/cloud/grants` with
   the list and `POST /grants/revoke {id}` for any row of it.
