@@ -121,6 +121,30 @@ def test_add_lists_the_models_and_keeps_the_key_in_the_vault(server, listed, set
     assert second.json()["key_source"] == "none" and second.json()["models"] == ["s-1"]
 
 
+async def test_an_endpoint_that_cannot_be_asked_says_why(server, monkeypatch):
+    """``fetch_models`` answers one word on a failure and the refusal carries it now: "type
+    the ids" is the way on, not the whole message, which sent a person whose Ollama was not
+    running, or whose key was wrong, to type model names that changed nothing."""
+    client, _ = server
+    cases = (
+        ("ConnectError", "could not be asked for its models"),
+        ("HTTP 401", "refused the key"),
+        ("404", "no model list"),
+        ("redirect to another host", "redirects to another host"),
+        ("empty list", "did not list its models"),
+    )
+    for error, expected in cases:
+
+        async def fake(base_url: str, key: str = "", _error: str = error) -> tuple[list[str], str]:
+            return [], _error
+
+        monkeypatch.setattr(conn_module, "fetch_models", fake)
+        r = client.post("/api/connections/endpoints", json={"base_url": GATEWAY})
+        assert r.status_code == 400, r.text
+        detail = r.json()["detail"]
+        assert expected in detail and "type the ids" in detail, (error, detail)
+
+
 def test_slots_are_set_from_an_endpoint_by_id(server, listed, settings):
     client, service = server
     first = client.post(

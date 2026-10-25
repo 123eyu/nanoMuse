@@ -346,8 +346,16 @@ async def fetch_models(
     try:
         import httpx
 
+        from nanomuse.llm.factory import is_local_endpoint
+
         async with httpx.AsyncClient(
-            timeout=8.0, follow_redirects=False, transport=transport
+            timeout=8.0,
+            follow_redirects=False,
+            transport=transport,
+            # a model served on this machine (Ollama, LM Studio, vLLM) is asked directly:
+            # through the environment's proxy the answer is the proxy's, and the person was
+            # told the endpoint lists nothing
+            trust_env=not is_local_endpoint(base_url),
         ) as client:
             for url in candidates:
                 try:

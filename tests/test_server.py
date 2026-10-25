@@ -1348,6 +1348,37 @@ async def test_fetch_models_keeps_the_key_on_its_host():
     assert (ids, err) == ([], "userinfo in URL")
 
 
+async def test_fetch_models_asks_a_local_endpoint_directly(dead_proxy: str):
+    """Ollama, LM Studio and vLLM answer on this machine, and the environment's proxy was
+    asked for their model list instead: the proxy's answer made a running endpoint look like
+    one that lists nothing."""
+    import http.server
+    import threading
+
+    from nanomuse.server.connections import fetch_models
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self) -> None:  # noqa: N802 - the handler's name
+            body = json.dumps({"data": [{"id": "qwen3:8b"}, {"id": "llama4:8b"}]}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args: Any) -> None:
+            pass
+
+    ours = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=ours.serve_forever, daemon=True).start()
+    try:
+        ids, err = await fetch_models(f"http://127.0.0.1:{ours.server_address[1]}/v1")
+    finally:
+        ours.shutdown()
+        ours.server_close()
+    assert (ids, err) == (["llama4:8b", "qwen3:8b"], "")
+
+
 def test_providers_carry_where_keys_come_from(server):
     client, _, _ = server
     providers = client.get("/api/connections").json()["providers"]

@@ -76,6 +76,31 @@ def host_label(base_url: str) -> str:
     return f"{host}:{parts.port}" if parts.port else host
 
 
+def _unlisted_sentence(error: str) -> str:
+    """Why an endpoint served no model list, in the words of the person adding it.
+
+    ``fetch_models`` answers one word on a failure (``ConnectError``, ``HTTP 401``, ``404``,
+    ``redirect to another host``, ``empty list``). Saying "type the ids" for all of them sent
+    a person whose Ollama was not running, or whose key was wrong, to type model names that
+    changed nothing; the reason leads now, and the way on follows it.
+    """
+    typing = "type the ids of the models it serves, separated by commas"
+    if error.startswith(("HTTP 401", "HTTP 403")):
+        return f"the endpoint refused the key ({error}); check the key, then {typing}"
+    if error == "404":
+        return f"the endpoint has no model list at /models (404); {typing}"
+    if error == "redirect to another host":
+        return (
+            f"the endpoint's model list redirects to another host, so it was not followed; {typing}"
+        )
+    if error in ("", "empty list"):
+        return f"the endpoint did not list its models (GET /models); {typing}"
+    return (
+        f"the endpoint could not be asked for its models ({error}); check the address and that "
+        f"its server is running, then {typing}"
+    )
+
+
 class Endpoints:
     """The list behind *Add endpoint*: owned by :class:`Connections`, which holds the
     settings file, the vault and the slot setters."""
@@ -242,16 +267,14 @@ class Endpoints:
 
     async def _models_for(self, base_url: str, key: str, typed: list[str]) -> list[str]:
         """The ids the person typed first, then what the endpoint lists; a ValueError when
-        there is neither (a slot cannot pick from an empty list)."""
+        there is neither (a slot cannot pick from an empty list), naming what went wrong
+        when the question itself failed."""
         from nanomuse.server.connections import fetch_models
 
-        listed, _error = await fetch_models(base_url, key)
+        listed, error = await fetch_models(base_url, key)
         models = typed + [m for m in listed if m not in typed]
         if not models:
-            raise ValueError(
-                "the endpoint did not list its models (GET /models); type the ids of the "
-                "models it serves, separated by commas"
-            )
+            raise ValueError(_unlisted_sentence(error))
         return models
 
     async def add(self, body: dict[str, Any]) -> dict[str, Any]:
