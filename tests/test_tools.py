@@ -60,7 +60,9 @@ async def test_files_says_when_a_listing_or_a_search_was_cut(tmp_path: Path):
         assert r.ok and "3 entries in all; the first 2 are listed" in r.output
         patch.setattr(files_module, "SEARCH_MAX_MATCHES", 2)
         r = await files.execute(action="search", pattern="*.md")
-        assert r.ok and "a.md" in r.output
+        # the walk's order is the file system's (APFS hands names back unsorted), so the
+        # two kept are any two of the three
+        assert r.ok and sum(line.endswith(".md") for line in r.output.splitlines()) == 2
         assert "stopped at 2 matches; narrow the pattern" in r.output
     r = await files.execute(action="list", path=".")
     assert "entries in all" not in r.output
