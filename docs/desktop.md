@@ -145,16 +145,17 @@ speaking as nanoMuse through the `nanomuse` preset, with:
   phones have the same setting in the provider form, the web app in the own-key form, the
   runtime in `[llm] proxy` ([own-key.md](own-key.md#when-the-provider-cannot-be-reached));
 - **Standing grants** (Settings → Permissions): every permission this computer remembers,
-  in one list, grouped under the three tiers the phone's Permissions page uses: *Runs
-  without asking* (the remote-control switch: every device of the account may run things
-  here), *Remembered from the card* (a device allowed with *always* on a remote-control
-  card; the hands in an app, from *Always in <app>* on a permission card, or in that app
-  within one chat only, from *Always in this chat*, or only when one scheduled task runs,
-  from *Always in this task*), *Runs, then tells
-  you* (nothing of the desktop's lands there today). Each row says what was allowed, for
-  whom or where, when, and has *Revoke*; the empty state says that *always* on a card is
-  what puts a row here. The Computer use page and the profile drawer keep their own shorter
-  lists; this one is the complete one. The host answers `GET /nanomuse/cloud/grants` with
+  in one list, grouped by where it holds: *General* (the remote-control switch, first, as
+  it lets the most through: every device of the account may run things here; a device
+  allowed with *always* on a remote-control card; the hands in an app, from *Always in
+  <app>* on a permission card), *In one chat* (the hands in an app within one chat, from
+  *Always in this chat*; the row is titled with the chat) and *In one scheduled task* (the
+  hands in an app only when that task runs, from *Always in this task*; the row is titled
+  with the task and names its chat, and says so when the task was deleted). A group with
+  nothing in it is left out. Each row says what was allowed and when, and has *Revoke*;
+  the empty state says that *always* on a card is what puts a row here. The Computer use
+  page and the profile drawer list the hands' grants in the same groups; this one is the
+  complete one. The host answers `GET /nanomuse/cloud/grants` with
   the list and `POST /grants/revoke {id}` for any row of it.
 - **A real quit protects the work in progress.** Quit (the menu's Quit, Ctrl+Q, the tray's
   Quit, or closing the last window when there is no tray) first asks the Host what is still
