@@ -5,9 +5,10 @@
 #                                   (docs/harness.md, harness/README.md); nanoMuse Desktop
 #                                   itself carries the same bundle (desktop-app.yml)
 #
-# A push or pull request that touches harness/ builds, typechecks and tests the bundle and the
-# Electron shell (harness/desktop: typecheck and its node tests, no installer), on Linux and on
-# Windows, where the tests see a checkout made with core.autocrlf and Windows paths; a
+# A pull request that touches harness/, or a push to main, builds, typechecks and tests the
+# bundle and the Electron shell (harness/desktop: typecheck and its node tests, no installer),
+# on Linux and on Windows, where the tests see a checkout made with core.autocrlf and Windows
+# paths (a push to any other branch is left to its pull request, so one commit is built once); a
 # release tag `v*` also packs the bundle and attaches the tarball and its checksum to the release of
 # the same name (the one scripts/release-apk.sh creates with the APK), retrying until it
 # exists. "Run workflow" with a release tag does the same for a release that already exists.
@@ -18,7 +19,7 @@ name: harness bundle
 
 on:
   push:
-    branches: ["**"]
+    branches: [main]
     paths: ["harness/**", "scripts/connectors-json.mjs", "scripts/providers-json.mjs", "nanomuse/llm/providers.json", "android/src/android/app/src/main/assets/nanomuse/connectors.json", "android/src/android/app/src/main/assets/nanomuse/providers.json", "android/src/android/app/src/main/assets/nanomuse/ideas.*.json", "android/src/ios/NanoMuse/Resources/connectors.json", "android/src/ios/NanoMuse/Resources/providers.json", "android/src/ios/NanoMuse/Resources/ideas.*.json", ".github/workflows/harness.yml"]
     tags: ["v*"]
   pull_request:
