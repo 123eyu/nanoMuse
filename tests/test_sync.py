@@ -404,6 +404,10 @@ def test_the_second_main_adopts_the_accounts_id(synced) -> None:
 # ----------------------------------------------------------------------------- pull
 def test_pull_makes_threads_and_history_and_tombstones_remove(synced) -> None:
     client, service, llm, relay = synced
+    # the start-up chain (pull, the push 50 ms later, the pull that follows a push) is through
+    # before the rows go on the relay; on a slow runner one of those pulls took them and the
+    # pull below applied 0 (the macOS runner, once the fixture waited for the first pull alone)
+    wait_for(lambda: settled(service))
     cid = str(uuid.uuid4())
     relay.add_conversation(cid, "side", "Dinner plans", device="phone-1")
     m1 = relay.add_message(cid, "user", "book a table", created_at=1738000050)
