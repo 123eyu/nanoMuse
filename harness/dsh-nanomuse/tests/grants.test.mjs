@@ -3,7 +3,7 @@
 // grants — with the tier each belongs to, and the grouping by tier the page draws.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { appLabel, appNames, DEVICE_GRANT_PREFIX, GRANT_TIERS, grantCovers, groupGrants, REMOTE_CONTROL_GRANT_ID, standingGrants, withGrant } from '../lib/desk.js'
+import { appLabel, appNames, DEVICE_GRANT_PREFIX, GRANT_TIERS, grantCovers, groupGrants, REMOTE_CONTROL_GRANT_ID, scheduleRunIds, standingGrants, withGrant } from '../lib/desk.js'
 
 test('the three tiers, highest first, are the contract', () => {
   assert.deepEqual([...GRANT_TIERS], ['highest', 'confirm', 'notice'])
@@ -98,4 +98,36 @@ test('one app under its several head-line names is one app to a grant', () => {
   // another app with a name of its own is not covered
   assert.equal(grantCovers(grants, '日历 (Calendar)', 's1'), false)
   assert.equal(grantCovers([{ id: 'g2', target: 'computer_app:Safari', at: 1 }], 'Safari (com.apple.Safari)', 's9'), true)
+})
+
+test('a task grant holds only in the runs that task starts, in its conversation', () => {
+  const grants = [{ id: 'g', target: 'computer_app:微信 (WeChat)', at: 1, sessionId: 's1', scheduleId: 'schedule-a', scheduleTitle: 'Morning note' }]
+  assert.equal(grantCovers(grants, '微信 (WeChat)', 's1', ['schedule-a']), true)
+  // the same conversation, typed by hand
+  assert.equal(grantCovers(grants, '微信 (WeChat)', 's1'), false)
+  // another task of the conversation, or a run of both
+  assert.equal(grantCovers(grants, '微信 (WeChat)', 's1', ['schedule-b']), false)
+  assert.equal(grantCovers(grants, '微信 (WeChat)', 's1', ['schedule-a', 'schedule-b']), false)
+  // another conversation
+  assert.equal(grantCovers(grants, '微信 (WeChat)', 's2', ['schedule-a']), false)
+  // a grant without a task still holds in a task's run
+  assert.equal(grantCovers([{ id: 'h', target: 'computer_app:WeChat', at: 1, sessionId: 's1' }], 'WeChat', 's1', ['schedule-a']), true)
+})
+
+test('a task grant sits beside the conversation grant for the same app', () => {
+  const chat = { id: 'g1', target: 'computer_app:WeChat', at: 1, sessionId: 's1' }
+  const task = { id: 'g2', target: 'computer_app:WeChat', at: 2, sessionId: 's1', scheduleId: 'schedule-a' }
+  assert.deepEqual(withGrant([chat], task).map((g) => g.id), ['g1', 'g2'])
+  assert.deepEqual(withGrant([chat, task], { ...task, id: 'g3' }).map((g) => g.id), ['g1', 'g3'])
+  const [listed] = standingGrants({ grants: [{ ...task, scheduleTitle: 'Morning note' }] })
+  assert.equal(listed.scheduleId, 'schedule-a')
+  assert.equal(listed.scheduleTitle, 'Morning note')
+})
+
+test('the tasks a reminder starts are read from the harness framing', () => {
+  assert.deepEqual(scheduleRunIds('[SCHEDULE REMINDER]\nThis is a scheduled message from the user\nschedule_id_json: "schedule-a"\noccurrence_at: x\nreminder_prompt_json: "hi"'), ['schedule-a'])
+  const batch = `[SCHEDULE REMINDER BATCH]\nThis is a scheduled message from the user\nreminders_json: ${JSON.stringify([{ schedule_id: 'schedule-a', occurrence_at: 'x', reminder_prompt: 'p' }, { schedule_id: 'schedule-b', occurrence_at: 'x', reminder_prompt: 'q\nr' }])}`
+  assert.deepEqual(scheduleRunIds(batch), ['schedule-a', 'schedule-b'])
+  assert.deepEqual(scheduleRunIds('[SCHEDULE REMINDER BATCH]\nreminders_json: not json'), [])
+  assert.deepEqual(scheduleRunIds('send [SCHEDULE REMINDER] now'), [])
 })

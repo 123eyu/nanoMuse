@@ -76,6 +76,14 @@ test('a hands step names the app it asked in; another tool names none', async ()
   assert.deepEqual(desk.list().map((a) => a.app), ['WeChat', ''])
 })
 
+test('a step in a scheduled run names the task that started it', async () => {
+  const desk = new ApprovalDesk(() => undefined, () => false, () => 'WeChat', (r) => (r.agent.session.id === 's-task' ? 'schedule-a' : ''))
+  void desk.handle(req('c6', 's-task'), () => new Promise(() => undefined))
+  void desk.handle(req('c7'), () => new Promise(() => undefined))
+  await new Promise((r) => setImmediate(r))
+  assert.deepEqual(desk.list().map((a) => a.scheduleId), ['schedule-a', ''])
+})
+
 test('a request a grant covers is allowed without a card', async () => {
   const desk = new ApprovalDesk(() => undefined, (r) => r.agent.session.id === 's-granted')
   let asked = false
