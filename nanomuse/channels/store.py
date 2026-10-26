@@ -130,16 +130,16 @@ class ChannelSettingsStore:
     # ------------------------------------------------------------------ reading
     def _from_toml(self) -> dict[str, Any]:
         """``[channels.<name>]`` tables of config.toml, ``${VAR}`` expanded like the rest."""
+        from nanomuse.config import _expand_env, read_toml
+
         path = Path(self.config_file) if self.config_file else None
         if path is None or not path.is_file():
             return {}
         try:
-            with path.open("rb") as fh:
-                raw = tomllib.load(fh)
-        except (OSError, tomllib.TOMLDecodeError) as exc:
+            raw = read_toml(path)
+        except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
             logger.warning("channels: could not read {}: {}", path, exc)
             return {}
-        from nanomuse.config import _expand_env
 
         table = raw.get("channels")
         if not isinstance(table, dict):

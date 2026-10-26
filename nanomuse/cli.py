@@ -27,6 +27,7 @@ from nanomuse.config import (
     Settings,
     find_config_file,
     load_settings,
+    read_toml,
     unknown_keys,
 )
 
@@ -1650,9 +1651,8 @@ async def _doctor(settings: Settings, check_model: bool) -> None:
     line(settings.source != "defaults+env" or None, f"config: {settings.source}")
     if settings.source and settings.source != "defaults+env":
         try:
-            with open(settings.source, "rb") as fh:
-                stray = unknown_keys(tomllib.load(fh))
-        except (OSError, tomllib.TOMLDecodeError):
+            stray = unknown_keys(read_toml(Path(settings.source)))
+        except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError):
             stray = []
         if stray:
             shown = ", ".join(stray[:6]) + (" …" if len(stray) > 6 else "")
