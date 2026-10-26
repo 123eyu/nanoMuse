@@ -57,7 +57,7 @@ def _settings(config: Path | None) -> Settings:
     except FileNotFoundError as exc:
         err.print(f"[red]{exc}[/red]")
         raise typer.Exit(1) from exc
-    except tomllib.TOMLDecodeError as exc:
+    except (tomllib.TOMLDecodeError, UnicodeDecodeError) as exc:
         err.print(f"[red]config.toml is not valid TOML[/red] ({find_config_file(config)}): {exc}")
         raise typer.Exit(1) from exc
     except ValidationError as exc:
