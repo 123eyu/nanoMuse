@@ -13,9 +13,26 @@ from pathlib import Path
 from typing import Any
 
 from nanomuse.schema import RiskLevel, ToolResult
+from nanomuse.stdio import decode_output
 from nanomuse.tools.base import BaseTool, CallAssessment, short_json
 
 MAX_READ_CHARS = 60_000
+# a character takes at most four bytes (UTF-8) and two (UTF-16), so this many bytes always
+# hold as many characters as a report keeps: the cut lands between characters, not inside one
+_BYTES_PER_CHAR = 4
+
+
+def read_capped_text(path: Path, limit: int) -> str:
+    """The first ``limit`` characters of a file, read the way the shell tool reads a command's
+    output: a byte-order mark decides, then UTF-8, then the console's code page.
+
+    A file often is a command's output: ``dir > out.txt`` on PowerShell 5 writes UTF-16LE,
+    ``reg export`` too, and a redirect on a Chinese console writes code page 936. Read as
+    UTF-8, all three reached the model as NULs and replacement characters.
+    """
+    with path.open("rb") as fh:
+        data = fh.read(limit * _BYTES_PER_CHAR + 4)
+    return decode_output(data)
 
 
 def unescape_flat(content: str) -> tuple[str, bool]:
@@ -175,8 +192,7 @@ class Files(BaseTool):
                     return ToolResult(output=text or "(empty file)")
                 # read what fits and one more character, not the whole file: a log of a few
                 # hundred MB is truncated either way, and need not be loaded for it
-                with target.open("r", encoding="utf-8", errors="replace") as fh:
-                    text = fh.read(MAX_READ_CHARS + 1)
+                text = read_capped_text(target, MAX_READ_CHARS + 1)
                 if len(text) > MAX_READ_CHARS:
                     size = target.stat().st_size
                     text = text[:MAX_READ_CHARS] + f"\n... [truncated, {size} bytes total]"
