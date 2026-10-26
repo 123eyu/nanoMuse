@@ -41,6 +41,18 @@ test('API Route is offered for own-key chat without unverified media capabilitie
   }
 })
 
+test('Opper is offered for own-key chat without unverified media capabilities', () => {
+  const provider = catalogue.find((p) => p.id === 'opper')
+  assert.ok(provider)
+  assert.equal(baseUrlFor(provider, 'global'), 'https://api.opper.ai/v3/compat')
+  assert.equal(provider.defaults.chat, 'claude-sonnet-4-6')
+  assert.deepEqual(capabilitiesForAuth(provider, 'key'), ['chat'])
+  assert.ok(waysOn(catalogue, 'global').rest.some((p) => p.id === 'opper'))
+  for (const capability of ['vision', 'image', 'video']) {
+    assert.ok(!providersWith(catalogue, capability, 'global').some((p) => p.id === 'opper'))
+  }
+})
+
 test('loadCatalogue reads the asset next to lib/ and gives an empty list for a missing file', async () => {
   assert.ok((await loadCatalogue()).length >= 15)
   assert.deepEqual(await loadCatalogue('/nonexistent/providers.json'), [])

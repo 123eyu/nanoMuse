@@ -479,6 +479,23 @@
       "verified": "2026-10"
     },
     {
+      "id": "opper",
+      "name": "Opper",
+      "name_zh": "Opper",
+      "protocol": "openai",
+      "base_url": "https://api.opper.ai/v3/compat",
+      "key_url": "https://platform.opper.ai",
+      "auth": ["key"],
+      "regions": ["global"],
+      "capabilities": ["chat"],
+      "defaults": {
+        "chat": "claude-sonnet-4-6"
+      },
+      "note": "An OpenAI-compatible gateway hosted in the EU, with one key for 700+ models from 50+ providers (Claude, GPT, Gemini, DeepSeek, Kimi, Mistral and others) at the providers' rates, with no markup. Chat only here, on the OpenAI shape: the default model is claude-sonnet-4-6, and any id from its /v3/compat/models list can be set instead; a provider/model id such as anthropic/claude-sonnet-4-6 pins one route.",
+      "note_zh": "托管在欧盟的 OpenAI 兼容网关，一把 key 用 50 多家服务商的 700 多个模型（Claude、GPT、Gemini、DeepSeek、Kimi、Mistral 等），按服务商的价格计费，不加价。这里只有对话，走 OpenAI 格式：默认模型是 claude-sonnet-4-6，也可以改填 /v3/compat/models 里的任意模型 id；anthropic/claude-sonnet-4-6 这样带服务商前缀的 id 固定走一条线路。",
+      "verified": "2026-10"
+    },
+    {
       "id": "ollama",
       "name": "Ollama",
       "name_zh": "Ollama（本机）",
