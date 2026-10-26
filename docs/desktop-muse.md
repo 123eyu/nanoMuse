@@ -158,7 +158,7 @@ account and worn on every device)), the name, *online* / *Not signed in* / *Offl
 what the agent is doing right now, a share button (a card with the face and the name, as
 a picture to save or copy), and a segmented control of four tabs: **Activity** (the
 sessions and the hub's notices, *Today* and *Earlier*), **Approvals** (the per-app
-*Always allow* grants with **Revoke**, under *General*, *In one chat* and *In one scheduled task*, *Manage permissions* → Settings → Computer use,
+*Always allow* grants with **Revoke**, each saying when it holds in one chat or one task only, *Manage permissions* → Settings → Computer use,
 then what you allowed or rejected on the approval cards, with when; kept on this
 computer), **Daily** (the routines; *Manage routines* opens the harness's schedules
 panel), **Soul & memory** (what the agent remembers about you, one line each): a
@@ -234,12 +234,12 @@ you can answer from wherever you are.
 allowed without asking until you revoke the grant, on the agent page or under Settings →
 Computer use → *Always allowed*. *Always in this chat* writes the same grant with the
 chat's session id and title: it holds in that chat only, which is what a scheduled task
-needs (its runs land in the same chat), and the lists put it under *In one chat*, titled with the chat.
+needs (its runs land in the same chat), and its row in the lists says *Only in the chat “…”*.
 While a scheduled task runs (its reminder opened the turn), the strip and the capsule offer
 *Always in this task* in place of *Always in this chat*: the grant also keeps the task's id
 and title and holds only in the turns that task starts, until someone writes in that turn;
-a turn that runs two tasks at once needs a grant for each. The lists put it under *In one
-scheduled task*, titled with the task, and say so once the task is deleted.
+a turn that runs two tasks at once needs a grant for each. Its row in the lists says
+*Only in the scheduled task “…”*, and says so once the task is deleted.
 The grant names the app, not the person or the words: in that chat, the hands may send
 anything to anyone in that app. Settings → **Computer use** shows the two macOS
 permissions with *Allow* and *Open System Settings* (through the desktop shell; the
