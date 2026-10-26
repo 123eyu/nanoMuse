@@ -28,6 +28,7 @@ from typing import Any
 
 from nanomuse import __version__
 from nanomuse.computer.screen import BlackScreen, take_screenshot
+from nanomuse.stdio import decode_output
 from nanomuse.tools.base import number_arg
 from nanomuse.tools.shell import kill_tree, scrubbed_env
 
@@ -84,7 +85,8 @@ def info(extra_actions: tuple[str, ...] = (), *, operable: bool = True) -> dict[
 
 
 def _text(b: bytes) -> str:
-    s = b.decode("utf-8", errors="replace")
+    # this computer's own console wrote it: 936 on a Chinese Windows, not UTF-8
+    s = decode_output(b)
     if len(s) > OUTPUT_LIMIT:
         s = s[:OUTPUT_LIMIT] + f"\n… [{len(s) - OUTPUT_LIMIT} more characters not shown]"
     return s

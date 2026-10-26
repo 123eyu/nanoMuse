@@ -16,6 +16,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Runtime
 
+- **A command's output is read in the console's code page, not as UTF-8.** A Windows console writes its children's output in its own code page (936 on a Chinese one), and the shell tool read those bytes as UTF-8: `cmd /c chcp` reached the model as replacement characters and a `dir` of a Chinese folder was unreadable, in the shell tool and in the `shell` action a phone calls on this computer. Bytes that are UTF-8 are still read as UTF-8, a UTF-16 byte-order mark (`wsl.exe -l -q`) decides first, and everything else is read in the console's own code page, or the locale's where there is no console to ask.
+
 - **A file listing or a search says when it stopped early.** `files` listed the first 500 names of a folder and the first 200 matches of a search and said nothing about the rest, so a model read a cut list as the whole folder and a cut search as every match there is; the report now ends with how many entries the folder holds, or the point at which the search stopped.
 
 - **The sync engine posts presence as the run moves, not only at its ends.** The status the run already keeps — the step's own words `on_tool_call` sets before every tool, and the waiting state of a run parked on an approval or a question — now travels with the working presence to the account's other devices (0.31), throttled to one post every two seconds with the newest step winning, fire-and-forget as presence has always been. The engine reads the bus's status frames, so nothing on the turn's path waits for it.
