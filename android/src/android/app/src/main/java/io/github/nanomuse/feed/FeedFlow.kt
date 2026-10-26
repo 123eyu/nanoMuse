@@ -182,20 +182,50 @@ object FeedFlow {
         ScheduledTaskManager(context).setEnabled(id, enabled)
     }
 
-    /** Called after every completed turn: `nanomuse-feed` blocks become posts. */
+    /**
+     * Called after every completed turn: `nanomuse-feed` blocks become posts.
+     *
+     * A draft is dropped, with a warning, when its title was already posted today or its
+     * body already appears in the posts the store keeps (30 days), so a replayed reply
+     * cannot land again as today's posts. A run that writes nothing leaves lastWritten
+     * empty, so notifyIfFeed does not take the completion notice over.
+     */
     fun afterTurn(context: Context, sessionId: String, assistantText: String?) {
         if (assistantText.isNullOrEmpty() || !assistantText.contains("```$BLOCK")) return
+        val parsed = block.findAll(assistantText).mapNotNull { m -> parseDraft(m.groupValues[1]) }.toList()
         val today = FeedStore.posts.value.filter { it.day == SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) }
-        val drafts = block.findAll(assistantText).mapNotNull { m -> parseDraft(m.groupValues[1]) }
-            .filter { d -> today.none { it.title.equals(d.title.trim().take(80), ignoreCase = true) } }
-            .toList()
-        if (drafts.isEmpty()) return
-        val written = FeedStore.append(drafts)
-        if (written.isNotEmpty() && isFeedSession(context, sessionId)) {
-            AppLogger.info(TAG, "feed run in $sessionId wrote ${written.size} post(s)")
-            lastWritten = written.map { it.title }
-            lastWrittenAt = System.currentTimeMillis()
+        val afterTitle = parsed.filter { d -> today.none { it.title.equals(d.title.trim().take(80), ignoreCase = true) } }
+        val titleDropped = parsed.size - afterTitle.size
+        if (titleDropped > 0) AppLogger.warning(TAG, "feed run dropped $titleDropped draft(s) with a title already posted today")
+        val drafts = dropDuplicateBodies(afterTitle, FeedStore.posts.value)
+        val bodyDropped = afterTitle.size - drafts.size
+        if (bodyDropped > 0) AppLogger.warning(TAG, "feed run dropped $bodyDropped draft(s) with a body already posted")
+        if (drafts.isEmpty()) {
+            if (isFeedSession(context, sessionId)) lastWritten = emptyList()
+            return
         }
+        val written = FeedStore.append(drafts)
+        if (!isFeedSession(context, sessionId)) return
+        if (written.isEmpty()) {
+            lastWritten = emptyList()
+            AppLogger.warning(TAG, "feed run in $sessionId wrote 0 of ${drafts.size} post(s)")
+            return
+        }
+        AppLogger.info(TAG, "feed run in $sessionId wrote ${written.size} post(s)")
+        lastWritten = written.map { it.title }
+        lastWrittenAt = System.currentTimeMillis()
+        if (written.size < drafts.size) {
+            AppLogger.warning(TAG, "feed run in $sessionId wrote ${written.size} of ${drafts.size} post(s); ${drafts.size - written.size} not written")
+        }
+    }
+
+    /** A body's shape for duplicate checks: trimmed, with runs of whitespace collapsed. */
+    fun normalizeBody(body: String): String = body.trim().replace(Regex("\\s+"), " ")
+
+    /** Drops drafts whose normalized body is already posted, or already seen earlier in this batch. */
+    fun dropDuplicateBodies(drafts: List<FeedStore.Draft>, existingPosts: List<FeedPost>): List<FeedStore.Draft> {
+        val seen = existingPosts.map { normalizeBody(it.body) }.toMutableSet()
+        return drafts.filter { seen.add(normalizeBody(it.body)) }
     }
 
     /**
@@ -203,10 +233,12 @@ object FeedFlow {
      * completion notice over (true), so the generic "task done" with the model's raw reply never
      * shows. With the app on screen the Feed tab already shows the posts; in the background, and
      * only when the run wrote something, one notification names them and opens the Feed.
+     * When the run wrote nothing, this returns false, so the generic completion notice
+     * shows instead of silence.
      */
     fun notifyIfFeed(context: Context, task: ScheduledTask): Boolean {
         if (task.id != taskId(context)) return false
-        val titles = lastWritten.takeIf { it.isNotEmpty() && System.currentTimeMillis() - lastWrittenAt < 30 * 60_000L } ?: return true
+        val titles = lastWritten.takeIf { it.isNotEmpty() && System.currentTimeMillis() - lastWrittenAt < 30 * 60_000L } ?: return false
         lastWritten = emptyList()
         if (ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) return true
         val body = titles.take(3).joinToString(" · ")
