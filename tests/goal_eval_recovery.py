@@ -605,7 +605,9 @@ async def run_suite(output: Path) -> dict[str, Any]:
         ).splitlines(),
         "sources": {str(p): digest(p) for p in source_paths},
         "files": {
-            str(p.relative_to(output)): digest(p) for p in sorted(output.rglob("*")) if p.is_file()
+            p.relative_to(output).as_posix(): digest(p)
+            for p in sorted(output.rglob("*"))
+            if p.is_file()
         },
         "authenticity": "Hashes detect changes relative to this manifest; not source authentication.",
     }
@@ -626,7 +628,7 @@ def replay(output: Path) -> dict[str, Any]:
         or manifest["policies"] != list(POLICIES)
     ):
         raise ValueError("archive experiment identity mismatch")
-    found = {str(p.relative_to(output)) for p in output.rglob("*") if p.is_file()}
+    found = {p.relative_to(output).as_posix() for p in output.rglob("*") if p.is_file()}
     if found != set(manifest["files"]) | {"manifest.json"}:
         raise ValueError("archive file inventory mismatch")
     for name, expected in manifest["files"].items():

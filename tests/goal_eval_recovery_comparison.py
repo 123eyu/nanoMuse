@@ -81,7 +81,7 @@ def environment() -> dict[str, Any]:
             for name in ("pydantic", "openai", "pytest", "loguru")
         },
         "runtime_sources": {
-            str(p.relative_to(benchmark.RUNTIME_ROOT)): benchmark.digest(p)
+            p.relative_to(benchmark.RUNTIME_ROOT).as_posix(): benchmark.digest(p)
             for p in sorted((benchmark.RUNTIME_ROOT / "nanomuse").rglob("*.py"))
         },
         "agent": "MuseAgent/MockLLM/Sentinel; same public task and per-case budgets",
@@ -214,7 +214,7 @@ async def run(output: Path, baseline: Path, candidate: Path) -> dict[str, Any]:
         target.parent.mkdir(exist_ok=True)
         target.write_bytes(source.read_bytes())
         actors[variant] = {
-            "path": str(target.relative_to(output)),
+            "path": target.relative_to(output).as_posix(),
             "sha256": benchmark.digest(target),
         }
     patch = "".join(
@@ -270,7 +270,7 @@ async def run(output: Path, baseline: Path, candidate: Path) -> dict[str, Any]:
     benchmark.write_json(output / "summary.json", result)
     # importlib may write bytecode; caches are implementation details, not evidence.
     files = {
-        str(p.relative_to(output)): benchmark.digest(p)
+        p.relative_to(output).as_posix(): benchmark.digest(p)
         for p in output.rglob("*")
         if p.is_file() and "__pycache__" not in p.parts
     }
@@ -309,7 +309,7 @@ def replay(output: Path) -> dict[str, Any]:
     if manifest["sources"] != sources() or manifest["environment"] != environment():
         raise ValueError("source inventory or execution environment changed")
     found = {
-        str(p.relative_to(output))
+        p.relative_to(output).as_posix()
         for p in output.rglob("*")
         if p.is_file() and "__pycache__" not in p.parts
     }
