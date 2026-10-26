@@ -16,6 +16,24 @@ from nanomuse.tools.shell import code_reach, scrubbed_env
 from nanomuse.tools.web import fetch_public, host_of, html_to_markdown
 
 
+async def test_files_writes_the_lines_it_was_given(tmp_path: Path):
+    """A write puts the text the model asked for on disk: the text mode on Windows turned
+    every "\\n" into "\\r\\n", so `#!/bin/sh` arrived as `#!/bin/sh\\r` (a script WSL and git
+    bash refuse to run), and reading the file back was not reading what was written."""
+    files = Files(workspace=tmp_path)
+    r = await files.execute(action="write", path="run.sh", content="#!/bin/sh\necho hi\n")
+    assert r.ok and "18 chars" in r.output
+    assert (tmp_path / "run.sh").read_bytes() == b"#!/bin/sh\necho hi\n"
+    r = await files.execute(action="append", path="run.sh", content="exit 0\n")
+    assert r.ok
+    assert (tmp_path / "run.sh").read_bytes() == b"#!/bin/sh\necho hi\nexit 0\n"
+    r = await files.execute(action="read", path="run.sh")
+    assert r.output == "#!/bin/sh\necho hi\nexit 0\n"
+    # text that already carries a carriage return is written as it is, not doubled
+    r = await files.execute(action="write", path="win.txt", content="a\r\nb\r\n")
+    assert (tmp_path / "win.txt").read_bytes() == b"a\r\nb\r\n"
+
+
 async def test_files_workspace_scoping(tmp_path: Path):
     ws = tmp_path / "ws"
     ws.mkdir()

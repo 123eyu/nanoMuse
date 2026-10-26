@@ -187,7 +187,12 @@ class Files(BaseTool):
                 content, fixed = unescape_flat(content)
                 target = self._resolve(path)
                 target.parent.mkdir(parents=True, exist_ok=True)
-                with target.open("a" if action == "append" else "w", encoding="utf-8") as fh:
+                # the lines the model wrote are the lines the file gets: text mode on Windows
+                # turned each "\n" into "\r\n", so a script or a config written for a Unix tool
+                # arrived with carriage returns, and a read of it was not what was written
+                with target.open(
+                    "a" if action == "append" else "w", encoding="utf-8", newline=""
+                ) as fh:
                     fh.write(content)
                 rel = shown_path(target, self.workspace)
                 note = " (the content had escaped newlines; written as lines)" if fixed else ""
