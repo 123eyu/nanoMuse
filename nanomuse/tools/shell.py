@@ -27,6 +27,7 @@ from typing import Any
 
 from nanomuse.sandbox import Sandbox, needs_network
 from nanomuse.schema import RiskLevel, ToolResult
+from nanomuse.stdio import decode_output
 from nanomuse.tools.base import BaseTool, CallAssessment, number_arg
 
 _SECRET_ENV = re.compile(
@@ -272,8 +273,9 @@ async def _run(
             raise
     except FileNotFoundError as exc:
         return ToolResult.fail(str(exc))
-    stdout = out.decode("utf-8", errors="replace")
-    stderr = err.decode("utf-8", errors="replace")
+    # the console's code page, not ours: `cmd /c chcp` on a Chinese Windows answers in 936
+    stdout = decode_output(out)
+    stderr = decode_output(err)
     text = stdout
     if out_total > MAX_OUTPUT_BYTES:
         text += f"\n[stdout cut: {out_total} bytes in all, the first {MAX_OUTPUT_BYTES} kept]"
