@@ -213,6 +213,12 @@ class FakeRelay(private val names: Map<String, String> = emptyMap()) : SyncApi {
         workingCalls += Triple(device, cid, working)
     }
 
+    val stepCalls = mutableListOf<List<String>>()
+    override fun working(device: String, cid: String, state: String, detail: String) {
+        check()
+        stepCalls += listOf(device, cid, state, detail)
+    }
+
     override fun push(device: String, conversations: List<OutConversation>, messages: List<OutMessage>): PushResult {
         check()
         if (!enabled) throw SyncException(409, "sync_off", "sync is off")

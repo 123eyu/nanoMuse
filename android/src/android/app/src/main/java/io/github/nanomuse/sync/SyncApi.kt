@@ -35,6 +35,14 @@ interface SyncApi {
     @Throws(SyncException::class)
     fun working(device: String, cid: String, working: Boolean)
 
+    /**
+     * Presence with the run's step (relay 0.31): a `true` that says what this device is doing
+     * on [cid] — [state] `working` or `waiting`, [detail] the step's own words, cut to
+     * [WorkingPresence.DETAIL_CAP]. An older relay ignores the two fields. Best effort too.
+     */
+    @Throws(SyncException::class)
+    fun working(device: String, cid: String, state: String, detail: String)
+
     @Throws(SyncException::class)
     fun deleteConversation(cid: String)
 
@@ -164,7 +172,10 @@ object SyncJson {
         val cid = o.optString("cid")
         val from = o.optString("from")
         if (cid.isBlank() || from.isBlank()) return null
-        return WorkingPresence(cid, from, o.optString("device_name"), o.optLong("at", 0))
+        // relay 0.31: what the run is doing; a frame without the two fields is plain working
+        val state = o.optString("state").takeIf { it == WorkingPresence.STATE_WAITING } ?: WorkingPresence.STATE_WORKING
+        val detail = o.optString("detail").trim().take(WorkingPresence.DETAIL_CAP)
+        return WorkingPresence(cid, from, o.optString("device_name"), o.optLong("at", 0), state, detail)
     }
 }
 
@@ -188,6 +199,12 @@ class RelaySyncApi(
 
     override fun push(device: String, conversations: List<OutConversation>, messages: List<OutMessage>): PushResult =
         SyncJson.pushResult(call("POST", "/v1/sync/changes", SyncJson.pushBody(device, conversations, messages)))
+
+    override fun working(device: String, cid: String, state: String, detail: String) {
+        val body = JSONObject().put("cid", cid).put("working", true).put("device", device)
+            .put("state", state).put("detail", detail.take(WorkingPresence.DETAIL_CAP))
+        call("POST", "/v1/sync/working", body)
+    }
 
     override fun working(device: String, cid: String, working: Boolean) {
         call("POST", "/v1/sync/working", JSONObject().put("cid", cid).put("working", working).put("device", device))

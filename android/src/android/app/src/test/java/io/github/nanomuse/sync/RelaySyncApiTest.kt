@@ -164,6 +164,16 @@ class RelaySyncApiTest {
         assertNull(SyncJson.working(JSONObject("""{"type":"working","working":true}""")))
     }
 
+    @Test fun `a working frame since relay 0-31 says what the run is doing, and an odd state reads as working`() {
+        val step = JSONObject("""{"type":"working","cid":"c1","from":"desk-1","device_name":"Mac","working":true,"at":1738000000,"state":"working","detail":" 打开携程网站 "}""")
+        assertEquals(WorkingPresence("c1", "desk-1", "Mac", 1738000000, WorkingPresence.STATE_WORKING, "打开携程网站"), SyncJson.working(step))
+        val card = JSONObject("""{"type":"working","cid":"c1","from":"desk-1","device_name":"Mac","working":true,"at":1738000000,"state":"waiting","detail":"Needs your approval"}""")
+        assertEquals(WorkingPresence.STATE_WAITING, SyncJson.working(card)?.state)
+        val odd = JSONObject("""{"type":"working","cid":"c1","from":"desk-1","device_name":"Mac","working":true,"at":1738000000,"state":"dancing","detail":"${"x".repeat(300)}"}""")
+        assertEquals(WorkingPresence.STATE_WORKING, SyncJson.working(odd)?.state)
+        assertEquals(160, SyncJson.working(odd)?.detail?.length)
+    }
+
     @Test fun `no server is status 0`() {
         val gone = RelaySyncApi("http://127.0.0.1:1", "k", "ua")
         val e = runCatching { gone.state() }.exceptionOrNull() as SyncException

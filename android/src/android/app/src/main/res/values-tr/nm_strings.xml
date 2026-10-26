@@ -1057,6 +1057,8 @@
     <string name="nm_sync_side_title">Yan sohbetleri de eşitle</string>
     <string name="nm_sync_side_sub">Kapalı: yan sohbetler bu cihazda kalır. Açık: bu cihazın yan sohbetleri hesaba gider, diğer cihazların yan sohbetleri buraya gelir.</string>
     <string name="nm_sync_working">%1$s üzerinde çalışıyor…</string>
+    <string name="nm_sync_working_step">%1$s üzerinde çalışıyor: %2$s</string>
+    <string name="nm_sync_waiting">%1$s seni bekliyor</string>
     <string name="nm_devices_ask">Bu cihaza sor</string>
     <string name="nm_devices_ask_hint">Sohbetten yazmak için çevrimiçi bir cihaza dokun: mesaj @ ve cihazın adıyla başlar, işi o cihaz yapar.</string>
     <string name="nm_reach_the_provider">sağlayıcı</string>

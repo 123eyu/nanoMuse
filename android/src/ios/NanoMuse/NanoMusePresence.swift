@@ -10,6 +10,10 @@
 //  account's other sockets through the hub's `working` frame; this is the
 //  small map of those, with the expiry, the best-effort POST this phone
 //  makes for its own turns, and the line put on the message it belongs to.
+//  Since relay 0.31 a `working: true` may say what the run is doing — `state`
+//  (`working` or `waiting`) and `detail`, the step's own words — and the line
+//  follows it: "kwai is working: opening the booking site", "kwai is waiting
+//  for you". A frame without the two fields reads as plain working.
 //  Presence is never retried and never blocks anything.
 //  Relay: POST /v1/sync/working, GET /v1/sync/state (`working`), hub frame `working`.
 //  Android: io.github.nanomuse.sync.Presence; desktop: sync.ts `working`.
@@ -31,7 +35,14 @@ final class NanoMusePresence: ObservableObject {
         let deviceName: String
         /// Unix seconds the relay stamped.
         let at: Date
+        /// What its run is doing (relay 0.31): `working`, or `waiting` while a card holds it for the person.
+        var state: String = "working"
+        /// The step's own words, at most `detailCap` characters; "" when the run gave none.
+        var detail: String = ""
     }
+
+    /// The longest step the line shows (the relay cuts there too).
+    nonisolated static let detailCap = 160
 
     /// Bumped whenever the map changes (a frame, an expiry); the chat re-reads on it.
     @Published private(set) var revision = 0
@@ -50,7 +61,10 @@ final class NanoMusePresence: ObservableObject {
     nonisolated static func parse(_ frame: [String: Any]) -> Working? {
         guard let cid = frame["cid"] as? String, !cid.isEmpty, let from = frame["from"] as? String else { return nil }
         let at = (frame["at"] as? Double) ?? Double((frame["at"] as? Int) ?? 0)
-        return Working(cid: cid, from: from, deviceName: (frame["device_name"] as? String) ?? "", at: Date(timeIntervalSince1970: at > 0 ? at : Date().timeIntervalSince1970))
+        // relay 0.31: what the run is doing; a frame without the two fields is plain working
+        let state = (frame["state"] as? String) == "waiting" ? "waiting" : "working"
+        let detail = String(((frame["detail"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines).prefix(detailCap))
+        return Working(cid: cid, from: from, deviceName: (frame["device_name"] as? String) ?? "", at: Date(timeIntervalSince1970: at > 0 ? at : Date().timeIntervalSince1970), state: state, detail: detail)
     }
 
     /// Whether a `working` stamped `at` still counts `now`.
@@ -127,7 +141,15 @@ final class NanoMusePresence: ObservableObject {
         return entry.deviceName.isEmpty ? (lastFromDevice ?? "") : entry.deviceName
     }
 
-    /// Remember which message of `session` carries the line, taking it off the previous one.
+    /// The sentence under the bubble for `device`: the step the run reported, waiting on the
+    /// person, or plain working (an older device, or the model writing its answer).
+    nonisolated static func sentence(device: String, entry: Working?) -> String {
+        if entry?.state == "waiting" { return String(format: AppLocalized("%@ is waiting for you"), device) }
+        if let detail = entry?.detail, !detail.isEmpty { return String(format: AppLocalized("%1$@ is working: %2$@"), device, detail) }
+        return String(format: AppLocalized("%@ is working…"), device)
+    }
+
+    /// Remember which message of `session` carries the line (the whole sentence), taking it off the previous one.
     func show(_ line: String?, on message: ChatMessage?, session: String) {
         if let previous = shown[session]?.message, previous !== message, previous.nmWorkingDevice != nil {
             previous.nmWorkingDevice = nil

@@ -55,12 +55,24 @@ data class Changes(
  * frame and the `working[]` of `GET /v1/sync/state`. [at] in Unix seconds, as the relay
  * stamped it; the line in the chat goes away ten minutes after it.
  */
-data class WorkingPresence(val cid: String, val from: String, val deviceName: String, val at: Long) {
+data class WorkingPresence(
+    val cid: String,
+    val from: String,
+    val deviceName: String,
+    val at: Long,
+    /** What the run is doing (relay 0.31): [STATE_WORKING], or [STATE_WAITING] while a card holds it for the person; older frames say nothing and read as working. */
+    val state: String = STATE_WORKING,
+    /** The step's own words, at most [DETAIL_CAP] characters; empty when the run gave none (an older device, or the model writing). */
+    val detail: String = "",
+) {
     /** Still worth showing: the relay forgets a `true` after ten minutes, and so do we. */
     fun live(nowSeconds: Long): Boolean = nowSeconds - at < TTL_SECONDS
 
     companion object {
         const val TTL_SECONDS = 10 * 60L
+        const val STATE_WORKING = "working"
+        const val STATE_WAITING = "waiting"
+        const val DETAIL_CAP = 160
     }
 }
 

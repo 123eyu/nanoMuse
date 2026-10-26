@@ -73,6 +73,24 @@ final class NanoMuseRound5Tests: XCTestCase {
         XCTAssertEqual(entry?.at.timeIntervalSince1970, 1_700_000_000)
         XCTAssertNil(NanoMusePresence.parse(["from": "dev-a"]), "no cid, no entry")
         XCTAssertNil(NanoMusePresence.parse(["cid": "c1"]), "no device, no entry")
+        // relay 0.31: the frame says what the run is doing; without the fields it is plain working
+        XCTAssertEqual(entry?.state, "working")
+        XCTAssertEqual(entry?.detail, "")
+        let step = NanoMusePresence.parse(["cid": "c1", "from": "dev-a", "working": true, "at": 1, "state": "waiting", "detail": " a card "])
+        XCTAssertEqual(step?.state, "waiting")
+        XCTAssertEqual(step?.detail, "a card")
+        let odd = NanoMusePresence.parse(["cid": "c1", "from": "dev-a", "working": true, "at": 1, "state": "dancing", "detail": String(repeating: "x", count: 300)])
+        XCTAssertEqual(odd?.state, "working")
+        XCTAssertEqual(odd?.detail.count, 160)
+    }
+
+    func testWorkingSentenceFollowsTheStep() {
+        let plain = NanoMusePresence.Working(cid: "c1", from: "dev-a", deviceName: "kwai", at: Date())
+        XCTAssertEqual(NanoMusePresence.sentence(device: "kwai", entry: plain), String(format: AppLocalized("%@ is working…"), "kwai"))
+        let step = NanoMusePresence.Working(cid: "c1", from: "dev-a", deviceName: "kwai", at: Date(), state: "working", detail: "打开携程网站")
+        XCTAssertEqual(NanoMusePresence.sentence(device: "kwai", entry: step), String(format: AppLocalized("%1$@ is working: %2$@"), "kwai", "打开携程网站"))
+        let card = NanoMusePresence.Working(cid: "c1", from: "dev-a", deviceName: "kwai", at: Date(), state: "waiting", detail: "")
+        XCTAssertEqual(NanoMusePresence.sentence(device: "kwai", entry: card), String(format: AppLocalized("%@ is waiting for you"), "kwai"))
     }
 
     func testPresenceExpiresAfterTenMinutes() {

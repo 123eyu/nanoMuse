@@ -52,6 +52,7 @@ import { Relay, RelayError, type Account, type Estimate, type Invite, type Profi
 import { TaskRunner, textOf } from './task.ts'
 import { Turns, aggregateWork, type WorkItem } from './work.ts'
 import { SCREEN_RUN_IDLE_MS, ScreenRuns, Trajectory, type ScreenRun, type StepAction, type TrajectoryView } from './trajectory.ts'
+import { describeCall } from './steps.ts'
 import { RemoteStore, SyncEngine, SyncRelay, type RemoteLine, type SessionInfo, type SessionLine, type SyncState } from './sync.ts'
 import { AvatarMotion, ANIMATED, type MotionMood, type MotionView } from './motion.ts'
 import { OwnClip, isOwnClipMood, type OwnClipMood, type OwnClipView } from './own-clip.ts'
@@ -651,8 +652,10 @@ export default class NanomuseCloud extends Service {
    */
   private readonly logCache = new Map<string, { title?: { at: number; title: string }; lines?: SessionLine[]; prompts?: Array<{ key: string; time: number }> }>()
   /** Approvals the stage may answer (C2) and holds of the hands (C1). */
-  private readonly approvalDesk = new ApprovalDesk(() => this.broadcast(), (req) => this.granted(req.toolName))
-  private readonly holdDesk = new HoldDesk(() => this.broadcast())
+  private readonly approvalDesk = new ApprovalDesk(() => this.deskMoved(), (req) => this.granted(req.toolName))
+  private readonly holdDesk = new HoldDesk(() => this.deskMoved())
+  /** Sessions the other devices were last told are waiting on a card or a hold here (0.31). */
+  private waitingSessions = new Set<string>()
   private updateCheck: Promise<UpdateInfo> | undefined
   /** The hourly retry after a check that read nothing; one at a time, dropped at shutdown. */
   private updateRetry: ReturnType<typeof setTimeout> | undefined
@@ -917,6 +920,9 @@ export default class NanomuseCloud extends Service {
             if (event.type === 'turn/end' && this.cloudOnce.has(id)) void this.cloudOnceDone(id)
             if (event.type === 'turn/end') sync.turnEnded(id)
             else if (event.type === 'user/message' && (event.data as { source?: { kind?: string } }).source?.kind === 'user') sync.messageSent(id)
+            // the run's steps, for the other devices' working line (0.31): a tool call in its own words, the model writing
+            else if (event.type === 'tool/call') sync.step(id, 'working', describeCall(event.data.name, event.data.arguments))
+            else if (event.type === 'assistant/message') sync.step(id, 'working', '')
             else if ((event as { type: string }).type === 'session/title') sync.sessionRenamed(String(session.id))
           }),
         'nanomuse cloud: sync turns',
@@ -3593,6 +3599,23 @@ export default class NanomuseCloud extends Service {
     return () => {
       this.changeListeners.delete(listener)
     }
+  }
+
+  /**
+   * A card went up or came down (an approval the stage may answer, a hold of the hands):
+   * the stage re-reads, and the account's other devices hear that the run is waiting for
+   * the person, or working again (0.31).
+   */
+  private deskMoved(): void {
+    this.broadcast()
+    const sync = this.sync
+    if (!sync) return
+    const now = new Map<string, string>()
+    for (const row of this.approvalDesk.list()) if (!now.has(row.sessionId)) now.set(row.sessionId, row.summary)
+    for (const hold of this.holdDesk.list()) if (!now.has(hold.thread)) now.set(hold.thread, hold.reason)
+    for (const [sid, words] of now) sync.step(sid, 'waiting', words)
+    for (const sid of this.waitingSessions) if (!now.has(sid)) sync.step(sid, 'working', '')
+    this.waitingSessions = new Set(now.keys())
   }
 
   private broadcast(): void {

@@ -1058,6 +1058,8 @@
     <string name="nm_sync_side_title">Synchroniser aussi les discussions secondaires</string>
     <string name="nm_sync_side_sub">Désactivé : les discussions secondaires restent sur cet appareil. Activé : celles de cet appareil vont dans le compte et celles des autres appareils arrivent ici.</string>
     <string name="nm_sync_working">%1$s s’en occupe…</string>
+    <string name="nm_sync_working_step">%1$s s’en occupe : %2$s</string>
+    <string name="nm_sync_waiting">%1$s attend ta réponse</string>
     <string name="nm_devices_ask">Demander à cet appareil</string>
     <string name="nm_devices_ask_hint">Touchez un appareil en ligne pour lui écrire depuis la discussion : le message commence par @ et son nom, et cet appareil fait le travail.</string>
     <string name="nm_reach_the_provider">le fournisseur</string>

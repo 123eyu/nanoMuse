@@ -42,6 +42,10 @@ interface Working {
   deviceName: string
   /** Unix epoch milliseconds. */
   at: number
+  /** What its run is doing (relay 0.31); absent or `working` from an older relay or device. */
+  state?: 'working' | 'waiting'
+  /** The step's own words; '' or absent when the run gave none. */
+  detail?: string
 }
 interface Remote {
   lines: RemoteRow[]
@@ -134,6 +138,13 @@ export function renderRemoteBubbles(t: Translate): () => void {
       })
   }
 
+  /** The line's words: the step the run reported, waiting on the person, or plain working (an older device, or the model writing). */
+  const workingText = (w: Working | null, device: string): string => {
+    if (w?.state === 'waiting') return t('chWorkingWait', { device })
+    if (w?.detail) return t('chWorkingStep', { device, detail: w.detail })
+    return t('chWorking', { device })
+  }
+
   /** The bubble the working line belongs under: the other device's last line, when it is a prompt without a reply yet. */
   const workingLine = (remote: Remote): RemoteRow | undefined => {
     const w = remote.working
@@ -215,10 +226,13 @@ export function renderRemoteBubbles(t: Translate): () => void {
       if (!row && !line.before) tail = shown
       bubbles.delete(key)
       shown.style.display = hidden.has(line.mid) ? 'none' : ''
-      // the working line under the other device's last prompt (C9), and nowhere else
+      // the working line under the other device's last prompt (C9), and nowhere else; its
+      // words follow the run's step (0.31)
       const working = shown.querySelector('.nm-remote-working')
       if (line === under) {
-        if (!working) shown.append(el('div', 'nm-remote-working', t('chWorking', { device: remote.working?.deviceName || line.deviceName || line.device || '?' })))
+        const text = workingText(remote.working, remote.working?.deviceName || line.deviceName || line.device || '?')
+        if (!working) shown.append(el('div', 'nm-remote-working', text))
+        else if (working.textContent !== text) working.textContent = text
       } else working?.remove()
     }
     // a bubble whose row left the document (paged out, re-rendered elsewhere) goes; the next sweep brings it back

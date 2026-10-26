@@ -7,8 +7,10 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import com.openminis.app.BuildConfig
 import com.openminis.app.MinisApp
 import com.openminis.app.logging.AppLogger
+import com.openminis.app.service.SessionActivityTracker
 import io.github.nanomuse.account.AccountData
 import io.github.nanomuse.cloud.NanoMuseCloud
+import io.github.nanomuse.guard.RiskGate
 import io.github.nanomuse.hub.Hub
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,6 +23,10 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -59,6 +65,8 @@ object ConversationSync {
     private const val PULL_EVERY_MS = 60_000L
     /** The turn's last rows are still being written when the stream flag drops; the reply goes a breath later. */
     private const val TURN_END_SETTLE_MS = 1_500L
+    /** The quietest gap between two step posts of one turn (relay 0.31): a step that changes faster is told when the gap ends. */
+    private const val STEP_GAP_MS = 2_000L
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val lock = Mutex()
@@ -69,6 +77,8 @@ object ConversationSync {
     @Volatile private var ticker: Job? = null
     /** Chats this phone said `working: true` for and has not cleared yet. */
     private val workingSent = java.util.Collections.synchronizedSet(HashSet<String>())
+    /** Per chat whose turn runs here, the coroutine telling the relay the run's steps (0.31). */
+    private val stepJobs = HashMap<String, Job>()
 
     private val _enabled = MutableStateFlow(true)
     /** The switch as this phone knows it (the relay's word wins when it differs). */
@@ -170,6 +180,7 @@ object ConversationSync {
     private fun accountChanged() {
         _working.value = emptyMap()
         workingSent.clear()
+        stopSteps()
         _captions.value = emptyMap()
         _remoteRows.value = emptyMap()
         // the hub's device list went with Hub.restart() at sign-in; the cursor and the home
@@ -214,7 +225,59 @@ object ConversationSync {
         scope.launch {
             run(ctx) {
                 it.push()
-                if (sessionId != null && runCatching { it.working(sessionId, true) }.getOrDefault(false)) workingSent += sessionId
+                if (sessionId != null && runCatching { it.working(sessionId, true) }.getOrDefault(false)) {
+                    workingSent += sessionId
+                    watchSteps(ctx, sessionId)
+                }
+            }
+        }
+    }
+
+    /**
+     * While this phone's turn in [sessionId] runs, the account's other devices hear what it is
+     * doing (relay 0.31): the running tool's own words — the line the header shows — as
+     * `working`, `waiting` while a risk card holds the run, plain working between two steps.
+     * The latest change goes once per [STEP_GAP_MS]; the same words twice go once; nothing
+     * before the first step, nothing after [turnEnded]. Best effort, like the start and the end.
+     */
+    private fun watchSteps(ctx: Context, sessionId: String) {
+        synchronized(stepJobs) { stepJobs.remove(sessionId)?.cancel() }
+        val job = scope.launch {
+            var lastAt = 0L
+            var posted = false
+            combine(
+                SessionActivityTracker.currentSessionId,
+                SessionActivityTracker.currentToolTitle,
+                SessionActivityTracker.isToolRunning,
+                SessionActivityTracker.lastToolTitle,
+                RiskGate.pending,
+            ) { current, title, running, last, risk ->
+                when {
+                    risk?.sessionId == sessionId -> WorkingPresence.STATE_WAITING to ""
+                    current != sessionId -> null
+                    running && !title.isNullOrBlank() -> WorkingPresence.STATE_WORKING to title.trim()
+                    else -> WorkingPresence.STATE_WORKING to last.orEmpty().trim()
+                }
+            }.filterNotNull().distinctUntilChanged().conflate().collect { (state, detail) ->
+                // the start already said plain working; the first step worth a post has words or a card
+                if (!posted && state == WorkingPresence.STATE_WORKING && detail.isEmpty()) return@collect
+                val wait = lastAt + STEP_GAP_MS - System.currentTimeMillis()
+                if (wait > 0) delay(wait)
+                lastAt = System.currentTimeMillis()
+                posted = true
+                run(ctx) { runCatching { it.step(sessionId, state, detail.take(WorkingPresence.DETAIL_CAP)) } }
+            }
+        }
+        synchronized(stepJobs) { stepJobs[sessionId] = job }
+    }
+
+    private fun stopSteps(sessionId: String? = null) {
+        synchronized(stepJobs) {
+            if (sessionId == null) {
+                stepJobs.values.forEach { it.cancel() }
+                stepJobs.clear()
+            } else {
+                stepJobs.remove(sessionId)?.cancel()
             }
         }
     }
@@ -225,6 +288,7 @@ object ConversationSync {
      */
     fun turnEnded(sessionId: String) {
         val ctx = app ?: return
+        stopSteps(sessionId)
         if (!workingSent.remove(sessionId)) return
         pushJob?.cancel()
         scope.launch {
@@ -344,6 +408,7 @@ object ConversationSync {
         _remoteRows.value = emptyMap()
         _working.value = emptyMap()
         workingSent.clear()
+        stopSteps()
         scope.launch { lock.withLock { reconcileOwners(ctx) } }
     }
 
