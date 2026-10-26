@@ -8,7 +8,7 @@
  */
 import { Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import { createElement as h, Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
-import { grantScope, type GrantScope, type StandingGrant } from '../desk.ts'
+import { grantScope, type StandingGrant } from '../desk.ts'
 import type { Translate } from './api.ts'
 import { openLink } from './bridge.ts'
 import { IconMore, IconPanelLeft } from './icons.tsx'
@@ -117,41 +117,25 @@ export function Empty({ icon, text, children }: { icon: ReactNode; text: string;
     children ?? null)
 }
 
-/** A group of remembered permissions, by where they hold: its heading, the line under it, and what an empty one says. */
-export function grantGroupWords(t: Translate, scope: GrantScope): { title: string; sub: string; none: string } {
-  switch (scope) {
-    case 'general': return { title: t('sgScopeGeneral'), sub: t('sgScopeGeneralSub'), none: t('sgScopeGeneralNone') }
-    case 'chat': return { title: t('sgScopeChat'), sub: t('sgScopeChatSub'), none: t('sgScopeChatNone') }
-    case 'task': return { title: t('sgScopeTask'), sub: t('sgScopeTaskSub'), none: t('sgScopeTaskNone') }
-  }
-}
-
 /**
- * One remembered permission as a row: in its group, the title is what a person looks for (the
- * chat or the task for a limited grant, the app or the device otherwise) and the line under it
- * says what is allowed.
+ * Where a remembered permission holds, as the line its row carries: '' for one that holds in
+ * every chat, else the chat or the task by name (the tasks a chat grant covers too, a task that
+ * was deleted, the chat a task lives in). The lists group by tier; this says the rest.
  */
-export function grantRowWords(t: Translate, g: StandingGrant): { title: string; sub: string } {
-  const when = ago(t, g.at)
-  switch (g.kind) {
-    case 'remote_control': return { title: t('sgRemoteControl'), sub: t('sgRemoteControlSub') }
-    case 'device': return { title: t('sgDevice', { name: g.target }), sub: [t('sgDeviceSub'), when].filter(Boolean).join(' · ') }
-    case 'computer_app': {
-      const hands = t('sgHands', { app: g.target })
-      // a title that has quotes of its own takes the inner kind inside ours: 「发『我讨厌你』」
-      const quoted = (name: string) => t('sgQuoted', { name: name.replace(/「/g, '『').replace(/」/g, '』') })
-      switch (grantScope(g)) {
-        case 'general': return { title: hands, sub: when }
-        case 'chat': return {
-          title: g.sessionTitle ? quoted(g.sessionTitle.slice(0, 60)) : t('sgChatUntitled'),
-          sub: [hands, g.chatTasks?.length ? t('sgChatTasks', { tasks: g.chatTasks.map(quoted).join(t('sgListSep')) }) : '', when].filter(Boolean).join(' · '),
-        }
-        case 'task': return {
-          title: g.scheduleTitle ? quoted(g.scheduleTitle.slice(0, 60)) : t('sgTaskUntitled'),
-          sub: [g.scheduleGone ? t('sgTaskGone') : '', hands, g.sessionTitle ? t('sgTaskChat', { chat: g.sessionTitle.slice(0, 40) }) : '', when].filter(Boolean).join(' · '),
-        }
-      }
-    }
+export function grantScopeLine(t: Translate, g: StandingGrant): string {
+  // a title that has quotes of its own takes the inner kind inside ours: 「发『我讨厌你』」
+  const quoted = (name: string) => t('sgQuoted', { name: name.replace(/「/g, '『').replace(/」/g, '』') })
+  switch (grantScope(g)) {
+    case 'general': return ''
+    case 'chat': return [
+      g.sessionTitle ? t('sgOnlyChat', { chat: quoted(g.sessionTitle.slice(0, 60)) }) : t('sgOnlyChatUntitled'),
+      g.chatTasks?.length ? t('sgChatTasks', { tasks: g.chatTasks.map(quoted).join(t('sgListSep')) }) : '',
+    ].filter(Boolean).join(' · ')
+    case 'task': return [
+      g.scheduleTitle ? t('sgOnlyTask', { task: quoted(g.scheduleTitle.slice(0, 60)) }) : t('sgOnlyTaskUntitled'),
+      g.scheduleGone ? t('sgTaskGone') : '',
+      g.sessionTitle ? t('sgTaskChat', { chat: g.sessionTitle.slice(0, 40) }) : '',
+    ].filter(Boolean).join(' · ')
   }
 }
 

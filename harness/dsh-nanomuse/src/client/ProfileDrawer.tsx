@@ -24,8 +24,8 @@ import type { ChatListState, ChatStatus } from './MuseChats.tsx'
 import { usePrefs } from './prefs.ts'
 import { useRooms, type ActivityRecord, type GoalAutomation } from './rooms.ts'
 import { TaskDetail } from './TaskDetail.tsx'
-import { ago, clockLabel, dayLabel, grantGroupWords, grantRowWords } from './ui.tsx'
-import { groupGrants, standingGrants, type Grant } from '../desk.ts'
+import { ago, clockLabel, dayLabel, grantScopeLine } from './ui.tsx'
+import { standingGrants, type Grant } from '../desk.ts'
 import { win } from './win.ts'
 
 const COMPUTER_SECTION = 'nanomuse-computer'
@@ -250,20 +250,17 @@ function Approvals({ t, name, approvals, grants, goneSchedules, chatTasks }: { t
     h('span', { className: 'nm-pf-row-icon' }, h(IconShield, { size: 18 })),
     h('div', { className: 'nm-pf-row-main' }, h('div', { className: 'nm-pf-row-title' }, t('pfManagePermissions'))),
     h('span', { className: 'nm-pf-row-chev' }, h(IconChevronRight, { size: 16 })))
-  // the standing grants first (the phone's list), by where they hold, then what was answered on cards
-  const standing = h(Fragment, null,
-        groupGrants(standingGrants({ grants, goneSchedules, chatTasks })).map(({ scope, grants: group }) => h(Fragment, { key: scope },
-          h('div', { className: 'nm-pf-day' }, grantGroupWords(t, scope).title),
-          group.length === 0 ? h('p', { className: 'nm-pf-empty' }, grantGroupWords(t, scope).none) : null,
-          group.map((g) => {
-            const w = grantRowWords(t, g)
-            return h('div', { key: g.id, className: 'nm-pf-row' },
-              h('span', { className: 'nm-pf-row-icon' }, h(IconCheck, { size: 18 })),
-              h('div', { className: 'nm-pf-row-main' },
-                h('div', { className: 'nm-pf-row-title' }, w.title),
-                h('div', { className: 'nm-pf-row-sub' }, w.sub)),
-              h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', onClick: () => void call('grants/revoke', { id: g.id }).catch(() => undefined) }, t('pmRevoke')))
-          }))))
+  // the standing grants first (the phone's list), each saying where it holds, then what was answered on cards
+  const standing = grants.length
+    ? h(Fragment, null,
+        h('div', { className: 'nm-pf-day' }, t('pfApprovalsAlways')),
+        standingGrants({ grants, goneSchedules, chatTasks }).map((g) => h('div', { key: g.id, className: 'nm-pf-row' },
+          h('span', { className: 'nm-pf-row-icon' }, h(IconCheck, { size: 18 })),
+          h('div', { className: 'nm-pf-row-main' },
+            h('div', { className: 'nm-pf-row-title' }, t('pfAlwaysAllowed', { target: g.target })),
+            h('div', { className: 'nm-pf-row-sub' }, [grantScopeLine(t, g), ago(t, g.at)].filter(Boolean).join(' · '))),
+          h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', onClick: () => void call('grants/revoke', { id: g.id }).catch(() => undefined) }, t('pmRevoke')))))
+    : h('p', { className: 'nm-pf-empty' }, t('pfApprovalsEmpty', { name }))
   if (approvals.length === 0) return h('div', { className: 'nm-pf-rows' }, standing, manage)
   return h('div', { className: 'nm-pf-rows' },
     standing,

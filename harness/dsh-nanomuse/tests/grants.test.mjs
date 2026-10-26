@@ -9,10 +9,10 @@ test('the three tiers, highest first, are the contract', () => {
   assert.deepEqual([...GRANT_TIERS], ['highest', 'confirm', 'notice'])
 })
 
-test('nothing remembered is an empty list and three empty groups', () => {
+test('nothing remembered is an empty list and no groups', () => {
   assert.deepEqual(standingGrants({}), [])
   assert.deepEqual(standingGrants({ grants: [], trusted: [], remoteControl: false }), [])
-  assert.deepEqual(groupGrants([]).map((g) => [g.scope, g.grants.length]), [['general', 0], ['chat', 0], ['task', 0]])
+  assert.deepEqual(groupGrants([]), [])
 })
 
 test('every store lands in the list with its kind, tier and a revocable id', () => {
@@ -38,7 +38,7 @@ test('the switch off and no devices leaves the hands alone in the card tier', ()
   assert.equal(list[0].target, 'Finder')
 })
 
-test('groups come by where they hold, general first, the switch leading, newest first inside, empty ones kept', () => {
+test('groups come by tier, highest first, newest first inside, empty tiers left out; a grant in one chat or task stays in its tier', () => {
   const groups = groupGrants(standingGrants({
     grants: [
       { id: 'g-old', target: 'computer_app:Safari', at: 100 },
@@ -49,12 +49,12 @@ test('groups come by where they hold, general first, the switch leading, newest 
     trusted: [{ id: 'x', name: 'Pixel', at: 300 }],
     remoteControl: true,
   }))
-  assert.deepEqual(groups.map((g) => g.scope), ['general', 'chat', 'task'])
-  assert.deepEqual(groups[0].grants.map((g) => g.id), ['remote-control', 'device:x', 'g-new', 'g-old'])
-  assert.deepEqual(groups[1].grants.map((g) => g.id), ['g-chat'])
-  assert.deepEqual(groups[2].grants.map((g) => g.id), ['g-task'])
-  // only grants in one chat: the other two groups are there, empty
-  assert.deepEqual(groupGrants(standingGrants({ grants: [{ id: 'g-1', target: 'computer_app:Safari', at: 1, sessionId: 's1' }] })).map((g) => g.grants.length), [0, 1, 0])
+  assert.deepEqual(groups.map((g) => g.tier), ['highest', 'confirm'])
+  assert.deepEqual(groups[0].grants.map((g) => g.id), ['remote-control'])
+  assert.deepEqual(groups[1].grants.map((g) => g.id), ['device:x', 'g-new', 'g-task', 'g-chat', 'g-old'])
+  const byId = Object.fromEntries(groups[1].grants.map((g) => [g.id, g]))
+  assert.equal(byId['g-chat'].sessionTitle, 'Morning')
+  assert.equal(byId['g-task'].scheduleTitle, 'Note')
 })
 
 test('a task grant whose task was deleted says so', () => {
