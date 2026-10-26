@@ -68,6 +68,8 @@ BUILTIN_MODELS: tuple[str, ...] = (
 CAPABILITIES: tuple[str, ...] = ("chat", "vision")
 
 STORE_FILE = "chatgpt.json"
+#: how long a second process waits for the token lock before the wait is reported as an error
+LOCK_WAIT_S = 30.0
 #: a token this close to expiry is refreshed before it is used
 REFRESH_MARGIN_S = 60
 LOGIN_TIMEOUT_S = 600
@@ -499,9 +501,46 @@ class Token:
         }
 
 
+def _lock_windows(fh: IO[str]) -> None:
+    """An exclusive lock on the file's first byte, through the C runtime's ``locking``.
+
+    Windows has no ``flock``, and this store had no lock there at all: two chats that
+    refreshed at the same moment both spent the same refresh token, and OpenAI's answer to
+    the second one (``invalid_grant``) signed the person out. ``LK_NBLCK`` asks once and
+    raises instead of retrying the way ``LK_LOCK`` does, which leaves the waiting here,
+    where it can end in an error instead of a hang.
+    """
+    import msvcrt
+
+    fh.seek(0)
+    deadline = time.monotonic() + LOCK_WAIT_S
+    while True:
+        try:
+            msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)  # type: ignore[attr-defined]
+            return
+        except OSError as exc:
+            if time.monotonic() >= deadline:
+                raise TimeoutError(
+                    f"another process held the ChatGPT token lock for {LOCK_WAIT_S:.0f}s"
+                ) from exc
+            time.sleep(0.05)
+
+
+def _unlock_windows(fh: IO[str]) -> None:
+    """The release half of :func:`_lock_windows`; closing the file releases it as well."""
+    import msvcrt
+
+    try:
+        fh.seek(0)
+        msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)  # type: ignore[attr-defined]
+    except OSError:
+        pass
+
+
 class TokenStore:
     """``<data_dir>/chatgpt.json``, written 0600 on POSIX; a lock file beside it so the proxy
-    and the runtime never refresh at the same time."""
+    and the runtime never refresh at the same time (``flock`` on POSIX, ``locking`` on
+    Windows)."""
 
     def __init__(self, path: Path):
         self.path = Path(path)
@@ -545,7 +584,7 @@ class TokenStore:
 
     @contextmanager
     def lock(self) -> Any:
-        """An exclusive lock on ``chatgpt.lock`` (``fcntl`` on POSIX; a best effort elsewhere)."""
+        """An exclusive lock on ``chatgpt.lock``, cross-process on both platforms."""
         fh = self._open_lock()
         try:
             self._flock(fh)
@@ -570,8 +609,10 @@ class TokenStore:
 
     @staticmethod
     def _flock(fh: IO[str]) -> None:
-        # `sys.platform` itself, so mypy on Windows drops the fcntl branch
-        if sys.platform != "win32":
+        # `sys.platform` itself, so the type checker drops the branch this platform is not
+        if sys.platform == "win32":
+            _lock_windows(fh)
+        else:
             import fcntl
 
             fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
@@ -579,7 +620,9 @@ class TokenStore:
     @staticmethod
     def _unlock(fh: IO[str]) -> None:
         try:
-            if sys.platform != "win32":
+            if sys.platform == "win32":
+                _unlock_windows(fh)
+            else:
                 import fcntl
 
                 fcntl.flock(fh.fileno(), fcntl.LOCK_UN)

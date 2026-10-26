@@ -153,7 +153,6 @@ async def test_a_refused_refresh_clears_the_store(tmp_path: Path):
     assert not auth.signed_in()
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="the lock is fcntl's")
 @pytest.mark.asyncio
 async def test_the_loop_keeps_turning_while_another_process_holds_the_lock(tmp_path: Path):
     """A sibling process refreshing the token holds ``chatgpt.lock``; the wait for it must
@@ -199,6 +198,35 @@ async def test_the_loop_keeps_turning_while_another_process_holds_the_lock(tmp_p
         beat.cancel()
     # the other process's token is taken as it is: no second refresh over the wire
     assert fresh.access == token(nonce="theirs").access and calls == 0
+
+
+def test_a_second_handle_waits_for_the_lock_and_takes_it_after(tmp_path: Path):
+    """The lock is exclusive across handles on both platforms, which is the whole point: on
+    Windows the same file opened twice is two holders, as it is on POSIX."""
+    import threading
+
+    store = TokenStore.in_dir(tmp_path)
+    held = threading.Event()
+    release = threading.Event()
+    took_it = threading.Event()
+
+    def holder() -> None:
+        with store.lock():
+            held.set()
+            release.wait(5)
+
+    def waiter() -> None:
+        held.wait(5)
+        with store.lock():
+            took_it.set()
+
+    threading.Thread(target=holder, daemon=True).start()
+    threading.Thread(target=waiter, daemon=True).start()
+    assert held.wait(5)
+    time.sleep(0.3)
+    assert not took_it.is_set(), "the second handle took a lock somebody was holding"
+    release.set()
+    assert took_it.wait(5), "the second handle never got the lock after it was released"
 
 
 # ----------------------------------------------------------------------------- translation
