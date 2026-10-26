@@ -6,7 +6,6 @@ import asyncio
 import copy
 import json
 import shutil
-import socket
 from pathlib import Path
 from typing import Any
 
@@ -19,10 +18,6 @@ from nanomuse.schema import LLMResponse
 HERE = Path(__file__).resolve().parent
 
 
-def _deny_network(*_args: Any, **_kwargs: Any) -> None:
-    raise AssertionError("source comparison tests must not open network connections")
-
-
 @pytest.fixture(scope="module")
 def comparison_run(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
     data = source_comparison.dataset()
@@ -30,9 +25,7 @@ def comparison_run(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
     baseline = HERE / "fixtures/goal_eval/recovery_baseline_v1.py"
     candidate = HERE / "goal_eval_recovery_policy.py"
     with pytest.MonkeyPatch.context() as patcher:
-        patcher.setattr(socket.socket, "connect", _deny_network)
-        patcher.setattr(socket.socket, "connect_ex", _deny_network)
-        patcher.setattr(socket, "create_connection", _deny_network)
+        benchmark.deny_network(patcher.setattr)
         summary = asyncio.run(source_comparison.run(output, baseline, candidate))
     entries = {
         (variant, case_id): json.loads(
@@ -248,9 +241,7 @@ def test_replay_never_loads_an_actor_or_executes_an_agent(
 def test_candidate_actor_errors_are_saved_as_failed_trials_and_replay(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: str
 ) -> None:
-    monkeypatch.setattr(socket.socket, "connect", _deny_network)
-    monkeypatch.setattr(socket.socket, "connect_ex", _deny_network)
-    monkeypatch.setattr(socket, "create_connection", _deny_network)
+    benchmark.deny_network(monkeypatch.setattr)
     full = source_comparison.dataset()
     case_id = "duplicate_obligation" if failure == "first_trigger" else "normal_ack"
     case = next(case for case in full["cases"] if case["id"] == case_id)

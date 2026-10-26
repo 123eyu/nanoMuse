@@ -6,7 +6,6 @@ import asyncio
 import copy
 import json
 import shutil
-import socket
 from pathlib import Path
 from typing import Any
 
@@ -19,19 +18,13 @@ from nanomuse.schema import Message
 HERE = Path(__file__).resolve().parent
 
 
-def _deny_network(*_args: Any, **_kwargs: Any) -> None:
-    raise AssertionError("recovery benchmark tests must not open network connections")
-
-
 @pytest.fixture(scope="module")
 def suite(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
     output = tmp_path_factory.mktemp("recovery-suite") / "run"
     # The runner is local-only by contract. Keep the full execution hermetic even
     # if a future import or tool accidentally adds a network connection.
     with pytest.MonkeyPatch.context() as patcher:
-        patcher.setattr(socket.socket, "connect", _deny_network)
-        patcher.setattr(socket.socket, "connect_ex", _deny_network)
-        patcher.setattr(socket, "create_connection", _deny_network)
+        benchmark.deny_network(patcher.setattr)
         summary = asyncio.run(benchmark.run_suite(output))
     data = benchmark.load_dataset()
     cases = {case["id"]: case for case in data["cases"]}

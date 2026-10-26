@@ -11,6 +11,7 @@ import argparse
 import asyncio
 import hashlib
 import json
+import socket
 import sqlite3
 import subprocess
 import time
@@ -46,6 +47,49 @@ from nanomuse.ui import HeadlessUI
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 RUNTIME_ROOT = Path(evaluation_core.__file__).resolve().parents[2]
+
+
+_REAL_CONNECT = socket.socket.connect
+_REAL_CONNECT_EX = socket.socket.connect_ex
+_REAL_CREATE_CONNECTION = socket.create_connection
+_LOOPBACK = {"127.0.0.1", "::1", "localhost"}
+
+
+def _is_loopback(address: object) -> bool:
+    """Loopback is not the network: asyncio's proactor loop on Windows makes its self-pipe
+    from a loopback socket pair (``nanomuse.loopback``) before the suite runs a thing."""
+    host = address[0] if isinstance(address, tuple) and address else address
+    return host in _LOOPBACK
+
+
+def _refuse_unless_loopback(address: object) -> None:
+    if not _is_loopback(address):
+        raise AssertionError("the recovery benchmark must not open network connections")
+
+
+def _guarded_connect(sock: socket.socket, address: Any, *args: Any) -> Any:
+    _refuse_unless_loopback(address)
+    return _REAL_CONNECT(sock, address, *args)
+
+
+def _guarded_connect_ex(sock: socket.socket, address: Any, *args: Any) -> Any:
+    _refuse_unless_loopback(address)
+    return _REAL_CONNECT_EX(sock, address, *args)
+
+
+def _guarded_create_connection(address: Any, *args: Any, **kwargs: Any) -> Any:
+    _refuse_unless_loopback(address)
+    return _REAL_CREATE_CONNECTION(address, *args, **kwargs)
+
+
+def deny_network(patch: Callable[[object, str, object], None]) -> None:
+    """The runner is local-only by contract: every connection but loopback raises for as
+    long as the patches ``patch`` installs (a pytest ``MonkeyPatch.setattr``) stay in force."""
+    patch(socket.socket, "connect", _guarded_connect)
+    patch(socket.socket, "connect_ex", _guarded_connect_ex)
+    patch(socket, "create_connection", _guarded_create_connection)
+
+
 FIXTURE = HERE / "fixtures/goal_eval/recovery_v1.json"
 NOW = 1000
 POLICIES = (
