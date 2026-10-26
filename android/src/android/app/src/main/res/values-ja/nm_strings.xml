@@ -1053,6 +1053,8 @@
     <string name="nm_sync_side_title">サイドチャットも同期する</string>
     <string name="nm_sync_side_sub">オフ: サイドチャットはこの端末だけに残ります。オン: この端末のサイドチャットがアカウントに上がり、ほかの端末のサイドチャットもここに届きます。</string>
     <string name="nm_sync_working">%1$s が作業中…</string>
+    <string name="nm_sync_working_step">%1$s が作業中：%2$s</string>
+    <string name="nm_sync_waiting">%1$s があなたの確認を待っています</string>
     <string name="nm_devices_ask">このデバイスに頼む</string>
     <string name="nm_devices_ask_hint">オンラインのデバイスをタップすると、チャットからそのデバイスに書けます: メッセージは @ とその名前で始まり、そのデバイスが作業します。</string>
     <string name="nm_reach_the_provider">プロバイダー</string>

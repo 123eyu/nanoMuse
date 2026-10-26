@@ -127,6 +127,8 @@ export const en = {
   chFrom: 'From {device}',
   // under the other device's last prompt while it works (C9)
   chWorking: '{device} is working…',
+  chWorkingStep: '{device} is working: {detail}',
+  chWorkingWait: '{device} is waiting for you',
   // the capsule
   capsuleHands: 'Hands',
   capsuleStop: 'Stop',
@@ -1626,6 +1628,8 @@ export const zh: typeof en = {
   syncSideWhy: '关：旁聊只留在本机。开：本机的旁聊上传到账号，其他设备的旁聊也会同步过来。',
   chFrom: '来自 {device}',
   chWorking: '{device} 正在处理…',
+  chWorkingStep: '{device} 正在处理：{detail}',
+  chWorkingWait: '{device} 在等你确认',
   capsuleHands: '操作屏幕',
   capsuleStop: '停止',
   capsuleStopping: '正在停下…',

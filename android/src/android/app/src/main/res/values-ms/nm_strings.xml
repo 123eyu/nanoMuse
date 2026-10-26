@@ -1053,6 +1053,8 @@
     <string name="nm_sync_side_title">Segerakkan juga sembang sampingan</string>
     <string name="nm_sync_side_sub">Mati: sembang sampingan kekal pada peranti ini. Hidup: sembang sampingan peranti ini pergi ke akaun, dan sembang sampingan peranti lain datang ke sini.</string>
     <string name="nm_sync_working">%1$s sedang mengusahakannya…</string>
+    <string name="nm_sync_working_step">%1$s sedang mengusahakannya: %2$s</string>
+    <string name="nm_sync_waiting">%1$s sedang menunggu anda</string>
     <string name="nm_devices_ask">Tanya peranti ini</string>
     <string name="nm_devices_ask_hint">Ketik peranti yang dalam talian untuk menulis kepadanya dari sembang: mesej bermula dengan @ dan namanya, dan peranti itu yang melakukan kerja.</string>
     <string name="nm_reach_the_provider">penyedia</string>

@@ -1023,6 +1023,8 @@
     <string name="nm_sync_side_title">同時同步旁聊</string>
     <string name="nm_sync_side_sub">關：旁聊只留在本機。開：本機的旁聊上傳到帳號，其他裝置的旁聊也會同步過來。</string>
     <string name="nm_sync_working">%1$s 正在處理…</string>
+    <string name="nm_sync_working_step">%1$s 正在處理：%2$s</string>
+    <string name="nm_sync_waiting">%1$s 在等你確認</string>
     <string name="nm_devices_ask">交給這台裝置</string>
     <string name="nm_devices_ask_hint">點一台在線的裝置，就能在聊天裡對它說話：訊息以 @ 加裝置名開頭，由那台裝置去做。</string>
     <string name="nm_reach_the_provider">服務商</string>

@@ -7,7 +7,7 @@
 // the working presence both ways, and the host doing no work while nothing changes.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { SyncEngine, SyncRelay, MAX_POST_MESSAGES, TAIL, emptyState, migrate, RemoteStore, meanwhileNote } from '../lib/sync.js'
+import { SyncEngine, SyncRelay, MAX_POST_MESSAGES, TAIL, emptyState, migrate, RemoteStore, meanwhileNote, toWorking } from '../lib/sync.js'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -686,12 +686,19 @@ test('C9: presence — the turn’s start and end are told after the push, once,
   const now = Math.floor(Date.now() / 1000)
   const before = changes()
   e.onWorking({ cid: 'their-main', from: 'phone-1', device_name: 'Pixel 8', working: true, at: now })
-  assert.deepEqual(e.workingOf('s-main'), { from: 'phone-1', deviceName: 'Pixel 8', at: now * 1000 })
+  assert.deepEqual(e.workingOf('s-main'), { from: 'phone-1', deviceName: 'Pixel 8', at: now * 1000, state: 'working', detail: '' })
   assert.equal(changes(), before + 1)
   // the same frame again moves nothing; our own echo is ignored
   e.onWorking({ cid: 'their-main', from: 'phone-1', device_name: 'Pixel 8', working: true, at: now })
   e.onWorking({ cid: 'their-main', from: 'pc-1', device_name: 'Desk', working: true, at: now + 1 })
   assert.equal(changes(), before + 1)
+  // 0.31: the frame says what the run is doing — a step within the same second still moves the line
+  e.onWorking({ cid: 'their-main', from: 'phone-1', device_name: 'Pixel 8', working: true, at: now, state: 'working', detail: '打开携程网站' })
+  assert.deepEqual(e.workingOf('s-main'), { from: 'phone-1', deviceName: 'Pixel 8', at: now * 1000, state: 'working', detail: '打开携程网站' })
+  assert.equal(changes(), before + 2)
+  e.onWorking({ cid: 'their-main', from: 'phone-1', device_name: 'Pixel 8', working: true, at: now, state: 'waiting', detail: 'Needs your approval' })
+  assert.equal(e.workingOf('s-main')?.state, 'waiting')
+  assert.equal(changes(), before + 3)
   // the reply arriving clears it
   relay.say('their-main', 'assistant', 'the phone’s answer', 'phone-1', 'Pixel 8', now)
   await e.pull()
@@ -757,13 +764,74 @@ test('SyncRelay: the query carries scope and tail only when asked; working posts
   await r.changes('k', 0, 500, 'main', 300)
   await r.changes('k', 42, 500, 'all', 300)
   await r.working('k', 'pc-1', 'c1', true)
+  await r.working('k', 'pc-1', 'c1', true, { state: 'working', detail: 'x'.repeat(200) })
+  await r.working('k', 'pc-1', 'c1', false, { state: 'working', detail: 'ignored on a false' })
   assert.deepEqual(urls.map((u) => u[0].slice('https://relay.test'.length)), [
     '/v1/sync/changes?since=0&limit=500',
     '/v1/sync/changes?since=0&limit=500&scope=main&tail=300',
     '/v1/sync/changes?since=42&limit=500',
     '/v1/sync/working',
+    '/v1/sync/working',
+    '/v1/sync/working',
   ])
   assert.deepEqual(JSON.parse(urls[3][2]), { cid: 'c1', working: true, device: 'pc-1' })
+  // 0.31: the step rides along on a true, cut to the relay's cap; a false never carries one
+  assert.deepEqual(JSON.parse(urls[4][2]), { cid: 'c1', working: true, device: 'pc-1', state: 'working', detail: 'x'.repeat(160) })
+  assert.deepEqual(JSON.parse(urls[5][2]), { cid: 'c1', working: false, device: 'pc-1' })
+  // the wire row keeps the two fields when they are there and sound, and nothing else
+  assert.deepEqual(toWorking({ cid: 'c1', from: 'd', device_name: 'D', working: true, at: 5, state: 'waiting', detail: 'a card' }), { cid: 'c1', from: 'd', device_name: 'D', working: true, at: 5, state: 'waiting', detail: 'a card' })
+  assert.deepEqual(toWorking({ cid: 'c1', from: 'd', device_name: 'D', working: true, at: 5, state: 'odd', detail: 7 }), { cid: 'c1', from: 'd', device_name: 'D', working: true, at: 5 })
+})
+
+test('0.31: the steps of a turn running here are told, once each, at most one per gap, and not after the turn', async () => {
+  const relay = fakeRelay()
+  relay.add('their-main', 'main', 'Main chat')
+  const sessions = fakeSessions()
+  sessions.add('s-main', 'Main here', [{ id: 'u1', role: 'user', text: 'desk question', at: 1738000000000 }])
+  const { engine: e } = engine(relay, sessions, { options: { stepGapMs: 40 } })
+  await e.setMain('s-main')
+  await e.accountChanged('acct-1')
+  await until(() => e.state.cids['s-main'] === 'their-main')
+  // a step before any turn runs here says nothing
+  e.step('s-main', 'working', 'too early')
+  await tick(10)
+  assert.equal(relay.working.length, 0)
+  sessions.lines.get('s-main').push({ id: 'u2', role: 'user', text: 'book it', at: 1738000010000 })
+  e.messageSent('s-main')
+  await until(() => relay.working.length === 1)
+  // the first step goes at once; the same step again is not repeated
+  e.step('s-main', 'working', '  打开\n携程网站 ')
+  e.step('s-main', 'working', '打开 携程网站')
+  await tick(10)
+  assert.deepEqual(relay.working.at(-1), { cid: 'their-main', working: true, device: 'pc-1', state: 'working', detail: '打开 携程网站' })
+  assert.equal(relay.working.length, 2)
+  // two changes inside the gap: the latest one goes when the gap ends
+  e.step('s-main', 'working', 'second')
+  e.step('s-main', 'waiting', 'Needs your approval: run the booking')
+  await tick(10)
+  assert.equal(relay.working.length, 2)
+  await until(() => relay.working.length === 3)
+  assert.deepEqual(relay.working.at(-1), { cid: 'their-main', working: true, device: 'pc-1', state: 'waiting', detail: 'Needs your approval: run the booking' })
+  // the words are cut to the relay's cap
+  await tick(50)
+  e.step('s-main', 'working', 'y'.repeat(300))
+  await until(() => relay.working.length === 4)
+  assert.equal(relay.working.at(-1).detail.length, 160)
+  // after the turn ends nothing more is told but the end itself
+  sessions.lines.get('s-main').push({ id: 'a2', role: 'assistant', text: 'done', at: 1738000011000 })
+  e.turnEnded('s-main')
+  e.step('s-main', 'working', 'late')
+  await until(() => relay.working.some((w) => w.working === false))
+  await tick(60)
+  assert.deepEqual(relay.working.at(-1), { cid: 'their-main', working: false, device: 'pc-1' })
+  assert.equal(relay.working.length, 5)
+  // a session that does not sync tells nothing
+  sessions.add('task-1', 'Task', [{ id: 'u9', role: 'user', text: 'x', at: 1 }])
+  e.messageSent('task-1')
+  e.step('task-1', 'working', 'no')
+  await tick(30)
+  assert.equal(relay.working.length, 5)
+  e.stop()
 })
 
 // ---- contract C10: a device shows and syncs the current account's conversations only ---------

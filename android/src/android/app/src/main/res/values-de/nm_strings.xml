@@ -1057,6 +1057,8 @@
     <string name="nm_sync_side_title">Auch Nebenchats synchronisieren</string>
     <string name="nm_sync_side_sub">Aus: Nebenchats bleiben auf diesem Gerät. An: Die Nebenchats dieses Geräts gehen ins Konto, und die Nebenchats der anderen Geräte kommen hierher.</string>
     <string name="nm_sync_working">%1$s arbeitet daran…</string>
+    <string name="nm_sync_working_step">%1$s arbeitet daran: %2$s</string>
+    <string name="nm_sync_waiting">%1$s wartet auf dich</string>
     <string name="nm_devices_ask">Dieses Gerät fragen</string>
     <string name="nm_devices_ask_hint">Tippe auf ein Gerät, das online ist, um es aus dem Chat anzuschreiben: Die Nachricht beginnt mit @ und seinem Namen, und dieses Gerät erledigt die Arbeit.</string>
     <string name="nm_reach_the_provider">der Anbieter</string>

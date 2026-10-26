@@ -30,6 +30,7 @@ import { FENCE_FEED, FENCE_GOAL, FENCE_GOAL_UPDATE, findFences, goalCategory, go
 import { afterTurn, boundTo, currentSuggestions, dismissChooser, FIRST_RUN_EMPTY, pickName, promptAddendum, readFirstRun, startConversation, type FirstRunState } from './firstrun.ts'
 import { DEFAULT_NUDGES, dueAsk, LEDGER_EMPTY, NUDGES_EVERY_MS, NUDGES_ORIGIN, NUDGES_TIMEOUT_MS, readLedger, readNudges, recordAsk, recordDay, recordStarred, recordTask, type Ask, type Moment, type NudgeLedger, type NudgesPolicy, type NudgesView } from './nudges.ts'
 import { packageAssetsDir } from './profile.ts'
+import { describeCall, ownWords, parseArgs } from './steps.ts'
 import { randomBytes } from 'node:crypto'
 import { createReadStream, readFileSync } from 'node:fs'
 import { lstat, mkdir, open as openFile, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
@@ -2370,63 +2371,6 @@ function stripDoc(text: string): string {
 }
 
 // ---- tool calls, in a line ---------------------------------------------------------------------
-
-function parseArgs(raw: string): Record<string, unknown> {
-  try {
-    const parsed: unknown = JSON.parse(raw)
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {}
-  } catch {
-    return {}
-  }
-}
-
-/** The model's own words for a step, where the tool takes them: dsh's bash, pwsh and run_code
- * (`description`), the runtime's tools over MCP (`step`). Empty when it gave none. */
-export function ownWords(raw: string): string {
-  const args = parseArgs(raw)
-  for (const key of ['step', 'description']) {
-    const v = args[key]
-    if (typeof v === 'string' && v.trim()) return v.replace(/\s+/g, ' ').trim()
-  }
-  return ''
-}
-
-export function describeCall(name: string, raw: string): string {
-  const args = parseArgs(raw)
-  const s = (key: string) => (typeof args[key] === 'string' ? (args[key] as string).replace(/\s+/g, ' ').trim() : '')
-  const short = (v: string, n = 80) => (v.length > n ? `${v.slice(0, n - 1)}…` : v)
-  const base = name.replace(/^mcp__[^_]+(?:_[^_]+)*?__/, '')
-  const own = ownWords(raw)
-  if (own) return short(own)
-  switch (base) {
-    case 'bash':
-    case 'pwsh':
-      return short(s('command') || s('cmd'))
-    case 'read_file':
-    case 'write_file':
-    case 'edit_file':
-    case 'str_replace_editor':
-    case 'create_file':
-      return short(s('path') || s('file_path') || s('file'))
-    case 'web_search':
-      return short(s('query'))
-    case 'web_fetch':
-      return short(s('url'))
-    case 'glob':
-    case 'grep':
-      return short(s('pattern'))
-    case 'schedule_create':
-      return short(s('title') || s('prompt'))
-    case 'ask_user_question':
-      return short(String((args.questions as { question?: string }[] | undefined)?.[0]?.question ?? ''))
-    case 'present':
-      return short(String((args.files as { path?: string }[] | undefined)?.map((f) => f.path).join(', ') ?? ''))
-    default: {
-      const first = Object.values(args).find((v) => typeof v === 'string' && v.trim())
-      return short(typeof first === 'string' ? first : '')
-    }
-  }
-}
 
 function prettyArgs(raw: string): string {
   const args = parseArgs(raw)

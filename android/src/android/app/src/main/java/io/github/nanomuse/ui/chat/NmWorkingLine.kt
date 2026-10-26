@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import com.openminis.app.R
 import io.github.nanomuse.sync.ConversationSync
 import io.github.nanomuse.sync.RemoteRows
+import io.github.nanomuse.sync.WorkingPresence
 import kotlinx.coroutines.delay
 
 /**
@@ -36,8 +37,11 @@ import kotlinx.coroutines.delay
  * is still on it (contract C9). Shown only when the last row came from another device and
  * the relay's presence says that device is working on this chat, less than ten minutes ago;
  * gone when the reply lands, when that device says it is done, or when the ten minutes are
- * up. The same muted style as the "From kwai" caption, with a small pulsing dot. Nothing is
- * drawn otherwise — in particular never for this phone's own last line.
+ * up. Since relay 0.31 the frame may say what the run is doing, and the line follows it:
+ * "kwai is working: opening the booking site" for a step in the run's own words, "kwai is
+ * waiting for you" while a card holds the run there. The same muted style as the "From
+ * kwai" caption, with a small pulsing dot. Nothing is drawn otherwise — in particular
+ * never for this phone's own last line.
  */
 @Composable
 fun NmWorkingLine(sessionId: String, lastMessageId: String?, modifier: Modifier = Modifier) {
@@ -70,7 +74,11 @@ fun NmWorkingLine(sessionId: String, lastMessageId: String?, modifier: Modifier 
         Spacer(Modifier.size(6.dp).alpha(alpha).background(muted, CircleShape))
         Spacer(Modifier.width(6.dp))
         Text(
-            text = stringResource(R.string.nm_sync_working, name),
+            text = when {
+                presence.state == WorkingPresence.STATE_WAITING -> stringResource(R.string.nm_sync_waiting, name)
+                presence.detail.isNotBlank() -> stringResource(R.string.nm_sync_working_step, name, presence.detail)
+                else -> stringResource(R.string.nm_sync_working, name)
+            },
             fontSize = 11.sp,
             color = muted,
         )

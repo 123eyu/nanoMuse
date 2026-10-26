@@ -426,7 +426,9 @@ Ours, in `NanoMuse/`:
   /v1/sync/working {cid, working}` after the user line is pushed and after the turn's end is;
   the hub's `working` frame and `/v1/sync/state`'s `working` list fill a map that expires after
   ten minutes, and the chat shows *〈device〉 is working…* under the last message when it is
-  another device's user line (`ChatMessage.nmWorkingDevice`). A remote user line as the tail is
+  another device's user line (`ChatMessage.nmWorkingDevice` holds the sentence; with the frame's
+  `state` and `detail`, relay 0.31, it reads *〈device〉 is working: 〈step〉* or *〈device〉 is
+  waiting for you*, `NanoMusePresence.sentence`). A remote user line as the tail is
   never this phone's interrupted turn: `recheckCanResumeFromHistory` leaves `canResume` off for
   it, so no banner, no Resume, nothing re-sent.
 - **Sign-in and the relay (0.1.38)** (`NanoMuseCloud.swift`, `NanoMuseCloudView.swift`,

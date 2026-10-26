@@ -1036,6 +1036,8 @@
     <string name="nm_sync_side_title">Also sync side chats</string>
     <string name="nm_sync_side_sub">Off: side chats stay on this device. On: this device\'s side chats go to the account and the other devices\' side chats come here.</string>
     <string name="nm_sync_working">%1$s is working…</string>
+    <string name="nm_sync_working_step">%1$s is working: %2$s</string>
+    <string name="nm_sync_waiting">%1$s is waiting for you</string>
     <string name="nm_devices_ask">Ask this device</string>
     <string name="nm_devices_ask_hint">Tap a device that is online to write to it from the chat: the message starts with @ and its name, and that device does the work.</string>
     <string name="nm_reach_the_provider">the provider</string>

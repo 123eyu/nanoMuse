@@ -1053,6 +1053,8 @@
     <string name="nm_sync_side_title">Sinkronkan juga obrolan sampingan</string>
     <string name="nm_sync_side_sub">Mati: obrolan sampingan tetap di perangkat ini. Nyala: obrolan sampingan perangkat ini masuk ke akun, dan obrolan sampingan perangkat lain datang ke sini.</string>
     <string name="nm_sync_working">%1$s sedang mengerjakannya…</string>
+    <string name="nm_sync_working_step">%1$s sedang mengerjakannya: %2$s</string>
+    <string name="nm_sync_waiting">%1$s menunggu Anda</string>
     <string name="nm_devices_ask">Minta perangkat ini</string>
     <string name="nm_devices_ask_hint">Ketuk perangkat yang online untuk menulis padanya dari chat: pesan dimulai dengan @ dan namanya, dan perangkat itu yang mengerjakan.</string>
     <string name="nm_reach_the_provider">penyedia</string>

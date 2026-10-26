@@ -1058,6 +1058,8 @@
     <string name="nm_sync_side_title">Sincronizar também as conversas paralelas</string>
     <string name="nm_sync_side_sub">Desligado: as conversas paralelas ficam neste aparelho. Ligado: as conversas paralelas deste aparelho vão para a conta e as dos outros aparelhos chegam aqui.</string>
     <string name="nm_sync_working">%1$s está cuidando disso…</string>
+    <string name="nm_sync_working_step">%1$s está cuidando disso: %2$s</string>
+    <string name="nm_sync_waiting">%1$s está esperando você</string>
     <string name="nm_devices_ask">Pedir a este dispositivo</string>
     <string name="nm_devices_ask_hint">Toque em um dispositivo online para escrever a ele pela conversa: a mensagem começa com @ e o nome dele, e esse dispositivo faz o trabalho.</string>
     <string name="nm_reach_the_provider">o provedor</string>

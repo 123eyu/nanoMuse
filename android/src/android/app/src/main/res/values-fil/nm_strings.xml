@@ -1057,6 +1057,8 @@
     <string name="nm_sync_side_title">I-sync din ang mga side chat</string>
     <string name="nm_sync_side_sub">Naka-off: nananatili sa device na ito ang mga side chat. Naka-on: pupunta sa account ang mga side chat ng device na ito at darating dito ang mga side chat ng ibang device.</string>
     <string name="nm_sync_working">Ginagawa ito ng %1$s…</string>
+    <string name="nm_sync_working_step">Ginagawa ito ng %1$s: %2$s</string>
+    <string name="nm_sync_waiting">Hinihintay ka ng %1$s</string>
     <string name="nm_devices_ask">Hilingin sa device na ito</string>
     <string name="nm_devices_ask_hint">I-tap ang isang device na online para sulatan ito mula sa chat: magsisimula ang mensahe sa @ at pangalan nito, at ang device na iyon ang gagawa ng trabaho.</string>
     <string name="nm_reach_the_provider">ang provider</string>

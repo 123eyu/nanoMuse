@@ -1009,6 +1009,8 @@
     <string name="nm_sync_side_title">同时同步旁聊</string>
     <string name="nm_sync_side_sub">关：旁聊只留在本机。开：本机的旁聊上传到账号，其他设备的旁聊也会同步过来。</string>
     <string name="nm_sync_working">%1$s 正在处理…</string>
+    <string name="nm_sync_working_step">%1$s 正在处理：%2$s</string>
+    <string name="nm_sync_waiting">%1$s 在等你确认</string>
     <string name="nm_devices_ask">交给这台设备</string>
     <string name="nm_devices_ask_hint">点一台在线的设备，就能在聊天里对它说话：消息以 @ 加设备名开头，由那台设备去做。</string>
 

@@ -430,6 +430,19 @@ class SyncEngine(
         return true
     }
 
+    /**
+     * The run in local chat [sessionId] moved to a step (relay 0.31): the other devices hear
+     * [state] (`working` or `waiting`) and [detail], the step's own words. Same rules and the
+     * same best effort as [working]; false when nothing was sent.
+     */
+    suspend fun step(sessionId: String, state: String, detail: String): Boolean {
+        val map = store.conversation(sessionId) ?: return false
+        if (!map.pushed || map.deleted || !map.mine()) return false
+        if (map.kind != "main" && !sideChats()) return false
+        api.working(deviceId, map.cid, state, detail)
+        return true
+    }
+
     /** The local chat a relay `cid` stands for, if this phone has it under this account. */
     suspend fun sessionOf(cid: String): String? = store.conversationByCid(cid)?.takeIf { it.mine() }?.sessionId
 

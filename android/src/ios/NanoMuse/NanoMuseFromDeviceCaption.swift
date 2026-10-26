@@ -9,12 +9,14 @@
 
 import SwiftUI
 
-/// The "From {device}" line under a synced bubble, and — C9 — "{device} is working…" under the
-/// last remote user line while that device's turn runs. Renders nothing for this phone's own rows.
+/// The "From {device}" line under a synced bubble, and — C9 — "{device} is working…" (or the
+/// run's step, or "waiting for you", relay 0.31) under the last remote user line while that
+/// device's turn runs. Renders nothing for this phone's own rows.
 struct NanoMuseFromDeviceCaption: View {
     /// `ChatMessage.nmFromDevice`: the other device's name, or nil.
     let device: String?
-    /// `ChatMessage.nmWorkingDevice`: the device at work on the conversation, or nil.
+    /// `ChatMessage.nmWorkingDevice`: the sentence about the device at work on the conversation
+    /// (`NanoMusePresence.sentence`), or nil.
     let working: String?
 
     init(_ device: String?, working: String? = nil) {
@@ -28,8 +30,8 @@ struct NanoMuseFromDeviceCaption: View {
                 Text(String(format: AppLocalized("From %@"), device))
                     .accessibilityLabel(String(format: AppLocalized("From %@"), device))
                 if let working, !working.isEmpty {
-                    Text(String(format: AppLocalized("%@ is working…"), working))
-                        .accessibilityLabel(String(format: AppLocalized("%@ is working…"), working))
+                    Text(working)
+                        .accessibilityLabel(working)
                 }
             }
             .font(.system(size: FontSettings.shared.scaledMessage(11.5)))

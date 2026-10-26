@@ -75,6 +75,9 @@ export interface SyncRelayState {
   working: WireWorking[]
 }
 
+/** What a run is doing, as presence says it (relay 0.31): on a step, or parked on a card for the person. */
+export type WorkingState = 'working' | 'waiting'
+
 /** The hub's `working` frame and the rows of `/v1/sync/state`'s `working` (C9). */
 export interface WireWorking {
   cid: string
@@ -83,7 +86,16 @@ export interface WireWorking {
   working: boolean
   /** Unix seconds, the relay's clock. */
   at: number
+  /** On a `true`, since relay 0.31: what the run is doing; absent from older relays and devices. */
+  state?: WorkingState
+  /** The step's own words, at most `DETAIL_CAP` characters; '' when the run gave none. */
+  detail?: string
 }
+
+/** The longest step presence carries (relay 0.31 cuts there too): one line under a bubble. */
+export const DETAIL_CAP = 160
+/** The quietest gap between two step posts of one run: a step that changes faster is told when the gap ends. */
+export const STEP_GAP_MS = 2000
 
 /** The newest messages a first pull asks for (C9): `since=0&tail=300`. */
 export const TAIL = 300
@@ -169,12 +181,21 @@ export class SyncRelay {
     }
   }
 
-  /** Presence (C9): this device started or finished a turn on a conversation. Best-effort: the caller never retries. */
-  async working(apiKey: string, device: string, cid: string, working: boolean): Promise<void> {
+  /**
+   * Presence (C9): this device started or finished a turn on a conversation; a `true` may
+   * say what the run is doing (`step`, relay 0.31: the state and the step's words — an older
+   * relay ignores the two fields). Best-effort: the caller never retries.
+   */
+  async working(apiKey: string, device: string, cid: string, working: boolean, step?: { state: WorkingState; detail: string }): Promise<void> {
+    const body: Record<string, unknown> = { cid, working, device }
+    if (working && step) {
+      body.state = step.state
+      body.detail = step.detail.slice(0, DETAIL_CAP)
+    }
     const res = await this.fetchImpl(`${this.origin}/v1/sync/working`, {
       method: 'POST',
       headers: { ...this.auth(apiKey), ...JSON_HEADERS },
-      body: JSON.stringify({ cid, working, device }),
+      body: JSON.stringify(body),
     })
     if (!res.ok) await fail(res)
   }
@@ -237,7 +258,11 @@ function toState(value: unknown): SyncRelayState {
 
 export function toWorking(value: unknown, working?: boolean): WireWorking {
   const w = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>
-  return { cid: String(w.cid ?? ''), from: String(w.from ?? ''), device_name: String(w.device_name ?? ''), working: working ?? w.working === true, at: Number(w.at ?? 0) }
+  const out: WireWorking = { cid: String(w.cid ?? ''), from: String(w.from ?? ''), device_name: String(w.device_name ?? ''), working: working ?? w.working === true, at: Number(w.at ?? 0) }
+  // relay 0.31: what the run is doing; a frame without the two fields is plain working
+  if (w.state === 'working' || w.state === 'waiting') out.state = w.state
+  if (typeof w.detail === 'string' && w.detail) out.detail = w.detail.slice(0, DETAIL_CAP)
+  return out
 }
 
 function toConversation(value: unknown): WireConversation {
@@ -529,6 +554,8 @@ export interface SyncEngineOptions {
   pushDelayMs?: number
   pullEveryMs?: number
   frameCoalesceMs?: number
+  /** The quietest gap between two step posts of one run (0.31); `STEP_GAP_MS` unless a test shortens it. */
+  stepGapMs?: number
 }
 
 /** What the browser half reads: Data controls, the chats column and the bubbles from elsewhere. */
@@ -560,6 +587,20 @@ export interface WorkingPresence {
   deviceName: string
   /** Unix epoch milliseconds. */
   at: number
+  /** What its run is doing (relay 0.31): `working` when the frame did not say. */
+  state: WorkingState
+  /** The step's own words; '' when the run gave none (an older device, or the model writing its answer). */
+  detail: string
+}
+
+/** The step a run here last told the relay, per session (0.31). */
+interface StepPost {
+  state: WorkingState
+  detail: string
+  /** `state\ndetail` as last posted; '' before the first post of the turn. */
+  sent: string
+  sentAt: number
+  timer: ReturnType<typeof setTimeout> | undefined
 }
 
 export class SyncEngine {
@@ -574,6 +615,10 @@ export class SyncEngine {
   private readonly presence = new Map<string, boolean>()
   /** cid → the other device working on it (C9). */
   private readonly working = new Map<string, WorkingPresence>()
+  /** Sessions whose turn is running here (a `true` went or is going up): the ones whose steps are told (0.31). */
+  private readonly running = new Set<string>()
+  /** The step last told per running session (0.31). */
+  private readonly steps = new Map<string, StepPost>()
   private pulling: Promise<number> | undefined
   private pushing: Promise<void> | undefined
   private frameCursor = 0
@@ -658,6 +703,8 @@ export class SyncEngine {
     this.frameTimer = undefined
     if (this.workingTimer) clearTimeout(this.workingTimer)
     this.workingTimer = undefined
+    for (const sid of this.steps.keys()) this.forgetStep(sid)
+    this.running.clear()
   }
 
   /**
@@ -821,9 +868,12 @@ export class SyncEngine {
     if (!w.cid || w.from === this.options.deviceId()) return false
     const at = w.at * 1000
     if (!w.working || Date.now() - at >= WORKING_TTL_MS) return this.working.delete(w.cid)
+    const state: WorkingState = w.state ?? 'working'
+    const detail = w.detail ?? ''
     const known = this.working.get(w.cid)
-    if (known && known.from === w.from && known.at >= at) return false
-    this.working.set(w.cid, { from: w.from, deviceName: w.device_name, at })
+    // the relay's clock is in seconds: two steps within one second are not the same frame
+    if (known && known.from === w.from && (known.at > at || (known.at === at && known.state === state && known.detail === detail))) return false
+    this.working.set(w.cid, { from: w.from, deviceName: w.device_name, at, state, detail })
     this.armWorkingTimer()
     return tell
   }
@@ -886,6 +936,8 @@ export class SyncEngine {
     if (!this.syncs(sessionId)) return
     this.dirty.add(sessionId)
     this.presence.set(sessionId, true)
+    this.running.add(sessionId)
+    this.forgetStep(sessionId)
     this.pushSoon(Math.min(SEND_DELAY_MS, this.options.pushDelayMs ?? PUSH_DELAY_MS))
     // a new prompt here is a new anchor for the other devices' bubbles: the browser half re-reads them
     if (this.kept(sessionId)) this.changed()
@@ -905,10 +957,61 @@ export class SyncEngine {
 
   /** A turn ended in a session here: the model's final text goes up after the debounce. */
   turnEnded(sessionId: string): void {
+    this.running.delete(sessionId)
+    this.forgetStep(sessionId)
     if (!this.syncs(sessionId)) return
     this.dirty.add(sessionId)
     this.presence.set(sessionId, false)
     this.pushSoon(this.options.pushDelayMs ?? PUSH_DELAY_MS)
+  }
+
+  /**
+   * The run's step moved (0.31): the other devices hear what it is doing — `working` with
+   * the step's words (a tool call), `working` with none (the model writing), `waiting`
+   * while a card holds the run for the person. Only for a turn running here in a synced
+   * session; at most one post per `STEP_GAP_MS` per session, the latest change going when
+   * the gap ends; the same state and words twice are told once. Best-effort, like the
+   * start and the end.
+   */
+  step(sessionId: string, state: WorkingState, detail: string): void {
+    if (!this.running.has(sessionId) || !this.syncs(sessionId)) return
+    const words = detail.replace(/\s+/g, ' ').trim().slice(0, DETAIL_CAP)
+    const post = this.steps.get(sessionId) ?? { state, detail: words, sent: '', sentAt: 0, timer: undefined }
+    post.state = state
+    post.detail = words
+    this.steps.set(sessionId, post)
+    if (post.sent === `${state}\n${words}`) return
+    const wait = post.sentAt + (this.options.stepGapMs ?? STEP_GAP_MS) - Date.now()
+    if (wait > 0) {
+      if (!post.timer) {
+        post.timer = setTimeout(() => {
+          post.timer = undefined
+          this.postStep(sessionId)
+        }, wait)
+      }
+      return
+    }
+    this.postStep(sessionId)
+  }
+
+  private postStep(sessionId: string): void {
+    const post = this.steps.get(sessionId)
+    const cid = this.state.cids[sessionId]
+    if (!post || !cid || !this.running.has(sessionId)) return
+    const key = `${post.state}\n${post.detail}`
+    if (post.sent === key) return
+    post.sent = key
+    post.sentAt = Date.now()
+    void this.options
+      .token()
+      .then((token) => (token ? this.options.relay.working(token, this.options.deviceId(), cid, true, { state: post.state, detail: post.detail }) : undefined))
+      .catch(() => undefined)
+  }
+
+  private forgetStep(sessionId: string): void {
+    const post = this.steps.get(sessionId)
+    if (post?.timer) clearTimeout(post.timer)
+    this.steps.delete(sessionId)
   }
 
   sessionRenamed(sessionId: string): void {

@@ -1061,6 +1061,8 @@
     <string name="nm_sync_side_title">Sincronizează și conversațiile secundare</string>
     <string name="nm_sync_side_sub">Oprit: conversațiile secundare rămân pe acest dispozitiv. Pornit: conversațiile secundare ale acestui dispozitiv merg în cont, iar cele ale celorlalte dispozitive vin aici.</string>
     <string name="nm_sync_working">%1$s se ocupă…</string>
+    <string name="nm_sync_working_step">%1$s se ocupă: %2$s</string>
+    <string name="nm_sync_waiting">%1$s te așteaptă</string>
     <string name="nm_devices_ask">Cere acestui dispozitiv</string>
     <string name="nm_devices_ask_hint">Atinge un dispozitiv care e online ca să-i scrii din conversație: mesajul începe cu @ și numele lui, iar acel dispozitiv face treaba.</string>
     <string name="nm_reach_the_provider">furnizorul</string>

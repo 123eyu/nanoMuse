@@ -1065,6 +1065,8 @@
     <string name="nm_sync_side_title">Synchronizuj też czaty poboczne</string>
     <string name="nm_sync_side_sub">Wyłączone: czaty poboczne zostają na tym urządzeniu. Włączone: czaty poboczne tego urządzenia trafiają na konto, a czaty poboczne innych urządzeń przychodzą tutaj.</string>
     <string name="nm_sync_working">%1$s nad tym pracuje…</string>
+    <string name="nm_sync_working_step">%1$s nad tym pracuje: %2$s</string>
+    <string name="nm_sync_waiting">%1$s czeka na ciebie</string>
     <string name="nm_devices_ask">Zapytaj to urządzenie</string>
     <string name="nm_devices_ask_hint">Dotknij urządzenia, które jest online, aby pisać do niego z czatu: wiadomość zaczyna się od @ i jego nazwy, a pracę wykonuje to urządzenie.</string>
     <string name="nm_reach_the_provider">dostawca</string>

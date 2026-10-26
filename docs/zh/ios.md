@@ -355,7 +355,8 @@ scripts/gen-ios-icons.py         App 图标和四款备选图标，来自 assets
   文本，不是整个历史。在线状态：用户那一行推送之后、回合结束推送之后各 `POST /v1/sync/working
   {cid, working}` 一次；hub 的 `working` 帧和 `/v1/sync/state` 的 `working` 列表填进一张
   十分钟过期的映射表，最后一条消息是另一台设备的用户行时，聊天在它下面显示 *〈设备〉正在处理…*
-  （`ChatMessage.nmWorkingDevice`）。排在末尾的远端用户行绝不会被当成这台手机被打断的回合：
+  （`ChatMessage.nmWorkingDevice` 存的是整句话；帧带着 `state` 和 `detail` 时，中继 0.31，读作
+  *〈设备〉正在处理：〈这一步〉* 或 *〈设备〉在等你确认*，`NanoMusePresence.sentence`）。排在末尾的远端用户行绝不会被当成这台手机被打断的回合：
   `recheckCanResumeFromHistory` 对它不开 `canResume`，所以没有横幅、没有「继续」、什么也不重发。
 - **登录和中继（0.1.38）**（`NanoMuseCloud.swift`、`NanoMuseCloudView.swift`、
   `NanoMuseRelayPicker.swift`）：国家代码不是 +86 的手机号在请求验证码之前就会被告知

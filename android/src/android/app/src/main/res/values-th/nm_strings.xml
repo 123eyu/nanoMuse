@@ -1053,6 +1053,8 @@
     <string name="nm_sync_side_title">ซิงก์แชทย่อยด้วย</string>
     <string name="nm_sync_side_sub">ปิด: แชทย่อยอยู่แค่ในอุปกรณ์นี้ เปิด: แชทย่อยของอุปกรณ์นี้ขึ้นไปที่บัญชี และแชทย่อยของอุปกรณ์อื่นก็มาที่นี่ด้วย</string>
     <string name="nm_sync_working">%1$s กำลังจัดการอยู่…</string>
+    <string name="nm_sync_working_step">%1$s กำลังจัดการอยู่: %2$s</string>
+    <string name="nm_sync_waiting">%1$s กำลังรอคุณอยู่</string>
     <string name="nm_devices_ask">ขอให้อุปกรณ์นี้ทำ</string>
     <string name="nm_devices_ask_hint">แตะอุปกรณ์ที่ออนไลน์อยู่เพื่อเขียนถึงมันจากแชท: ข้อความจะขึ้นต้นด้วย @ ตามด้วยชื่อของมัน และอุปกรณ์นั้นจะเป็นฝ่ายทำงาน</string>
     <string name="nm_reach_the_provider">ผู้ให้บริการ</string>

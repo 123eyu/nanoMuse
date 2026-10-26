@@ -1057,6 +1057,8 @@
     <string name="nm_sync_side_title">Sincronizar también los chats secundarios</string>
     <string name="nm_sync_side_sub">Desactivado: los chats secundarios se quedan en este dispositivo. Activado: los chats secundarios de este dispositivo van a la cuenta y los de los otros dispositivos llegan aquí.</string>
     <string name="nm_sync_working">%1$s está en ello…</string>
+    <string name="nm_sync_working_step">%1$s está en ello: %2$s</string>
+    <string name="nm_sync_waiting">%1$s te espera</string>
     <string name="nm_devices_ask">Preguntar a este dispositivo</string>
     <string name="nm_devices_ask_hint">Toca un dispositivo en línea para escribirle desde el chat: el mensaje empieza con @ y su nombre, y ese dispositivo hace el trabajo.</string>
     <string name="nm_reach_the_provider">el proveedor</string>

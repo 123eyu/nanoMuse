@@ -1065,6 +1065,8 @@
     <string name="nm_sync_side_title">Синхронизировать и побочные чаты</string>
     <string name="nm_sync_side_sub">Выкл.: побочные чаты остаются на этом устройстве. Вкл.: побочные чаты этого устройства уходят в аккаунт, а побочные чаты других устройств приходят сюда.</string>
     <string name="nm_sync_working">%1$s работает над этим…</string>
+    <string name="nm_sync_working_step">%1$s работает над этим: %2$s</string>
+    <string name="nm_sync_waiting">%1$s ждёт вашего ответа</string>
     <string name="nm_devices_ask">Спросить это устройство</string>
     <string name="nm_devices_ask_hint">Нажмите на устройство в сети, чтобы написать ему из чата: сообщение начинается с @ и его имени, и работу делает это устройство.</string>
     <string name="nm_reach_the_provider">провайдер</string>

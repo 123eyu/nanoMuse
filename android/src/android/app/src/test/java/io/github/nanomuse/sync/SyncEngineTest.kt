@@ -575,4 +575,20 @@ class SyncEngineTest {
         assertTrue(relay.state().working.single().live(1_700_000_000L + 599))
         assertFalse(relay.state().working.single().live(1_700_000_000L + 600))
     }
+
+    @Test fun `a step goes out like the start does - pushed chat in scope only - with its state and words`() = runTest {
+        val relay = FakeRelay()
+        val p = phone(relay, "phone-a", sideChats = false)
+        p.chats.addSession("main"); p.chats.main = "main"
+        p.chats.addSession("side", "Trip")
+        p.chats.user("main", "hi"); p.chats.user("side", "x")
+        assertFalse(p.engine.step("main", WorkingPresence.STATE_WORKING, "打开携程网站"))
+        p.engine.push()
+        assertTrue(p.engine.step("main", WorkingPresence.STATE_WORKING, "打开携程网站"))
+        assertTrue(p.engine.step("main", WorkingPresence.STATE_WAITING, ""))
+        assertFalse(p.engine.step("side", WorkingPresence.STATE_WORKING, "no"))
+        val cid = p.store.convs.getValue("main").cid
+        assertEquals(listOf(listOf("phone-a", cid, "working", "打开携程网站"), listOf("phone-a", cid, "waiting", "")), relay.stepCalls)
+        assertTrue(relay.workingCalls.isEmpty())
+    }
 }
