@@ -23,11 +23,26 @@ struct NanoMuseChatCardsHost: View {
     @ObservedObject private var flow = NanoMuseAvatarFlow.shared
     @ObservedObject private var naming = NanoMuseFirstConversation.shared
     @ObservedObject private var allowance = NanoMuseAllowance.shared
+    @ObservedObject private var feedback = NanoMuseFeedback.shared
 
     private var key: String { vm.nmSessionKey }
 
+    /// The newest reply, when it is finished and has words: the two thumbs go under it.
+    private var repliedMessageId: String? {
+        guard !vm.isProcessing, let last = vm.messages.last, last.role == .assistant, last.error == nil else { return nil }
+        guard !last.content.isEmpty || last.blocks.contains(where: { $0.kind == .text && !$0.content.isEmpty }) else { return nil }
+        return last.id.uuidString
+    }
+
     var body: some View {
         VStack(spacing: 8) {
+            // the lightest feedback (relay 0.31): two thumbs under the newest reply, one question after a Stop
+            if let mid = repliedMessageId, let sid = vm.sessionId {
+                NanoMuseThumbsRow(session: sid, messageId: mid)
+            }
+            if let ask = feedback.asking(session: key), !vm.isProcessing {
+                NanoMuseStopAskCard(ask: ask)
+            }
             // C11 / parity #33: 80 % of the free allowance spent — one line, once per pool size.
             if let line = allowance.headsUp, allowance.pending == nil {
                 NanoMuseAllowanceHeadsUp(text: line) { allowance.hideHeadsUp() }

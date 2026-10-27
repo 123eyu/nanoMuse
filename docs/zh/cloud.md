@@ -83,8 +83,8 @@
 
 | kind | data |
 | --- | --- |
-| `sentinel.decision` | `tool`、`risk`（`safe`、`moderate`、`sensitive`、`critical`）、`decision`（`allow`、`ask`、`deny`）、`grant?`（`once`、`schedule`、`conversation`、`always`：放行它的那条授权）、`policy?`（问人之前策略本身的判定）、`by?`（最后由谁定的：`policy`、`auto`、`grant`、`person`、`timeout`）、`channel?`、`tainted?`（布尔）、`warnings?`（条数）、`ok?`（布尔：工具随后有没有正常跑完；桌面版会发，运行时不发）、`class?`（手机自己的风险分类：`safe`、`install`、`destructive`、`outbound`、`remote`、`money`；Android 和 iOS 会发） |
-| `approval.result` | `tool?`、`risk?`、`allow`（布尔）、`scope?`（`once`、`schedule`、`conversation`、`always`）、`by?`（`person`、`timeout`、`other_device`）、`waited_s?`、`channel?`、`warnings?` |
+| `sentinel.decision` | `tool`、`risk`（`safe`、`moderate`、`sensitive`、`critical`）、`decision`（`allow`、`ask`、`deny`）、`grant?`（`once`、`schedule`、`conversation`、`always`：放行它的那条授权）、`policy?`（问人之前策略本身的判定）、`by?`（最后由谁定的：`policy`、`auto`、`grant`、`person`、`timeout`）、`channel?`、`tainted?`（布尔）、`warnings?`（条数）、`ok?`（布尔：工具随后有没有正常跑完；桌面版会发，运行时不发）、`class?`（手机自己给这一步的分类：Android 的风险闸门发 `safe`、`install`、`destructive`、`outbound`、`remote`、`money`；iPhone 的权限检查发 `privacy`、`media`、`system`，即 `apple-*` 命令的类别） |
+| `approval.result` | `tool?`、`risk?`、`allow`（布尔）、`scope?`（`once`、`schedule`、`conversation`、`always`）、`by?`（`person`、`timeout`、`other_device`、`auto`：应用自己答了不，比如 iPhone 不在前台时收到的 hub 任务）、`waited_s?`、`channel?`、`warnings?` |
 | `turn.stopped` | `reason`：`wrong`、`slow`、`changed_mind`、`done`、`other`、`skipped`（人手动停了一条回复，说了或没说为什么）、`turn_no?` |
 | `turn.feedback` | `vote`（`up`、`down`，收回时是 `none`）、`reason?`（`wrong`、`unhelpful`、`unsafe`、`slow`、`other`）、`turn_no?` |
 | `turn.ended` | `ended`：`aborted`（人按了停止）、`error`、`abandoned`（一轮中途结束，用 App 自己的词；运行时对每次被停掉的运行都发 `aborted`，不管跑在哪个 key 上）、`turn_no?` |

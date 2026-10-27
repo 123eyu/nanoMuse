@@ -9,7 +9,9 @@
 //  by their hash. The key itself and the provider's base URL are never part of it; what is sent
 //  is what the chat on the other devices needs to show the same history. Nothing is recorded
 //  while signed out, for the relay's own instance (the relay records those itself), or on a
-//  relay that keeps no record. Android: io.github.nanomuse.cloud.OwnTurns.
+//  relay that keeps no record. Since relay 0.31 a turn also says where it sat: who started it,
+//  its number, the call's number within it, the platform (NanoMuseProvenance).
+//  Android: io.github.nanomuse.cloud.OwnTurns.
 //
 
 import CryptoKit
@@ -65,7 +67,8 @@ enum NanoMuseOwnTurns {
             guard await NanoMuseOwnTurns.wants() else { return upstream }
             let gathered = Gathered(
                 vendor: vendor, model: model.id, messages: messages, systemPrompt: systemPrompt,
-                tools: tools, maxTokens: maxTokens, thinkingLevel: thinkingLevel
+                tools: tools, maxTokens: maxTokens, thinkingLevel: thinkingLevel,
+                origin: NanoMuseProvenance.current // the chat, the run and the turn this call sits in (relay 0.31)
             )
             return AsyncThrowingStream { continuation in
                 let task = Task {
@@ -105,6 +108,8 @@ enum NanoMuseOwnTurns {
         let tools: [AgentToolDefinition]
         let maxTokens: Int
         let thinkingLevel: ThinkingLevel
+        /// Where the call sat when it went out, as the agent loop announced it; nil from elsewhere.
+        let origin: NanoMuseProvenance.Current?
 
         var text = ""
         var reasoning = ""
@@ -114,7 +119,7 @@ enum NanoMuseOwnTurns {
         var ended: String?
         var error: String?
 
-        init(vendor: String, model: String, messages: [AgentMessage], systemPrompt: String?, tools: [AgentToolDefinition], maxTokens: Int, thinkingLevel: ThinkingLevel) {
+        init(vendor: String, model: String, messages: [AgentMessage], systemPrompt: String?, tools: [AgentToolDefinition], maxTokens: Int, thinkingLevel: ThinkingLevel, origin: NanoMuseProvenance.Current? = nil) {
             self.vendor = vendor
             self.model = model
             self.messages = messages
@@ -122,6 +127,7 @@ enum NanoMuseOwnTurns {
             self.tools = tools
             self.maxTokens = maxTokens
             self.thinkingLevel = thinkingLevel
+            self.origin = origin
         }
 
         func take(_ event: AgentStreamEvent) {
@@ -219,6 +225,8 @@ enum NanoMuseOwnTurns {
             }
             if let ended = g.ended { turn["ended"] = ended }
             if let error = g.error { turn["error"] = String(error.prefix(500)) }
+            // where the call sat: run, turn, step and platform (relay 0.31); from elsewhere, counted from the request alone
+            (g.origin?.fields ?? NanoMuseProvenance.Fields(run: NanoMuseProvenance.runPerson, turn: NanoMuseProvenance.turnOf(g.messages), step: NanoMuseProvenance.stepOf(g.messages))).into(&turn)
             let encoded = try JSONSerialization.data(withJSONObject: turn)
             guard encoded.count <= NanoMuseOwnTurns.turnMaxChars else {
                 AppLogger(category: "NanoMuseOwnTurns").warning("a turn of \(encoded.count) bytes is past the relay's ceiling; it stays on this phone")
@@ -229,6 +237,7 @@ enum NanoMuseOwnTurns {
                 try await NanoMuseRelayMedia.putBlob(sha, mime: file.mime, data: file.data)
             }
             try await NanoMuseRelayMedia.postTurn(turn)
+            NanoMuseProvenance.noteOwnTurn(session: g.origin?.sessionId, id: g.id) // the events about this turn name it
         }
     }
 

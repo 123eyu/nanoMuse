@@ -873,10 +873,10 @@ final class OpenAIProvider: LLMProvider {
         for (key, value) in extraHeaders {
             request.setValue(value, forHTTPHeaderField: key)
         }
-        // nanoMuse: OpenCode Go wants one stable id per conversation; the account's relay files the turn under it
+        // nanoMuse: OpenCode Go wants one stable id per conversation; the account's relay files the turn under it, with where the call sits in it (run, turn, step, platform)
         if let opencodeSession {
             if NanoMuseOpenCodeSession.wants(customBaseURL) { request.setValue(opencodeSession, forHTTPHeaderField: NanoMuseOpenCodeSession.header) }
-            if NanoMuseCloudHeaders.isCloud(extraHeaders) { request.setValue(opencodeSession, forHTTPHeaderField: NanoMuseCloudHeaders.conversation) }
+            if NanoMuseCloudHeaders.isCloud(extraHeaders) { for (name, value) in NanoMuseCloudHeaders.forCall(opencodeSession) { request.setValue(value, forHTTPHeaderField: name) } }
         }
         // [T-ios-openai-body-oom] Must run BEFORE serializing: an out-of-memory
         // inside JSONSerialization aborts the process and cannot be caught. This
@@ -933,6 +933,7 @@ final class OpenAIProvider: LLMProvider {
             throw error
         }
         let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+        if NanoMuseCloudHeaders.isCloud(extraHeaders) { NanoMuseCloudHeaders.noteResponse(response, conversation: opencodeSession) } // nanoMuse: the id the relay gave the turn, for the events about it
 
         if !(200..<300).contains(statusCode) {
             var body = ""

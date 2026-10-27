@@ -140,6 +140,7 @@ struct NanoMuseRoot: View {
             NanoMuseProfileSync.shared.start()
             NanoMuseAccountData.shared.start() // C12: whose chat is whose; the reinstall sweep
             NanoMuseSync.shared.start() // C7: conversations between the account's devices
+            NanoMuseClientEvents.start() // what happened around a turn, as codes, to the account's record (relay 0.31)
             NanoMuseStarWatch.shared.start()
             NanoMuseStar.shared.dayOpened()
         }

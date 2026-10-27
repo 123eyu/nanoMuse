@@ -10,7 +10,11 @@ extension AIChatViewModel {
 
     /// Construct an AgentProvider from a ModelEntry by looking up its ProviderInstance and credential.
     func makeAgentProvider(for entry: ModelEntry) async -> AgentProvider {
-        return await Self.makeAgentProvider(for: entry)
+        // nanoMuse: every call the loop makes says which chat and turn it belongs to (NanoMuseProvenance, relay 0.31)
+        let provider = await Self.makeAgentProvider(for: entry)
+        return NanoMuseProvenance.wrap(provider) { [weak self] in
+            (session: self?.sessionId, turns: self?.messages.filter { $0.role == .user }.count ?? 0)
+        }
     }
 
     /// Static variant — used by sub-task call sites (title generation, etc.)
