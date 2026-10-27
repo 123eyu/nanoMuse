@@ -1206,4 +1206,5 @@
     <string name="nm_stop_reason_changed_mind">Nagbago ang isip ko</string>
     <string name="nm_stop_reason_done">Tapos na pala</string>
     <string name="nm_stop_reason_other">Iba pa</string>
+    <string name="nm_feed_limit_notice">Hindi naisama ang %1$d nabuong post dahil sa pang-araw-araw na limitasyong 12.</string>
 </resources>

@@ -1202,4 +1202,5 @@
     <string name="nm_stop_reason_changed_mind">เปลี่ยนใจ</string>
     <string name="nm_stop_reason_done">เสร็จแล้ว</string>
     <string name="nm_stop_reason_other">อย่างอื่น</string>
+    <string name="nm_feed_limit_notice">โพสต์ที่สร้างขึ้น %1$d รายการไม่พอดีกับจำนวนจำกัด 12 รายการต่อวัน</string>
 </resources>

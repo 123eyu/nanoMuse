@@ -1214,4 +1214,5 @@
     <string name="nm_stop_reason_changed_mind">Zmieniłem zdanie</string>
     <string name="nm_stop_reason_done">Było już gotowe</string>
     <string name="nm_stop_reason_other">Coś innego</string>
+    <string name="nm_feed_limit_notice">Nie dodano %1$d wygenerowanych wpisów z powodu dziennego limitu 12.</string>
 </resources>

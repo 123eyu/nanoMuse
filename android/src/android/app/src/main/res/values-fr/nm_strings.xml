@@ -1207,4 +1207,5 @@
     <string name="nm_stop_reason_changed_mind">J\'ai changé d\'avis</string>
     <string name="nm_stop_reason_done">C\'était déjà fait</string>
     <string name="nm_stop_reason_other">Autre chose</string>
+    <string name="nm_feed_limit_notice">%1$d publication(s) générée(s) n’a/n’ont pas été ajoutée(s) en raison de la limite quotidienne de 12.</string>
 </resources>

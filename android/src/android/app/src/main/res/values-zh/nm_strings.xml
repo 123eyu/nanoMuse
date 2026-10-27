@@ -1179,4 +1179,5 @@
     <string name="nm_stop_reason_changed_mind">改主意了</string>
     <string name="nm_stop_reason_done">已经做完了</string>
     <string name="nm_stop_reason_other">其他原因</string>
+    <string name="nm_feed_limit_notice">因每日 12 条上限，有 %1$d 条生成内容未能加入动态。</string>
 </resources>

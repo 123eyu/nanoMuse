@@ -1202,4 +1202,5 @@
     <string name="nm_stop_reason_changed_mind">마음이 바뀌었어요</string>
     <string name="nm_stop_reason_done">이미 다 됐어요</string>
     <string name="nm_stop_reason_other">기타</string>
+    <string name="nm_feed_limit_notice">일일 한도 12개로 인해 생성된 게시물 %1$d개를 추가하지 못했습니다.</string>
 </resources>

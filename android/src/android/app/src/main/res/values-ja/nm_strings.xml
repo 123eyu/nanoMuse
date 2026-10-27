@@ -1202,4 +1202,5 @@
     <string name="nm_stop_reason_changed_mind">気が変わった</string>
     <string name="nm_stop_reason_done">もう終わっていた</string>
     <string name="nm_stop_reason_other">その他</string>
+    <string name="nm_feed_limit_notice">1日の上限（12件）のため、生成された投稿%1$d件を追加できませんでした。</string>
 </resources>
