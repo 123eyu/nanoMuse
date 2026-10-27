@@ -32,3 +32,8 @@ web/**/*.webp binary
 web/**/*.mp4 binary
 web/**/*.woff2 binary
 web/**/*.ico binary
+# The cloud console is built on Windows too (`cd cloud/console && npm run build` writes the
+# admin pages into cloud/nanomuse_cloud/console/admin), and Vite carries the source's line
+# endings into the HTML it writes, same as web/: the console's sources keep LF, so a Windows
+# build produces the same pages byte for byte.
+cloud/console/** text=auto eol=lf
