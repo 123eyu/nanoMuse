@@ -321,7 +321,7 @@
     <string name="nm_avatar_menu_regenerate_moods">Redraw the moods</string>
     <string name="nm_avatar_menu_reset">Back to the built-in face</string>
     <string name="nm_avatar_menu_export">Save to gallery</string>
-    <string name="nm_avatar_export_done">Saved to the gallery under nanoMuse/avatar — pictures: %1$d, clips: %2$d</string>
+    <string name="nm_avatar_export_done">Saved to the gallery under nanoMuse/avatar: pictures %1$d, clips %2$d</string>
     <string name="nm_avatar_export_failed">Nothing could be saved to the gallery</string>
     <string name="nm_avatar_mood_idle">At rest</string>
     <string name="nm_avatar_mood_working">Working</string>

@@ -327,7 +327,7 @@
     <string name="nm_avatar_menu_regenerate_moods">Stimmungen neu zeichnen</string>
     <string name="nm_avatar_menu_reset">Zurück zum eingebauten Gesicht</string>
     <string name="nm_avatar_menu_export">In Galerie speichern</string>
-    <string name="nm_avatar_export_done">In der Galerie unter nanoMuse/avatar gespeichert – Bilder: %1$d, Clips: %2$d</string>
+    <string name="nm_avatar_export_done">In der Galerie unter nanoMuse/avatar gespeichert: Bilder %1$d, Clips %2$d</string>
     <string name="nm_avatar_export_failed">Es konnte nichts in der Galerie gespeichert werden</string>
     <string name="nm_avatar_mood_idle">In Ruhe</string>
     <string name="nm_avatar_mood_working">Arbeitet</string>
