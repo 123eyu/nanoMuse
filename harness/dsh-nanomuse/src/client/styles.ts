@@ -689,6 +689,18 @@ html[data-nm-platform='darwin']:not([data-nm-fullscreen]) .nm-pf-top { padding-t
 .nm-headsup-close { width: 22px; height: 22px; flex: none; }
 .nm-waitline { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; padding: 0 12px; font-size: 12px; line-height: 1.4; color: var(--dsw-alias-label-tertiary); }
 .nm-waitline .nm-ob-link.nm-inline { color: var(--nm-blue); font-weight: 600; font-size: 12px; }
+/* The thumbs beside a reply (0.31) sit with the quote button in the tail's seat; the reason chips open to their right. */
+.nm-thumbs { display: inline-flex; align-items: center; gap: 2px; flex-wrap: wrap; }
+.nm-thumb { width: 24px; height: 24px; border: 0; padding: 0; border-radius: 6px; background: transparent; color: var(--dsw-alias-label-tertiary); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.nm-thumb:hover { background: var(--nm-hover); color: var(--dsw-alias-label-primary); }
+.nm-thumb.nm-on { color: var(--dsw-alias-label-primary); }
+.nm-fb-reasons { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-left: 6px; font-size: 12px; color: var(--dsw-alias-label-tertiary); }
+.nm-fb-why, .nm-fb-thanks { font-size: 12px; color: var(--dsw-alias-label-tertiary); margin-left: 6px; }
+.nm-fb-chip { padding: 3px 9px; font-size: 12px; }
+.nm-fb-reasons .nm-ob-link.nm-inline, .nm-stopask .nm-ob-link.nm-inline { color: var(--nm-blue); font-weight: 600; font-size: 12px; }
+/* The question after a Stop, above the composer, in the wait line's place. */
+.nm-stopask { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 0 0 6px; padding: 0 12px; font-size: 12px; line-height: 1.4; color: var(--dsw-alias-label-tertiary); }
+.nm-stopask-text { margin-right: 4px; }
 .nm-star-card { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border-radius: var(--nm-radius); background: var(--nm-card); border: 1px solid var(--nm-divider); }
 .nm-star-head { display: flex; gap: 10px; align-items: flex-start; }
 .nm-star-icon { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex: none; background: color-mix(in srgb, var(--nm-accent) 18%, transparent); color: var(--nm-accent); }

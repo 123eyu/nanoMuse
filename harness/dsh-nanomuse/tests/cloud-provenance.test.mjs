@@ -228,3 +228,37 @@ test('the browser half\'s thumb and stop reason: the relay\'s words only, the tu
     await r.close()
   }
 })
+
+test('a thumb on an earlier reply names that turn\'s own call; a Stop puts the question up until it is answered or the next turn starts', async () => {
+  const r = await relay()
+  const out = await cloud(r.origin)
+  try {
+    out.emit('s1', 'turn/start', { turn: 1 })
+    out.svc.provenance.noteTurn('s1', 'req-1', 'cloud')
+    out.emit('s1', 'turn/start', { turn: 2 })
+    out.svc.provenance.noteTurn('s1', 'req-2', 'cloud')
+    assert.equal((await out.api('POST', '/feedback', { session: 's1', turn_no: 1, vote: 'up' })).status, 204)
+    assert.equal((await out.api('POST', '/feedback', { session: 's1', turn_no: 2, vote: 'down' })).status, 204)
+    assert.equal((await out.api('POST', '/feedback', { session: 's1', turn_no: 9, vote: 'up' })).status, 204, 'a turn never seen: the note still goes, without an id')
+    // the question after a Stop
+    assert.deepEqual(out.svc.live().stopped, [])
+    out.emit('s1', 'turn/end', { turn: 2, reason: { kind: 'aborted', reason: { kind: 'user' } } })
+    assert.deepEqual(out.svc.live().stopped.map((s) => [s.session, s.turn]), [['s1', 2]])
+    assert.equal((await out.api('POST', '/feedback', { session: 's1', turn_no: 2, stop_reason: 'slow' })).status, 204)
+    assert.deepEqual(out.svc.live().stopped, [], 'answered')
+    out.emit('s1', 'turn/end', { turn: 2, reason: { kind: 'aborted', reason: { kind: 'user' } } })
+    out.emit('s1', 'turn/start', { turn: 3 })
+    assert.deepEqual(out.svc.live().stopped, [], 'the next turn withdrew it')
+    await out.svc.events.flush()
+    const notes = r.events[0].body.events.filter((n) => n.kind === 'turn.feedback' || n.kind === 'turn.stopped')
+    assert.deepEqual(notes.map((n) => [n.kind, n.data.turn_no, n.turn]), [
+      ['turn.feedback', 1, 'req-1'],
+      ['turn.feedback', 2, 'req-2'],
+      ['turn.feedback', 9, undefined],
+      ['turn.stopped', 2, 'req-2'],
+    ])
+  } finally {
+    await out.done()
+    await r.close()
+  }
+})

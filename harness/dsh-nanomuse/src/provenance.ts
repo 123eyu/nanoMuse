@@ -55,7 +55,12 @@ interface SessionRow {
   step: number
   /** The record's id of the latest model call of this session, and where it was kept. */
   last?: { id: string; source: 'cloud' | 'own' }
+  /** The same, by the turn the call was made in (the last call of each), for a thumb on an earlier reply. */
+  byTurn: Map<number, { id: string; source: 'cloud' | 'own' }>
 }
+
+/** Turns whose ids are kept per session; older ones go. */
+const TURNS_KEPT = 64
 
 /** A call announced by the hook, waiting for the adapter's request to reach the proxy. */
 interface Expected {
@@ -236,12 +241,22 @@ export class Provenance {
   /** The record kept the session's latest call under `id` (`cloud`: the relay's own; `own`: the id we sent it up under). */
   noteTurn(sessionId: string, id: string, source: 'cloud' | 'own'): void {
     if (!sessionId || !id) return
-    this.row(sessionId).last = { id: id.slice(0, 96), source }
+    const row = this.row(sessionId)
+    row.last = { id: id.slice(0, 96), source }
+    if (row.turn > 0) {
+      row.byTurn.set(row.turn, row.last)
+      while (row.byTurn.size > TURNS_KEPT) row.byTurn.delete(row.byTurn.keys().next().value as number)
+    }
   }
 
   /** The record's id of the session's latest call, when known. */
   lastTurn(sessionId: string): { id: string; source: 'cloud' | 'own' } | undefined {
     return this.rows.get(sessionId)?.last
+  }
+
+  /** The record's id of the last call of turn `turn` of the session, when it was seen. */
+  turnAt(sessionId: string, turn: number): { id: string; source: 'cloud' | 'own' } | undefined {
+    return this.rows.get(sessionId)?.byTurn.get(turn)
   }
 
   /** The turn number the session is on (0 before the first). */
@@ -252,7 +267,7 @@ export class Provenance {
   private row(sessionId: string): SessionRow {
     let row = this.rows.get(sessionId)
     if (!row) {
-      row = { run: 'person', turn: 0, step: 0 }
+      row = { run: 'person', turn: 0, step: 0, byTurn: new Map() }
       this.rows.set(sessionId, row)
     }
     return row

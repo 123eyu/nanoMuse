@@ -89,8 +89,8 @@ test('house style: no em or en dashes, no exclamation marks, in either language'
   assert.deepEqual(loud(zh), [], 'Chinese strings with an exclamation mark')
 })
 
-/** Keys built at run time from a prefix (`t(\`style_${id}\`)`, `t(\`mood_${mood}\`)`). */
-const COMPUTED_PREFIXES = ['style_', 'mood_']
+/** Keys built at run time from a prefix (`t(\`style_${id}\`)`, `t(\`mood_${mood}\`)`, the feedback reasons). */
+const COMPUTED_PREFIXES = ['style_', 'mood_', 'fbReason_', 'stopReason_']
 
 test('every key is used somewhere in the client or the host', async () => {
   // 102 keys of 0.1.41 were used nowhere (old onboarding slides, the first profile drawer, the

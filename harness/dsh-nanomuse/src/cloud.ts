@@ -319,6 +319,8 @@ export interface LiveState {
   headsUp: { left: number; grant: number; bonus: number } | null
   /** The account's model calls still without a first token (0.31): when each began and its session, for the "waited N s" line above that chat's composer. */
   waiting: Array<{ since: number; session: string }>
+  /** Turns the person stopped by hand and has not yet said why (0.31): the session, the turn's number, when; for the question above that chat's composer. */
+  stopped: Array<{ session: string; turn: number; at: number }>
 }
 
 /** What Settings → Account's "ways on", the own-key step and the pickers read (`GET /providers`). */
@@ -685,6 +687,8 @@ export default class NanomuseCloud extends Service {
   private readonly decided = new Map<string, { decision: 'allow' | 'deny'; by: string; waitedMs: number }>()
   /** The name behind each tool call id of a session, from `tool/call` until `tool/result`. */
   private readonly calling = new Map<string, string>()
+  /** Turns stopped by hand whose reason the person has not given yet, by session (cleared by the answer, Skip, or the next turn). */
+  private readonly stops = new Map<string, { turn: number; at: number }>()
   private readonly holdDesk = new HoldDesk(() => this.deskMoved())
   /** Sessions the other devices were last told are waiting on a card or a hold here (0.31). */
   private waitingSessions = new Set<string>()
@@ -2494,6 +2498,7 @@ export default class NanomuseCloud extends Service {
       trajectory: { rev: this.trajectory.view().rev, sessions: [...new Set(this.trajectory.view().runs.map((r) => r.sessionId))] },
       headsUp: this.headsUp(),
       waiting: [...this.waits.values()].sort((a, b) => a.since - b.since),
+      stopped: [...this.stops.entries()].map(([session, s]) => ({ session, ...s })),
     }
   }
 
@@ -3825,12 +3830,20 @@ export default class NanomuseCloud extends Service {
         },
         { turn: this.provenance.lastTurn(sessionId), conversation: sessionId },
       )
+    } else if (event.type === 'turn/start') {
+      if (this.stops.delete(sessionId)) this.broadcast()
     } else if (event.type === 'turn/end') {
       const where = { turn: this.provenance.lastTurn(sessionId), conversation: sessionId }
       const reason = event.data.reason
       const stopped = reason.kind === 'aborted' && reason.reason.kind === 'user'
-      if (stopped) this.events.add('turn.ended', { ended: 'aborted', turn_no: event.data.turn }, where)
-      else if (reason.kind === 'error') this.events.add('turn.ended', { ended: 'error', turn_no: event.data.turn }, where)
+      if (stopped) {
+        this.events.add('turn.ended', { ended: 'aborted', turn_no: event.data.turn }, where)
+        // the question above the composer, while an account is signed in to take the answer
+        if (this.signedInCache && this.state.account) {
+          this.stops.set(sessionId, { turn: event.data.turn, at: Date.now() })
+          this.broadcast()
+        }
+      } else if (reason.kind === 'error') this.events.add('turn.ended', { ended: 'error', turn_no: event.data.turn }, where)
       // the hands' run of the turn closes with it (the trajectory is told right after this)
       const hands = this.handsOf(sessionId)
       if (hands) this.events.add('hands.step', { trajectory: hands.id, step: hands.step, action: 'end', outcome: stopped ? 'stopped' : reason.kind === 'error' ? 'failed' : 'done' }, where)
@@ -3854,23 +3867,31 @@ export default class NanomuseCloud extends Service {
     )
   }
 
-  /** The browser half's thumb on a reply, or the reason for a stop (docs/desktop.md). */
+  /**
+   * The browser half's thumb on a reply, or the reason for a stop (docs/desktop.md). `turn_no`
+   * names the turn the reply closed when the page could count it; the note then carries the
+   * record's id of that turn's last call, else the session's latest.
+   */
   feedback(body: Record<string, unknown>): boolean {
     const sessionId = String(body.session ?? '').slice(0, 80)
     if (!sessionId) return false
-    const turn = this.provenance.lastTurn(sessionId)
+    const current = this.provenance.turnOf(sessionId)
+    const given = typeof body.turn_no === 'number' && Number.isInteger(body.turn_no) && body.turn_no > 0 ? body.turn_no : 0
+    const turnNo = given || current
+    const turn = given && given !== current ? this.provenance.turnAt(sessionId, given) : this.provenance.lastTurn(sessionId)
     const where = { ...(turn ? { turn } : {}), conversation: sessionId }
     const stop = String(body.stop_reason ?? '')
     if (stop) {
       if (!['wrong', 'slow', 'changed_mind', 'done', 'other', 'skipped'].includes(stop)) return false
-      this.events.add('turn.stopped', { reason: stop, turn_no: this.provenance.turnOf(sessionId) }, where)
+      this.events.add('turn.stopped', { reason: stop, turn_no: turnNo }, where)
+      if (this.stops.delete(sessionId)) this.broadcast()
       return true
     }
     const vote = String(body.vote ?? '')
     if (!['up', 'down', ''].includes(vote)) return false
     const reason = String(body.reason ?? '')
     if (reason && !['wrong', 'unhelpful', 'unsafe', 'slow', 'other'].includes(reason)) return false
-    this.events.add('turn.feedback', { vote: vote || 'none', ...(reason ? { reason } : {}), turn_no: this.provenance.turnOf(sessionId) }, where)
+    this.events.add('turn.feedback', { vote: vote || 'none', ...(reason ? { reason } : {}), turn_no: turnNo }, where)
     return true
   }
 

@@ -187,10 +187,21 @@ speaking as nanoMuse through the `nanomuse` preset, with:
   in time) and whether the tool then ran; how long an approval waited; each step of the
   hands (the action's kind, how it went, how long it took) and how the run closed; a turn
   stopped by hand or ended in an error; and the thumb or the stop reason the browser half
-  sends through `POST /nanomuse/cloud/feedback` (`{session, vote: up | down | "", reason?}`
-  or `{session, stop_reason}`, the relay's words only, 400 for any other). Notes go up in
-  batches a few seconds apart while an account is signed in; signing out empties the queue
-  ([cloud.md](cloud.md#client-events)).
+  sends through `POST /nanomuse/cloud/feedback` (`{session, vote: up | down | "", reason?,
+  turn_no?}` or `{session, stop_reason, turn_no?}`, the relay's words only, 400 for any
+  other). Notes go up in batches a few seconds apart while an account is signed in; signing
+  out empties the queue ([cloud.md](cloud.md#client-events)).
+- **A thumb beside each reply, and one question after a Stop.** While signed in, every
+  reply's tail carries a thumb up and a thumb down beside the quote button. A thumb down
+  opens five one-word reasons (*Wrong*, *Not helpful*, *Should not have done that*, *Too
+  slow*, *Something else*) and *Skip*; a second click on the same thumb takes the mark
+  back; a mark on an earlier reply names that reply's turn, counted from your messages
+  above it. Right after Stop, one line above the composer asks *Why did you stop it?* with
+  *It was going wrong*, *Too slow*, *Changed my mind*, *It was already done*, *Something
+  else* and *Skip*; the line goes with the answer, with Skip, with the next turn, or on
+  its own after a minute and a half (`live.stopped` carries the sessions still asked).
+  Each answer reaches the account's record as one word (`turn.feedback`, `turn.stopped`)
+  and nothing else; nothing is shown while signed out.
 
 ## When the allowance is used up, and the relay's other answers
 
