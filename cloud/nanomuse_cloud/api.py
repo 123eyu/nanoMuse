@@ -17,7 +17,8 @@
     DELETE /v1/me/samples                                       → delete every turn kept from me: the training turns and (0.29) the record, files included → {deleted, turns, files}
     GET  /v1/turns            ?since=&limit=&before=&before_id=&conversation= → 0.29: the account's record — every turn in full, newest first (pictures as blob:sha256 references)
     GET  /v1/turns/{id}                                         → one turn
-    POST /v1/turns            {model, messages, response{message, usage?}, provider?, ts?, conversation?, id?} → 201 {id, ts}: a turn run on the app's own key, kept beside the Cloud ones
+    POST /v1/turns            {model, messages, response{message, usage?}, provider?, ts?, conversation?, id?, run?, turn?, step?, trajectory?, trajectory_step?, platform?} → 201 {id, ts}: a turn run on the app's own key, kept beside the Cloud ones (and, with the switch on, in the training view)
+    POST /v1/events           {events: [{kind, ts?, turn?, conversation?, data}]} → 202 {kept}: 0.31, what happened in the app around a turn — the Sentinel's decision, an approval's result, a stopped reply's reason, a thumb; codes only, never a message
     PUT  /v1/blobs/{sha256}   raw body + Content-Type           → {sha256, bytes, mime, known}: a picture, audio or clip, stored once by its hash (HEAD first saves the upload)
     HEAD /v1/blobs/{sha256}  /  GET /v1/blobs/{sha256}          → the file, for an account that holds a reference to it (a turn, the profile's clips, an upload of its own)
     GET  /v1/sync/state                                         → 0.19: {enabled, cursor, counts, limits, working[]} — conversation sync between the account's devices
@@ -71,11 +72,15 @@
     GET  /v1/admin/demo       X-Admin-Token  ?days=30           → the phone in the browser: visitors with addresses and browsers, every demo and what it used (WEB_ADMIN_URL)
     GET  /v1/admin/data       X-Admin-Token  ?days=30           → Data controls: accounts with the switch on, kept turns by day / model / app / account, switches on and off, the newest turns
     GET  /v1/admin/samples    X-Admin-Token  ?account_id=&limit=&since=&before=&before_id= → kept turns (accounts with the switch on only)
-    GET  /v1/admin/samples/export X-Admin-Token ?since=&account_id= → the same as JSON lines, without account ids or addresses
+    GET  /v1/admin/samples/export X-Admin-Token ?since=&account_id= → the same as JSON lines, without account ids or addresses (each line carries the account's pseudonym, `subject`)
     GET  /v1/admin/turns      X-Admin-Token  ?account_id=&limit=&since=&before=&before_id=&conversation= → 0.29: the record, whole turns, newest first
     GET  /v1/admin/turns/export X-Admin-Token ?since=&account_id= → the record as JSON lines (account ids included: it is the account's data, not the training set)
     GET  /v1/admin/record     X-Admin-Token  ?days=30           → what the record holds: turns and files in all and per day, the store against MEDIA_MAX_GB
     GET  /v1/admin/blobs/{sha256} X-Admin-Token                 → one file of the record
+    GET  /v1/admin/client-events X-Admin-Token ?account_id=&kind=&since=&limit=&before= → 0.31: what the apps reported around turns, newest first
+    GET  /v1/admin/client-events/export X-Admin-Token ?since=&account_id= → the same as JSON lines, with the `subject` pseudonym and no account id
+    GET  /v1/admin/client-events/summary X-Admin-Token ?days=30 → by day and kind: how many, from how many accounts; the Sentinel's and the thumbs' figures
+    GET  /v1/admin/deletions  X-Admin-Token  ?since=            → 0.31: the deletions ledger — the `subject` of every account that deleted its data or itself since, to drop from a training set built earlier
     GET  /v1/admin/sync       X-Admin-Token                     → conversation sync in aggregate: accounts on / off, conversations, messages, bytes (never a text)
     GET  /v1/admin/health     X-Admin-Token                     → aggregates only: requests under way, the hub, the last hour, the database, problems (what selfcheck.sh reads)
     GET  /v1/admin/places     X-Admin-Token  ?days=30           → accounts, sign-ins, requests and demo visitors by country and province
@@ -135,7 +140,7 @@ from starlette.background import BackgroundTask
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import ClientDisconnect
 
-from . import __version__
+from . import __version__, provenance
 from . import client as client_info
 from .analytics import (
     Analytics,
@@ -846,11 +851,17 @@ def create_app(
     # -- 0.29: the record and its files (docs/cloud.md, "The record") ------------------------
 
     def _turn_meta(request: Request) -> dict:
-        return {
+        meta = {
             "ua": (request.headers.get("user-agent") or "")[:120],
             "lang": (request.headers.get("accept-language") or "")[:40],
             "ip": client_ip(request),
         }
+        # 0.31: the app's own word on its platform, when the user agent would not say
+        # (the desktop's Node fetch, the runtime's SDK calls); client.platform_from reads it
+        claim = provenance.platform_claim(request.headers.get("x-nanomuse-platform"))
+        if claim:
+            meta["platform"] = claim
+        return meta
 
     @app.get("/v1/turns")
     async def my_turns(
@@ -883,7 +894,28 @@ def create_app(
         body = await _json(request)
         # off the loop: the pictures are decoded, hashed and written to disk, then the row
         return await asyncio.to_thread(
-            cloud.add_own_turn, caller, body, meta=_turn_meta(request), device=(request.headers.get("x-nanomuse-device") or "")[:80]
+            cloud.add_own_turn,
+            caller,
+            body,
+            meta=_turn_meta(request),
+            device=(request.headers.get("x-nanomuse-device") or "")[:80],
+            headers=dict(request.headers),
+        )
+
+    # -- 0.31: what the apps report around a turn (docs/cloud.md, "Client events") -----------
+
+    @app.post("/v1/events", status_code=202)
+    async def post_events(request: Request, caller: Caller = Depends(caller_dep)) -> dict:
+        """Short records of what happened in the app around a turn, never a message: the
+        Sentinel's decision on a tool call, an approval's result, why a reply was stopped,
+        a thumb up or down (provenance.KNOWN_EVENTS). `{"events": [{kind, ts?, turn?,
+        conversation?, data}]}`, at most 100 per request; `data` is a flat object of short
+        codes, numbers and booleans. Answers how many were kept; one the relay will not
+        keep is dropped, not refused, so an older app's list never fails whole."""
+        body = await _json(request)
+        who = client_info.current()
+        return cloud.add_client_events(
+            caller, body.get("events"), platform=who.platform, device=(request.headers.get("x-nanomuse-device") or "")[:80]
         )
 
     async def _raw(request: Request, limit: int) -> bytes:
@@ -1212,6 +1244,7 @@ def create_app(
             "hands": 1 if (shape.get("hands") or any(is_hands_tool(n) for n in names)) else 0,
             "retries": int(retries or 0),
             "request_id": request_id,
+            "run": call.run,
         }
         meter.finish(call, row)
         try:
@@ -1266,6 +1299,9 @@ def create_app(
         who = client_info.current()
         call = meter.start(caller.account_id, spec.id, who.platform, stream, request_shape(body))
         call.family = client_info.ua_family(who.ua)
+        # 0.31: who started the turn and where it sits (provenance.py), from the app's headers
+        where = provenance.from_headers(request.headers)
+        call.run = where["run"]
         # 0.28 `apps_only`: the allowance is for nanoMuse; a pool worker, an SDK or another
         # app on a nanoMuse key is told where to go instead. Members are on the operator's
         # own bill by choice and may call from whatever they like.
@@ -1302,19 +1338,23 @@ def create_app(
         # For an account that opted in, the turn is kept once it is answered (service.keep_sample)
         # with the platform and language hints from the headers and, since 0.10, the address
         # (the export for training drops the address along with the account id).
-        turn_meta = {
-            "ua": (request.headers.get("user-agent") or "")[:120],
-            "lang": (request.headers.get("accept-language") or "")[:40],
-            "ip": client_ip(request),
-        }
-        sample_meta = dict(turn_meta) if caller.contribute else None
-        sample_messages = body.get("messages") if caller.contribute and isinstance(body.get("messages"), list) else []
+        turn_meta = _turn_meta(request)
         # 0.29: the record keeps the whole turn once it is answered (service.record_turn, off
         # the loop); a 1.0.7 app names the device and the conversation the turn belongs to
         turn_where = {
             "device": (request.headers.get("x-nanomuse-device") or "")[:80],
             "conversation": (request.headers.get("x-nanomuse-conversation") or "")[:80],
+            "provenance_": where,
         }
+        sample_messages = body.get("messages") if caller.contribute and isinstance(body.get("messages"), list) else []
+        sample_meta = None
+        if caller.contribute:
+            # 0.31: the kept turn says where it came from and names the record's turn, so the
+            # app's later word on it (a thumb, why it was stopped) joins it
+            sample_meta = dict(turn_meta)
+            sample_meta.update(
+                cloud.sample_provenance("cloud", request_id, where, sample_messages, conversation=turn_where["conversation"])
+            )
 
         if not stream:
             retries = 0
@@ -1360,7 +1400,9 @@ def create_app(
                 request_id=request_id,
             )
             if sample_meta is not None:
-                cloud.keep_sample(caller, spec.id, sample_messages, text, usage.prompt, usage.completion, sample_meta)
+                cloud.keep_sample(
+                    caller, spec.id, sample_messages, text, usage.prompt, usage.completion, sample_meta, message=_reply_message(obj)
+                )
             record_later(caller, spec.id, body, _reply_message(obj), usage, request_id=request_id, meta=turn_meta, **turn_where)
             if isinstance(obj, dict):
                 obj["model"] = spec.id
@@ -1498,7 +1540,16 @@ def create_app(
                         usage = Usage(fallback_prompt_tokens, estimate_tokens("".join(reply)))
                     cloud.charge_chat(caller, spec, usage.prompt, usage.completion, request_id, cached_tokens=usage.cached)
                     if sample_meta is not None:
-                        cloud.keep_sample(caller, spec.id, sample_messages, "".join(reply), usage.prompt, usage.completion, sample_meta)
+                        cloud.keep_sample(
+                            caller,
+                            spec.id,
+                            sample_messages,
+                            "".join(reply),
+                            usage.prompt,
+                            usage.completion,
+                            sample_meta,
+                            message=assembler.message(),
+                        )
                     # a turn kept short says why (0.30): `client_gone` is the app closing the
                     # stream (the person stopped, or the app gave up waiting), `upstream_timeout`
                     # and `broken` are the provider's end — the same words as the telemetry row
@@ -2217,6 +2268,42 @@ def create_app(
             headers={"Cache-Control": "no-store"},
             background=BackgroundTask(_unlink_quietly, path),
         )
+
+    @app.get("/v1/admin/client-events", dependencies=[Depends(admin_dep)])
+    async def admin_client_events(account_id: str = "", kind: str = "", since: int = 0, limit: int = 200, before: int = 0) -> dict:
+        """What the apps reported around turns (0.31), newest first; `kind` is a comma list,
+        `before` the id of the last row shown."""
+        reads = cloud.reads
+        return {
+            "events": await asyncio.to_thread(reads.admin_client_events, account_id or None, _kinds(kind), since, limit, max(0, before)),
+            "total": await asyncio.to_thread(reads.db.client_event_count, account_id or None),
+            "kinds": list(provenance.KNOWN_EVENTS),
+        }
+
+    @app.get("/v1/admin/client-events/export", dependencies=[Depends(admin_dep)])
+    async def admin_client_events_export(since: int = 0, account_id: str = "") -> Response:
+        """The apps' reports as JSON lines, each with the account's `subject` pseudonym and
+        the turn's id, so they join the training set's lines; no account id."""
+        name = f"nanomuse-client-events-{account_id[:8]}-{since}" if account_id else f"nanomuse-client-events-{since}"
+        return StreamingResponse(
+            cloud.reads.export_client_events(since, account_id or None),
+            media_type="application/x-ndjson",
+            headers={"Content-Disposition": f'attachment; filename="{name}.jsonl"', "Cache-Control": "no-store"},
+        )
+
+    @app.get("/v1/admin/client-events/summary", dependencies=[Depends(admin_dep)])
+    async def admin_client_events_summary(days: int = 30) -> dict:
+        """By day and kind: how many reports and from how many accounts, and what the
+        Sentinel decided, how approvals went, why replies were stopped and how the thumbs
+        fell over the period. Figures only."""
+        return await asyncio.to_thread(cloud.reads.client_events_summary, max(1, min(days, 365)))
+
+    @app.get("/v1/admin/deletions", dependencies=[Depends(admin_dep)])
+    async def admin_deletions(since: int = 0) -> dict:
+        """The deletions ledger (0.31): the `subject` pseudonym of every account that deleted
+        its kept data (`samples`) or itself (`account`) since the time given, oldest first.
+        A training set built from an export drops those subjects' lines in its next build."""
+        return {"deletions": await asyncio.to_thread(cloud.reads.deletions_since, max(0, since))}
 
     @app.get("/v1/admin/sync", dependencies=[Depends(admin_dep)])
     async def admin_sync() -> dict:

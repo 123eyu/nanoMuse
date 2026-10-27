@@ -27,9 +27,9 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-from . import __version__
+from . import __version__, provenance
 from .analytics import sample_shape
-from .client import client_version, platform_of
+from .client import client_version, platform_from, platform_of
 from .config import ModelSpec, Settings, menu_warnings
 from .controls import Controls
 from .crypto import IdentifierCrypto
@@ -141,7 +141,13 @@ def _strip_binary(messages: list) -> list:
 # What a kept turn holds — the words the apps show under Data controls and the privacy
 # policy repeats. _training_view enforces them: this is a promise, not a description.
 SAMPLE_KEEPS = {
-    "kept": ["what you wrote", "what the model answered", "the tool calls it chose", "model, token counts, app and language"],
+    "kept": [
+        "what you wrote",
+        "what the model answered",
+        "the tool calls it chose",
+        "model, token counts, app and language",
+        "where the turn came from: a person or a routine, which turn and step, the relay's model or your own key",
+    ],
     "not_kept": ["the system prompt (memory, SOUL, instructions)", "what tools returned", "pictures, audio and clips", "who you are"],
 }
 
@@ -438,6 +444,9 @@ class Cloud:
         # and how often one may mint session keys — each a credential with a hub identity
         self.upload_pace = Pace(settings.record_uploads_per_minute, 60.0)
         self.session_key_pace = Pace(self.SESSION_KEYS_PER_HOUR, 3600.0)
+        # 0.31: how many reports around turns one account may send a minute (requests, each
+        # of up to provenance.EVENTS_PER_REQUEST events)
+        self.event_pace = Pace(self.EVENT_REQUESTS_PER_MINUTE, 60.0)
         self._login_failures: dict[str, list[int]] = {}
         if settings.dev_mode:
             log.warning("CLOUD_SECRET is not set: development mode, identifiers hashed with a fixed key")
@@ -1382,8 +1391,10 @@ class Cloud:
         """The person's own request: every key stops working and nothing about them stays.
         The one line left is written across accounts (`account.deleted`, the id's first
         eight characters), which the statistics count as a deletion; it names nobody."""
+        subject = self.subject_of(caller.account_id)
         self.purge_record(caller.account_id)
         self.db.delete_account(caller.account_id)
+        self.db.add_deletion(subject, "account")
         self.db.add_event("", "account.deleted", f"{caller.account_id[:8]} by the person")
 
     def usage(self, account_id: str, day_start: int) -> dict:
@@ -2238,8 +2249,17 @@ class Cloud:
         with them — every turn kept of this account and every file only it referenced."""
         n = self.db.delete_samples(caller.account_id)
         turns, files = self.purge_record(caller.account_id)
+        # 0.31: the deletions ledger names the export's pseudonym for this account, so a
+        # training set built from an earlier export drops its lines (docs/cloud.md "Deletions")
+        self.db.add_deletion(self.subject_of(caller.account_id), "samples")
         self.note(caller.account_id, "contribute.deleted", f"{n} conversations, {turns} turns, {files} files")
         return {"deleted": n, "turns": turns, "files": files}
+
+    def subject_of(self, account_id: str) -> str:
+        """The pseudonym the exports carry for an account (provenance.subject_of under the
+        relay's secret): the same in every export, so one person's lines group and can be
+        dropped together; meaningless without the secret."""
+        return provenance.subject_of(self.s.hmac_key.decode("utf-8", "replace"), account_id)
 
     # -- 0.29: the record — every turn in full, its pictures as files -------------------------
 
@@ -2264,13 +2284,15 @@ class Cloud:
         conversation: str = "",
         source: str = "cloud",
         ts: int | None = None,
+        provenance_: dict | None = None,
     ) -> str | None:
         """The turn as it happened, written after it is answered (api.py hands it to a thread:
         the pictures are decoded, hashed and written to the store there). ``body`` is the
         request as the relay sent it to the provider, less the relay's own fields (`user`,
         `stream_options`) and with the model named as the app knows it; ``message`` is the
         assistant's message, whole or put together from the stream. A no-op with
-        RECORD_TURNS=0. Answers the turn's id."""
+        RECORD_TURNS=0. Answers the turn's id. ``provenance_`` is who started the turn
+        and where it sits (provenance.clean), kept in the row's own columns (0.31)."""
         if not self.s.record_turns:
             return None
         req = {k: v for k, v in body.items() if k not in ("user", "stream_options")}
@@ -2291,12 +2313,15 @@ class Cloud:
         response = {"message": message}
         if usage is not None:
             response["usage"] = {"prompt_tokens": usage.prompt, "completion_tokens": usage.completion, "cached_tokens": usage.cached}
+        where = provenance.clean(provenance_ or {})
+        if where["platform"]:
+            meta["platform"] = where["platform"]
         row = {
             "id": request_id,
             "account_id": caller.account_id,
             "ts": ts or now(),
             "model": model[:120],
-            "platform": platform_of(str(meta.get("ua") or "")),
+            "platform": platform_from(meta),
             "device": device[:80],
             "conversation": conversation[:80],
             "source": source if source in self.RECORD_SOURCES else "cloud",
@@ -2307,17 +2332,30 @@ class Cloud:
             "completion_tokens": usage.completion if usage else 0,
             "cached_tokens": min(usage.cached, usage.prompt) if usage else 0,
             "meta": json.dumps(meta, ensure_ascii=False),
+            "run": where["run"],
+            "turn_no": where["turn"],
+            "step": where["step"],
+            "trajectory": where["trajectory"],
+            "trajectory_step": where["trajectory_step"],
+            "script": provenance.script_of(provenance.last_user_text(req.get("messages"))),
         }
         self.db.add_turn(row, media)
         return request_id
 
-    def add_own_turn(self, caller: Caller, data: dict, *, meta: dict, device: str) -> dict:
+    #: the fields of an uploaded turn that are about the turn, not part of the request
+    OWN_TURN_FIELDS = ("response", "provider", "ts", "conversation", "id", "device", "status", "ended", *provenance.FIELDS)
+
+    def add_own_turn(self, caller: Caller, data: dict, *, meta: dict, device: str, headers: dict | None = None) -> dict:
         """A turn a client ran on a key of its own (1.0.7 on), sent up afterwards in the same
         shape the relay keeps: ``model``, ``messages`` (pictures inline as data URLs, or as
         ``blob:sha256:`` references to files put up with PUT /v1/blobs first), ``response``
         (the assistant's message and, when known, the usage), and ``provider``, ``ts``,
-        ``conversation``, ``id`` as the client has them. 400 for a shape the relay cannot
-        keep; a reference to a file the account never put up is refused the same way."""
+        ``conversation``, ``id`` as the client has them; since 0.31 also ``run``, ``turn``,
+        ``step``, ``trajectory``, ``trajectory_step`` and ``platform`` (provenance.py; the
+        request's X-NanoMuse headers fill in what the body leaves out). 400 for a shape the
+        relay cannot keep; a reference to a file the account never put up is refused the
+        same way. With the account's switch on, the turn's training view is kept too, as
+        for a turn the relay answered itself: a turn is a turn whichever key ran it."""
         if not self.s.record_turns:
             raise CloudError(404, "not_found", "This relay keeps no record of turns (RECORD_TURNS=0)")
         self._upload_allowed(caller)
@@ -2350,9 +2388,10 @@ class Cloud:
                 max(0, int(usage_in.get("completion_tokens") or 0)),
                 max(0, int(usage_in.get("cached_tokens") or 0)),
             )
-        body = {k: v for k, v in data.items() if k not in ("response", "provider", "ts", "conversation", "id", "device", "status", "ended")}
+        body = {k: v for k, v in data.items() if k not in self.OWN_TURN_FIELDS}
         provider = str(data.get("provider") or "")[:60]
         meta = {**meta, "provider": provider} if provider else dict(meta)
+        where = provenance.from_body(data, headers or {})
         status = "partial" if data.get("status") == "partial" else "ok"
         # 0.30: why a partial turn ended short, in the client's word (`aborted`: the person
         # stopped it; `error`: the stream broke; `abandoned`: it never finished) — the
@@ -2360,21 +2399,187 @@ class Cloud:
         ended = data.get("ended")
         if status == "partial" and isinstance(ended, str) and re.fullmatch(r"[a-z_]{1,32}", ended):
             meta["ended"] = ended
+        message = {k: v for k, v in response["message"].items() if k != "usage"}
+        conversation = str(data.get("conversation") or "")[:80]
         self.record_turn(
             caller,
             model,
             body,
-            {k: v for k, v in response["message"].items() if k != "usage"},
+            message,
             usage,
             request_id=turn_id,
             meta=meta,
             status=status,
             device=device,
-            conversation=str(data.get("conversation") or "")[:80],
+            conversation=conversation,
             source="own",
             ts=t,
+            provenance_=where,
         )
+        if caller.contribute and status == "ok":
+            sample_meta = {k: v for k, v in meta.items() if k in ("ua", "lang", "ip", "provider")}
+            sample_meta.update(self.sample_provenance("own", turn_id, where, messages, conversation=conversation))
+            self.keep_sample(
+                caller,
+                model,
+                messages,
+                provenance.text_of(message.get("content")),
+                usage.prompt if usage else -1,
+                usage.completion if usage else -1,
+                sample_meta,
+                message=message,
+            )
         return {"id": turn_id, "ts": t}
+
+    @staticmethod
+    def sample_provenance(source: str, turn_id: str, where: dict, messages: Any, *, conversation: str = "") -> dict:
+        """What a kept turn's meta says about where it came from (0.31): its source (the
+        relay's model or the client's own key), the record's id for it, who started it and
+        where it sits, and the script of what the person wrote. Only what was said is kept."""
+        out: dict[str, Any] = {"source": source, "turn_id": turn_id}
+        if conversation:
+            out["conversation"] = conversation
+        out.update(provenance.said(where))
+        script = provenance.script_of(provenance.last_user_text(messages))
+        if script:
+            out["script"] = script
+        return out
+
+    # -- 0.31: what the apps report around a turn (docs/cloud.md "Client events") -------------
+
+    EVENT_REQUESTS_PER_MINUTE = 60
+
+    def add_client_events(self, caller: Caller, events: Any, *, platform: str, device: str) -> dict:
+        """The events of one POST /v1/events: each cleaned to codes and numbers
+        (provenance.clean_event), stamped with the account, the device and the platform,
+        and tied to the record's turn when the app named it (an own-key turn's id is the
+        app's, so it is normalised to the record's `own-<account>-<id>` form). One the
+        relay will not keep is dropped and counted, not refused. Answers {kept, dropped}."""
+        if not isinstance(events, list):
+            raise CloudError(400, "bad_request", "events is a list of {kind, ts?, turn?, conversation?, data}")
+        if len(events) > provenance.EVENTS_PER_REQUEST:
+            raise CloudError(413, "too_large", f"at most {provenance.EVENTS_PER_REQUEST} events in one request; send the rest in another")
+        if not self.event_pace.allow(caller.account_id):
+            raise CloudError(
+                429, "rate_limited", f"At most {self.EVENT_REQUESTS_PER_MINUTE} reports a minute from one account; send the rest later"
+            )
+        t = now()
+        own = f"own-{caller.account_id[:8]}-"
+        rows: list[dict[str, Any]] = []
+        dropped = 0
+        for e in events:
+            c = provenance.clean_event(e)
+            if c is None:
+                dropped += 1
+                continue
+            turn_id = c["turn_id"]
+            if turn_id and len(turn_id) <= 64 and not turn_id.startswith("own-") and isinstance(e, dict) and e.get("source") == "own":
+                turn_id = (own + turn_id)[:96]
+            rows.append(
+                {
+                    "account_id": caller.account_id,
+                    "ts": c["ts"] or t,
+                    "device": device[:80],
+                    "platform": platform[:16],
+                    "kind": c["kind"],
+                    "turn_id": turn_id,
+                    "conversation": c["conversation"],
+                    "data": json.dumps(c["data"], ensure_ascii=False, sort_keys=True),
+                }
+            )
+        kept = self.db.add_client_events(rows)
+        return {"kept": kept, "dropped": dropped}
+
+    def _event_view(self, r: sqlite3.Row, *, subject: bool = False) -> dict:
+        try:
+            data = json.loads(r["data"]) if r["data"] else {}
+        except ValueError:
+            data = {}
+        d: dict[str, Any] = {
+            "id": int(r["id"]),
+            "ts": int(r["ts"]),
+            "device": r["device"],
+            "platform": r["platform"],
+            "kind": r["kind"],
+            "turn_id": r["turn_id"],
+            "conversation": r["conversation"],
+            "data": data,
+        }
+        if subject:
+            d["subject"] = self.subject_of(str(r["account_id"]))
+        else:
+            d["account_id"] = r["account_id"]
+        return d
+
+    def admin_client_events(
+        self, account_id: str | None = None, kinds: tuple[str, ...] | None = None, since: int = 0, limit: int = 200, before: int = 0
+    ) -> list[dict]:
+        return [self._event_view(r) for r in self.db.client_events(account_id, list(kinds or ()), since, limit, before)]
+
+    def export_client_events(self, since: int = 0, account_id: str | None = None):
+        """The apps' reports as JSON lines with the `subject` pseudonym, oldest first within
+        each page read newest first — a reader sorts by id if the order matters."""
+        before = 0
+        while True:
+            rows = self.db.client_events(account_id, None, since, 1000, before)
+            if not rows:
+                return
+            for r in rows:
+                yield json.dumps(self._event_view(r, subject=True), ensure_ascii=False) + "\n"
+            before = int(rows[-1]["id"])
+
+    #: the `data` keys whose values the summary counts, per kind — codes, never free text
+    EVENT_FACETS = {
+        "sentinel.decision": ("decision", "risk"),
+        "approval.result": ("allow", "scope", "by"),
+        "turn.stopped": ("reason",),
+        "turn.feedback": ("vote", "reason"),
+        "turn.ended": ("ended",),
+        "hands.step": ("outcome",),
+    }
+
+    def client_events_summary(self, days: int = 30) -> dict:
+        """Figures over ``days``: reports per day and kind, accounts reporting, and the
+        split of each kind's codes (what the Sentinel decided, how approvals went, why
+        replies were stopped, how the thumbs fell). Reads the rows of the period in pages;
+        never a message, there is none to read."""
+        t = now()
+        off = self.s.day_offset_h * 3600
+        since = self.s.day_start(t) - 86400 * max(0, days - 1)
+        by_day: dict[int, dict[str, int]] = {}
+        kinds: dict[str, int] = {}
+        for r in self.db.client_events_summary(since, off):
+            day = int(r["day"])
+            by_day.setdefault(day, {})[str(r["kind"])] = int(r["n"])
+            kinds[str(r["kind"])] = kinds.get(str(r["kind"]), 0) + int(r["n"])
+        facets: dict[str, dict[str, dict[str, int]]] = {}
+        before = 0
+        for _ in range(200):  # at most 200k rows read for the split; enough for a month
+            rows = self.db.client_events(None, list(self.EVENT_FACETS), since, 1000, before)
+            if not rows:
+                break
+            for r in rows:
+                try:
+                    data = json.loads(r["data"]) if r["data"] else {}
+                except ValueError:
+                    continue
+                for key in self.EVENT_FACETS.get(str(r["kind"]), ()):
+                    if key in data and data[key] is not None:
+                        bucket = facets.setdefault(str(r["kind"]), {}).setdefault(key, {})
+                        v = str(data[key]).lower()[:32]
+                        bucket[v] = bucket.get(v, 0) + 1
+            before = int(rows[-1]["id"])
+        return {
+            "period": {"days": days, "since": since},
+            "total": sum(kinds.values()),
+            "accounts": int(self.db.client_events_accounts(since)),
+            "kinds": kinds,
+            "days": [{"day": since + i * 86400, **by_day.get(since + i * 86400, {})} for i in range(days)],
+            "facets": facets,
+        }
+
+    def deletions_since(self, since: int = 0) -> list[dict]:
+        return [{"subject": r["subject"], "ts": int(r["ts"]), "scope": r["scope"]} for r in self.db.deletions(since)]
 
     def put_blob(self, caller: Caller, data: bytes, mime: str) -> dict:
         """A file a device puts up for a turn or the avatar's clips: stored once by its
@@ -2457,6 +2662,19 @@ class Cloud:
             "media_bytes": int(r["media_bytes"]),
             "meta": meta,
         }
+        # 0.31: where the turn came from, when the app said (the columns exist from the
+        # migration on; a row from before reads "" and 0)
+        keys = r.keys()
+        for col, name in (
+            ("run", "run"),
+            ("turn_no", "turn"),
+            ("step", "step"),
+            ("trajectory", "trajectory"),
+            ("trajectory_step", "trajectory_step"),
+            ("script", "script"),
+        ):
+            if col in keys and r[col]:
+                d[name] = r[col]
         return d
 
     def my_turns(
@@ -2542,7 +2760,9 @@ class Cloud:
             if not rows:
                 return
             for r in rows:
-                yield json.dumps(self._turn_view(r), ensure_ascii=False) + "\n"
+                d = self._turn_view(r)
+                d["subject"] = self.subject_of(str(r["account_id"]))
+                yield json.dumps(d, ensure_ascii=False) + "\n"
             before, before_id = int(rows[-1]["ts"]), str(rows[-1]["id"])
 
     def purge_record(self, account_id: str) -> tuple[int, int]:
@@ -2605,6 +2825,10 @@ class Cloud:
                 }
             )
         platforms = {str(r["platform"]) or "other": int(r["n"]) for r in self.db.samples_by_platform(since)}
+        # 0.31: by who started the turn and by the key it ran on (the shape rows; a turn kept
+        # before the apps said reads "" — shown as "not said")
+        runs = {str(r["run"]): int(r["n"]) for r in self.db.samples_by_column("run", since)}
+        sources = {str(r["source"]) or "cloud": int(r["n"]) for r in self.db.samples_by_column("source", since)}
         samples = self.admin_samples(None, 0, 30)
         hints, _ = self._labels([smp["account_id"] for smp in samples], decrypt=False)
         recent = [{**smp, "hint": hints.get(smp["account_id"], "?")} for smp in samples]
@@ -2664,6 +2888,8 @@ class Cloud:
                 for r in self.db.samples_by_model(since)
             ],
             "by_platform": sorted(({"platform": k, "samples": v} for k, v in platforms.items()), key=lambda x: -x["samples"]),
+            "by_run": sorted(({"run": k, "samples": v} for k, v in runs.items()), key=lambda x: -x["samples"]),
+            "by_source": sorted(({"source": k, "samples": v} for k, v in sources.items()), key=lambda x: -x["samples"]),
             "by_account": by_account,
             "recent": recent,
         }
@@ -2677,13 +2903,21 @@ class Cloud:
         prompt_tokens: int,
         completion_tokens: int,
         meta: dict | None = None,
+        message: dict | None = None,
     ) -> None:
         """Called after a chat turn for an account with the switch on; anything else is a
-        no-op. Only the training view of the turn is written (_training_view)."""
+        no-op. Only the training view of the turn is written (_training_view). ``message``
+        is the assistant's whole message when the caller has it: its tool calls are kept in
+        the meta (0.31), since ``response`` is the text alone and a turn that only called
+        a tool would otherwise read as an empty reply."""
         if not caller.contribute:
             return
         request, cut = _fit_messages(_training_view(messages), self.SAMPLE_MAX_CHARS)
         meta = dict(meta or {})
+        if isinstance(message, dict) and isinstance(message.get("tool_calls"), list) and message["tool_calls"]:
+            calls = _training_view([message])
+            if calls and isinstance(calls[0], dict) and calls[0].get("tool_calls"):
+                meta["tool_calls"] = calls[0]["tool_calls"]
         if cut or len(response) > self.SAMPLE_MAX_CHARS:
             meta["truncated"] = True
         meta_json = json.dumps(meta, ensure_ascii=False)
@@ -2707,7 +2941,7 @@ class Cloud:
             d["meta"] = _load_meta(d["meta"])
             if cut:
                 d["meta"]["truncated"] = True
-            d["platform"] = platform_of(d["meta"].get("ua", ""))
+            d["platform"] = platform_from(d["meta"])
             out.append(d)
         return out
 
@@ -2729,8 +2963,12 @@ class Cloud:
                     meta["truncated"] = True
                 d = {
                     "id": r["id"],
+                    # 0.31: the account's pseudonym, so one person's turns group across the
+                    # export and go together when the deletions ledger names the subject
+                    "subject": self.subject_of(str(r["account_id"])),
                     "ts": int(r["ts"]),
                     "model": r["model"],
+                    "platform": platform_from(meta),
                     "messages": messages,
                     "response": r["response"],
                     "prompt_tokens": int(r["prompt_tokens"]),
