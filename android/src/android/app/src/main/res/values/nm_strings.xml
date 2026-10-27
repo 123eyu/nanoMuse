@@ -320,6 +320,9 @@
     <string name="nm_avatar_menu_model">Image model</string>
     <string name="nm_avatar_menu_regenerate_moods">Redraw the moods</string>
     <string name="nm_avatar_menu_reset">Back to the built-in face</string>
+    <string name="nm_avatar_menu_export">Save to gallery</string>
+    <string name="nm_avatar_export_done">Saved to the gallery under nanoMuse/avatar — pictures: %1$d, clips: %2$d</string>
+    <string name="nm_avatar_export_failed">Nothing could be saved to the gallery</string>
     <string name="nm_avatar_mood_idle">At rest</string>
     <string name="nm_avatar_mood_working">Working</string>
     <string name="nm_avatar_mood_waiting">Waiting for you</string>
@@ -359,7 +362,7 @@
     <string name="nm_avatar_pick_body">You can draw four more any time; the old ones are kept until you do.</string>
     <string name="nm_avatar_use_this">Use this one</string>
     <string name="nm_avatar_use_this_hint">The moods (working, waiting, done, oops) are drawn from it next, in the background.</string>
-    <string name="nm_avatar_footer">Pictures are stored on this phone under minis-global/nanomuse/avatar. Each face costs five images from your provider: one you chose plus four moods.</string>
+    <string name="nm_avatar_footer">Pictures live in the app\'s own storage on this phone, where no file manager can see them. Save to gallery in the menu copies the face, its moods and its clips to Pictures and Movies under nanoMuse/avatar. Each face costs five images from your provider: one you chose plus four moods.</string>
     <string name="nm_own_clip_title">Your own clip</string>
     <string name="nm_own_clip_body">A short video of yours plays as the face at rest, and the other moods fall back to it. MP4 or MOV with H.264 video, up to 15 seconds and 30 MB; it plays muted in a loop.</string>
     <string name="nm_own_clip_on">Your clip is on and plays for every mood; the drawn stills still show where a still is used. Default face removes it.</string>

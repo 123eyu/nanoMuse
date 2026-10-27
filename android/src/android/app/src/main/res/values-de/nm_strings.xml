@@ -326,6 +326,9 @@
     <string name="nm_avatar_menu_model">Bildmodell</string>
     <string name="nm_avatar_menu_regenerate_moods">Stimmungen neu zeichnen</string>
     <string name="nm_avatar_menu_reset">Zurück zum eingebauten Gesicht</string>
+    <string name="nm_avatar_menu_export">In Galerie speichern</string>
+    <string name="nm_avatar_export_done">In der Galerie unter nanoMuse/avatar gespeichert – Bilder: %1$d, Clips: %2$d</string>
+    <string name="nm_avatar_export_failed">Es konnte nichts in der Galerie gespeichert werden</string>
     <string name="nm_avatar_mood_idle">In Ruhe</string>
     <string name="nm_avatar_mood_working">Arbeitet</string>
     <string name="nm_avatar_mood_waiting">Wartet auf dich</string>
@@ -365,7 +368,7 @@
     <string name="nm_avatar_pick_body">Du kannst jederzeit vier weitere zeichnen lassen; die alten bleiben, bis du das tust.</string>
     <string name="nm_avatar_use_this">Dieses verwenden</string>
     <string name="nm_avatar_use_this_hint">Die Stimmungen (arbeitet, wartet, fertig, hoppla) werden als Nächstes daraus gezeichnet, im Hintergrund.</string>
-    <string name="nm_avatar_footer">Bilder liegen auf diesem Telefon unter minis-global/nanomuse/avatar. Jedes Gesicht kostet fünf Bilder bei deinem Anbieter: das gewählte plus vier Stimmungen.</string>
+    <string name="nm_avatar_footer">Bilder liegen im eigenen Speicher der App auf diesem Telefon, den kein Dateimanager öffnen kann. „In Galerie speichern“ im Menü kopiert das Gesicht, seine Stimmungen und Clips nach Pictures und Movies unter nanoMuse/avatar. Jedes Gesicht kostet fünf Bilder bei deinem Anbieter: das gewählte plus vier Stimmungen.</string>
     <string name="nm_own_clip_title">Dein eigener Clip</string>
     <string name="nm_own_clip_body">Ein kurzes Video von dir läuft als Gesicht im Ruhezustand, und die anderen Stimmungen greifen darauf zurück. MP4 oder MOV mit H.264-Video, höchstens 15 Sekunden und 30 MB; es läuft stumm in einer Schleife.</string>
     <string name="nm_own_clip_on">Dein Clip ist aktiv und läuft für jede Stimmung; wo ein Standbild gezeigt wird, bleiben die gezeichneten Bilder. „Standardgesicht“ entfernt ihn.</string>

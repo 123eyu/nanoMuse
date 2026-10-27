@@ -327,6 +327,9 @@
     <string name="nm_avatar_menu_model">Modèle d’image</string>
     <string name="nm_avatar_menu_regenerate_moods">Redessiner les humeurs</string>
     <string name="nm_avatar_menu_reset">Revenir au visage par défaut</string>
+    <string name="nm_avatar_menu_export">Enregistrer dans la galerie</string>
+    <string name="nm_avatar_export_done">Enregistré dans la galerie sous nanoMuse/avatar : images %1$d, clips %2$d</string>
+    <string name="nm_avatar_export_failed">Rien n’a pu être enregistré dans la galerie</string>
     <string name="nm_avatar_mood_idle">Au repos</string>
     <string name="nm_avatar_mood_working">Au travail</string>
     <string name="nm_avatar_mood_waiting">Vous attend</string>
@@ -366,7 +369,7 @@
     <string name="nm_avatar_pick_body">Vous pouvez en dessiner quatre de plus à tout moment ; les anciens sont gardés jusque-là.</string>
     <string name="nm_avatar_use_this">Utiliser celui-ci</string>
     <string name="nm_avatar_use_this_hint">Les humeurs (au travail, en attente, terminé, oups) en seront dessinées ensuite, en arrière-plan.</string>
-    <string name="nm_avatar_footer">Les images sont stockées sur ce téléphone sous minis-global/nanomuse/avatar. Chaque visage coûte cinq images chez votre fournisseur : celle que vous avez choisie plus quatre humeurs.</string>
+    <string name="nm_avatar_footer">Les images sont dans le stockage propre de l’application sur ce téléphone, qu’aucun gestionnaire de fichiers ne peut ouvrir. « Enregistrer dans la galerie », dans le menu, copie le visage, ses humeurs et ses clips vers Pictures et Movies sous nanoMuse/avatar. Chaque visage coûte cinq images chez votre fournisseur : celle que vous avez choisie plus quatre humeurs.</string>
     <string name="nm_own_clip_title">Votre propre clip</string>
     <string name="nm_own_clip_body">Une courte vidéo à vous s\'affiche comme visage au repos, et les autres humeurs s\'y rabattent. MP4 ou MOV en vidéo H.264, 15 secondes et 30 Mo au plus ; elle tourne en boucle, sans le son.</string>
     <string name="nm_own_clip_on">Votre clip est actif et joue pour chaque humeur ; là où une image fixe est montrée, les images dessinées restent. « Visage par défaut » le retire.</string>
