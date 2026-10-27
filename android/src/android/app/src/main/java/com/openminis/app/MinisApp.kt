@@ -662,6 +662,7 @@ class MinisApp : Application(), ImageLoaderFactory {
         io.github.nanomuse.guard.Grants.init(this)
         io.github.nanomuse.feed.FeedFlow.init(this) // nanoMuse
         io.github.nanomuse.chat.RoutineWakes.init(this) // nanoMuse: which chat rows a routine sent
+        io.github.nanomuse.cloud.ClientEvents.init(this) // nanoMuse: what happened around a turn, as codes, to the account's record
         io.github.nanomuse.avatar.AvatarStore.init(this) // nanoMuse: the user's own face, if any
         io.github.nanomuse.cloud.ProfileSync.init(this) // nanoMuse: the name and face the account's devices share
         io.github.nanomuse.account.AccountData.init(this) // nanoMuse: whose chat is whose (contract C12)

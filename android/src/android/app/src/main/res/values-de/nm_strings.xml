@@ -1190,4 +1190,20 @@
     <string name="nm_wait_busy">Das Modell ist ausgelastet, bisher %1$d s</string>
     <string name="nm_wait_queued">%1$d vor dir, bisher %2$d s</string>
     <string name="nm_wait_next">Du bist als Nächstes dran, bisher %1$d s</string>
+    <string name="nm_fb_up">Gute Antwort</string>
+    <string name="nm_fb_down">Keine gute Antwort</string>
+    <string name="nm_fb_why">Was war falsch?</string>
+    <string name="nm_fb_reason_wrong">Falsch</string>
+    <string name="nm_fb_reason_unhelpful">Nicht hilfreich</string>
+    <string name="nm_fb_reason_unsafe">Das hätte nicht passieren dürfen</string>
+    <string name="nm_fb_reason_slow">Zu langsam</string>
+    <string name="nm_fb_reason_other">Etwas anderes</string>
+    <string name="nm_fb_skip">Überspringen</string>
+    <string name="nm_fb_thanks">Notiert, danke</string>
+    <string name="nm_stop_why">Warum hast du abgebrochen?</string>
+    <string name="nm_stop_reason_wrong">Es lief in die falsche Richtung</string>
+    <string name="nm_stop_reason_slow">Zu langsam</string>
+    <string name="nm_stop_reason_changed_mind">Ich habe es mir anders überlegt</string>
+    <string name="nm_stop_reason_done">Es war schon fertig</string>
+    <string name="nm_stop_reason_other">Etwas anderes</string>
 </resources>

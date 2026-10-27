@@ -1169,4 +1169,21 @@
     <string name="nm_wait_busy">The model is busy, %1$d s so far</string>
     <string name="nm_wait_queued">%1$d ahead of you, %2$d s so far</string>
     <string name="nm_wait_next">You are next, %1$d s so far</string>
+    <!-- The lightest feedback (relay 0.31): two thumbs under a reply, one question after a Stop; codes travel, never the words -->
+    <string name="nm_fb_up">Good reply</string>
+    <string name="nm_fb_down">Not a good reply</string>
+    <string name="nm_fb_why">What was wrong?</string>
+    <string name="nm_fb_reason_wrong">Wrong</string>
+    <string name="nm_fb_reason_unhelpful">Not helpful</string>
+    <string name="nm_fb_reason_unsafe">Should not have done that</string>
+    <string name="nm_fb_reason_slow">Too slow</string>
+    <string name="nm_fb_reason_other">Something else</string>
+    <string name="nm_fb_skip">Skip</string>
+    <string name="nm_fb_thanks">Noted, thanks</string>
+    <string name="nm_stop_why">Why did you stop it?</string>
+    <string name="nm_stop_reason_wrong">It was going wrong</string>
+    <string name="nm_stop_reason_slow">Too slow</string>
+    <string name="nm_stop_reason_changed_mind">Changed my mind</string>
+    <string name="nm_stop_reason_done">It was already done</string>
+    <string name="nm_stop_reason_other">Something else</string>
 </resources>

@@ -16,6 +16,8 @@ import com.openminis.app.logging.AppLogger
 import com.openminis.app.provider.ProviderFactory
 import com.openminis.app.sandbox.PRootKernel
 import com.openminis.app.service.SessionActivityTracker
+import io.github.nanomuse.cloud.ClientEvents
+import io.github.nanomuse.cloud.Provenance
 import io.github.nanomuse.guard.GateOutcome
 import io.github.nanomuse.guard.GuardKind
 import io.github.nanomuse.guard.RiskAssessment
@@ -27,6 +29,7 @@ import io.github.nanomuse.guard.TapWords
 import io.github.nanomuse.status.KeepAwake
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlin.coroutines.EmptyCoroutineContext
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -90,6 +93,8 @@ class HandsOperator(private val context: Context) {
 
     /** The session this run's approval cards are filed under; see [ownPendingRequest]. */
     @Volatile private var gateSession: String? = null
+    /** The chat the run came from, for the record's events (null for a run without one). */
+    @Volatile private var eventSession: String? = null
 
     /**
      * The approval card waiting on this run, if the one on top is ours: a tap or an Enter the
@@ -112,6 +117,12 @@ class HandsOperator(private val context: Context) {
     fun run(opts: Options): Result {
         val runId = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
         val log = mutableListOf<String>()
+        // where each model call sits, for the relay (relay 0.31): this run as the trajectory, the
+        // step being thought about, and the chat the task came from; one `hands.step` event per
+        // step and one at the end go to the account's record as codes (ClientEvents)
+        val where = Provenance.Hands(runId)
+        val calling = where + (opts.sessionId?.let { Provenance.Session(it) } ?: EmptyCoroutineContext)
+        eventSession = opts.sessionId
         val traceDir = traceDir(opts.sessionId, runId)
         var lastScreen: String? = null
         var steps = 0
@@ -185,8 +196,10 @@ class HandsOperator(private val context: Context) {
 
                 // ── think ──
                 val messages = buildMessages(turns, HandsPrompt.turnText(steps, lastResult), jpeg.bytes)
+                where.step = steps
+                val thinkingFrom = System.currentTimeMillis()
                 val reply = try {
-                    runBlocking {
+                    runBlocking(calling) {
                         withTimeout(MODEL_TIMEOUT_MS) {
                             provider.sendMessage(messages, system, maxTokens = 1024, temperature = 0.0, thinkingLevel = ThinkingLevel.OFF).text
                         }
@@ -199,6 +212,7 @@ class HandsOperator(private val context: Context) {
                     Thread.sleep(1500)
                     continue
                 }
+                val thoughtMs = System.currentTimeMillis() - thinkingFrom
                 if (stop.get()) return finish(Outcome.Stopped(stopReason.get() ?: "stopped"), steps, runId, lastScreen, traceDir, log, model.label)
                 val turn = Turn(HandsPrompt.turnText(steps, lastResult), jpeg.bytes, reply)
                 turns += turn
@@ -210,6 +224,7 @@ class HandsOperator(private val context: Context) {
                     lastResult = "your reply could not be read (${e.message}); answer with `Thought:` and one JSON `Action:` only."
                     log += "step $steps: unreadable reply"
                     trace(traceDir, steps, "", reply, lastResult, lastScreen)
+                    step(runId, steps, "unreadable", "failed", thoughtMs)
                     continue
                 }
                 formatErrors = 0
@@ -223,6 +238,7 @@ class HandsOperator(private val context: Context) {
                         val why = HandsLoopWatch.stopReason(action)
                         log += "step $steps: $why"
                         trace(traceDir, steps, parsed.thought, reply, why, lastScreen)
+                        step(runId, steps, actionWord(action), "stopped", thoughtMs)
                         return finish(Outcome.Infeasible(why), steps, runId, lastScreen, traceDir, log, model.label)
                     }
                     HandsLoopWatch.Verdict.NOTE -> {
@@ -247,6 +263,7 @@ class HandsOperator(private val context: Context) {
                     }
                     is HandsAction.TakeOver -> {
                         val cont = waitForUser(action.reason.ifBlank { parsed.thought })
+                        step(runId, steps, "take_over", if (cont) "handed_over" else "stopped", thoughtMs)
                         if (!cont) return finish(Outcome.Stopped(stopReason.get() ?: "stopped"), steps, runId, lastScreen, traceDir, log, model.label)
                         lastResult = "the user did it themselves and says to continue; look at the screen as it is now."
                     }
@@ -262,6 +279,7 @@ class HandsOperator(private val context: Context) {
                         val gate = approveTap(svc, opts.sessionId, target, ScreenWords.at(svc, px, py))
                         if (gate.denied != null) {
                             trace(traceDir, steps, parsed.thought, reply, "refused: ${gate.denied}", lastScreen)
+                            step(runId, steps, actionWord(action), "refused", thoughtMs)
                             return finish(Outcome.Infeasible("the user did not allow the tap “${gate.shown.take(40)}” — ${gate.denied}"), steps, runId, lastScreen, traceDir, log, model.label)
                         }
                         // A remembered approval, or a payment that ran on one: the chat model
@@ -321,6 +339,7 @@ class HandsOperator(private val context: Context) {
                         val gate = approveEnter(svc, opts.sessionId)
                         if (gate.denied != null) {
                             trace(traceDir, steps, parsed.thought, reply, "refused: ${gate.denied}", lastScreen)
+                            step(runId, steps, "enter", "refused", thoughtMs)
                             return finish(Outcome.Infeasible("the user did not allow sending with Enter — ${gate.denied}"), steps, runId, lastScreen, traceDir, log, model.label)
                         }
                         gate.notice?.let { log += it }
@@ -358,8 +377,9 @@ class HandsOperator(private val context: Context) {
                 }
                 loopNote?.let { note -> lastResult = listOfNotNull(lastResult, note).joinToString(" ") }
                 trace(traceDir, steps, parsed.thought, reply, lastResult ?: "", lastScreen)
+                if (action !is HandsAction.TakeOver) step(runId, steps, actionWord(action), if (lastResult?.contains("rejected by the system") == true) "failed" else "ok", thoughtMs)
             }
-            return finish(Outcome.Infeasible("the step limit (${opts.maxSteps}) was reached before the task was done"), steps, runId, lastScreen, traceDir, log, model.label)
+            return finish(Outcome.Infeasible("the step limit (${opts.maxSteps}) was reached before the task was done"), steps, runId, lastScreen, traceDir, log, model.label, end = "max_steps")
         } catch (t: Throwable) {
             AppLogger.warning(TAG, "run failed: ${t.javaClass.simpleName} ${t.message}")
             return finish(Outcome.Failed("${t.javaClass.simpleName}: ${t.message}"), steps, runId, lastScreen, traceDir, log, model?.label)
@@ -372,8 +392,41 @@ class HandsOperator(private val context: Context) {
         }
     }
 
-    private fun finish(outcome: Outcome, steps: Int, runId: String, lastScreen: String?, traceDir: File?, log: List<String>, model: String?): Result =
-        Result(outcome, steps, runId, lastScreen, traceDir?.let { "/var/minis/attachments/hands/$runId/trace.jsonl" }, log, model)
+    private fun finish(outcome: Outcome, steps: Int, runId: String, lastScreen: String?, traceDir: File?, log: List<String>, model: String?, end: String? = null): Result {
+        // the run's end for the record: `done`, `ask`, `blocked`, `stopped`, `failed`, `max_steps` (docs/cloud.md "Client events")
+        val word = end ?: when (outcome) {
+            is Outcome.Done -> "done"
+            is Outcome.NeedsUser -> "ask"
+            is Outcome.Infeasible -> "blocked"
+            is Outcome.Stopped -> "stopped"
+            is Outcome.Failed -> "failed"
+        }
+        step(runId, steps, "end", word, null)
+        return Result(outcome, steps, runId, lastScreen, traceDir?.let { "/var/minis/attachments/hands/$runId/trace.jsonl" }, log, model)
+    }
+
+    /** One `hands.step` to the record: the trajectory, the step, the action's kind and how it went; never the screen or the words. */
+    private fun step(runId: String, step: Int, action: String, outcome: String?, latencyMs: Long?) {
+        runCatching { ClientEvents.handsStep(eventSession, runId, step, action, outcome, latencyMs) }
+    }
+
+    /** The action's kind, as the record names it. */
+    private fun actionWord(a: HandsAction): String = when (a) {
+        is HandsAction.Click -> "tap"
+        is HandsAction.DoubleTap -> "double_tap"
+        is HandsAction.LongPress -> "long_press"
+        is HandsAction.Swipe -> "swipe"
+        is HandsAction.Scroll -> "scroll"
+        is HandsAction.InputText -> "type"
+        HandsAction.KeyboardEnter -> "enter"
+        is HandsAction.OpenApp -> "open_app"
+        HandsAction.Back -> "back"
+        HandsAction.Home -> "home"
+        is HandsAction.Wait -> "wait"
+        is HandsAction.TakeOver -> "take_over"
+        is HandsAction.AskUser -> "ask"
+        is HandsAction.Status -> "status"
+    }
 
     // ── the user's turn ────────────────────────────────────────────────────
 

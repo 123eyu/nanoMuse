@@ -479,6 +479,12 @@ internal sealed class FlatChatItem {
         override val contentType = "typing"
     }
 
+    /** nanoMuse: the two thumbs under a finished reply (io.github.nanomuse.ui.feedback.ThumbsRow decides whether to draw them). */
+    data class NanoMuseThumbs(val messageId: String) : FlatChatItem() {
+        override val key = "nm_thumbs:$messageId"
+        override val contentType = "nm_thumbs"
+    }
+
     data class AssistantError(val messageId: String, val error: String) : FlatChatItem() {
         override val key = "error:$messageId"
         override val contentType = "error"
@@ -596,6 +602,7 @@ internal fun buildFlatChatItems(
             is FlatChatItem.NanoMuseAvatarConfirm -> item.copy(messageId = "${item.messageId}#$n") // nanoMuse
             is FlatChatItem.NanoMuseAllowance -> item.copy(messageId = "${item.messageId}#$n") // nanoMuse
             is FlatChatItem.AssistantTyping -> item.copy(messageId = "${item.messageId}#$n")
+            is FlatChatItem.NanoMuseThumbs -> item.copy(messageId = "${item.messageId}#$n") // nanoMuse
             is FlatChatItem.AssistantError -> item.copy(messageId = "${item.messageId}#$n")
             is FlatChatItem.AssistantLegacyContent -> FlatChatItem.AssistantLegacyContent(
                 messageId = "${item.messageId}#$n",
@@ -762,6 +769,10 @@ internal fun buildFlatChatItems(
         // Inline error banner
         message.error?.let {
             out.add(dedupe(FlatChatItem.AssistantError(message.id, it)))
+        }
+        // nanoMuse: a finished reply with words in it takes the two thumbs (drawn under the newest one only)
+        if (message.role == "assistant" && !message.isStreaming && message.error == null && (message.content.isNotEmpty() || blocks.any { it.kind == "text" && it.content.isNotEmpty() })) {
+            out.add(dedupe(FlatChatItem.NanoMuseThumbs(message.id)))
         }
     }
     return out

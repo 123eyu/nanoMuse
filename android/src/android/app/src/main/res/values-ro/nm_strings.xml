@@ -1194,4 +1194,20 @@
     <string name="nm_wait_busy">Modelul este ocupat, %1$d s până acum</string>
     <string name="nm_wait_queued">%1$d înaintea ta, %2$d s până acum</string>
     <string name="nm_wait_next">Urmezi tu, %1$d s până acum</string>
+    <string name="nm_fb_up">Răspuns bun</string>
+    <string name="nm_fb_down">Răspuns slab</string>
+    <string name="nm_fb_why">Ce a fost greșit?</string>
+    <string name="nm_fb_reason_wrong">Greșit</string>
+    <string name="nm_fb_reason_unhelpful">Nu a ajutat</string>
+    <string name="nm_fb_reason_unsafe">Nu trebuia să facă asta</string>
+    <string name="nm_fb_reason_slow">Prea lent</string>
+    <string name="nm_fb_reason_other">Altceva</string>
+    <string name="nm_fb_skip">Omite</string>
+    <string name="nm_fb_thanks">Notat, mulțumesc</string>
+    <string name="nm_stop_why">De ce ai oprit?</string>
+    <string name="nm_stop_reason_wrong">Mergea într-o direcție greșită</string>
+    <string name="nm_stop_reason_slow">Prea lent</string>
+    <string name="nm_stop_reason_changed_mind">M-am răzgândit</string>
+    <string name="nm_stop_reason_done">Era deja gata</string>
+    <string name="nm_stop_reason_other">Altceva</string>
 </resources>

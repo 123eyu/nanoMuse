@@ -1190,4 +1190,20 @@
     <string name="nm_wait_busy">Model meşgul, şimdiye kadar %1$d sn</string>
     <string name="nm_wait_queued">Önünüzde %1$d istek var, şimdiye kadar %2$d sn</string>
     <string name="nm_wait_next">Sıradaki sizsiniz, şimdiye kadar %1$d sn</string>
+    <string name="nm_fb_up">İyi yanıt</string>
+    <string name="nm_fb_down">İyi bir yanıt değil</string>
+    <string name="nm_fb_why">Sorun neydi?</string>
+    <string name="nm_fb_reason_wrong">Yanlış</string>
+    <string name="nm_fb_reason_unhelpful">Yardımcı olmadı</string>
+    <string name="nm_fb_reason_unsafe">Bunu yapmamalıydı</string>
+    <string name="nm_fb_reason_slow">Çok yavaş</string>
+    <string name="nm_fb_reason_other">Başka bir şey</string>
+    <string name="nm_fb_skip">Atla</string>
+    <string name="nm_fb_thanks">Not alındı, teşekkürler</string>
+    <string name="nm_stop_why">Neden durdurdun?</string>
+    <string name="nm_stop_reason_wrong">Yanlış yöne gidiyordu</string>
+    <string name="nm_stop_reason_slow">Çok yavaştı</string>
+    <string name="nm_stop_reason_changed_mind">Fikrimi değiştirdim</string>
+    <string name="nm_stop_reason_done">Zaten bitmişti</string>
+    <string name="nm_stop_reason_other">Başka bir şey</string>
 </resources>

@@ -1163,4 +1163,20 @@
     <string name="nm_wait_busy">模型接口比较忙，已等待 %1$d 秒</string>
     <string name="nm_wait_queued">前面还有 %1$d 个，已等待 %2$d 秒</string>
     <string name="nm_wait_next">下一个就到你，已等待 %1$d 秒</string>
+    <string name="nm_fb_up">回答得好</string>
+    <string name="nm_fb_down">回答得不好</string>
+    <string name="nm_fb_why">哪里不对？</string>
+    <string name="nm_fb_reason_wrong">答错了</string>
+    <string name="nm_fb_reason_unhelpful">没帮上忙</string>
+    <string name="nm_fb_reason_unsafe">不该这么做</string>
+    <string name="nm_fb_reason_slow">太慢了</string>
+    <string name="nm_fb_reason_other">其他原因</string>
+    <string name="nm_fb_skip">跳过</string>
+    <string name="nm_fb_thanks">收到，谢谢</string>
+    <string name="nm_stop_why">为什么停下来？</string>
+    <string name="nm_stop_reason_wrong">方向不对</string>
+    <string name="nm_stop_reason_slow">太慢了</string>
+    <string name="nm_stop_reason_changed_mind">改主意了</string>
+    <string name="nm_stop_reason_done">已经做完了</string>
+    <string name="nm_stop_reason_other">其他原因</string>
 </resources>

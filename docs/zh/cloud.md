@@ -83,7 +83,7 @@
 
 | kind | data |
 | --- | --- |
-| `sentinel.decision` | `tool`、`risk`（`safe`、`moderate`、`sensitive`、`critical`）、`decision`（`allow`、`ask`、`deny`）、`grant?`（`once`、`schedule`、`conversation`、`always`：放行它的那条授权）、`policy?`（问人之前策略本身的判定）、`by?`（最后由谁定的：`policy`、`auto`、`grant`、`person`、`timeout`）、`channel?`、`tainted?`（布尔）、`warnings?`（条数）、`ok?`（布尔：工具随后有没有正常跑完；桌面版会发，运行时不发） |
+| `sentinel.decision` | `tool`、`risk`（`safe`、`moderate`、`sensitive`、`critical`）、`decision`（`allow`、`ask`、`deny`）、`grant?`（`once`、`schedule`、`conversation`、`always`：放行它的那条授权）、`policy?`（问人之前策略本身的判定）、`by?`（最后由谁定的：`policy`、`auto`、`grant`、`person`、`timeout`）、`channel?`、`tainted?`（布尔）、`warnings?`（条数）、`ok?`（布尔：工具随后有没有正常跑完；桌面版会发，运行时不发）、`class?`（手机自己的风险分类：`safe`、`install`、`destructive`、`outbound`、`remote`、`money`；Android 和 iOS 会发） |
 | `approval.result` | `tool?`、`risk?`、`allow`（布尔）、`scope?`（`once`、`schedule`、`conversation`、`always`）、`by?`（`person`、`timeout`、`other_device`）、`waited_s?`、`channel?`、`warnings?` |
 | `turn.stopped` | `reason`：`wrong`、`slow`、`changed_mind`、`done`、`other`、`skipped`（人手动停了一条回复，说了或没说为什么）、`turn_no?` |
 | `turn.feedback` | `vote`（`up`、`down`，收回时是 `none`）、`reason?`（`wrong`、`unhelpful`、`unsafe`、`slow`、`other`）、`turn_no?` |

@@ -98,7 +98,7 @@ class ChatViewModel(
     val memoryRepository: MemoryRepository? = null,
     val skillRepository: com.openminis.app.data.repository.SkillRepository? = null,
     val mcpRepository: com.openminis.app.data.repository.MCPRepository? = null,
-) : ViewModel() {
+) : ViewModel(io.github.nanomuse.cloud.Provenance.scope(sessionId)) { // nanoMuse: the scope names the chat, so every model call made under it says which conversation and turn it belongs to (relay 0.31)
 
     companion object {
         internal const val TAG = "ChatViewModel"
@@ -3650,9 +3650,16 @@ class ChatViewModel(
                     if (_isStreaming.value) nmPulledWhileStreaming = true else reloadSessionFromDb()
                 }
             }
+            // the chat's turn count, read by the relay headers as each call goes out (Provenance)
+            viewModelScope.coroutineContext[io.github.nanomuse.cloud.Provenance.Session]?.turns = { _messages.value.count { it.role == "user" } }
+            var nmWasStreaming = false
             _isStreaming.collect { streaming ->
                 // the turn is over: the reply goes up and the other devices hear "done" (C9)
                 if (!streaming) io.github.nanomuse.sync.ConversationSync.turnEnded(realSessionId.ifEmpty { sessionId })
+                // …and the record hears how it ended, when it ended short (TurnFeedback: a Stop was told at the Stop);
+                // only a turn that ran here counts, not the flag's first value when the chat opens
+                if (!streaming && nmWasStreaming) io.github.nanomuse.ui.feedback.TurnFeedback.turnEnded(realSessionId.ifEmpty { sessionId }, errored = _messages.value.lastOrNull()?.let { it.role == "assistant" && !it.error.isNullOrBlank() } == true)
+                nmWasStreaming = streaming
                 if (!streaming && nmPulledWhileStreaming) {
                     // a breath after the end: the turn's last rows are still being written
                     kotlinx.coroutines.delay(1_500)
@@ -11975,6 +11982,7 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
 
     fun cancelStream() {
         AppLogger.info(TAG_STREAM, "cancelStream invoked _isStreaming=false (sid=$activeSessionId)")
+        if (_isStreaming.value) io.github.nanomuse.ui.feedback.TurnFeedback.stopped(activeSessionId) // nanoMuse: the record hears the Stop; the chat asks why, once (relay 0.31)
         streamJob?.cancel()
         _isStreaming.value = false
         // T-streaming-side-channel: flush any in-flight delta back into the

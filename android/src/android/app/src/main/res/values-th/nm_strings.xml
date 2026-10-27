@@ -1186,4 +1186,20 @@
     <string name="nm_wait_busy">โมเดลกำลังยุ่ง รอมาแล้ว %1$d วินาที</string>
     <string name="nm_wait_queued">มี %1$d รายการอยู่ก่อนหน้า รอมาแล้ว %2$d วินาที</string>
     <string name="nm_wait_next">ถึงคิวคุณถัดไป รอมาแล้ว %1$d วินาที</string>
+    <string name="nm_fb_up">ตอบได้ดี</string>
+    <string name="nm_fb_down">ตอบได้ไม่ดี</string>
+    <string name="nm_fb_why">ตรงไหนที่ไม่ดี</string>
+    <string name="nm_fb_reason_wrong">ตอบผิด</string>
+    <string name="nm_fb_reason_unhelpful">ไม่ช่วยอะไร</string>
+    <string name="nm_fb_reason_unsafe">ไม่ควรทำแบบนั้น</string>
+    <string name="nm_fb_reason_slow">ช้าเกินไป</string>
+    <string name="nm_fb_reason_other">อย่างอื่น</string>
+    <string name="nm_fb_skip">ข้าม</string>
+    <string name="nm_fb_thanks">รับทราบ ขอบคุณ</string>
+    <string name="nm_stop_why">ทำไมถึงหยุด</string>
+    <string name="nm_stop_reason_wrong">กำลังไปผิดทาง</string>
+    <string name="nm_stop_reason_slow">ช้าเกินไป</string>
+    <string name="nm_stop_reason_changed_mind">เปลี่ยนใจ</string>
+    <string name="nm_stop_reason_done">เสร็จแล้ว</string>
+    <string name="nm_stop_reason_other">อย่างอื่น</string>
 </resources>

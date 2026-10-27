@@ -356,6 +356,24 @@ to other apps. Voice input through a provider's speech model keeps the microphon
 while a recording is on: stopping or cancelling the recording closes the recorder at once, and a
 cancelled recording's audio is dropped, never sent to the provider.
 
+**What the record is told beyond the turn itself** (relay 0.31). A chat request to nanoMuse
+Cloud carries, next to the device and the conversation, where the call sits: who started the
+turn (`X-NanoMuse-Run`: you, a scheduled task, the feed's routine, a goal's check, a task
+another device asked for through the hub), the turn's number in the conversation as the chat
+counts it, the call's number within the turn, the screen task's run and step while the hands
+work, and `X-NanoMuse-Platform: android`; a turn run on a key of your own goes up with the
+same fields ([cloud.md](cloud.md#provenance); `io.github.nanomuse.cloud.Provenance`, read
+from the chat's coroutine so a typed message, a retry, a routine's prompt, a hub task and a
+hands step all say the same). While signed in, the phone also sends short records of what
+happened around a turn (`POST /v1/events`, `io.github.nanomuse.cloud.ClientEvents`): what
+the risk gate decided on each shell command, browser tap or screen step and how its card was
+answered, each step of the hands and how the run closed, a turn stopped by hand or ended in
+an error, and the two thumbs under the newest reply and the one question after a Stop
+(*Why did you stop it?*, five one-word answers and *Skip*; a routine's or another device's turn
+is not asked about). Codes and numbers only — the tool's kind, the risk's tier, who answered,
+how long — never the command, the page, the screen or any words of the conversation
+([cloud.md](cloud.md#client-events)); *Data controls*' delete removes them with the turns.
+
 ## Building it yourself
 
 JDK 21 (what CI uses) and the Android SDK (Android Studio installs both); `scripts/android/env.sh` sets

@@ -21,6 +21,7 @@ import com.openminis.app.sandbox.PRootKernel
 import io.github.nanomuse.sandbox.SandboxPaths
 import com.openminis.app.sandbox.ShellExecutor
 import com.openminis.app.service.AgentForegroundService
+import io.github.nanomuse.cloud.Provenance
 import io.github.nanomuse.guard.GateOutcome
 import io.github.nanomuse.guard.GuardKind
 import io.github.nanomuse.guard.RiskAssessment
@@ -303,6 +304,7 @@ object HubActions {
         )
         val relay = relayApprovals(context, call, sessionId)
         running.started(call.id, senderId, conversation, sessionId)
+        Provenance.arm(sessionId, Provenance.RUN_HUB) // the turn is another device's, for the record
         val stopped: Boolean
         val result = try {
             runBlocking {
@@ -384,7 +386,7 @@ object HubActions {
         if (id.isBlank()) { call.fail("usage", "approval_id is required"); return }
         if (relayed[id] != call.from.optString("id")) { call.result(JSONObject().put("ok", false).put("approval_id", id)); return }
         val allow = call.args.optBoolean("allow", false)
-        RiskGate.decide(id, if (allow) RiskDecision.ALLOW_ONCE else RiskDecision.DENY)
+        RiskGate.decide(id, if (allow) RiskDecision.ALLOW_ONCE else RiskDecision.DENY, by = RiskGate.BY_OTHER_DEVICE)
         call.result(JSONObject().put("ok", true).put("approval_id", id).put("status", if (allow) "approved" else "denied"))
     }
 
