@@ -65,6 +65,30 @@ async def test_files_reads_a_file_the_way_it_reads_a_command(
         assert r.ok and r.output == "中文目录"
 
 
+async def test_files_read_cut_inside_a_character_stays_utf8(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """The byte window can end inside a multi-byte character. The strict UTF-8 read then
+    failed on the tail, and a console code page that takes any byte (cp1252) read the whole
+    file as mojibake: `€€€` came back as `â‚¬â‚¬â‚¬`. The unfinished character is cut off
+    before the bytes are read."""
+    import nanomuse.stdio as stdio
+    from nanomuse.tools import files as files_module
+
+    # a 52-byte window: seventeen 3-byte characters and the first byte of the next
+    monkeypatch.setattr(files_module, "MAX_READ_CHARS", 11)
+    monkeypatch.setattr(stdio, "console_encoding", lambda: "cp1252")
+    (tmp_path / "euro.txt").write_text("€" * 100, encoding="utf-8")
+    r = await Files(workspace=tmp_path).execute(action="read", path="euro.txt")
+    assert r.ok and r.output.startswith("€" * 11) and "â" not in r.output
+    # the trim is only for a cut that lands inside a character
+    assert files_module.whole_utf8(b"abc") == b"abc"
+    assert files_module.whole_utf8("中文".encode()) == "中文".encode()
+    assert files_module.whole_utf8("中文".encode()[:-1]) == "中".encode()
+    assert files_module.whole_utf8("中文".encode()[:-2]) == "中".encode()
+    assert files_module.whole_utf8(b"\xff\xfe") == b"\xff\xfe"  # not UTF-8 at all: untouched
+
+
 async def test_files_read_cuts_between_characters(tmp_path: Path):
     """The cap is characters, not bytes: a long file is cut at the cap with a trailing
     character whole, never half of one (which would read as U+FFFD)."""

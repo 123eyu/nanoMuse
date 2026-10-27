@@ -30,9 +30,33 @@ def read_capped_text(path: Path, limit: int) -> str:
     ``reg export`` too, and a redirect on a Chinese console writes code page 936. Read as
     UTF-8, all three reached the model as NULs and replacement characters.
     """
+    window = limit * _BYTES_PER_CHAR + 4
     with path.open("rb") as fh:
-        data = fh.read(limit * _BYTES_PER_CHAR + 4)
+        data = fh.read(window)
+    if len(data) == window:
+        data = whole_utf8(data)
     return decode_output(data)
+
+
+def whole_utf8(data: bytes) -> bytes:
+    """``data`` without a UTF-8 sequence a cut left unfinished at its end: a lead byte of a
+    two-, three- or four-byte character followed by fewer continuation bytes than it needs.
+
+    Without this, a UTF-8 file longer than the window stopped being UTF-8 to the strict first
+    read, and a console code page that accepts any byte (cp1252) read the whole file as
+    mojibake. A cut through anything else (ASCII, UTF-16, a code page) is left as it is.
+    """
+    for back in range(1, 4):
+        if back > len(data):
+            return data
+        byte = data[-back]
+        if 0x80 <= byte <= 0xBF:  # a continuation byte: the lead is further back
+            continue
+        if 0xC2 <= byte <= 0xF4:  # a lead byte: whole only if its continuation bytes all follow
+            need = 2 if byte < 0xE0 else 3 if byte < 0xF0 else 4
+            return data[:-back] if need > back else data
+        return data  # ASCII, or a byte UTF-8 never uses: not a cut character
+    return data
 
 
 def unescape_flat(content: str) -> tuple[str, bool]:
