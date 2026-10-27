@@ -3492,6 +3492,9 @@ class OpenAIProvider private constructor(
             "HTTP $statusCode: ${body.take(500)}"
         }
 
+        // nanoMuse: a gateway's 400 that says its own upstream gave nothing ("HTTP 0") is a blip to retry (#640)
+        if (statusCode == 400 && io.github.nanomuse.net.ModelBlip.saysUpstreamGaveNothing(message)) return LLMError.TransientError(message)
+
         val transientCodes = setOf(500, 502, 503, 504, 529)
         if (statusCode in transientCodes) {
             // 503 with permanent failure indicators → ProviderError (trigger group fallback)

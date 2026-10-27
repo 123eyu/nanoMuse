@@ -378,13 +378,17 @@ class ModelUseOffloadHandler(
 
         val response = try {
             runBlocking {
-                provider.sendMessage(
-                    messages = messages,
-                    systemPrompt = systemPrompt,
-                    maxTokens = maxTokens,
-                    temperature = temperature,
-                    imageParts = imageParts,
-                )
+                // nanoMuse: a transport blip is tried again, as the chat and iOS's bridge do (#640)
+                io.github.nanomuse.net.ModelBlip.retrying { attempt ->
+                    if (attempt > 0) Log.w(TAG, "sendMessage for ${entry.model.id}: attempt ${attempt + 1} after a transient failure")
+                    provider.sendMessage(
+                        messages = messages,
+                        systemPrompt = systemPrompt,
+                        maxTokens = maxTokens,
+                        temperature = temperature,
+                        imageParts = imageParts,
+                    )
+                }
             }
         } catch (e: Throwable) {
             Log.w(TAG, "sendMessage failed for ${entry.model.id}: ${e.message}", e)
