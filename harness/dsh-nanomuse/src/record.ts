@@ -44,6 +44,13 @@ export interface OwnTurn {
   status: 'ok' | 'partial'
   /** With `partial`: why it ended short. `aborted`: the person stopped it; `error`: the stream threw; `abandoned`: the loop stopped reading before a finish. */
   ended?: 'aborted' | 'error' | 'abandoned'
+  /** Where the call sat (relay 0.31, docs/cloud.md "Provenance"); set from `OwnTurnsOptions.provenance`. */
+  run?: string
+  turn?: number
+  step?: number
+  trajectory?: string
+  trajectory_step?: number
+  platform?: string
 }
 
 /** What `watch` needs of the world; the tests hand in fakes. */
@@ -60,6 +67,10 @@ export interface OwnTurnsOptions {
   postTurn: (turn: OwnTurn) => Promise<void>
   /** How a provider route is named to the relay: the catalogue id of an own row (`openrouter`), else the route itself. */
   providerName?: (route: string) => string
+  /** Where the call sat: `run`, `turn`, `step`, `trajectory`, `trajectory_step`, `platform`, as known when the request went out. */
+  provenance?: (request: GenerateOptions) => Record<string, string | number>
+  /** The turn went up under `turn.id`; the session's notes can name it now. */
+  onSent?: (request: GenerateOptions, turn: OwnTurn) => void
   log?: (level: 'info' | 'warn', text: string) => void
   now?: () => number
 }
@@ -87,6 +98,9 @@ export class OwnTurns {
   async *watch(request: GenerateOptions, stream: AsyncIterable<StreamChunk>): AsyncIterable<StreamChunk> {
     const g: Gathered = { content: '', reasoning: '', calls: [], finish: '', partial: false }
     const partials = new Map<number, { id: string; name: string; arguments: string }>()
+    // where the call sits is read as it goes out, as the headers of a relay call would be; by
+    // the time the stream has ended the session may be on its next step
+    const where = this.options.provenance?.(request) ?? {}
     let finished = false
     try {
       for await (const chunk of stream) {
@@ -97,7 +111,7 @@ export class OwnTurns {
     } finally {
       // the loop stopped reading before the finish (an abort, a thrown error): what arrived is kept as partial
       if (!finished) g.partial = true
-      if (this.options.enabled()) this.enqueue(request, g)
+      if (this.options.enabled()) this.enqueue(request, g, where)
     }
   }
 
@@ -106,13 +120,13 @@ export class OwnTurns {
     return this.queue.length
   }
 
-  private enqueue(request: GenerateOptions, g: Gathered): void {
+  private enqueue(request: GenerateOptions, g: Gathered, where: Record<string, string | number>): void {
     if (this.queue.length >= QUEUE_MAX) {
       this.queue.shift()
       this.dropped += 1
     }
     const at = (this.options.now ?? Date.now)()
-    this.queue.push(() => this.upload(request, g, at))
+    this.queue.push(() => this.upload(request, g, at, where))
     void this.drain()
   }
 
@@ -140,7 +154,7 @@ export class OwnTurns {
     while (this.draining || this.queue.length) await new Promise((r) => setTimeout(r, 5))
   }
 
-  private async upload(request: GenerateOptions, g: Gathered, at: number): Promise<void> {
+  private async upload(request: GenerateOptions, g: Gathered, at: number, where: Record<string, string | number> = {}): Promise<void> {
     const files = new Map<string, TurnFile>()
     const messages: Record<string, unknown>[] = []
     for (const m of request.messages) messages.push(await this.message(m, files))
@@ -159,6 +173,7 @@ export class OwnTurns {
       },
       status: g.partial ? 'partial' : 'ok',
       ...(g.partial ? { ended: g.finish === 'aborted' ? 'aborted' : g.finish === 'error' ? 'error' : 'abandoned' } : {}),
+      ...provenanceFields(where),
     }
     if (JSON.stringify(turn.messages).length + JSON.stringify(turn.response).length > TURN_MAX_CHARS) {
       this.dropped += 1
@@ -170,6 +185,7 @@ export class OwnTurns {
     }
     await this.options.postTurn(turn)
     this.sent += 1
+    this.options.onSent?.(request, turn)
   }
 
   /** One message in the relay's shape: OpenAI-style roles and content parts, pictures as references. */
@@ -267,6 +283,14 @@ export function assistantMessage(g: Gathered): Record<string, unknown> {
 /** A tool as OpenAI's `tools[]` carries it. */
 export function toolRow(t: ToolSchema): Record<string, unknown> {
   return { type: 'function', function: { name: t.name, description: t.description, parameters: t.parameters } }
+}
+
+/** The provenance fields of a turn, those that are set and of the right kind (docs/cloud.md "Provenance"). */
+export function provenanceFields(where: Record<string, string | number>): Partial<Pick<OwnTurn, 'run' | 'turn' | 'step' | 'trajectory' | 'trajectory_step' | 'platform'>> {
+  const out: Record<string, string | number> = {}
+  for (const key of ['run', 'trajectory', 'platform'] as const) if (typeof where[key] === 'string' && where[key]) out[key] = where[key]
+  for (const key of ['turn', 'step', 'trajectory_step'] as const) if (typeof where[key] === 'number' && where[key] > 0) out[key] = where[key]
+  return out
 }
 
 /** A stable id for the turn: the session, the time and a hash of the last message, so a retry does not make two. */

@@ -84,6 +84,30 @@ test('a step in a scheduled run names the task that started it', async () => {
   assert.deepEqual(desk.list().map((a) => a.scheduleId), ['schedule-a', ''])
 })
 
+test('how a question was settled is told: a grant at once, the stage or the card as the person, a cancelled one as such, with the wait', async () => {
+  const told = []
+  const settled = (req, outcome, by, waitedMs) => told.push([req.callId, outcome, by, typeof waitedMs === 'number' && waitedMs >= 0])
+  const desk = new ApprovalDesk(() => undefined, (req) => req.callId === 'g1', () => '', () => '', settled)
+  assert.equal(await desk.handle(req('g1'), async () => 'rejected'), 'allowed-once')
+  assert.deepEqual(told, [['g1', 'allowed-once', 'grant', true]])
+
+  const stage = desk.handle(req('p1'), () => new Promise(() => undefined))
+  await new Promise((r) => setImmediate(r))
+  desk.decide('p1', true)
+  assert.equal(await stage, 'allowed-once')
+  assert.deepEqual(told[1], ['p1', 'allowed-once', 'person', true])
+
+  assert.equal(await desk.handle(req('p2'), async () => 'rejected'), 'rejected')
+  assert.deepEqual(told[2], ['p2', 'rejected', 'person', true])
+
+  const asker = new AbortController()
+  const cancelled = desk.handle({ ...req('p3'), signal: asker.signal }, () => new Promise(() => undefined))
+  await new Promise((r) => setImmediate(r))
+  asker.abort(new Error('stopped'))
+  assert.equal(await cancelled, 'cancelled')
+  assert.deepEqual(told[3], ['p3', 'cancelled', 'cancelled', true])
+})
+
 test('a request a grant covers is allowed without a card', async () => {
   const desk = new ApprovalDesk(() => undefined, (r) => r.agent.session.id === 's-granted')
   let asked = false

@@ -41,6 +41,7 @@ import type { Session, SessionEvent, SessionId, AgentCancelCause } from '@deepse
 import type { SessionCreateRequest } from '@deepseek-ai/dsh-api-session-controller/types'
 import type {} from '@deepseek-ai/dsh-api-session-controller'
 import type {} from '@deepseek-ai/dsh-user-approval'
+import type { ApprovalOutcome } from '@deepseek-ai/dsh-user-approval/types'
 import z from '@deepseek-ai/schemastery'
 import { mountGuarded } from './admit.ts'
 import { brief, REMOTE_ACTIONS, run as runAction, type RemoteAction } from './actions.ts'
@@ -57,6 +58,9 @@ import { RemoteStore, SyncEngine, SyncRelay, type RemoteLine, type SessionInfo, 
 import { AvatarMotion, ANIMATED, type MotionMood, type MotionView } from './motion.ts'
 import { OwnClip, isOwnClipMood, type OwnClipMood, type OwnClipView } from './own-clip.ts'
 import { OwnTurns } from './record.ts'
+import { Provenance } from './provenance.ts'
+import { RelayProxy } from './relay-proxy.ts'
+import { ClientEvents } from './events.ts'
 import { DEFAULT_VIDEO_MODEL, hostOf, KNOWN_DASHSCOPE_MODELS, looksLikeVideoModel, probe as probeVideoModel, speaksDashScope, type VideoEndpoint } from './video.ts'
 import { editImage as ownEditImage, generateImage as ownGenerateImage, imageShapeOf, type ImageEndpoint } from './images.ts'
 import { checkMove, checkScreenshot, displayInfo, isBlack, runtimeInfo, screenHead, type MoveCheck, type RuntimeInfo, type ScreenshotCheck } from './hands-check.ts'
@@ -669,7 +673,18 @@ export default class NanomuseCloud extends Service {
     (req) => this.granted(req.toolName, String(req.agent.session.id)),
     (req) => this.handsApp(req.toolName),
     (req) => this.scheduleAsking(req.toolName, String(req.agent.session.id)),
+    (req, outcome, by, waitedMs) => this.approvalSettled(String(req.agent.session.id), req.toolName, String(req.callId ?? ''), outcome, by, waitedMs),
   )
+  /** Where each session's model calls sit (relay 0.31): the run, the turn, the step, the hands' trajectory. */
+  readonly provenance = new Provenance()
+  /** The loopback door the model adapter reaches the relay through, so each call carries its provenance. */
+  readonly relayDoor: RelayProxy
+  /** What happened around turns, told to the record as codes (relay 0.31, `POST /v1/events`). */
+  readonly events: ClientEvents
+  /** How the question about each tool call of a session was settled, by call id (else the tool's name), until its result is seen. */
+  private readonly decided = new Map<string, { decision: 'allow' | 'deny'; by: string; waitedMs: number }>()
+  /** The name behind each tool call id of a session, from `tool/call` until `tool/result`. */
+  private readonly calling = new Map<string, string>()
   private readonly holdDesk = new HoldDesk(() => this.deskMoved())
   /** Sessions the other devices were last told are waiting on a card or a hold here (0.31). */
   private waitingSessions = new Set<string>()
@@ -737,6 +752,27 @@ export default class NanomuseCloud extends Service {
         }
       },
       providerName: (route) => this.state.providers?.[route]?.provider ?? route,
+      provenance: (request) => this.provenance.fields(request.sessionId === undefined ? undefined : String(request.sessionId), request.purpose),
+      onSent: (request, turn) => {
+        if (request.sessionId !== undefined) this.provenance.noteTurn(String(request.sessionId), turn.id, 'own')
+      },
+      log: (level, text) => this.ctx.logger[level](text),
+    })
+    this.relayDoor = new RelayProxy({
+      origin: () => this.relay.origin,
+      token: () => this.token(),
+      device: () => this.state.deviceId ?? '',
+      claim: (body) => this.provenance.claim(body),
+      noteTurn: (sessionId, requestId) => this.provenance.noteTurn(sessionId, requestId, 'cloud'),
+      log: (level, text) => this.ctx.logger[level](text),
+    })
+    this.events = new ClientEvents({
+      enabled: () => this.signedInCache && !!this.state.account,
+      post: async (events) => {
+        const token = await this.token()
+        if (!token) return
+        await this.relay.postEvents(token, events as unknown as Record<string, unknown>[], this.state.deviceId ?? '')
+      },
       log: (level, text) => this.ctx.logger[level](text),
     })
     this.hub = new HubClient({
@@ -769,6 +805,21 @@ export default class NanomuseCloud extends Service {
       this.state.deviceId = `pc-dsh-${randomBytes(6).toString('hex')}`
       await this.writeState()
     }
+    // The door to the relay for the model adapter (relay 0.31): a port of this start's own, so
+    // the provider row written at an earlier start is pointed at it again before anything
+    // calls through it; without a loopback port the row is pointed at the relay itself.
+    try {
+      await this.relayDoor.listen()
+    } catch (error: unknown) {
+      this.ctx.logger.warn('nanomuse cloud: no loopback door to the relay (%s); calls go direct, without their provenance', message(error))
+    }
+    this.ctx.effect(() => () => void this.relayDoor.close(), 'nanomuse cloud: relay door')
+    try {
+      await this.repointProvider()
+    } catch (error: unknown) {
+      this.ctx.logger.warn('nanomuse cloud: could not point the provider row at the relay door: %s', message(error))
+    }
+    this.provenance.hands((sessionId) => this.handsOf(sessionId))
     this.catalogue = await loadCatalogue()
     if (!this.catalogue.length) this.ctx.logger.warn('nanomuse: assets/providers.json missing or empty; the own-key step lists nothing')
     // Keys saved before the catalogue learned a vendor's thinking levels get them on this start.
@@ -849,6 +900,16 @@ export default class NanomuseCloud extends Service {
           void this.writeState().catch((error: unknown) => this.ctx.logger.warn('nanomuse: state write failed: %s', message(error)))
         },
         closed: () => this.gateClosed,
+        began: (sessionId) => this.provenance.setRun(sessionId, 'hub'),
+        approvalSettled: (sessionId, toolName, callId, status, waitedMs) => {
+          if (status === 'cancelled') return
+          this.decided.set(`${sessionId}\n${callId || toolName}`, { decision: status === 'approved' ? 'allow' : 'deny', by: status === 'expired' ? 'timeout' : 'other_device', waitedMs })
+          this.events.add(
+            'approval.result',
+            { tool: toolName, allow: status === 'approved', by: status === 'expired' ? 'timeout' : 'other_device', waited_s: Math.round(waitedMs / 100) / 10 },
+            { turn: this.provenance.lastTurn(sessionId), conversation: sessionId },
+          )
+        },
       })
       this.tasks = runner
       ctx.effect(() => runner.attach(), 'nanomuse cloud: tasks')
@@ -983,10 +1044,12 @@ export default class NanomuseCloud extends Service {
           const reason = handOverOf(exec.arguments) ?? ''
           this.began(exec.callId, exec.name, exec.arguments, sessionId)
           this.acted({ kind: 'hold', label: reason, text: reason, x: -1, y: -1, x2: -1, y2: -1, dy: 0, at: Date.now() }, sessionId, exec.callId)
+          const startedAt = Date.now()
           try {
             const hold = this.holdDesk.begin(sessionId, 'computer', 'agent', reason)
             const how = await this.holdDesk.wait(sessionId)
             if (how !== 'done') this.holdDesk.done(hold.id)
+            this.noteHandsStep(sessionId, 'hand_over', how === 'done' ? 'handed_over' : 'stopped', Date.now() - startedAt)
             const text = how === 'done' ? 'The person finished and handed the screen back.' : how === 'timeout' ? 'Nobody came back within ten minutes; the screen is yours again.' : 'The hand-over was cancelled.'
             return { isError: false, value: text, content: [{ type: 'text', text }] } as Awaited<ReturnType<typeof next>>
           } finally {
@@ -998,15 +1061,21 @@ export default class NanomuseCloud extends Service {
         this.began(exec.callId, exec.name, exec.arguments, sessionId)
         if (exec.name === 'mcp__nanomuse__computer_act') this.acted(stageAction(exec.arguments), sessionId, exec.callId)
         else if (exec.name === 'mcp__nanomuse__computer_screen') this.acted({ kind: 'look', label: '', text: '', x: -1, y: -1, x2: -1, y2: -1, dy: 0, at: Date.now() }, sessionId, exec.callId)
+        const startedAt = Date.now()
         try {
           let result = await next()
+          let outcome: 'ok' | 'failed' | 'refused' = result.isError ? 'failed' : 'ok'
           if (exec.name === 'mcp__nanomuse__computer_act' && result.isError) {
             const refused = refusalOf(result)
-            if (refused) result = await this.confirmStep(ctx, exec, refused, next)
+            if (refused) {
+              result = await this.confirmStep(ctx, exec, refused, next)
+              outcome = result.isError ? 'refused' : 'ok'
+            }
           }
           if (exec.name.startsWith('mcp__nanomuse__computer_') && !result.isError) this.frameFromMcp(result.value, sessionId, exec.callId)
           // A black capture (macOS: Screen Recording missing for the app, or granted after it started) puts a relaunch notice up.
           if (exec.name.startsWith('mcp__nanomuse__computer_') && result.isError && isBlack(errorText(result))) this.sawBlackScreen()
+          if (exec.name.startsWith('mcp__nanomuse__computer_')) this.noteHandsStep(sessionId, exec.name === 'mcp__nanomuse__computer_screen' ? 'look' : stageAction(exec.arguments).kind, outcome, Date.now() - startedAt)
           return result
         } finally {
           this.ended(exec.callId)
@@ -1019,6 +1088,8 @@ export default class NanomuseCloud extends Service {
       () =>
         this.ctx.on('session/event', (session: Session, event: SessionEvent) => {
           const id = String(session.id)
+          this.provenance.observe(id, event)
+          this.noteSessionEvent(id, event)
           if (event.type === 'assistant/message') this.trajectory.said(id, textOf(event.data.message.content))
           else if (event.type === 'turn/end') {
             let changed = this.screenRuns.turnEnded(id)
@@ -1078,7 +1149,9 @@ export default class NanomuseCloud extends Service {
           cloud.ctx.logger.info('nanomuse cloud: a call to %s refused, Cloud models are off%s', options.model, options.purpose ? ` (${options.purpose})` : '')
           return cloud.refuseCloudOff()
         }
-        return cloud.watchRelayStream(next(), options.sessionId === undefined ? '' : String(options.sessionId))
+        // the call's provenance, for the door to put on the request the adapter is about to send
+        const release = cloud.provenance.expect(options, cloud.state.deviceId ?? '')
+        return cloud.watchRelayStream(next(), options.sessionId === undefined ? '' : String(options.sessionId), release)
       })
     })
     this.ctx.effect(() => () => {
@@ -1167,7 +1240,7 @@ export default class NanomuseCloud extends Service {
    * it has been waiting (0.31; the relay's own "queued, N ahead" chunks have no choices and
    * never reach this side, so the line counts the seconds and nothing more).
    */
-  private async *watchRelayStream(stream: AsyncIterable<StreamChunk>, session = ''): AsyncIterable<StreamChunk> {
+  private async *watchRelayStream(stream: AsyncIterable<StreamChunk>, session = '', release: () => void = () => undefined): AsyncIterable<StreamChunk> {
     const id = ++this.waitSeq
     this.waits.set(id, { since: Date.now(), session })
     this.broadcast()
@@ -1193,6 +1266,7 @@ export default class NanomuseCloud extends Service {
         yield { ...chunk, reason: { kind: 'error', failure: { ...chunk.reason.failure, ...seen.failure } } }
       }
     } finally {
+      release()
       if (this.waits.delete(id)) this.broadcast()
     }
   }
@@ -3050,7 +3124,7 @@ export default class NanomuseCloud extends Service {
         const [account, models] = await Promise.all([this.relay.me(token), this.relay.models(token)])
         // The row is rewritten when the menu changed — and when it is simply not there: a profile
         // made again around an account that is still signed in has the credential but no row.
-        if (!sameModels(models, this.state.models ?? []) || !this.providerPresent() || !this.providerBudgetCurrent()) await this.writeProvider(models)
+        if (!sameModels(models, this.state.models ?? []) || !this.providerPresent() || !this.providerBudgetCurrent() || !this.providerDoorCurrent()) await this.writeProvider(models)
         await this.adoptDefaultModel(models)
         this.state = { ...this.state, account, models }
         this.recordOff = false
@@ -3197,7 +3271,36 @@ export default class NanomuseCloud extends Service {
    * budget) and each is scaled to the pixel budget before it is encoded.
    */
   providerRow(models: RelayModel[]): Record<string, unknown> {
-    return providerRowFor(this.relay.openaiBase, models, this.state.deviceId ?? '')
+    return providerRowFor(this.relayDoor.openaiBase || this.relay.openaiBase, models, this.state.deviceId ?? '')
+  }
+
+  /**
+   * The row written at an earlier start points at that start's door; before the first call of
+   * this one it is pointed at today's — or at the relay itself when no door opened — and the
+   * models and the rest of the row stay as they were. Nothing to do when there is no row yet,
+   * or when it already says so.
+   */
+  private async repointProvider(): Promise<void> {
+    const base = this.relayDoor.openaiBase || this.relay.openaiBase
+    const row = this.ctx.settings.describe().find((d) => d.ns === LLM_ROW)
+    const providers = (row?.value as { providers?: Record<string, unknown> } | undefined)?.providers ?? {}
+    const ours = providers[PROVIDER_ID]
+    if (!ours || typeof ours !== 'object') return
+    if ((ours as { baseURL?: unknown }).baseURL === base) return
+    await this.ctx.settings.update(LLM_ROW, { providers: { [PROVIDER_ID]: { ...(ours as Record<string, unknown>), baseURL: base } } })
+  }
+
+  /** Whether the row written earlier reaches the relay through today's door (or, without one, directly). */
+  private providerDoorCurrent(): boolean {
+    const base = this.relayDoor.openaiBase || this.relay.openaiBase
+    try {
+      const row = this.ctx.settings.describe().find((d) => d.ns === LLM_ROW)
+      const providers = (row?.value as { providers?: Record<string, unknown> } | undefined)?.providers ?? {}
+      const ours = providers[PROVIDER_ID] as { baseURL?: unknown } | undefined
+      return ours?.baseURL === base
+    } catch {
+      return true
+    }
   }
 
   private async writeProvider(models: RelayModel[]): Promise<void> {
@@ -3255,6 +3358,7 @@ export default class NanomuseCloud extends Service {
     this.sync?.stop()
     this.sync?.signedOut()
     this.signedInCache = false
+    this.events.forget()
     this.lastSharedConnectors = ''
     // the account's route is gone from the model layer: a chat slot left on it would fail every turn with NO_ADAPTER
     await this.releaseChatRoute(PROVIDER_ID)
@@ -3682,6 +3786,94 @@ export default class NanomuseCloud extends Service {
    * the stage re-reads, and the account's other devices hear that the run is waiting for
    * the person, or working again (0.31).
    */
+  // -- what happened around a turn, as codes (relay 0.31) ---------------------------------------
+
+  /** An approval settled on this computer: the card, the stage, a standing grant, or nobody. */
+  private approvalSettled(sessionId: string, toolName: string, callId: string, outcome: ApprovalOutcome, by: 'grant' | 'person' | 'cancelled', waitedMs: number): void {
+    if (by === 'cancelled') return
+    const allow = outcome === 'allowed-once'
+    this.decided.set(`${sessionId}\n${callId || toolName}`, { decision: allow ? 'allow' : 'deny', by, waitedMs })
+    if (by === 'grant') return
+    this.events.add(
+      'approval.result',
+      { tool: toolName, allow, by: 'person', waited_s: Math.round(waitedMs / 100) / 10 },
+      { turn: this.provenance.lastTurn(sessionId), conversation: sessionId },
+    )
+  }
+
+  /** A tool call's result closes its decision; a turn the person stopped is noted as such. */
+  private noteSessionEvent(sessionId: string, event: SessionEvent): void {
+    if (event.type === 'tool/call') {
+      this.calling.set(`${sessionId}\n${String(event.data.callId)}`, event.data.name)
+      if (this.calling.size > 500) this.calling.delete(this.calling.keys().next().value as string)
+    } else if (event.type === 'tool/result') {
+      const callId = String(event.data.message.toolCallId)
+      const name = this.calling.get(`${sessionId}\n${callId}`) ?? ''
+      this.calling.delete(`${sessionId}\n${callId}`)
+      const asked = this.decided.get(`${sessionId}\n${callId}`) ?? this.decided.get(`${sessionId}\n${name}`)
+      this.decided.delete(`${sessionId}\n${callId}`)
+      this.decided.delete(`${sessionId}\n${name}`)
+      if (!name) return
+      this.events.add(
+        'sentinel.decision',
+        {
+          tool: name,
+          policy: asked ? 'ask' : 'allow',
+          decision: asked?.decision ?? 'allow',
+          by: asked?.by ?? 'policy',
+          ok: !event.data.message.isError,
+        },
+        { turn: this.provenance.lastTurn(sessionId), conversation: sessionId },
+      )
+    } else if (event.type === 'turn/end') {
+      const where = { turn: this.provenance.lastTurn(sessionId), conversation: sessionId }
+      const reason = event.data.reason
+      const stopped = reason.kind === 'aborted' && reason.reason.kind === 'user'
+      if (stopped) this.events.add('turn.ended', { ended: 'aborted', turn_no: event.data.turn }, where)
+      else if (reason.kind === 'error') this.events.add('turn.ended', { ended: 'error', turn_no: event.data.turn }, where)
+      // the hands' run of the turn closes with it (the trajectory is told right after this)
+      const hands = this.handsOf(sessionId)
+      if (hands) this.events.add('hands.step', { trajectory: hands.id, step: hands.step, action: 'end', outcome: stopped ? 'stopped' : reason.kind === 'error' ? 'failed' : 'done' }, where)
+    }
+  }
+
+  /** The hands' run of a session that is on right now (its id and the number of the step shown), for the provenance headers and the step notes. */
+  private handsOf(sessionId: string): { id: string; step: number } | undefined {
+    const run = this.trajectory.view(sessionId).runs.findLast((r) => !r.endedAt)
+    return run ? { id: `${run.id}.${run.startedAt.toString(36)}`, step: run.dropped + run.steps.length } : undefined
+  }
+
+  /** One step of the hands on this computer's screen, as a code: the action's kind, how it went, how long it took. */
+  private noteHandsStep(sessionId: string, action: string, outcome: 'ok' | 'failed' | 'refused' | 'stopped' | 'handed_over', latencyMs: number): void {
+    const hands = this.handsOf(sessionId)
+    if (!hands) return
+    this.events.add(
+      'hands.step',
+      { trajectory: hands.id, step: hands.step, action: action.slice(0, 32), outcome, latency_ms: Math.max(0, Math.round(latencyMs)) },
+      { turn: this.provenance.lastTurn(sessionId), conversation: sessionId },
+    )
+  }
+
+  /** The browser half's thumb on a reply, or the reason for a stop (docs/desktop.md). */
+  feedback(body: Record<string, unknown>): boolean {
+    const sessionId = String(body.session ?? '').slice(0, 80)
+    if (!sessionId) return false
+    const turn = this.provenance.lastTurn(sessionId)
+    const where = { ...(turn ? { turn } : {}), conversation: sessionId }
+    const stop = String(body.stop_reason ?? '')
+    if (stop) {
+      if (!['wrong', 'slow', 'changed_mind', 'done', 'other', 'skipped'].includes(stop)) return false
+      this.events.add('turn.stopped', { reason: stop, turn_no: this.provenance.turnOf(sessionId) }, where)
+      return true
+    }
+    const vote = String(body.vote ?? '')
+    if (!['up', 'down', ''].includes(vote)) return false
+    const reason = String(body.reason ?? '')
+    if (reason && !['wrong', 'unhelpful', 'unsafe', 'slow', 'other'].includes(reason)) return false
+    this.events.add('turn.feedback', { vote: vote || 'none', ...(reason ? { reason } : {}), turn_no: this.provenance.turnOf(sessionId) }, where)
+    return true
+  }
+
   private deskMoved(): void {
     this.broadcast()
     const sync = this.sync
@@ -3906,6 +4098,10 @@ export default class NanomuseCloud extends Service {
       }
       if (req.method === 'GET' && route === '/update') return send(res, 200, await this.update(url.searchParams.get('force') === '1'))
       if (req.method === 'GET' && route === '/approvals') return send(res, 200, { approvals: this.approvalDesk.list() })
+      if (req.method === 'POST' && route === '/feedback') {
+        const body = await json(req)
+        return this.feedback(body) ? send(res, 204) : send(res, 400, { error: { code: 'bad_request', message: 'session with vote (up, down, empty) and reason, or stop_reason' } })
+      }
       if (req.method === 'POST' && route.startsWith('/approvals/')) {
         const body = await json(req)
         const scope = body.scope === 'schedule' || body.scope === 'conversation' || body.scope === 'always' ? body.scope : 'once'

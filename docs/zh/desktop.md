@@ -129,6 +129,21 @@ harness 保留外部下载方式。不带软件内更新能力的版本，需先
   `GET /nanomuse/cloud/work`（聚合）、`POST /work/gate {open}`（交接）和 `POST /work/stop`（确认后的结束）。
   代理那一行下面的「立即重启」，以及 macOS 授予屏幕录制权限后要求的重启，都会先问同样的问题；
   只重启助手程序不碰 Host 的工作。
+- **每次模型调用都会告诉账号记录它处在哪里**（中继 0.31）。harness 的模型适配器对每个请求都带同一组
+  服务商请求头，而一次调用的来源每次都不一样，所以 `nanoMuse Cloud` 这一行服务商指向插件自己的
+  一个本机回环入口（`http://127.0.0.1:<端口>/v1`；端口每次启动各一个，启动时会把这一行重新指过去）。
+  请求只有带着本账号自己的 key 才会被转发（否则在这里就是 401，和到中继一样），转发时加上设备、
+  平台（`X-NanoMuse-Platform: desktop`）以及 `llm/stream` 钩子为这次调用登记的信息：这一轮是谁
+  发起的（`X-NanoMuse-Run`：`person`、`schedule`、`goal`，别的设备通过 hub 交来的任务是 `hub`）、
+  在对话里的轮次和步骤序号，以及正在操作这台电脑屏幕时所在的手的运行和步骤。中继的回复原样
+  流式传回，中继给这一轮的 id 留给这个会话。用你自己的 key 跑的一轮事后也带同样的字段上传
+  （[cloud.md](cloud.md#provenance)）。围绕一轮对话，插件给记录发的只有代码，没有文字
+  （`POST /v1/events`）：每次工具调用是怎么定的、谁定的（策略、长期授权、卡片或舞台上的人、
+  另一台设备，或者没人及时答复）以及工具随后有没有跑成；一次审批等了多久；手的每一步（动作种类、
+  结果、耗时）和这次运行怎么收尾；被人手动停掉或出错结束的一轮；还有浏览器那一半通过
+  `POST /nanomuse/cloud/feedback` 发来的赞/踩或停止原因（`{session, vote: up | down | "", reason?}`
+  或 `{session, stop_reason}`，只收中继规定的那几个词，其他一律 400）。登录状态下这些记录隔几秒
+  成批上传；退出登录会清空队列（[cloud.md](cloud.md#client-events)）。
 
 ## 额度用完时，以及中继的其他回答 {#when-the-allowance-is-used-up-and-the-relay-s-other-answers}
 
