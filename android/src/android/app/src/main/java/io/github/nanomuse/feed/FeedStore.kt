@@ -79,8 +79,11 @@ object FeedStore {
         val dir = File(root, day).apply { mkdirs() }
         var next = (dir.listFiles()?.mapNotNull { FeedPost.parse(it)?.index }?.maxOrNull() ?: 0) + 1
         val written = mutableListOf<FeedPost>()
-        for (d in drafts) {
-            if (next > MAX_POSTS_PER_DAY) break
+        for ((index, d) in drafts.withIndex()) {
+            if (next > MAX_POSTS_PER_DAY) {
+                AppLogger.warning(TAG, "daily limit of $MAX_POSTS_PER_DAY posts reached; ${drafts.size - index} draft(s) not written")
+                break
+            }
             val file = File(dir, "%02d.md".format(Locale.ROOT, next))
             val post = FeedPost(
                 day = day, index = next, title = d.title.trim().take(80), type = d.type, emoji = d.emoji,
