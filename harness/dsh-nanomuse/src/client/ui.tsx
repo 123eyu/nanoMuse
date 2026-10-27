@@ -8,6 +8,7 @@
  */
 import { Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import { createElement as h, Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
+import { grantScope, type StandingGrant } from '../desk.ts'
 import type { Translate } from './api.ts'
 import { openLink } from './bridge.ts'
 import { IconMore, IconPanelLeft } from './icons.tsx'
@@ -114,6 +115,28 @@ export function Empty({ icon, text, children }: { icon: ReactNode; text: string;
     h('div', { className: 'nm-empty-icon' }, icon),
     h('div', { className: 'nm-empty-text' }, text),
     children ?? null)
+}
+
+/**
+ * Where a remembered permission holds, as the line its row carries: '' for one that holds in
+ * every chat, else the chat or the task by name (the tasks a chat grant covers too, a task that
+ * was deleted, the chat a task lives in). The lists group by tier; this says the rest.
+ */
+export function grantScopeLine(t: Translate, g: StandingGrant): string {
+  // a title that has quotes of its own takes the inner kind inside ours: 「发『我讨厌你』」
+  const quoted = (name: string) => t('sgQuoted', { name: name.replace(/「/g, '『').replace(/」/g, '』') })
+  switch (grantScope(g)) {
+    case 'general': return ''
+    case 'chat': return [
+      g.sessionTitle ? t('sgOnlyChat', { chat: quoted(g.sessionTitle.slice(0, 60)) }) : t('sgOnlyChatUntitled'),
+      g.chatTasks?.length ? t('sgChatTasks', { tasks: g.chatTasks.map(quoted).join(t('sgListSep')) }) : '',
+    ].filter(Boolean).join(' · ')
+    case 'task': return [
+      g.scheduleTitle ? t('sgOnlyTask', { task: quoted(g.scheduleTitle.slice(0, 60)) }) : t('sgOnlyTaskUntitled'),
+      g.scheduleGone ? t('sgTaskGone') : '',
+      g.sessionTitle ? t('sgTaskChat', { chat: g.sessionTitle.slice(0, 40) }) : '',
+    ].filter(Boolean).join(' · ')
+  }
 }
 
 /** `2 min ago`-style, from the shared words. */

@@ -137,6 +137,10 @@ export interface Live {
   holds: Hold[]
   /** Standing "always allow" grants for the hands, per app. */
   grants: Grant[]
+  /** The tasks some of those grants are limited to that were deleted since. */
+  goneSchedules: string[]
+  /** The titles of the scheduled tasks in each chat a grant is limited to, by session id. */
+  chatTasks: Record<string, string[]>
   /** The model the hands see the screen with; empty when the account has none. */
   handsModel: string
   /** The last update check, or null before one ran. */
@@ -213,6 +217,8 @@ const INITIAL: Live = {
   approvals: [],
   holds: [],
   grants: [],
+  goneSchedules: [],
+  chatTasks: {},
   handsModel: '',
   update: null,
   motion: NO_MOTION,
@@ -242,7 +248,7 @@ function open(): void {
     try {
       const data = JSON.parse(event.data) as Partial<Omit<Live, 'streaming'>>
       // An older host (0.1.33) sends no approvals/holds; keep the defaults rather than undefined.
-      publish({ ...snapshot, ...data, profile: { ...DEFAULT_PROFILE, ...data.profile }, approvals: data.approvals ?? [], holds: data.holds ?? [], grants: data.grants ?? [], handsModel: data.handsModel ?? '', update: data.update ?? null, motion: data.motion ?? NO_MOTION, ownClip: data.ownClip ?? null, ownClips: data.ownClips ?? {}, blackScreenAt: data.blackScreenAt ?? 0, streaming: true })
+      publish({ ...snapshot, ...data, profile: { ...DEFAULT_PROFILE, ...data.profile }, approvals: data.approvals ?? [], holds: data.holds ?? [], grants: data.grants ?? [], goneSchedules: data.goneSchedules ?? [], chatTasks: data.chatTasks ?? {}, handsModel: data.handsModel ?? '', update: data.update ?? null, motion: data.motion ?? NO_MOTION, ownClip: data.ownClip ?? null, ownClips: data.ownClips ?? {}, blackScreenAt: data.blackScreenAt ?? 0, streaming: true })
     } catch {
       // a malformed frame is skipped; the next snapshot replaces everything anyway
     }

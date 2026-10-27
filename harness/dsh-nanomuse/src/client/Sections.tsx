@@ -19,6 +19,8 @@ import { useLive } from './live.ts'
 import { openStar } from './AccountPage.tsx'
 import { DOCS_URL, ISSUES_URL, REPO_URL } from './panels.ts'
 import { setPrefs, usePrefs } from './prefs.ts'
+import { grantScopeLine } from './ui.tsx'
+import { standingGrants } from '../desk.ts'
 
 const SITE_URL = 'https://nanomuse.cn/'
 const DISCUSS_URL = 'https://github.com/nano-muse/nanoMuse/discussions'
@@ -98,14 +100,14 @@ export function makeComputerSection(t: Translate) {
           h('div', { className: 'nm-row-main' },
             h('span', { className: 'nm-row-title' }, t('cuRisk')),
             h('span', { className: 'nm-row-sub nm-wrap' }, t('cuRiskNote'))))),
-      // "always allow" given on the stage, per app (C2): listed here, revocable here
+      // "always allow" given on the stage, per app (C2): listed here, revocable here; a grant limited to one chat or task says so
       h('h2', null, t('pfApprovalsAlways')),
       live.grants.length
-        ? h('div', { className: 'nm-card' }, live.grants.map((g) => h('div', { key: g.id, className: 'nm-row' },
+        ? h('div', { className: 'nm-card' }, standingGrants({ grants: live.grants, goneSchedules: live.goneSchedules, chatTasks: live.chatTasks }).map((g) => h('div', { key: g.id, className: 'nm-row' },
             h('span', { className: 'nm-row-icon' }, h(IconShield, { size: 18 })),
             h('div', { className: 'nm-row-main' },
-              h('span', { className: 'nm-row-title' }, t('pfAlwaysAllowed', { target: g.target.replace(/^computer_app:/, '') })),
-              h('span', { className: 'nm-row-sub' }, t('cuGrantSub', { name }))),
+              h('span', { className: 'nm-row-title' }, t('pfAlwaysAllowed', { target: g.target })),
+              h('span', { className: 'nm-row-sub nm-wrap' }, grantScopeLine(t, g) || t('cuGrantSub', { name }))),
             h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', onClick: () => void call('grants/revoke', { id: g.id }).catch(() => undefined) }, t('pmRevoke')))))
         : h('p', null, t('cuGrantsNone')))
   }

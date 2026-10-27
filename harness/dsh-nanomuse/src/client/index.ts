@@ -19,6 +19,7 @@ import { makeAvatarStudio } from './AvatarStudio.tsx'
 import { bridge } from './bridge.ts'
 import { profileBus, settingsBus } from './bus.ts'
 import { makeAboutSheet } from './About.tsx'
+import { renderApprovalScopes } from './ApprovalScopes.ts'
 import { syncOverlay } from './overlay.ts'
 import { renderFenceCards } from './FenceCards.ts'
 import { renderRemoteBubbles } from './RemoteBubbles.ts'
@@ -634,6 +635,7 @@ export function apply(ctx: ClientContext): void {
   if (quickChatOff) ctx.effect(() => quickChatOff, 'nanomuse: quick chat')
   // The shell's overlays while the hands work: the glow and the capsule outside this window.
   ctx.effect(() => syncOverlay({ t, stop }), 'nanomuse: overlays')
+  ctx.effect(() => renderApprovalScopes(t), 'nanomuse: approval scopes')
   // The agent's app fences (goal created, goal update, feed post, new look) as cards in the chat.
   ctx.effect(() => renderFenceCards(t), 'nanomuse: fence cards')
   // The turns written on the account's other devices, as bubbles in the thread (C8).

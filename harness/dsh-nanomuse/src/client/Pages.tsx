@@ -17,7 +17,7 @@ import { DEVICES_PANEL } from './panels.ts'
 import { usePrefs } from './prefs.ts'
 import { CONNECTORS_SECTION, useConnectors } from './Connectors.tsx'
 import { roomsCall } from './rooms.ts'
-import { ago } from './ui.tsx'
+import { ago, grantScopeLine } from './ui.tsx'
 
 export const PERMISSIONS_SECTION = 'nanomuse-permissions'
 export const FILES_SECTION = 'nanomuse-files'
@@ -86,14 +86,15 @@ const TIER_WORDS: Record<GrantTier, { title: Words; sub: Words }> = {
 /**
  * Every remembered permission on this computer, by the Sentinel's three tiers (the phone's
  * Permissions page groups the same way): the remote-control switch, the devices allowed
- * without asking, the hands' per-app grants. The Computer page and the profile drawer keep
- * their own lists; this one is the complete one. Read from the live snapshot, so a grant
- * given on a card appears at once; one revoke route takes any of them.
+ * without asking, the hands' per-app grants. A grant limited to one chat or one scheduled
+ * task says so on its row. The Computer page and the profile drawer keep their own lists;
+ * this one is the complete one. Read from the live snapshot, so a grant given on a card
+ * appears at once; one revoke route takes any of them.
  */
 function StandingGrants({ t, live }: { t: Translate; live: Live }): ReactNode {
   const [busy, setBusy] = useState<string | undefined>()
   const name = live.profile.name || t('brand')
-  const groups = groupGrants(standingGrants({ grants: live.grants, trusted: live.hub.trusted, remoteControl: live.hub.remoteControl }))
+  const groups = groupGrants(standingGrants({ grants: live.grants, trusted: live.hub.trusted, remoteControl: live.hub.remoteControl, goneSchedules: live.goneSchedules, chatTasks: live.chatTasks }))
   if (groups.length === 0) return h(Fragment, null, h('p', null, t('sgLead')), h('p', null, t('sgEmpty')))
   const revoke = (id: string) => {
     setBusy(id)
@@ -103,7 +104,7 @@ function StandingGrants({ t, live }: { t: Translate; live: Live }): ReactNode {
     switch (g.kind) {
       case 'remote_control': return { title: t('sgRemoteControl'), sub: t('sgRemoteControlSub'), icon: h(IconDevices, { size: 18 }) }
       case 'device': return { title: t('sgDevice', { name: g.target }), sub: `${t('sgDeviceSub')} · ${ago(t, g.at)}`, icon: h(IconDevices, { size: 18 }) }
-      case 'computer_app': return { title: t('sgHands', { app: g.target }), sub: `${t('sgHandsSub', { name })} · ${ago(t, g.at)}`, icon: h(IconHand, { size: 18 }) }
+      case 'computer_app': return { title: t('sgHands', { app: g.target }), sub: `${grantScopeLine(t, g) || t('sgHandsSub', { name })} · ${ago(t, g.at)}`, icon: h(IconHand, { size: 18 }) }
     }
   }
   return h(Fragment, null,

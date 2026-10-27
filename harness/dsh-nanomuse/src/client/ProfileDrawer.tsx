@@ -24,7 +24,8 @@ import type { ChatListState, ChatStatus } from './MuseChats.tsx'
 import { usePrefs } from './prefs.ts'
 import { useRooms, type ActivityRecord, type GoalAutomation } from './rooms.ts'
 import { TaskDetail } from './TaskDetail.tsx'
-import { ago, clockLabel, dayLabel } from './ui.tsx'
+import { ago, clockLabel, dayLabel, grantScopeLine } from './ui.tsx'
+import { standingGrants, type Grant } from '../desk.ts'
 import { win } from './win.ts'
 
 const COMPUTER_SECTION = 'nanomuse-computer'
@@ -105,7 +106,7 @@ function Drawer({ t, stop, openSchedules, useSessions, useSessionStatus }: Profi
   if (editing === 'name') body = h(NameEditor, { t, profile: live.profile, onDone: () => setEditing('none') })
   else if (editing === 'look') body = h(LookEditor, { t, profile: live.profile, onDone: () => setEditing('none') })
   else if (tab === 'activity') body = h(Activity, { t, name, stop, useSessions, open: (id) => setDetail(id) })
-  else if (tab === 'approvals') body = h(Approvals, { t, name, approvals: prefs.approvals, grants: live.grants })
+  else if (tab === 'approvals') body = h(Approvals, { t, name, approvals: prefs.approvals, grants: live.grants, goneSchedules: live.goneSchedules, chatTasks: live.chatTasks })
   else if (tab === 'reminders') body = h(Reminders, { t, name, openSchedules: () => { profileBus.close(); openSchedules() } })
   else body = h(Identity, { t, name, onEditName: () => setEditing('name') })
 
@@ -242,22 +243,22 @@ function Activity({ t, name, stop, useSessions, open }: { t: Translate; name: st
         : h('span', { className: 'nm-pf-row-time' }, clockLabel(r.at, rooms.lang)))))))
 }
 
-function Approvals({ t, name, approvals, grants }: { t: Translate; name: string; approvals: { at: number; toolName: string; reason: string; outcome: 'allowed' | 'rejected' }[]; grants: { id: string; target: string; at: number }[] }): ReactNode {
+function Approvals({ t, name, approvals, grants, goneSchedules, chatTasks }: { t: Translate; name: string; approvals: { at: number; toolName: string; reason: string; outcome: 'allowed' | 'rejected' }[]; grants: Grant[]; goneSchedules: string[]; chatTasks: Record<string, string[]> }): ReactNode {
   const [openRow, setOpenRow] = useState<number | null>(null)
   const openPermissions = () => { profileBus.close(); settingsBus.openSection?.(COMPUTER_SECTION) }
   const manage = h('div', { className: 'nm-pf-row nm-clickable', role: 'button', tabIndex: 0, onClick: openPermissions, onKeyDown: (e: { key: string; preventDefault(): void }) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPermissions() } } },
     h('span', { className: 'nm-pf-row-icon' }, h(IconShield, { size: 18 })),
     h('div', { className: 'nm-pf-row-main' }, h('div', { className: 'nm-pf-row-title' }, t('pfManagePermissions'))),
     h('span', { className: 'nm-pf-row-chev' }, h(IconChevronRight, { size: 16 })))
-  // the standing grants first (the phone's list), then what was answered on cards
+  // the standing grants first (the phone's list), each saying where it holds, then what was answered on cards
   const standing = grants.length
     ? h(Fragment, null,
         h('div', { className: 'nm-pf-day' }, t('pfApprovalsAlways')),
-        grants.map((g) => h('div', { key: g.id, className: 'nm-pf-row' },
+        standingGrants({ grants, goneSchedules, chatTasks }).map((g) => h('div', { key: g.id, className: 'nm-pf-row' },
           h('span', { className: 'nm-pf-row-icon' }, h(IconCheck, { size: 18 })),
           h('div', { className: 'nm-pf-row-main' },
-            h('div', { className: 'nm-pf-row-title' }, t('pfAlwaysAllowed', { target: g.target.replace(/^computer_app:/, '') })),
-            h('div', { className: 'nm-pf-row-sub' }, ago(t, g.at))),
+            h('div', { className: 'nm-pf-row-title' }, t('pfAlwaysAllowed', { target: g.target })),
+            h('div', { className: 'nm-pf-row-sub' }, [grantScopeLine(t, g), ago(t, g.at)].filter(Boolean).join(' · '))),
           h('button', { type: 'button', className: 'nm-pill nm-pill-ghost nm-pill-sm', onClick: () => void call('grants/revoke', { id: g.id }).catch(() => undefined) }, t('pmRevoke')))))
     : h('p', { className: 'nm-pf-empty' }, t('pfApprovalsEmpty', { name }))
   if (approvals.length === 0) return h('div', { className: 'nm-pf-rows' }, standing, manage)
