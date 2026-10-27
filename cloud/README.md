@@ -789,7 +789,9 @@ GET    /v1/admin/samples         ?account_id=&limit=&since=&before=&before_id=  
 GET    /v1/admin/samples/export  ?since=&account_id=    → the same as JSON lines, without account ids or addresses
 GET    /v1/admin/turns           ?account_id=&limit=&since=&before=&before_id=&conversation=   → the record (0.29): whole turns, newest first
 GET    /v1/admin/turns/export    ?since=&account_id=    → the record as JSON lines, account ids included (it is the account's data, not the training set)
-GET    /v1/admin/record          ?days=30        → what the record holds: turns and files in all and per day, the store against MEDIA_MAX_GB
+GET    /v1/admin/record          ?days=30        → what the record holds: calls and questions in all and per day, calls per question, the store against MEDIA_MAX_GB
+GET    /v1/admin/record/turns    ?account_id=&conversation=&platform=&run=&source=&model=&script=&media=&hands=&since=&limit=&before=&before_key=   → the record question by question (0.31): each laid out once from its calls
+GET    /v1/admin/turns/{id}                      → one call of the record in full
 GET    /v1/admin/blobs/{sha256}                  → one file of the record
 GET    /v1/admin/client-events   ?account_id=&kind=&since=&limit=&before=   → what the apps reported around turns (0.31): Sentinel decisions, approvals, stop reasons, thumbs; codes only
 GET    /v1/admin/client-events/export  ?since=&account_id=   → the same as JSON lines, with the subject pseudonym and no account id

@@ -243,8 +243,10 @@ async def test_every_cloud_turn_is_kept_whole_and_read_back_by_the_account(tmp_p
         "media_bytes": len(PNG_1PX),
         "files": 1,
         "store_bytes": len(PNG_1PX),
+        "questions": 1,  # 0.31: the full turn's call came after a tool's result; the other opened a question
     }
     assert len(view["days"]) == 3 and view["days"][-1]["turns"] == 2 and view["days"][-1]["media"] == 1
+    assert view["days"][-1]["questions"] == 1 and view["questions"]["n"] == 1 and view["questions"]["pending"] == 0
     # the training view is untouched by all this: the switch was off, nothing is there
     assert (await client.get("/v1/admin/samples", headers=ADMIN)).json()["total"] == 0
 

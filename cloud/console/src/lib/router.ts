@@ -20,6 +20,7 @@ export const PAGES = [
   "activity",
   "demo",
   "data",
+  "turns",
   "health",
   "site",
   "models",
@@ -31,7 +32,7 @@ export type Page = (typeof PAGES)[number];
 
 export const GROUPS: { id: string; pages: Page[] }[] = [
   { id: "insight", pages: ["overview", "live", "usage", "platforms", "cohorts", "hands", "quality", "abuse"] },
-  { id: "ops", pages: ["people", "invites", "places", "activity", "demo", "data"] },
+  { id: "ops", pages: ["people", "invites", "places", "activity", "demo", "data", "turns"] },
   { id: "system", pages: ["health", "site", "models", "stats", "controls", "settings"] },
 ];
 

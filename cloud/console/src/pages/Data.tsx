@@ -6,6 +6,7 @@ import { download } from "../lib/api";
 import { bytes, compact, dateOf, fmt, nowS } from "../lib/format";
 import { useData } from "../lib/hooks";
 import { nameOf, useT } from "../lib/i18n";
+import { hashOf } from "../lib/router";
 import type { ClientEventsSummary, DataView, Deletions, RecordView, Sync } from "../lib/types";
 import { Bars, Legend, Ranks, modelColor, platformColor } from "../ui/charts";
 import { Btn, DataTable, Grid, Kpi, Kpis, Note, Panel, Pill, useToast } from "../ui/primitives";
@@ -32,13 +33,17 @@ export function Data({ days }: PageProps) {
             <Kpis>
               <Kpi label={T.da.on} value={fmt(d.accounts.on)} sub={T.da.onSub(d.accounts.on, d.accounts.total)} tone="ok" />
               <Kpi label={T.da.off} value={fmt(d.accounts.turned_off_ever)} sub={T.da.offSub} />
-              <Kpi label={T.da.turns} value={fmt(d.period.samples)} sub={T.da.turnsSub(d.totals.samples, d.accounts.with_samples)} />
+              <Kpi label={T.da.turns} value={fmt(d.period.turns)} sub={T.da.turnsSub(d.totals.turns, d.accounts.with_samples)} tone="accent" />
+              <Kpi label={T.da.calls} value={fmt(d.period.samples)} sub={T.da.callsSub(d.totals.samples, d.period.turns ? (d.period.samples / d.period.turns).toFixed(1) : "–")} />
               <Kpi label={T.da.tokens} value={compact(d.period.prompt_tokens + d.period.completion_tokens)} sub={T.da.tokensSub(compact(d.totals.prompt_tokens), compact(d.totals.completion_tokens))} />
               <Kpi label={T.g.accounts} value={fmt(d.period.accounts)} sub={T.g.period(days)} />
               <Kpi label={T.g.share} value={`${(100 * d.accounts.share).toFixed(0)}%`} sub={T.da.defaultOn(d.default_on)} small />
             </Kpis>
             <Note>
               <b>{T.da.kept}:</b> {d.keeps.kept.join(", ")}. <b>{T.da.notKept}:</b> {d.keeps.not_kept.join(", ")}.
+            </Note>
+            <Note>
+              {T.da.twoWays} {d.totals.turns_pending > 0 && <span className="text-warn">{T.da.pendingTurns(d.totals.turns_pending)}</span>} <a className="text-accent" href={hashOf("turns")}>{T.da.reBrowse} →</a>
             </Note>
             <Panel
               title={T.da.series}
@@ -51,7 +56,10 @@ export function Data({ days }: PageProps) {
               }
             >
               <Bars
-                series={[{ name: T.da.legend.samples, values: d.days.map((x) => x.samples), color: "var(--c1)" }]}
+                series={[
+                  { name: T.da.legend.samples, values: d.days.map((x) => x.samples), color: "var(--c1)" },
+                  { name: T.da.legend.turns, values: d.days.map((x) => x.turns), color: "var(--c2)" },
+                ]}
                 lines={[
                   { name: T.da.legend.turned_on, values: d.days.map((x) => x.turned_on), color: "var(--ok)" },
                   { name: T.da.legend.turned_off, values: d.days.map((x) => x.turned_off), color: "var(--bad)" },
@@ -60,31 +68,32 @@ export function Data({ days }: PageProps) {
                 titles={dayTitles(d.days.map((x) => x.day))}
                 height={150}
               />
-              <Legend className="mt-2" items={[{ name: T.da.legend.samples, color: "var(--c1)" }, { name: T.da.legend.turned_on, color: "var(--ok)" }, { name: T.da.legend.turned_off, color: "var(--bad)" }]} />
+              <Legend className="mt-2" items={[{ name: T.da.legend.samples, color: "var(--c1)" }, { name: T.da.legend.turns, color: "var(--c2)" }, { name: T.da.legend.turned_on, color: "var(--ok)" }, { name: T.da.legend.turned_off, color: "var(--bad)" }]} />
             </Panel>
             <Grid cols={2}>
               <Panel title={T.da.byRun}>
-                <Ranks rows={d.by_run.map((r) => ({ name: nameOf(T.da.runs, r.run || "unsaid"), value: r.samples, color: r.run === "person" || r.run === "" ? "var(--c1)" : "var(--c3)" }))} showShare />
+                <Ranks rows={d.by_run.map((r) => ({ name: nameOf(T.da.runs, r.run || "unsaid"), value: r.turns, sub: T.da.both(r.turns, r.samples), color: r.run === "person" || r.run === "" ? "var(--c1)" : "var(--c3)" }))} showShare />
               </Panel>
               <Panel title={T.da.bySource}>
-                <Ranks rows={d.by_source.map((r) => ({ name: nameOf(T.da.sources, r.source), value: r.samples, color: r.source === "own" ? "var(--c4)" : "var(--c2)" }))} showShare />
+                <Ranks rows={d.by_source.map((r) => ({ name: nameOf(T.da.sources, r.source), value: r.turns, sub: T.da.both(r.turns, r.samples), color: r.source === "own" ? "var(--c4)" : "var(--c2)" }))} showShare />
               </Panel>
             </Grid>
             <Grid cols={3}>
               <Panel title={T.da.byModel}>
-                <Ranks rows={d.by_model.map((m) => ({ name: <code>{m.model}</code>, value: m.samples, sub: `${compact(m.tokens)} ${T.g.tokens}`, color: modelColor(m.model) }))} showShare />
+                <Ranks rows={d.by_model.map((m) => ({ name: <code>{m.model}</code>, value: m.turns, sub: `${T.da.both(m.turns, m.samples)} · ${compact(m.tokens)} ${T.g.tokens}`, color: modelColor(m.model) }))} showShare />
               </Panel>
               <Panel title={T.da.byPlatform}>
-                <Ranks rows={d.by_platform.map((p) => ({ name: nameOf(T.platforms, p.platform), value: p.samples, color: platformColor(p.platform) }))} showShare />
+                <Ranks rows={d.by_platform.map((p) => ({ name: nameOf(T.platforms, p.platform), value: p.turns, sub: T.da.both(p.turns, p.samples), color: platformColor(p.platform) }))} showShare />
               </Panel>
               <Panel title={T.da.byAccount} pad={false}>
                 <DataTable
                   rows={d.by_account}
                   rowKey={(a) => a.account_id}
-                  defaultSort="samples"
+                  defaultSort="turns"
                   limit={12}
                   columns={[
                     { key: "who", label: T.da.accCols.who, sortable: false, render: (a) => <Who id={a.account_id} hint={a.hint} channel={a.channel} tags={!a.contribute ? <Pill tone="warn">{T.g.off}</Pill> : null} /> },
+                    { key: "turns", label: T.da.accCols.turns, num: true, render: (a) => fmt(a.turns) },
                     { key: "samples", label: T.da.accCols.samples, num: true, render: (a) => fmt(a.samples) },
                     { key: "tokens", label: T.da.accCols.tokens, num: true, value: (a) => a.prompt_tokens + a.completion_tokens, render: (a) => compact(a.prompt_tokens + a.completion_tokens) },
                     { key: "last_ts", label: T.da.accCols.last, num: true, render: (a) => <Ago ts={a.last_ts} /> },
@@ -121,7 +130,10 @@ export function Data({ days }: PageProps) {
             {r.on && (
               <>
                 <Kpis>
+                  <Kpi flat label={T.da.reQuestions} value={fmt(r.period.questions)} sub={T.da.reQuestionsSub(r.questions.calls_mean ? r.questions.calls_mean.toFixed(1) : "–")} tone="accent" onClick={() => (location.hash = hashOf("turns"))} />
                   <Kpi flat label={T.da.reTurns} value={fmt(r.period.n)} sub={T.da.reTurnsSub(r.totals.n, r.totals.accounts)} />
+                  <Kpi flat label={T.da.reWithMedia} value={fmt(r.questions.with_media)} sub={T.da.reWithHands + " " + fmt(r.questions.with_hands)} />
+                  {r.questions.pending > 0 && <Kpi flat label={T.da.rePending} value={fmt(r.questions.pending)} sub={T.da.rePendingSub} tone="warn" />}
                   <Kpi flat label={T.g.accounts} value={fmt(r.period.accounts)} sub={T.g.period(days)} />
                   <Kpi flat label={T.da.reOwn} value={fmt(r.totals.own)} sub={T.da.reOwnSub} />
                   <Kpi flat label={T.da.rePartial} value={fmt(r.totals.partial)} />
@@ -130,13 +142,22 @@ export function Data({ days }: PageProps) {
                   <Kpi flat label={T.g.day} value={T.da.reKeep(r.keep_days)} small />
                 </Kpis>
                 <Bars
-                  series={[{ name: T.da.reLegend.turns, values: r.days.map((x) => x.turns), color: "var(--c2)" }]}
+                  series={[
+                    { name: T.da.reLegend.turns, values: r.days.map((x) => x.turns), color: "var(--c2)" },
+                    { name: T.da.reLegend.questions, values: r.days.map((x) => x.questions), color: "var(--c1)" },
+                  ]}
                   lines={[{ name: T.da.reLegend.media, values: r.days.map((x) => x.media), color: "var(--c4)" }]}
                   labels={dayLabels(r.days.map((x) => x.day))}
                   titles={dayTitles(r.days.map((x) => x.day))}
                   height={120}
                 />
-                <Legend className="mt-2" items={[{ name: T.da.reLegend.turns, color: "var(--c2)" }, { name: T.da.reLegend.media, color: "var(--c4)" }]} />
+                <Legend className="mt-2" items={[{ name: T.da.reLegend.turns, color: "var(--c2)" }, { name: T.da.reLegend.questions, color: "var(--c1)" }, { name: T.da.reLegend.media, color: "var(--c4)" }]} />
+                {Object.keys(r.questions.calls_per_question || {}).length > 0 && (
+                  <div className="mt-3">
+                    <div className="hint mb-1">{T.da.rePerQuestion}</div>
+                    <Ranks rows={Object.entries(r.questions.calls_per_question).map(([b, n]) => ({ name: T.da.reBucket(b), value: n, color: b === "1" ? "var(--c1)" : "var(--c3)" }))} showShare />
+                  </div>
+                )}
               </>
             )}
           </Panel>

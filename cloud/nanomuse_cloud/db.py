@@ -662,6 +662,20 @@ class Database:
             add("sample_stats", col, ddl)
         self._conn.execute("CREATE INDEX IF NOT EXISTS sample_stats_turn ON sample_stats(turn_id) WHERE turn_id<>''")
         self._conn.execute("CREATE INDEX IF NOT EXISTS turns_trajectory ON turns(account_id, trajectory, ts) WHERE trajectory<>''")
+        # 0.31: one question, many calls (provenance.turn_start). `turn_start` is 1 for the
+        # row that opens a turn, 0 for one that continues it, -1 until the backfill has read
+        # the row; `turn_key` is the id of the row that opened the turn (its own, for the
+        # opener), so the rows of one question group and the figures count turns as well as
+        # calls. The training view's shape gets the same, and the conversation its turn's
+        # key is looked up in.
+        for col, ddl in (("turn_start", "INTEGER NOT NULL DEFAULT -1"), ("turn_key", "TEXT NOT NULL DEFAULT ''")):
+            add("turns", col, ddl)
+            add("sample_stats", col, ddl)
+        add("sample_stats", "conversation", "TEXT NOT NULL DEFAULT ''")
+        add("sample_stats", "turn_no", "INTEGER NOT NULL DEFAULT 0")
+        self._conn.execute("CREATE INDEX IF NOT EXISTS turns_key ON turns(turn_key) WHERE turn_key<>''")
+        self._conn.execute("CREATE INDEX IF NOT EXISTS sample_stats_key ON sample_stats(turn_key) WHERE turn_key<>''")
+        self._conn.execute("CREATE INDEX IF NOT EXISTS sample_stats_conversation ON sample_stats(account_id, conversation, ts)")
 
     # -- 0.15: settings the operator changes while the relay runs ------------------------------
 
@@ -1383,12 +1397,22 @@ class Database:
         ``last_used_at`` moved on every later one (the sweep and the trim go by it); the
         account's reference to it is written once, whether or not the file was known."""
         t = int(row.get("ts") or now())
+        start = row.get("turn_start")
         with self.tx() as c:
+            # 0.31: the turn's key — its own id for the row that opens a turn, the opener's
+            # for one that continues it (turn_key_for, in the same transaction)
+            key = ""
+            if start is not None:
+                key = (
+                    row["id"]
+                    if start
+                    else self._turn_key_for(c, "turns", row["account_id"], row.get("conversation", ""), int(row.get("turn_no") or 0), t)
+                )
             c.execute(
                 "INSERT OR REPLACE INTO turns(id, account_id, ts, model, platform, device, conversation, source, status, "
                 "request, response, prompt_tokens, completion_tokens, cached_tokens, media, media_bytes, meta, "
-                "run, turn_no, step, trajectory, trajectory_step, script) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "run, turn_no, step, trajectory, trajectory_step, script, turn_start, turn_key) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     row["id"],
                     row["account_id"],
@@ -1413,10 +1437,210 @@ class Database:
                     str(row.get("trajectory") or "")[:80],
                     int(row.get("trajectory_step") or 0),
                     str(row.get("script") or "")[:8],
+                    -1 if start is None else (1 if start else 0),
+                    key,
                 ),
             )
             for m in media:
                 self._reference_blob(c, m, row["account_id"], "turn", t)
+
+    # -- 0.31: one question, many calls (provenance.turn_start) -------------------------------
+
+    @staticmethod
+    def _turn_key_for(
+        c: sqlite3.Cursor,
+        table: str,
+        account_id: str,
+        conversation: str,
+        turn_no: int,
+        ts: int,
+        before_rowid: int | None = None,
+    ) -> str:
+        """The key of the turn a row that continues one belongs to. When the app numbered
+        the turn (``turn_no``) and named the conversation, the opener is the first row of
+        that number in that conversation; otherwise it is whatever turn the latest earlier
+        row of the same conversation belongs to (a conversation's calls come one after the
+        other). ``before_rowid`` leaves a row that is already in the table out of its own
+        look-up (the backfill). "" when nothing earlier is known."""
+        if table not in ("turns", "sample_stats"):
+            raise ValueError(table)
+        if turn_no and conversation:
+            r = c.execute(
+                f"SELECT turn_key FROM {table} WHERE account_id=? AND conversation=? AND turn_no=? AND turn_key<>'' "
+                "ORDER BY ts, rowid LIMIT 1",
+                (account_id, conversation, turn_no),
+            ).fetchone()
+            if r is not None:
+                return str(r[0])
+        q = f"SELECT turn_key FROM {table} WHERE account_id=? AND conversation=? AND turn_key<>''"
+        args: list[Any] = [account_id, conversation]
+        if before_rowid is None:
+            q += " AND ts<=?"
+            args.append(ts)
+        else:
+            q += " AND (ts<? OR (ts=? AND rowid<?))"
+            args.extend([ts, ts, before_rowid])
+        r = c.execute(q + " ORDER BY ts DESC, rowid DESC LIMIT 1", args).fetchone()
+        return str(r[0]) if r is not None else ""
+
+    def turns_unkeyed_page(self, after_ts: int, after_rowid: int, limit: int) -> list[sqlite3.Row]:
+        """The next rows of the record the backfill has not read, oldest first (the key of a
+        row that continues a turn is its opener's, so the openers must be keyed first)."""
+        with self._lock:
+            return self._conn.execute(
+                "SELECT rowid, id, account_id, ts, conversation, turn_no, step, request FROM turns "
+                "WHERE (ts>? OR (ts=? AND rowid>?)) ORDER BY ts, rowid LIMIT ?",
+                (after_ts, after_ts, after_rowid, max(1, limit)),
+            ).fetchall()
+
+    def set_turn_keys(self, table: str, rows: list[dict[str, Any]]) -> int:
+        """``turn_start`` and ``turn_key`` written to rows the backfill described: each row is
+        ``{rowid, account_id, conversation, turn_no, ts, start, id}``; the key of one that
+        continues a turn is looked up as it is written, so a page's openers key the rows
+        after them in the same transaction."""
+        if table not in ("turns", "sample_stats"):
+            raise ValueError(table)
+        n = 0
+        with self.tx() as c:
+            for r in rows:
+                start = bool(r["start"])
+                key = (
+                    str(r["id"])
+                    if start
+                    else self._turn_key_for(
+                        c,
+                        table,
+                        str(r["account_id"]),
+                        str(r.get("conversation") or ""),
+                        int(r.get("turn_no") or 0),
+                        int(r["ts"]),
+                        int(r["rowid"]),
+                    )
+                )
+                sets = "turn_start=?, turn_key=?"
+                args: list[Any] = [1 if start else 0, key]
+                if table == "sample_stats" and "conversation" in r:
+                    sets += ", conversation=?, turn_no=?"
+                    args.extend([str(r.get("conversation") or "")[:80], int(r.get("turn_no") or 0)])
+                args.append(int(r["rowid"]))
+                n += c.execute(f"UPDATE {table} SET {sets} WHERE rowid=?", args).rowcount
+        return n
+
+    def sample_stats_unkeyed_page(self, after_ts: int, after_rowid: int, limit: int) -> list[sqlite3.Row]:
+        """The next shape rows the backfill has not read, oldest first, with the kept turn's
+        messages and meta beside them (the request's last message says whether the call
+        opened a turn; the meta names the conversation)."""
+        with self._lock:
+            return self._conn.execute(
+                "SELECT st.rowid AS rowid, st.sample_id AS id, st.account_id, st.ts, st.turn_id, s.request, s.meta "
+                "FROM sample_stats st JOIN samples s ON s.id=st.sample_id "
+                "WHERE (st.ts>? OR (st.ts=? AND st.rowid>?)) ORDER BY st.ts, st.rowid LIMIT ?",
+                (after_ts, after_ts, after_rowid, max(1, limit)),
+            ).fetchall()
+
+    def turn_groups(
+        self,
+        since: int = 0,
+        limit: int = 20,
+        before: int = 0,
+        before_key: str = "",
+        *,
+        account_id: str | None = None,
+        conversation: str = "",
+        platform: str = "",
+        run: str = "",
+        source: str = "",
+        media: bool = False,
+        hands: bool = False,
+        script: str = "",
+        model: str = "",
+    ) -> list[sqlite3.Row]:
+        """The record one question at a time: the turns (``turn_key`` groups) matching the
+        filters, newest last call first, with the group's figures. Keyset paging on (last
+        call's ts, key). Each filter narrows to turns with at least one call that matches
+        (``media``: a picture or clip in some call; ``hands``: a screen-operation task)."""
+        where = ["turn_key<>''", "ts>=?"]
+        args: list[Any] = [since]
+        if account_id is not None:
+            where.append("account_id=?")
+            args.append(account_id)
+        if conversation:
+            where.append("conversation=?")
+            args.append(conversation)
+        having = []
+        if platform:
+            having.append("SUM(CASE WHEN platform=? THEN 1 ELSE 0 END)>0")
+            args.append(platform)
+        if run:
+            having.append("SUM(CASE WHEN run=? THEN 1 ELSE 0 END)>0")
+            args.append(run)
+        if source:
+            having.append("SUM(CASE WHEN source=? THEN 1 ELSE 0 END)>0")
+            args.append(source)
+        if model:
+            having.append("SUM(CASE WHEN model=? THEN 1 ELSE 0 END)>0")
+            args.append(model)
+        if script:
+            having.append("SUM(CASE WHEN script=? THEN 1 ELSE 0 END)>0")
+            args.append(script)
+        if media:
+            having.append("SUM(media)>0")
+        if hands:
+            having.append("SUM(CASE WHEN trajectory<>'' THEN 1 ELSE 0 END)>0")
+        if before:
+            having.append("(MAX(ts)<? OR (MAX(ts)=? AND turn_key<?))")
+            args.extend([before, before, before_key])
+        q = (
+            "SELECT turn_key, COUNT(*) AS n, MIN(ts) AS ts0, MAX(ts) AS ts1, MIN(account_id) AS account_id, "
+            "SUM(prompt_tokens) AS prompt_tokens, SUM(completion_tokens) AS completion_tokens, SUM(media) AS media, "
+            "SUM(CASE WHEN trajectory<>'' THEN 1 ELSE 0 END) AS hands, SUM(CASE WHEN status='partial' THEN 1 ELSE 0 END) AS partial "
+            f"FROM turns WHERE {' AND '.join(where)} GROUP BY turn_key"
+        )
+        if having:
+            q += " HAVING " + " AND ".join(having)
+        q += " ORDER BY ts1 DESC, turn_key DESC LIMIT ?"
+        args.append(max(1, min(limit, 200)))
+        with self._lock:
+            return self._conn.execute(q, args).fetchall()
+
+    def turns_of(self, keys: list[str]) -> list[sqlite3.Row]:
+        """Every call of the turns named, oldest first, so the caller can lay each turn out."""
+        if not keys:
+            return []
+        with self._lock:
+            return self._conn.execute(
+                f"SELECT * FROM turns WHERE turn_key IN ({','.join('?' * len(keys))}) ORDER BY ts, rowid", keys
+            ).fetchall()
+
+    def calls_per_turn(self, since: int = 0, account_id: str | None = None) -> list[tuple[int, int]]:
+        """How many turns took how many calls, since ``since``: ``(calls, turns)`` pairs."""
+        q = "SELECT n, COUNT(*) AS turns FROM (SELECT COUNT(*) AS n FROM turns WHERE turn_key<>'' AND ts>=?"
+        args: list[Any] = [since]
+        if account_id is not None:
+            q += " AND account_id=?"
+            args.append(account_id)
+        q += " GROUP BY turn_key) GROUP BY n ORDER BY n"
+        with self._lock:
+            return [(int(r["n"]), int(r["turns"])) for r in self._conn.execute(q, args).fetchall()]
+
+    def turn_figures(self, since: int = 0, account_id: str | None = None) -> dict[str, int]:
+        """The record counted by turns (0.31): how many questions, how many of them had a
+        picture or a clip, how many ran the hands, and how many calls still wait for the
+        backfill to tell which turn they belong to."""
+        q = (
+            "SELECT SUM(CASE WHEN turn_start=1 THEN 1 ELSE 0 END) AS turns, "
+            "SUM(CASE WHEN turn_start<0 THEN 1 ELSE 0 END) AS pending, "
+            "COUNT(DISTINCT CASE WHEN media>0 AND turn_key<>'' THEN turn_key END) AS with_media, "
+            "COUNT(DISTINCT CASE WHEN trajectory<>'' AND turn_key<>'' THEN turn_key END) AS with_hands "
+            "FROM turns WHERE ts>=?"
+        )
+        args: list[Any] = [since]
+        if account_id is not None:
+            q += " AND account_id=?"
+            args.append(account_id)
+        with self._lock:
+            r = self._conn.execute(q, args).fetchone()
+            return {k: int(r[k] or 0) for k in r.keys()}
 
     @staticmethod
     def _reference_blob(c: sqlite3.Cursor, m: dict[str, Any], account_id: str, owner: str, t: int) -> None:
@@ -1498,7 +1722,7 @@ class Database:
             "SELECT COUNT(*) AS n, COUNT(DISTINCT account_id) AS accounts, SUM(prompt_tokens) AS prompt_tokens, "
             "SUM(completion_tokens) AS completion_tokens, SUM(media) AS media, SUM(media_bytes) AS media_bytes, "
             "SUM(CASE WHEN source='own' THEN 1 ELSE 0 END) AS own, "
-            "SUM(CASE WHEN status='partial' THEN 1 ELSE 0 END) AS partial FROM turns WHERE ts>=?"
+            f"SUM(CASE WHEN status='partial' THEN 1 ELSE 0 END) AS partial, {self._TURNS} FROM turns WHERE ts>=?"
         )
         args: list = [since]
         if account_id is not None:
@@ -1523,7 +1747,7 @@ class Database:
         with self._lock:
             return self._conn.execute(
                 f"""SELECT {self._DAY} AS day, COUNT(*) AS n, COUNT(DISTINCT account_id) AS accounts,
-                           SUM(media) AS media, SUM(media_bytes) AS media_bytes
+                           SUM(media) AS media, SUM(media_bytes) AS media_bytes, {self._TURNS}
                     FROM turns WHERE ts>=? GROUP BY day ORDER BY day""",
                 (offset_s, offset_s, offset_s, since),
             ).fetchall()
@@ -1642,12 +1866,15 @@ class Database:
     # analytics loop has not copied yet (Analytics.tokens_step); it counts as nothing.
 
     _TOKENS = "SUM(MAX(prompt_tokens, 0)) AS prompt_tokens, SUM(MAX(completion_tokens, 0)) AS completion_tokens"
+    #: 0.31: the rows that opened a turn — the figures count questions beside calls
+    _TURNS = "SUM(CASE WHEN turn_start=1 THEN 1 ELSE 0 END) AS turns"
 
     def samples_totals(self, since: int) -> sqlite3.Row:
         """How many turns were kept since ``since``, by how many accounts, and their tokens."""
         with self._lock:
             return self._conn.execute(
-                f"SELECT COUNT(*) AS n, COUNT(DISTINCT account_id) AS accounts, {self._TOKENS} FROM sample_stats WHERE ts>=?",
+                f"SELECT COUNT(*) AS n, COUNT(DISTINCT account_id) AS accounts, {self._TOKENS}, {self._TURNS}, "
+                "SUM(CASE WHEN turn_start<0 THEN 1 ELSE 0 END) AS pending FROM sample_stats WHERE ts>=?",
                 (since,),
             ).fetchone()
 
@@ -1655,7 +1882,7 @@ class Database:
         """Kept turns per local day (``offset_s`` east of UTC): count, accounts, tokens."""
         with self._lock:
             return self._conn.execute(
-                f"""SELECT {self._DAY} AS day, COUNT(*) AS n, COUNT(DISTINCT account_id) AS accounts, {self._TOKENS}
+                f"""SELECT {self._DAY} AS day, COUNT(*) AS n, COUNT(DISTINCT account_id) AS accounts, {self._TOKENS}, {self._TURNS}
                     FROM sample_stats WHERE ts>=? GROUP BY day ORDER BY day""",
                 (offset_s, offset_s, offset_s, since),
             ).fetchall()
@@ -1663,7 +1890,7 @@ class Database:
     def samples_by_model(self, since: int) -> list[sqlite3.Row]:
         with self._lock:
             return self._conn.execute(
-                f"SELECT model, COUNT(*) AS n, {self._TOKENS} FROM sample_stats WHERE ts>=? GROUP BY model ORDER BY n DESC",
+                f"SELECT model, COUNT(*) AS n, {self._TOKENS}, {self._TURNS} FROM sample_stats WHERE ts>=? GROUP BY model ORDER BY n DESC",
                 (since,),
             ).fetchall()
 
@@ -1674,6 +1901,7 @@ class Database:
             return self._conn.execute(
                 """SELECT s.account_id, a.hint, a.channel, a.contribute, a.created_at,
                           COUNT(*) AS n, SUM(MAX(s.prompt_tokens, 0)) AS prompt_tokens, SUM(MAX(s.completion_tokens, 0)) AS completion_tokens,
+                          SUM(CASE WHEN s.turn_start=1 THEN 1 ELSE 0 END) AS turns,
                           MIN(s.ts) AS first_ts, MAX(s.ts) AS last_ts, GROUP_CONCAT(DISTINCT s.model) AS models
                    FROM sample_stats s JOIN accounts a ON a.id=s.account_id
                    GROUP BY s.account_id ORDER BY last_ts DESC""",
@@ -1683,7 +1911,7 @@ class Database:
         """Kept turns of the period by the app behind them (client.platform_of, kept with the shape)."""
         with self._lock:
             return self._conn.execute(
-                "SELECT platform, COUNT(*) AS n FROM sample_stats WHERE ts>=? GROUP BY platform ORDER BY n DESC", (since,)
+                f"SELECT platform, COUNT(*) AS n, {self._TURNS} FROM sample_stats WHERE ts>=? GROUP BY platform ORDER BY n DESC", (since,)
             ).fetchall()
 
     def samples_by_column(self, column: str, since: int) -> list[sqlite3.Row]:
@@ -1693,7 +1921,7 @@ class Database:
             raise ValueError(column)
         with self._lock:
             return self._conn.execute(
-                f"SELECT {column}, COUNT(*) AS n FROM sample_stats WHERE ts>=? GROUP BY {column} ORDER BY n DESC", (since,)
+                f"SELECT {column}, COUNT(*) AS n, {self._TURNS} FROM sample_stats WHERE ts>=? GROUP BY {column} ORDER BY n DESC", (since,)
             ).fetchall()
 
     def event_accounts(self, kind: str) -> int:
@@ -3203,21 +3431,40 @@ class Database:
         "run",
         "source",
         "turn_id",
+        "conversation",
+        "turn_no",
+        "turn_start",
+        "turn_key",
     )
 
     def add_sample_stats(self, rows: list[dict[str, Any]]) -> int:
-        """The shape rows of kept turns (one per turn); a turn already described is left alone.
-        A row without its tokens gets -1 for them (not copied yet), not 0."""
+        """The shape rows of kept turns (one per call); a call already described is left alone.
+        A row without its tokens gets -1 for them (not copied yet), not 0. A row that says
+        whether its call opened a turn (``turn_start``, 0.31) gets the turn's key as it is
+        written: the record's id for the call when the row names it (``turn_id``), else the
+        sample's own, for an opener; the opener's key for one that continues a turn."""
         if not rows:
             return 0
         cols = self.SAMPLE_STAT_COLUMNS
-        text = ("sample_id", "account_id", "model", "platform", "user_hash", "run", "source", "turn_id")
-        tokens = ("prompt_tokens", "completion_tokens")
+        text = ("sample_id", "account_id", "model", "platform", "user_hash", "run", "source", "turn_id", "conversation", "turn_key")
+        tokens = ("prompt_tokens", "completion_tokens", "turn_start")
         with self.tx() as c:
-            c.executemany(
-                f"INSERT OR IGNORE INTO sample_stats({','.join(cols)}) VALUES ({','.join('?' * len(cols))})",
-                [[r.get(k, "" if k in text else -1 if k in tokens else 0) for k in cols] for r in rows],
-            )
+            for r in rows:
+                r = dict(r)
+                start = r.get("turn_start")
+                if start is None or start < 0:
+                    r["turn_start"], r["turn_key"] = -1, ""
+                elif start:
+                    r["turn_start"], r["turn_key"] = 1, str(r.get("turn_id") or r["sample_id"])
+                else:
+                    r["turn_start"] = 0
+                    r["turn_key"] = self._turn_key_for(
+                        c, "sample_stats", str(r["account_id"]), str(r.get("conversation") or ""), int(r.get("turn_no") or 0), int(r["ts"])
+                    )
+                c.execute(
+                    f"INSERT OR IGNORE INTO sample_stats({','.join(cols)}) VALUES ({','.join('?' * len(cols))})",
+                    [r.get(k, "" if k in text else -1 if k in tokens else 0) for k in cols],
+                )
         return len(rows)
 
     def samples_tokens_page(self, before_ts: int, before_rowid: int, limit: int) -> list[sqlite3.Row]:

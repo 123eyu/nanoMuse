@@ -542,6 +542,14 @@ def create_app(
                         log.info("analytics: tokens of %d kept turns copied so far", analytics.tokens_rows)
                     await asyncio.sleep(0.5 if n else 60)
                     continue
+                if not analytics.keys_done:
+                    # 0.31: the rows kept before the relay told a question from the calls it
+                    # took get their turn keys, oldest first, a page of each table at a time
+                    n = await asyncio.to_thread(analytics.turn_keys_step, 500)
+                    if n and analytics.keys_rows % 20000 < 1000:
+                        log.info("analytics: %d kept calls assigned to their turns so far", analytics.keys_rows)
+                    await asyncio.sleep(0.5 if n else 60)
+                    continue
                 if optimized_at is None or time.monotonic() - optimized_at > 3600:
                     # the planner's statistics (Database.optimize): milliseconds, once an hour
                     optimized_at = time.monotonic()
@@ -2217,6 +2225,47 @@ def create_app(
             }
         )
 
+    @app.get("/v1/admin/record/turns", dependencies=[Depends(admin_dep)])
+    async def admin_record_turns(
+        account_id: str = "",
+        conversation: str = "",
+        platform: str = "",
+        run: str = "",
+        source: str = "",
+        model: str = "",
+        script: str = "",
+        media: int = 0,
+        hands: int = 0,
+        since: int = 0,
+        limit: int = 20,
+        before: int = 0,
+        before_key: str = "",
+    ) -> dict:
+        """The record one question at a time (0.31): each turn with every model call it
+        took, laid out as steps — the person's message, what the model said and what came
+        back at each call, the reply; pictures as references into /v1/admin/blobs. Pages
+        with `before` (the last turn's `ts1`) and `before_key`. `pending` counts the calls
+        the backfill has not yet assigned to a turn."""
+        return with_places(
+            await asyncio.to_thread(
+                lambda: cloud.admin_turn_groups(
+                    since,
+                    max(1, min(limit, 100)),
+                    before,
+                    before_key[:96],
+                    account_id=account_id or None,
+                    conversation=conversation,
+                    platform=platform,
+                    run=run,
+                    source=source,
+                    media=bool(media),
+                    hands=bool(hands),
+                    script=script,
+                    model=model,
+                )
+            )
+        )
+
     @app.get("/v1/admin/turns/export", dependencies=[Depends(admin_dep)])
     async def admin_turns_export(since: int = 0, account_id: str = "") -> Response:
         """The record as JSON lines, account ids included (it is the account's data, not the
@@ -2228,6 +2277,15 @@ def create_app(
             media_type="application/x-ndjson",
             headers={"Content-Disposition": f'attachment; filename="{name}.jsonl"', "Cache-Control": "no-store"},
         )
+
+    @app.get("/v1/admin/turns/{turn_id}", dependencies=[Depends(admin_dep)])
+    async def admin_turn_one(turn_id: str) -> dict:
+        """One call of the record in full: the whole request as the model saw it (the system
+        prompt, every message, the tools offered) and the answer."""
+        found = await asyncio.to_thread(cloud.admin_turn, turn_id[:96])
+        if found is None:
+            raise CloudError(404, "not_found", "No such turn")
+        return with_places({"turn": found})
 
     @app.get("/v1/admin/record", dependencies=[Depends(admin_dep)])
     async def admin_record(days: int = 30) -> dict:

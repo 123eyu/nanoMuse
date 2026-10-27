@@ -32,8 +32,10 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from . import provenance
 from .client import PLATFORMS, client_version, is_app, platform_from, platform_of, ua_family
 from .db import utc_day
+from .record import unpack
 
 if TYPE_CHECKING:
     from .hub import Hub
@@ -300,7 +302,42 @@ def sample_shape(
         "run": str(m.get("run") or "")[:24],
         "source": str(m.get("source") or "")[:8],
         "turn_id": str(m.get("turn_id") or "")[:96],
+        # 0.31: one question, many calls — whether this call opened a turn, and where the
+        # turn's key is looked up (the conversation and the app's turn number, when said)
+        "conversation": str(m.get("conversation") or "")[:80],
+        "turn_no": _index(m.get("turn")),
+        "turn_start": 1 if provenance.turn_start(messages, _index(m.get("step"))) else 0,
     }
+
+
+def _index(value: Any) -> int:
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        return 0
+    return n if n > 0 else 0
+
+
+def _messages_of(request: Any) -> list:
+    """A kept call's messages from the stored request: the training view's JSON list, or
+    the record's packed body (record.unpack) with the list under ``messages``."""
+    if isinstance(request, (bytes, memoryview)):
+        body = unpack(bytes(request))
+        found = body.get("messages") if isinstance(body, dict) else body
+    else:
+        try:
+            found = json.loads(request) if request else []
+        except ValueError:
+            found = []
+    return found if isinstance(found, list) else []
+
+
+def _meta_of(meta: Any) -> dict:
+    try:
+        m = json.loads(meta) if meta else {}
+    except ValueError:
+        return {}
+    return m if isinstance(m, dict) else {}
 
 
 def percentile(values: list[int] | list[float], p: float) -> int:
@@ -564,6 +601,9 @@ class Analytics:
         self.backfill_rows = 0
         self.tokens_done = False
         self.tokens_rows = 0
+        # 0.31: the turn keys of the rows kept before the relay told turns from calls
+        self.keys_done = False
+        self.keys_rows = 0
 
     # -- helpers ------------------------------------------------------------------------------
 
@@ -1443,6 +1483,76 @@ class Analytics:
         if len(rows) < batch:
             self.tokens_done = True
         return len(rows)
+
+    def turn_keys_step(self, batch: int = 500) -> int:
+        """0.31: tell the turns of the record and of the training view from their calls, for
+        the rows kept before the relay did (``turn_start`` -1): the next ``batch`` rows of
+        each table, oldest first — a row that continues a turn takes its opener's key, so
+        the openers must be keyed before the rows after them. Returns how many rows were
+        read, 0 when both tables are through. The cursors live in the settings table like
+        the other backfills'. Each page reads its rows' messages on the read-only
+        connection; the update is the small write."""
+        if self.keys_done:
+            return 0
+        read = 0
+        through = True  # both tables' pages short: nothing left after this pass
+        after_ts, after_rowid, done = self._cursor("turns.keys_cursor")
+        if not done:
+            rows = self.db.turns_unkeyed_page(after_ts, after_rowid, batch)
+            if rows:
+                self.store.set_turn_keys(
+                    "turns",
+                    [
+                        {
+                            "rowid": int(r["rowid"]),
+                            "id": str(r["id"]),
+                            "account_id": str(r["account_id"]),
+                            "ts": int(r["ts"]),
+                            "conversation": str(r["conversation"] or ""),
+                            "turn_no": int(r["turn_no"] or 0),
+                            "start": provenance.turn_start(_messages_of(r["request"]), int(r["step"] or 0)),
+                        }
+                        for r in rows
+                    ],
+                )
+                last = rows[-1]
+                self.store.settings_put("turns.keys_cursor", [int(last["ts"]), int(last["rowid"])])
+                read += len(rows)
+            if len(rows) < batch:
+                self.store.settings_put("turns.keys_cursor", [-1, -1])
+            else:
+                through = False
+        after_ts, after_rowid, done = self._cursor("sample_stats.keys_cursor")
+        if not done:
+            rows = self.db.sample_stats_unkeyed_page(after_ts, after_rowid, batch)
+            if rows:
+                described = []
+                for r in rows:
+                    meta = _meta_of(r["meta"])
+                    described.append(
+                        {
+                            "rowid": int(r["rowid"]),
+                            # the record's id for the call when the row names it, else the sample's own
+                            "id": str(r["turn_id"] or r["id"]),
+                            "account_id": str(r["account_id"]),
+                            "ts": int(r["ts"]),
+                            "conversation": str(meta.get("conversation") or "")[:80],
+                            "turn_no": _index(meta.get("turn")),
+                            "start": provenance.turn_start(_messages_of(r["request"]), _index(meta.get("step"))),
+                        }
+                    )
+                self.store.set_turn_keys("sample_stats", described)
+                last = rows[-1]
+                self.store.settings_put("sample_stats.keys_cursor", [int(last["ts"]), int(last["rowid"])])
+                read += len(rows)
+            if len(rows) < batch:
+                self.store.settings_put("sample_stats.keys_cursor", [-1, -1])
+            else:
+                through = False
+        self.keys_rows += read
+        if through:
+            self.keys_done = True
+        return read
 
     #: how far back the daily repair looks for a kept turn without its shape row
     REPAIR_WINDOW_S = 3 * 86400

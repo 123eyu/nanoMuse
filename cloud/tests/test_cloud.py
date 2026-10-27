@@ -1910,10 +1910,13 @@ async def test_data_controls_keep_the_training_view_only_and_are_deletable(stack
     assert len(dv["days"]) == 7 and dv["days"][-1]["samples"] == 2 and dv["days"][-1]["turned_on"] == 1 and dv["days"][-1]["accounts"] == 1
     assert len(dv["by_model"]) == 1 and dv["by_model"][0]["model"] == "qwen3.8-27b" and dv["by_model"][0]["samples"] == 2
     assert dv["by_model"][0]["tokens"] == dv["period"]["prompt_tokens"] + dv["period"]["completion_tokens"] > 0
+    # each split counts the calls and the questions among them (0.31): the Android call came
+    # after a tool's result, so it continued a question; the streamed one opened its own
     assert sorted(dv["by_platform"], key=lambda x: x["platform"]) == [
-        {"platform": "android", "samples": 1},
-        {"platform": "runtime", "samples": 1},
+        {"platform": "android", "samples": 1, "turns": 0},
+        {"platform": "runtime", "samples": 1, "turns": 1},
     ]
+    assert dv["totals"]["turns"] == 1 and dv["period"]["turns"] == 1 and dv["totals"]["turns_pending"] == 0
     assert [s["response"] for s in dv["recent"]] == ["你好，世界", "hi"] and dv["recent"][0]["hint"] == data["account"]["hint"]
     # the export has no account ids
     r = await client.get("/v1/admin/samples/export", headers=admin)
