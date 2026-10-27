@@ -168,6 +168,43 @@ def last_user_text(messages: Any) -> str:
     return ""
 
 
+# -- one question, many model calls ----------------------------------------------------------
+#
+# A person asks once; the agent may call the model several times before it answers — once
+# to choose a tool, once per tool result, once to write the reply. Each call is a row of the
+# record and of the training view. The figures count both ways (docs/cloud.md "Turns and
+# calls"): a *call* is a row; a *turn* is the person's question with every call it took.
+# The row that opens a turn is told apart here, and the rows of one turn share a key — the
+# id of the row that opened it (db.py looks the key up when a row is written).
+
+
+def turn_start(messages: Any, step: int = 0) -> bool:
+    """Whether a call opens a turn or continues one. The app's ``step`` settles it when the
+    app said (1 opens; 2, 3, … continue). Otherwise the request's last message says: the
+    person's (``user``) opens a turn; a tool's result (``tool``) or an assistant prefill
+    continues one. A request with no such message (a system prompt alone) is a turn of
+    its own."""
+    if step:
+        return step == 1
+    if isinstance(messages, list):
+        for m in reversed(messages):
+            if isinstance(m, dict) and m.get("role") in ("user", "tool", "assistant"):
+                return m.get("role") == "user"
+    return True
+
+
+#: how many calls one turn took, as the console buckets it (calls_per_turn)
+CALL_BUCKETS = ((1, 1, "1"), (2, 3, "2-3"), (4, 7, "4-7"), (8, 15, "8-15"), (16, None, "16+"))
+
+
+def call_bucket(n: int) -> str:
+    """The bucket a turn of ``n`` calls falls in: ``1``, ``2-3``, ``4-7``, ``8-15``, ``16+``."""
+    for lo, hi, name in CALL_BUCKETS:
+        if n >= lo and (hi is None or n <= hi):
+            return name
+    return CALL_BUCKETS[0][2]
+
+
 # -- the export's subject -------------------------------------------------------------------
 
 

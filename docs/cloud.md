@@ -331,6 +331,45 @@ shows the record (turns, own-key turns, files, how long the relay keeps
 them) above the *Help improve* switch, and offers the one delete whenever
 either holds anything.
 
+**Questions and calls (0.31).** A person's one message often takes the
+agent several model calls: it asks for a screenshot, taps, reads the screen
+again, answers. The record keeps one row per call, so counting rows
+overstates what people asked; the relay now counts both ways. Each row says
+whether it *opened a question* (`turn_start`): the app's `step` settles it
+(1 opens); without one, the last message of the request does — from the
+person it opens, from a tool or the assistant it continues; a request with
+no message of either kind opens. Every row carries `turn_key`, the id of the
+row that opened its question (a continuation finds it by the conversation's
+`turn` number, or failing that the nearest earlier opener in the same
+conversation), so the question's calls group in SQL; the training view's
+shape rows carry the same two fields. Rows from before get theirs from a
+backfill in the analytics loop, oldest first; until it reaches them they are
+counted in neither figure and `GET /v1/admin/record` reports them as
+`questions.pending`. The figures: `/v1/admin/record` has `questions` beside
+`n` for the whole, the period and each day, and a `questions` block (how
+many, how many carried a picture or ran the hands by the trajectory the app
+named, how many calls each took as buckets `1`, `2-3`, `4-7`, `8-15`,
+`16+`, and the mean); `/v1/admin/data` has `turns` beside `samples` in its
+totals, days, models, platforms, runs, sources and accounts.
+
+To read a question whole, `GET /v1/admin/record/turns` returns the newest
+questions first, each laid out once from its calls: the person's message,
+a step per call (the call's figures, what the model said or the tools it
+called, and what came back before the next call — tool results, the hands'
+screenshots, a message the person added), the reply the person saw, the
+tools in order, and the figures summed (`calls`, tokens, `media`, `models`,
+`sources`, `partial`). Texts over 4000 characters are cut with `truncated:
+true`; `GET /v1/admin/turns/{id}` has the whole call. Filters: `account_id`,
+`conversation`, `platform`, `run`, `source`, `model`, `script`, `media=1`
+(a picture somewhere in the question), `hands=1` (a trajectory named),
+`since`; pages of up to 100 with `before` (the question's last timestamp)
+and `before_key`. The console's *Question by question* page shows the same:
+the pictures and screenshots inline where they were sent (fetched with the
+admin token, so an `<img>` alone would not do), each tool call with its
+arguments folded, the final reply marked, and the whole call one click away;
+the *Data and sync* page shows questions beside calls everywhere it counted
+calls before.
+
 ## Provenance
 
 A model call is one of many in a conversation, and the app knows things about

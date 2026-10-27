@@ -714,15 +714,17 @@ export interface DataView {
   default_on: boolean;
   keeps: { kept: string[]; not_kept: string[] };
   accounts: { total: number; on: number; off: number; share: number; turned_off_ever: number; with_samples: number };
-  totals: { samples: number; prompt_tokens: number; completion_tokens: number };
-  period: { days: number; samples: number; accounts: number; prompt_tokens: number; completion_tokens: number };
-  days: { day: number; samples: number; accounts: number; prompt_tokens: number; completion_tokens: number; turned_on: number; turned_off: number; default_on: number; deleted: number }[];
-  by_model: { model: string; samples: number; tokens: number }[];
-  by_platform: { platform: string; samples: number }[];
+  /** `samples` counts the calls kept (one row each); `turns` the questions among them — the calls that opened one
+   *  (0.31); `turns_pending` the rows the backfill has not read yet, counted in neither. */
+  totals: { samples: number; turns: number; turns_pending: number; prompt_tokens: number; completion_tokens: number };
+  period: { days: number; samples: number; turns: number; accounts: number; prompt_tokens: number; completion_tokens: number };
+  days: { day: number; samples: number; turns: number; accounts: number; prompt_tokens: number; completion_tokens: number; turned_on: number; turned_off: number; default_on: number; deleted: number }[];
+  by_model: { model: string; samples: number; turns: number; tokens: number }[];
+  by_platform: { platform: string; samples: number; turns: number }[];
   /** 0.31: who started the kept turns (person, schedule, feed, goal, hub; "" before the apps said) and the key they ran on (cloud, own). */
-  by_run: { run: string; samples: number }[];
-  by_source: { source: string; samples: number }[];
-  by_account: { account_id: string; hint: string; channel: string; contribute: boolean; created_at: number; samples: number; prompt_tokens: number; completion_tokens: number; first_ts: number; last_ts: number; models: string[] }[];
+  by_run: { run: string; samples: number; turns: number }[];
+  by_source: { source: string; samples: number; turns: number }[];
+  by_account: { account_id: string; hint: string; channel: string; contribute: boolean; created_at: number; samples: number; turns: number; prompt_tokens: number; completion_tokens: number; first_ts: number; last_ts: number; models: string[] }[];
   recent: Sample[];
 }
 /** What the apps report around turns (0.31): GET /v1/admin/client-events/summary. Codes and counts, never a message. */
@@ -745,9 +747,101 @@ export interface RecordView {
   keep_days: number;
   media_dir: string;
   media_cap_bytes: number;
-  totals: { n: number; accounts: number; own: number; partial: number; media: number; media_bytes: number; files: number; store_bytes: number };
-  period: { days: number; n: number; accounts: number; own: number; partial: number; media: number; media_bytes: number };
-  days: { day: number; turns: number; accounts: number; media: number; media_bytes: number }[];
+  /** `n` is the calls (one row each); `questions` the turns the person asked (0.31: the calls that opened one) */
+  totals: { n: number; questions: number; accounts: number; own: number; partial: number; media: number; media_bytes: number; files: number; store_bytes: number };
+  period: { days: number; n: number; questions: number; accounts: number; own: number; partial: number; media: number; media_bytes: number };
+  /** the record counted by questions over the period: how many, how many calls each took (bucketed), how many carried a
+   *  picture or ran the hands, and how many calls the backfill has not yet assigned to a question */
+  questions: { n: number; pending: number; with_media: number; with_hands: number; calls_per_question: Record<string, number>; calls_mean: number };
+  days: { day: number; turns: number; questions: number; accounts: number; media: number; media_bytes: number }[];
+}
+
+/** A message as the record keeps it: pictures, clips and audio are `blob:sha256:…` references (GET /v1/admin/blobs/{sha256}). */
+export interface TurnMessage {
+  role: string;
+  content?: unknown;
+  tool_calls?: { id?: string; type?: string; function?: { name?: string; arguments?: string } }[];
+  tool_call_id?: string;
+  reasoning_content?: string;
+  name?: string;
+  /** the laid-out view cut this message's text (turnview.TEXT_MAX); the whole call has it */
+  truncated?: boolean;
+}
+/** One model call inside a question, as the laid-out view carries it. */
+export interface TurnStep {
+  call: { id: string; ts: number; model: string; step?: number; status: string; source: string; platform: string; prompt_tokens: number; completion_tokens: number; trajectory?: string; trajectory_step?: number; run?: string };
+  /** messages in this call's request (the whole history the model saw) */
+  messages: number;
+  /** what the model answered: its words, or the tools it called */
+  reply: TurnMessage;
+  /** what came back before the next call: tool results, the hands' screenshots, a message the person added */
+  then: TurnMessage[];
+}
+/** One question with every model call it took — GET /v1/admin/record/turns (0.31). */
+export interface TurnGroup {
+  key: string;
+  account_id: string;
+  hint: string;
+  ts0: number;
+  ts1: number;
+  calls: number;
+  conversation: string;
+  device: string;
+  platform: string;
+  run: string;
+  turn: number;
+  source: string;
+  sources: string[];
+  models: string[];
+  script: string;
+  trajectory: string;
+  prompt_tokens: number;
+  completion_tokens: number;
+  /** pictures and clips the calls carried, the history included (the filter and the figures use it) */
+  media: number;
+  partial: number;
+  status: string;
+  ended: string;
+  /** the person's message that opened the question (null when the request had none) */
+  person: TurnMessage | null;
+  steps: TurnStep[];
+  /** the reply the person saw: the last call's words */
+  reply: string;
+  /** the tools called, in order */
+  tools: string[];
+}
+export interface TurnGroups {
+  turns: TurnGroup[];
+  pending: number;
+  total: number;
+}
+/** One call of the record in full — GET /v1/admin/turns/{id}. */
+export interface TurnFull {
+  id: string;
+  account_id: string;
+  hint: string;
+  ts: number;
+  model: string;
+  platform: string;
+  device: string;
+  conversation: string;
+  source: string;
+  status: string;
+  request: { model?: string; messages?: TurnMessage[]; tools?: unknown[] } & Record<string, unknown>;
+  response: { message?: TurnMessage; usage?: Record<string, number>; finish_reason?: string };
+  prompt_tokens: number;
+  completion_tokens: number;
+  media: number;
+  media_bytes: number;
+  meta: Record<string, unknown>;
+  run?: string;
+  turn?: number;
+  step?: number;
+  trajectory?: string;
+  trajectory_step?: number;
+  script?: string;
+  turn_key?: string;
+  turn_start?: boolean;
 }
 export interface Sync {
   accounts_enabled: number;

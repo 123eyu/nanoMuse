@@ -29,6 +29,7 @@ import { Quality } from "./pages/Quality";
 import { SettingsPage } from "./pages/Settings";
 import { Site } from "./pages/Site";
 import { StatsPage } from "./pages/Stats";
+import { Turns } from "./pages/Turns";
 import { Usage } from "./pages/Usage";
 import { Btn, DialogHost, Seg, ToastHost, cx } from "./ui/primitives";
 
@@ -36,7 +37,7 @@ export interface PageProps {
   days: number;
 }
 
-const PERIOD_PAGES = new Set<Page>(["overview", "usage", "platforms", "cohorts", "hands", "quality", "abuse", "places", "activity", "demo", "data", "site", "stats"]);
+const PERIOD_PAGES = new Set<Page>(["overview", "usage", "platforms", "cohorts", "hands", "quality", "abuse", "places", "activity", "demo", "data", "turns", "site", "stats"]);
 const DAY_OPTIONS: number[] = [7, 14, 30, 90, 365];
 
 const PAGE_VIEWS: Record<Page, (p: PageProps) => ReactNode> = {
@@ -54,6 +55,7 @@ const PAGE_VIEWS: Record<Page, (p: PageProps) => ReactNode> = {
   activity: (p) => <Activity {...p} />,
   demo: (p) => <Demo {...p} />,
   data: (p) => <Data {...p} />,
+  turns: (p) => <Turns {...p} />,
   health: () => <HealthPage />,
   site: (p) => <Site {...p} />,
   models: () => <Models />,
@@ -77,6 +79,7 @@ const ICONS: Record<string, string> = {
   activity: "M3 12h4l3 7 4-14 3 7h4",
   demo: "M4 5h16v12H4zM9 21h6M12 17v4",
   data: "M4 6c0-1.5 3.6-3 8-3s8 1.5 8 3-3.6 3-8 3-8-1.5-8-3zm0 0v12c0 1.5 3.6 3 8 3s8-1.5 8-3V6M4 12c0 1.5 3.6 3 8 3s8-1.5 8-3",
+  turns: "M5 4h14v10H9l-4 4zM8 8h8M8 11h5",
   health: "M20 12h-3l-2 6-4-12-2 6H4",
   site: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18",
   models: "M4 7h16M4 12h16M4 17h10",

@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-from . import __version__, provenance
+from . import __version__, provenance, turnview
 from .analytics import sample_shape
 from .client import client_version, platform_from, platform_of
 from .config import ModelSpec, Settings, menu_warnings
@@ -2338,6 +2338,9 @@ class Cloud:
             "trajectory": where["trajectory"],
             "trajectory_step": where["trajectory_step"],
             "script": provenance.script_of(provenance.last_user_text(req.get("messages"))),
+            # 0.31: whether this call opened a turn or continued one (the key is looked up as
+            # the row is written)
+            "turn_start": provenance.turn_start(req.get("messages"), where["step"]),
         }
         self.db.add_turn(row, media)
         return request_id
@@ -2672,9 +2675,14 @@ class Cloud:
             ("trajectory", "trajectory"),
             ("trajectory_step", "trajectory_step"),
             ("script", "script"),
+            ("turn_key", "turn_key"),
         ):
             if col in keys and r[col]:
                 d[name] = r[col]
+        # one question, many calls: whether this call opened the turn (absent until the
+        # backfill has read a row kept before 0.31)
+        if "turn_start" in keys and int(r["turn_start"]) >= 0:
+            d["turn_start"] = bool(r["turn_start"])
         return d
 
     def my_turns(
@@ -2716,6 +2724,95 @@ class Cloud:
     ) -> list[dict]:
         return [self._turn_view(r) for r in self.db.turns(account_id, since, limit, before, before_id, conversation[:80])]
 
+    def admin_turn(self, turn_id: str) -> dict | None:
+        """One call of the record in full, with the account's hint, for the console."""
+        r = self.db.turn(turn_id)
+        if r is None:
+            return None
+        d = self._turn_view(r)
+        hints, _ = self._labels([d["account_id"]], decrypt=False)
+        d["hint"] = hints.get(d["account_id"], "?")
+        return d
+
+    def admin_turn_groups(
+        self,
+        since: int = 0,
+        limit: int = 20,
+        before: int = 0,
+        before_key: str = "",
+        *,
+        account_id: str | None = None,
+        conversation: str = "",
+        platform: str = "",
+        run: str = "",
+        source: str = "",
+        media: bool = False,
+        hands: bool = False,
+        script: str = "",
+        model: str = "",
+    ) -> dict:
+        """The record one question at a time (0.31): the newest turns matching the filters,
+        each with its figures and laid out as its steps (turnview.lay_out) — the person's
+        message, what the model said and what came back at each call, the reply. Pages on
+        the last call's time and the key. ``pending`` is how many calls the backfill has
+        not yet told which turn they belong to; they are not shown here."""
+        groups = self.db.turn_groups(
+            since,
+            limit,
+            before,
+            before_key,
+            account_id=account_id,
+            conversation=conversation[:80],
+            platform=platform[:24],
+            run=run[:24],
+            source=source[:8],
+            media=media,
+            hands=hands,
+            script=script[:8],
+            model=model[:120],
+        )
+        keys = [str(g["turn_key"]) for g in groups]
+        calls: dict[str, list[dict]] = {k: [] for k in keys}
+        for r in self.db.turns_of(keys):
+            calls[str(r["turn_key"])].append(self._turn_view(r))
+        hints, _ = self._labels([str(g["account_id"]) for g in groups], decrypt=False)
+        out = []
+        for g in groups:
+            key = str(g["turn_key"])
+            rows = calls.get(key) or []
+            first = rows[0] if rows else {}
+            last = rows[-1] if rows else {}
+            laid = turnview.lay_out(rows)
+            out.append(
+                {
+                    "key": key,
+                    "account_id": g["account_id"],
+                    "hint": hints.get(str(g["account_id"]), "?"),
+                    "ts0": int(g["ts0"]),
+                    "ts1": int(g["ts1"]),
+                    "calls": int(g["n"]),
+                    "conversation": first.get("conversation", ""),
+                    "device": first.get("device", ""),
+                    "platform": first.get("platform", ""),
+                    "run": first.get("run", ""),
+                    "turn": first.get("turn", 0),
+                    "source": first.get("source", "cloud"),
+                    "sources": sorted({str(c.get("source") or "cloud") for c in rows}),
+                    "models": sorted({str(c.get("model") or "") for c in rows if c.get("model")}),
+                    "script": first.get("script", ""),
+                    "trajectory": next((str(c["trajectory"]) for c in rows if c.get("trajectory")), ""),
+                    "prompt_tokens": int(g["prompt_tokens"] or 0),
+                    "completion_tokens": int(g["completion_tokens"] or 0),
+                    "media": int(g["media"] or 0),
+                    "partial": int(g["partial"] or 0),
+                    "status": last.get("status", "ok"),
+                    "ended": (last.get("meta") or {}).get("ended", "") if isinstance(last.get("meta"), dict) else "",
+                    **laid,
+                }
+            )
+        figures = self.db.turn_figures(since, account_id)
+        return {"turns": out, "pending": figures["pending"], "total": figures["turns"]}
+
     def admin_record(self, days: int = 30) -> dict:
         """The operator's figures: turns and files in all and over ``days``, by day, and the
         store against its cap."""
@@ -2730,7 +2827,10 @@ class Cloud:
             rows.append(
                 {
                     "day": d,
+                    # `turns` counted the rows before 0.31 and still does: it is the calls.
+                    # `questions` is the turns the person asked (the rows that opened one).
                     "turns": int(s["n"]) if s else 0,
+                    "questions": int(s["turns"] or 0) if s else 0,
                     "accounts": int(s["accounts"]) if s else 0,
                     "media": int(s["media"] or 0) if s else 0,
                     "media_bytes": int(s["media_bytes"] or 0) if s else 0,
@@ -2738,15 +2838,40 @@ class Cloud:
             )
         ever = self.db.record_totals(0)
         period = self.db.record_totals(since)
+        figures = self.db.turn_figures(since)
+        per_turn: dict[str, int] = {name: 0 for _lo, _hi, name in provenance.CALL_BUCKETS}
+        calls_in_turns = 0
+        turns_keyed = 0
+        for n_calls, n_turns in self.db.calls_per_turn(since):
+            per_turn[provenance.call_bucket(n_calls)] += n_turns
+            calls_in_turns += n_calls * n_turns
+            turns_keyed += n_turns
         return {
             "on": self.s.record_turns,
             "keep_days": self.s.record_keep_days,
             "media_dir": str(self.media.root),
             "media_cap_bytes": int(self.s.media_max_gb * 1024**3),
             "totals": {
-                k: int(ever.get(k) or 0) for k in ("n", "accounts", "own", "partial", "media", "media_bytes", "files", "store_bytes")
+                **{k: int(ever.get(k) or 0) for k in ("n", "accounts", "own", "partial", "media", "media_bytes", "files", "store_bytes")},
+                "questions": int(ever.get("turns") or 0),
             },
-            "period": {"days": days, **{k: int(period.get(k) or 0) for k in ("n", "accounts", "own", "partial", "media", "media_bytes")}},
+            "period": {
+                "days": days,
+                **{k: int(period.get(k) or 0) for k in ("n", "accounts", "own", "partial", "media", "media_bytes")},
+                "questions": int(period.get("turns") or 0),
+            },
+            # 0.31: the record counted by questions — one person's message and every model
+            # call it took — beside the calls: how many questions, how many calls each took,
+            # how many had a picture or ran the hands, and how many calls the backfill has
+            # not yet told which question they belong to
+            "questions": {
+                "n": figures["turns"],
+                "pending": figures["pending"],
+                "with_media": figures["with_media"],
+                "with_hands": figures["with_hands"],
+                "calls_per_question": per_turn,
+                "calls_mean": (calls_in_turns / turns_keyed) if turns_keyed else 0.0,
+            },
             "days": rows,
         }
 
@@ -2815,6 +2940,7 @@ class Cloud:
                 {
                     "day": d,
                     "samples": int(s["n"]) if s else 0,
+                    "turns": int(s["turns"] or 0) if s else 0,
                     "accounts": int(s["accounts"]) if s else 0,
                     "prompt_tokens": int(s["prompt_tokens"] or 0) if s else 0,
                     "completion_tokens": int(s["completion_tokens"] or 0) if s else 0,
@@ -2824,11 +2950,13 @@ class Cloud:
                     "deleted": e.get("contribute.deleted", 0),
                 }
             )
-        platforms = {str(r["platform"]) or "other": int(r["n"]) for r in self.db.samples_by_platform(since)}
+        # each split counts the calls (`samples`) and the questions they belong to (`turns`,
+        # 0.31: the calls that opened one)
+        platforms = {str(r["platform"]) or "other": (int(r["n"]), int(r["turns"] or 0)) for r in self.db.samples_by_platform(since)}
         # 0.31: by who started the turn and by the key it ran on (the shape rows; a turn kept
         # before the apps said reads "" — shown as "not said")
-        runs = {str(r["run"]): int(r["n"]) for r in self.db.samples_by_column("run", since)}
-        sources = {str(r["source"]) or "cloud": int(r["n"]) for r in self.db.samples_by_column("source", since)}
+        runs = {str(r["run"]): (int(r["n"]), int(r["turns"] or 0)) for r in self.db.samples_by_column("run", since)}
+        sources = {str(r["source"]) or "cloud": (int(r["n"]), int(r["turns"] or 0)) for r in self.db.samples_by_column("source", since)}
         samples = self.admin_samples(None, 0, 30)
         hints, _ = self._labels([smp["account_id"] for smp in samples], decrypt=False)
         recent = [{**smp, "hint": hints.get(smp["account_id"], "?")} for smp in samples]
@@ -2842,6 +2970,7 @@ class Cloud:
                 "contribute": bool(r["contribute"]),
                 "created_at": int(r["created_at"]),
                 "samples": int(r["n"]),
+                "turns": int(r["turns"] or 0),
                 "prompt_tokens": int(r["prompt_tokens"] or 0),
                 "completion_tokens": int(r["completion_tokens"] or 0),
                 "first_ts": int(r["first_ts"]),
@@ -2870,26 +2999,39 @@ class Cloud:
                 "turned_off_ever": self.db.event_accounts("contribute.off"),
                 "with_samples": int(ever["accounts"] or 0),
             },
+            # `samples` is the calls kept (one row each); `turns` the questions they belong
+            # to (0.31: the calls that opened one); `turns_pending` the rows the backfill has
+            # not read yet, counted in neither
             "totals": {
                 "samples": int(ever["n"] or 0),
+                "turns": int(ever["turns"] or 0),
+                "turns_pending": int(ever["pending"] or 0),
                 "prompt_tokens": int(ever["prompt_tokens"] or 0),
                 "completion_tokens": int(ever["completion_tokens"] or 0),
             },
             "period": {
                 "days": days,
                 "samples": int(period["n"] or 0),
+                "turns": int(period["turns"] or 0),
                 "accounts": int(period["accounts"] or 0),
                 "prompt_tokens": int(period["prompt_tokens"] or 0),
                 "completion_tokens": int(period["completion_tokens"] or 0),
             },
             "days": rows,
             "by_model": [
-                {"model": r["model"], "samples": int(r["n"]), "tokens": int(r["prompt_tokens"] or 0) + int(r["completion_tokens"] or 0)}
+                {
+                    "model": r["model"],
+                    "samples": int(r["n"]),
+                    "turns": int(r["turns"] or 0),
+                    "tokens": int(r["prompt_tokens"] or 0) + int(r["completion_tokens"] or 0),
+                }
                 for r in self.db.samples_by_model(since)
             ],
-            "by_platform": sorted(({"platform": k, "samples": v} for k, v in platforms.items()), key=lambda x: -x["samples"]),
-            "by_run": sorted(({"run": k, "samples": v} for k, v in runs.items()), key=lambda x: -x["samples"]),
-            "by_source": sorted(({"source": k, "samples": v} for k, v in sources.items()), key=lambda x: -x["samples"]),
+            "by_platform": sorted(
+                ({"platform": k, "samples": v[0], "turns": v[1]} for k, v in platforms.items()), key=lambda x: -x["samples"]
+            ),
+            "by_run": sorted(({"run": k, "samples": v[0], "turns": v[1]} for k, v in runs.items()), key=lambda x: -x["samples"]),
+            "by_source": sorted(({"source": k, "samples": v[0], "turns": v[1]} for k, v in sources.items()), key=lambda x: -x["samples"]),
             "by_account": by_account,
             "recent": recent,
         }
