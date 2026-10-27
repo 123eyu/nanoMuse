@@ -2,6 +2,7 @@ package io.github.nanomuse.media
 
 import android.graphics.Bitmap
 import com.openminis.app.data.model.ProviderInstance
+import com.openminis.app.data.model.normalizeModalities
 import com.openminis.app.logging.AppLogger
 import io.github.nanomuse.avatar.ImageGen
 import kotlinx.coroutines.Dispatchers
@@ -84,6 +85,16 @@ object VideoGen {
         val s = id.lowercase()
         return listOf("t2v", "i2v", "video", "minimax-h", "hailuo", "kling", "veo", "seedance", "sora").any { s.contains(it) }
     }
+
+    /**
+     * Whether a model entry makes video: the entry says so (`video` among its output
+     * modalities — a hand-added entry can be marked that way in its details, whatever its
+     * name) or the name does ([looksLikeVideoModel]). Model Studio's `/models` list carries
+     * no modalities and no video models at all, so for what a provider lists the name is the
+     * only clue.
+     */
+    fun isVideoEntry(id: String, outputModalities: List<String>?): Boolean =
+        "video" in outputModalities.normalizeModalities().orEmpty() || looksLikeVideoModel(id)
 
     /**
      * Whether [model] exists for this key, without making a video: an empty task is submitted

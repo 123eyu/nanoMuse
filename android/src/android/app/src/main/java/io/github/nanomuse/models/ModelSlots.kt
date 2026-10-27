@@ -265,10 +265,9 @@ object ModelSlots {
             if (inst !in MediaModels.eligibleVideoInstances(context)) emptyList()
             else {
                 val rec = MediaModels.defaultVideoModel(context, inst)
-                val ids = MediaModels.availableVideoModels(context, inst)
-                    ?: repo(context)?.config?.value?.modelEntries
-                        ?.filter { it.providerInstanceId == inst.id && !it.isHidden && VideoGen.looksLikeVideoModel(it.model.id) }
-                        ?.map { it.model.id }.orEmpty().ifEmpty { listOf(rec) }
+                // what the key answered for plus the person's own video entries; the default
+                // alone until a first check has run and nothing is listed (#508)
+                val ids = MediaModels.videoChoices(context, inst).ifEmpty { listOf(rec) }
                 ids.map { Option(inst, it, recommended = it.equals(rec, ignoreCase = true)) }
             }
         }
@@ -430,7 +429,7 @@ object ModelSlots {
                         ?.let { Option(inst, it) }
                 }
                 Slot.VIDEO -> if (inst !in MediaModels.eligibleVideoInstances(context)) null else {
-                    SlotOrder.defaultModel(MediaModels.defaultVideoModel(context, inst), MediaModels.availableVideoModels(context, inst).orEmpty())
+                    SlotOrder.defaultModel(MediaModels.defaultVideoModel(context, inst), MediaModels.videoChoices(context, inst))
                         ?.let { Option(inst, it) }
                 }
             } ?: continue

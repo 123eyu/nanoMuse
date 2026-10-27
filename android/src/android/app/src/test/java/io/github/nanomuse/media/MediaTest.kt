@@ -70,6 +70,20 @@ class MediaTest {
         assertEquals("720P", VideoGen.wanResolution("wan2.6-i2v"))
     }
 
+    @Test fun `a video entry is known by its modalities or its name, and own entries join the probe's answer`() {
+        assertTrue(VideoGen.isVideoEntry("wan2.7-t2v-2026-06-12", null)) // a hand-added snapshot, modalities empty (#508)
+        assertTrue(VideoGen.isVideoEntry("my-clip-maker", listOf("video"))) // marked in the entry's details, whatever the name
+        assertTrue(VideoGen.isVideoEntry("my-clip-maker", listOf("VIDEO_OUTPUT")))
+        assertFalse(VideoGen.isVideoEntry("qwen3-max", listOf("text")))
+        assertFalse(VideoGen.isVideoEntry("wan2.7-image", null))
+        assertEquals(
+            listOf("wan2.2-i2v-flash", "wan2.7-t2v-2026-06-12"),
+            MediaModels.merge(listOf("wan2.2-i2v-flash"), listOf("wan2.7-t2v-2026-06-12", "wan2.2-i2v-flash")),
+        )
+        assertEquals(listOf("wan2.7-t2v-2026-06-12"), MediaModels.merge(null, listOf("wan2.7-t2v-2026-06-12")))
+        assertEquals(emptyList<String>(), MediaModels.merge(emptyList(), emptyList()))
+    }
+
     @Test fun `task bodies follow the family, Wan img_url, Wan 2 7 media and ratio, MiniMax 768P`() {
         val wan = VideoGen.imageToVideoBody("wan2.2-i2v-flash", "oss://x/y.png", "p", 4)
         assertEquals("oss://x/y.png", wan.getJSONObject("input").getString("img_url"))
