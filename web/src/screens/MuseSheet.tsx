@@ -26,6 +26,7 @@ import { api } from "../api";
 import { Avatar } from "../components/Avatar";
 import { AvatarShareSheet } from "../components/AvatarShareSheet";
 import { ApprovalCard, RiskBadge, grantSubject, scopeLabel, toolIcon } from "../components/Cards";
+import { noteStopped } from "../components/Feedback";
 import { LoadError } from "../components/LoadError";
 import { Sheet } from "../components/Sheet";
 import { intlLocale, localReason, useT } from "../i18n";
@@ -87,8 +88,10 @@ export function MuseSheet({ open, onClose }: { open: boolean; onClose: () => voi
   const stop = async () => {
     setStopping(true);
     try {
-      const r = await api.stopThread(state.status.thread || "main");
+      const thread = state.status.thread || "main";
+      const r = await api.stopThread(thread);
       if (!r.ok) toast(t("Nothing to stop"));
+      else noteStopped(thread); // the chat asks why, once, where its cards go
     } catch (e) {
       toast((e as Error).message);
     } finally {

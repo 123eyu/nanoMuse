@@ -83,6 +83,21 @@ const zhCN: Record<string, string> = {
   "{name} is on it": "{name} 正在处理",
   "Browser: {title}": "浏览器：{title}",
 
+  // ── Feedback: the thumbs under a reply, the question after a Stop ────────────────
+  "Good reply": "回答得好",
+  "Not a good reply": "回答得不好",
+  "What was wrong?": "哪里不对？",
+  Wrong: "答错了",
+  "Not helpful": "没帮上忙",
+  "Should not have done that": "不该这么做",
+  "Too slow": "太慢了",
+  "Another reason": "其他原因",
+  "Noted, thanks": "收到，谢谢",
+  "Why did you stop it?": "为什么停下来？",
+  "It was going wrong": "方向不对",
+  "Changed my mind": "改主意了",
+  "It was already done": "已经做完了",
+
   // ── Cards: approvals, questions, browser, artifacts ───────────────────────────────
   safe: "安全",
   moderate: "中等",

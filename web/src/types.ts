@@ -54,6 +54,8 @@ export interface AssistantEvent extends BaseEvent {
   /** a synced reply written on another device of the account */
   via_device?: string;
   via_device_name?: string;
+  /** the person's thumb on this reply (`POST /api/threads/{id}/feedback`), "" or absent when none */
+  feedback?: "up" | "down" | "";
 }
 
 export interface ToolEvent extends BaseEvent {

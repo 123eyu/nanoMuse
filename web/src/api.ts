@@ -250,6 +250,10 @@ export const api = {
   deleteThread: (id: string) => request<{ ok: boolean }>(`/api/threads/${id}`, { method: "DELETE" }),
   clearThread: (id: string) => request<{ ok: boolean }>(`/api/threads/${id}/clear`, { method: "POST" }),
   stopThread: (id: string) => request<{ ok: boolean }>(`/api/threads/${id}/stop`, { method: "POST" }),
+  /** The lightest feedback (relay 0.31): a thumb on a reply (`event` is its id; `vote` "" takes it back;
+   * `reason` a code with a thumb down), or why a Stop was pressed (`stop_reason`, "skipped" included). */
+  feedback: (id: string, body: { event: string; vote: "up" | "down" | ""; reason?: string } | { stop_reason: string }) =>
+    request<{ ok: boolean }>(`/api/threads/${id}/feedback`, json(body)),
   events: (thread: string, limit = 200, before?: string) =>
     request<{ thread: ThreadMeta; events: TimelineEvent[]; has_more: boolean }>(
       `/api/threads/${thread}/events?limit=${limit}${before ? `&before=${encodeURIComponent(before)}` : ""}`,
