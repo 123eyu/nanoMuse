@@ -1065,6 +1065,7 @@ export interface ConnectionsData {
       | "serply"
       | "you"
       | "parallel"
+      | "keenable"
       | "searxng";
     /** SearXNG instance */
     base_url: string;
@@ -1076,7 +1077,7 @@ export interface ConnectionsData {
       id: string;
       label: string;
       needs_key: boolean;
-      /** works without a key; one raises the limit (You.com, Parallel) */
+      /** works without a key; one raises the limit (You.com, Parallel, Keenable) */
       optional_key?: boolean;
       keys_url: string;
     }>;

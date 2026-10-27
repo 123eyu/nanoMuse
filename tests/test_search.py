@@ -1,6 +1,6 @@
 """Web search providers: DuckDuckGo by default, Brave / Tavily / Serply / You.com / Parallel /
-SearXNG by settings, the fallback to DuckDuckGo with a note, keys from the vault, the tool, the API and
-the doctor."""
+Keenable / SearXNG by settings, the fallback to DuckDuckGo with a note, keys from the vault,
+the tool, the API and the doctor."""
 
 from __future__ import annotations
 
@@ -429,6 +429,86 @@ def test_parallel_is_saved_and_others_kept(settings: Settings):
     assert settings.connectors.search.provider == "parallel"
 
 
+KEENABLE_ROWS = [
+    {
+        "title": "nanoMuse",
+        "url": "https://github.com/nano-muse/nanoMuse",
+        "description": "",
+        "snippet": "nanoMuse\n\nAn open-source  personal agent.\nOn every device.",
+        "acquired_at": "2026-10-20T08:00:00Z",
+    },
+    {"title": "Docs", "url": "https://nanomuse.cn/docs/", "description": "", "snippet": "d" * 600},
+    {"title": "Three", "url": "https://example.com/three", "description": "", "snippet": "third"},
+]
+
+
+async def test_keenable_without_a_key(wire: Wire, ddg):
+    wire.body = {"results": KEENABLE_ROWS}
+    p = WebSearchProvider(SearchSettings(provider="keenable"))
+    # keyless is a configured provider, not a fallback to DuckDuckGo
+    assert p.configured and p.host == "api.keenable.ai"
+    assert p.describe() == "Keenable (no key: 1,000 searches an hour)"
+    results, note = await p.search("nanomuse agent", 2, "cn-zh")
+    assert note == "" and ddg == []
+    # the snippet becomes one line of at most 400 characters; the count caps the list
+    assert [(r.title, r.url, r.snippet) for r in results] == [
+        (
+            "nanoMuse",
+            "https://github.com/nano-muse/nanoMuse",
+            "nanoMuse An open-source personal agent. On every device.",
+        ),
+        ("Docs", "https://nanomuse.cn/docs/", "d" * 400),
+    ]
+    req = wire.requests[0]
+    assert req.method == "POST" and req.url == "https://api.keenable.ai/v1/search/public"
+    assert req.headers["X-Keenable-Title"] == "nanoMuse"
+    assert "X-API-Key" not in req.headers
+    # Keenable takes no region: the body is the query and the count
+    assert json.loads(req.content) == {"query": "nanomuse agent", "max_results": 2}
+    # past the keyless limit: a clear reason, then DuckDuckGo once
+    wire.status = 429
+    results, note = await p.search("nanomuse", 2, "")
+    assert note == (
+        "Keenable failed (the keyless limit is reached for now (HTTP 429)); results from DuckDuckGo"
+    )
+    assert [r.title for r in results] == ["nanoMuse", "Muse"] and len(ddg) == 1
+
+
+async def test_keenable_with_a_key(wire: Wire, ddg):
+    wire.body = {"results": KEENABLE_ROWS[:1]}
+    p = WebSearchProvider(SearchSettings(provider="keenable", api_key="kn-key"))
+    # the same host with a key, so the Sentinel shows the same destination
+    assert p.configured and p.host == "api.keenable.ai"
+    assert p.describe() == "Keenable (key set)"
+    results, note = await p.search("nanomuse", 2, "")
+    assert note == "" and ddg == [] and [r.title for r in results] == ["nanoMuse"]
+    req = wire.requests[0]
+    assert req.method == "POST" and req.url == "https://api.keenable.ai/v1/search"
+    assert req.headers["X-API-Key"] == "kn-key"
+    assert req.headers["X-Keenable-Title"] == "nanoMuse"
+    # a refused key reads as one, not as the keyless limit
+    wire.status = 401
+    _, note = await p.search("nanomuse", 2, "")
+    assert note == "Keenable failed (the key was refused (HTTP 401)); results from DuckDuckGo"
+    wire.status = 429
+    _, note = await p.search("nanomuse", 2, "")
+    assert note == "Keenable failed (rate limited (HTTP 429)); results from DuckDuckGo"
+
+
+async def test_keenable_goes_through_the_sentinel_as_its_host(wire: Wire):
+    tool = WebSearch(provider=WebSearchProvider(SearchSettings(provider="keenable")))
+    assessment = tool.assess({"query": "q"})
+    assert assessment.egress and assessment.egress_target == "api.keenable.ai"
+    assert assessment.egress_configured
+
+
+def test_keenable_is_saved_and_others_kept(settings: Settings):
+    apply_app_settings(settings, {"search": {"provider": "keenable"}})
+    assert settings.connectors.search.provider == "keenable"
+    apply_app_settings(settings, {"search": {"provider": "bing"}})
+    assert settings.connectors.search.provider == "keenable"
+
+
 async def test_searxng(wire: Wire, ddg):
     wire.body = {"results": [{"title": "S", "url": "https://s.example", "content": "from searx"}]}
     p = WebSearchProvider(SearchSettings(provider="searxng", base_url="http://127.0.0.1:8080/"))
@@ -587,6 +667,7 @@ def test_connections_search(settings: Settings, wire: Wire, ddg):
             "serply",
             "you",
             "parallel",
+            "keenable",
             "searxng",
         ]
         assert view["providers"][1]["needs_key"] and view["providers"][1]["keys_url"]
@@ -598,6 +679,9 @@ def test_connections_search(settings: Settings, wire: Wire, ddg):
         parallel = view["providers"][5]
         assert parallel["id"] == "parallel" and parallel["label"] == "Parallel"
         assert not parallel["needs_key"] and parallel["optional_key"] and parallel["keys_url"]
+        keenable = view["providers"][6]
+        assert keenable["id"] == "keenable" and keenable["label"] == "Keenable"
+        assert not keenable["needs_key"] and keenable["optional_key"] and keenable["keys_url"]
 
         # You.com without a key is configured: the picker needs nothing more
         r = client.put("/api/connections/search", json={"provider": "you"}).json()
@@ -606,6 +690,15 @@ def test_connections_search(settings: Settings, wire: Wire, ddg):
         r = client.post("/api/connections/search/test").json()
         assert r["ok"] and r["provider"] == "You.com" and r["results"] == 1
         assert wire.requests[-1].url.host == "api.you.com"
+
+        # so is Keenable
+        r = client.put("/api/connections/search", json={"provider": "keenable"}).json()
+        assert r["provider"] == "keenable" and r["configured"] is True
+        assert r["key_source"] == "none"
+        wire.body = {"results": KEENABLE_ROWS[:1]}
+        r = client.post("/api/connections/search/test").json()
+        assert r["ok"] and r["provider"] == "Keenable" and r["results"] == 1
+        assert wire.requests[-1].url.host == "api.keenable.ai"
 
         # Brave without a key: allowed, but not configured — searches fall back
         r = client.put("/api/connections/search", json={"provider": "brave"})
