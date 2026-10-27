@@ -917,3 +917,66 @@ def test_session_keys_are_paced(client):
         assert client.post("/v1/auth/session-key", headers={"Authorization": f"Bearer {key}"}, json={"device": "web"}).status_code == 200
     r = client.post("/v1/auth/session-key", headers={"Authorization": f"Bearer {key}"}, json={"device": "web"})
     assert r.status_code == 429 and r.json()["error"]["code"] == "rate_limited"
+
+
+def _skip_devices(ws) -> dict:
+    """The next frame that is not a `devices` broadcast (each arrival sends one to everyone)."""
+    while True:
+        frame = ws.receive_json()
+        if frame["type"] != "devices":
+            return frame
+
+
+def test_a_pushed_event_reaches_the_devices_that_can_answer_it(client, monkeypatch):
+    """0.31: an `event` with no id is a push: only `approval` and `approval_result` pass, only
+    to devices of the account announcing `approve.any`, never back to the sender; each device
+    may push so many a minute, each body so big."""
+    from nanomuse_cloud import hub as hub_module
+    from nanomuse_cloud.service import Pace
+
+    a = sign_up(client, "13800138000")
+    b = sign_up(client, "13900139000")
+    keys = [sign_up(client, "13800138000") for _ in range(2)]
+    with connect(client, a) as pc, connect(client, keys[0]) as phone, connect(client, keys[1]) as old, connect(client, b) as stranger:
+        pc.send_json(hello("computer", "pc-1", "desk", actions=("info", "approve")))
+        welcome = pc.receive_json()
+        assert welcome["server"]["features"] == ["event_push"]
+        phone.send_json(hello("phone", "phone-1", "Pixel", actions=("info", "approve", "approve.any")))
+        assert _skip_devices(phone)["type"] == "welcome"
+        old.send_json(hello("phone", "phone-2", "Old", actions=("info", "approve")))
+        assert _skip_devices(old)["type"] == "welcome"
+        stranger.send_json(hello("phone", "phone-9", "B's", actions=("info", "approve.any")))
+        assert _skip_devices(stranger)["type"] == "welcome"
+
+        card = {"stage": "approval", "approval_id": "ap_1", "preview": "Send the message", "any_device": True}
+        pc.send_json({"type": "event", "to": "*", "body": card})
+        assert _skip_devices(phone) == {"type": "event", "from": {"id": "pc-1", "name": "desk", "kind": "computer"}, "body": card}
+        # the phone without approve.any, the other account and the sender hear nothing
+        for ws in (old, stranger, pc):
+            ws.send_json({"type": "ping"})
+            assert _skip_devices(ws)["type"] == "pong"
+
+        # another stage is dropped; the next push still goes through
+        pc.send_json({"type": "event", "to": "*", "body": {"stage": "tool", "name": "shell"}})
+        done = {"stage": "approval_result", "approval_id": "ap_1", "status": "approved", "by": {"id": "phone-1", "name": "Pixel"}}
+        pc.send_json({"type": "event", "to": "*", "body": done})
+        assert _skip_devices(phone)["body"] == done
+
+        # one device by id: only when it announces approve.any
+        pc.send_json({"type": "event", "to": "phone-2", "body": card})
+        pc.send_json({"type": "event", "to": "phone-1", "body": card})
+        assert _skip_devices(phone)["body"] == card
+        old.send_json({"type": "ping"})
+        assert _skip_devices(old)["type"] == "pong"
+
+        # a body over the cap is refused to its sender
+        monkeypatch.setattr(hub_module, "PUSH_BODY_BYTES", 100)
+        pc.send_json({"type": "event", "to": "*", "body": {**card, "preview": "x" * 200}})
+        assert _skip_devices(pc)["code"] == "too_large"
+
+        # over the rate, a push is dropped with an error to its sender
+        client.app.state.hub._pushes = Pace(1, 60.0)
+        pc.send_json({"type": "event", "to": "*", "body": card})
+        assert _skip_devices(phone)["body"] == card
+        pc.send_json({"type": "event", "to": "*", "body": card})
+        assert _skip_devices(pc)["code"] == "rate_limited"

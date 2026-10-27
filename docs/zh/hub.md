@@ -68,12 +68,13 @@ hub 上传递两类请求：
 → hello    {device:{id,name,kind,os,version,actions[],llm?}}   kind: phone | computer | web
            llm（中继 0.28，可选）：{provider, model}，这台设备跑模型所用的标识（"cloud"、"openrouter"、某个模型 id）；
            只收纯标识，key 和 URL 一律丢弃；记在设备行上，供运营者查看
-← welcome  {device_id, devices:[…], server:{version,frame_limit,time}}
+← welcome  {device_id, devices:[…], server:{version,frame_limit,time,features?}}   features (relay 0.31): ["event_push"]
 ← devices  {devices:[{id,name,kind,os,version,actions[],online,last_seen,controllable,ip}]}
 
 → call     {id, to, action, args}
 ← call     {id, from:{id,name,kind}, action, args}          (delivered to the target)
 → event    {id, body}          ← event  {id, from, body}    progress, approvals, images
+→ event    {to, body}          ← event  {from, body}        no id: a push to a device or "*" (relay 0.31, below)
 → result   {id, ok, body | error, message}                  ← result (to the caller)
 ← error    {code, message, id?}   device_offline · not_controllable · self_call · duplicate_call · unknown_call · timeout
                                   too_large · rate_limited · bad_frame · device_online · bad_key · bad_device
@@ -87,6 +88,8 @@ hub 上传递两类请求：
 关闭码：`4000` 期待 hello（15 秒内没有 hello，或第一帧不是 hello，二进制帧也算）、`4001` key 无效（原因 `bad_key` 或 `account_deleted`；账号在连接期间被删除或停用时为 `account_gone`；从中继 0.25.0 起，连接期间 key 刚被吊销时也会收到 `bad_key`：另一台设备点了「在所有设备上退出」、在账号页退出了这个登录，或这台设备自己退出登录，这样丢失的手机会立刻断线，其他设备看到它离线）、`4002` 设备无效、`4003` 被同一设备 id 的更新连接顶替，或者，带原因 `hub_paused`（中继 0.22）时，是运营者关掉了 hub 或整个服务：客户端应等一会儿再重连，而不是立刻重试（[cloud.md › 控制](cloud.md#controls)）；`4008` 帧太多（无视了下面的限速），或者带原因 `too_many_connections`（中继 0.30）时是连接太多：同一个地址一分钟内开了 60 条以上，或者这个账号已经有 32 台设备在线（同一台设备重新顶替自己的位置不算），以及 `4009` 读得太慢（这条连接上已经积压了 512 帧或 32 MB 而对方一直不读；客户端像遇到任何网络断开一样退避重连）。发往某台设备的帧从不等那台设备：每条连接各有一个队列，按顺序随 socket 排空写出；一部卡住的手机不会拖住正在呼叫它的电脑。
 
 `Authorization` 头里的 key 被拒时，处理方式与 `hello` 里的 key 被拒一致：握手完成，先发一个带 code 的 `error` 帧，再以 `4001` 关闭。客户端看到 `4001` 或 `4002` 就离开退避重连，把 hub 显示为「被拒绝」并请人重新登录（运行时仍每分钟试一次，这样在中继上恢复的 key 不用重启也能接回来）；其他关闭都视为网络问题，按退避重试。网络已经断了而 socket 还开着（笔记本睡过一觉、换了 Wi-Fi）时收不到 `pong`：运行时的客户端用协议自带的 ping，超时 20 秒；桌面版的客户端在两个 `ping` 帧之间什么都没收到（约 50 秒）就丢掉这条 socket，照样退避重连。
+
+中继 0.31 起，`event` 也可以不带 `id` 发出：这是一次推送，不是某个调用的进度。电脑用它发自己的审批卡片（这种卡片背后没有调用），以及「这张卡片已经有人答了」。`to` 是一台设备的 id，或 `"*"` 表示账号下所有设备；两种情况下中继都只转给在 `hello` 里声明了 `approve.any` 的设备，不回发给发送方，所以发送方不用自己维护名单，旧版 App 也收不到。只放行 `approval` 和 `approval_result` 两种 stage，其他的丢掉并记日志。一台设备每分钟最多推 30 条（超过回 `rate_limited`），每条 `body` 最多 16 KB（超过回 `too_large`）。支持这件事的中继在 `welcome.server.features` 里列出 `event_push`；客户端看到它才推送，所以旧中继收不到推送。
 
 中继不认识的帧（没有处理器的 `type`、不是 JSON 对象的文本帧、二进制帧）都回 `error bad_frame`，连接保持打开，所以新客户端对着旧中继只会丢一帧，不会掉线。超过 `frame_limit` 的帧回 `too_large`；每秒超过 60 帧或 8 MB 回 `rate_limited`（每秒最多提醒一次，多出的帧被丢弃），持续下去则以 `4008` 关闭。15 分钟内没人应答的 `call` 向发起方回 `timeout`（中继在有 call 或 `ping` 到达时检查，所以一个会 ping 的发起方在期限过后一分钟内就能听到）；对当前在线的设备发 `forget` 会被拒绝，回 `device_online`。
 
