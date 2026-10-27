@@ -12,6 +12,7 @@ Frames are JSON text. From a device:
     {"type":"call",   "id","to","action","args"}         ask another device to do something
     {"type":"result", "id","ok", "body" | "error","message"}   the answer to a call received
     {"type":"event",  "id","body"}                        progress on a call still running
+    {"type":"event",  "to","body"}                        no id: pushed to a device, or "*" (0.31)
     {"type":"devices"}  {"type":"rename","name"}  {"type":"forget","device_id"}  {"type":"ping"}
 
 From the hub:
@@ -20,6 +21,7 @@ From the hub:
     {"type":"devices","devices":[…]}                      whenever a device comes or goes
     {"type":"call","id","from":{id,name,kind},"action","args"}
     {"type":"result", …}  {"type":"event", …}             forwarded to the caller
+    {"type":"event","from","body"}                        a push from another device of the account (0.31)
     {"type":"error","code","message","id"?}               e.g. device_offline, not_controllable
     {"type":"pong"}
     {"type":"sync","what":"conversations","cursor","from"}  another device pushed chats; pull (0.19)
@@ -82,6 +84,18 @@ SEND_QUEUE_BYTES = 32 * 1024 * 1024
 # written. Both close with 4008 `too_many_connections`.
 HELLOS_PER_MINUTE = 60
 MAX_ONLINE_PER_ACCOUNT = 32
+
+# 0.31: an `event` without an id is a push, not progress on a call: a computer's own approval
+# card, sent to the devices that can answer it, and the word that it was answered. Only
+# these stages pass; a push goes only to devices whose hello announces `approve.any`, so an
+# older app never sees one. One device may push this many a minute, each body this big at
+# most: `"*"` copies a frame to every device of the account.
+PUSH_STAGES = ("approval", "approval_result")
+APPROVE_ANY = "approve.any"
+PUSHES_PER_MINUTE = 30
+PUSH_BODY_BYTES = 16 * 1024
+# what this relay understands beyond the frames every version has; `welcome.server.features`
+FEATURES = ["event_push"]
 
 
 class Bucket:
@@ -232,6 +246,7 @@ class Hub:
         # account with too many open (0.30)
         self.refused_connections = 0
         self._hellos = Pace(HELLOS_PER_MINUTE, 60.0)
+        self._pushes = Pace(PUSHES_PER_MINUTE, 60.0)
 
     # -- presence -------------------------------------------------------------------
 
@@ -427,7 +442,7 @@ class Hub:
                     "type": "welcome",
                     "device_id": conn.device_id,
                     "devices": self.devices(conn.account_id),
-                    "server": {"version": __version__, "frame_limit": self.frame_limit, "time": now()},
+                    "server": {"version": __version__, "frame_limit": self.frame_limit, "time": now(), "features": FEATURES},
                 }
             )
             await self.broadcast_devices(conn.account_id)
@@ -601,6 +616,8 @@ class Hub:
             await conn.send({"type": "devices", "devices": self.devices(conn.account_id)})
         elif kind == "call":
             await self._call(conn, frame)
+        elif kind == "event" and not frame.get("id"):
+            await self._push(conn, frame)
         elif kind in ("result", "event"):
             await self._answer(conn, frame)
         elif kind == "rename":
@@ -677,6 +694,38 @@ class Hub:
         out = {k: v for k, v in frame.items() if k in ("type", "id", "ok", "body", "error", "message")}
         out["from"] = conn.brief()
         await caller.send(out)
+
+    async def _push(self, conn: Connection, frame: dict) -> None:
+        """An event with no call behind it, to one device or to every device of the account
+        (`"*"`) that announces `approve.any`; never back to the sender."""
+        body = frame.get("body") if isinstance(frame.get("body"), dict) else {}
+        stage = body.get("stage")
+        if stage not in PUSH_STAGES:
+            log.info("hub: %s pushed an event of stage %r; dropped", conn.device_id[:12], str(stage)[:40])
+            return
+        if len(json.dumps(body, ensure_ascii=False).encode("utf-8")) > PUSH_BODY_BYTES:
+            await conn.send(
+                {"type": "error", "code": "too_large", "message": f"A pushed event's body is capped at {PUSH_BODY_BYTES} bytes"}
+            )
+            return
+        if not self._pushes.allow(f"{conn.account_id}:{conn.device_id}"):
+            await conn.send(
+                {
+                    "type": "error",
+                    "code": "rate_limited",
+                    "message": f"At most {PUSHES_PER_MINUTE} pushed events a minute; this one was dropped",
+                }
+            )
+            return
+        to = str(frame.get("to") or "")
+        targets = [
+            c
+            for c in self.online.get(conn.account_id, {}).values()
+            if c is not conn and not c.closed and APPROVE_ANY in c.actions and (to == "*" or c.device_id == to)
+        ]
+        out = {"type": "event", "from": conn.brief(), "body": body}
+        for target in targets:
+            await target.send(out)
 
     async def _sweep(self) -> None:
         """Calls nobody answered in time are dropped, and the caller hears so instead of waiting for its own clock."""
