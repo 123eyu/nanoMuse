@@ -55,7 +55,7 @@ enum class GuardKind {
     DEVICE,
     /**
      * A step of a scheduled task on a computer of the account, asked here because nobody may be
-     * at that computer (`approval.ask`, docs/hub.md). [RiskRequest.pageUrl] carries the
+     * at that computer (a pushed `approval` event, docs/hub.md). [RiskRequest.pageUrl] carries the
      * computer's name, [RiskRequest.elementText] the task's title, [RiskRequest.app] the app.
      */
     SCHEDULED,
