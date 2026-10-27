@@ -358,6 +358,13 @@ final class NanoMuseScheduler: ObservableObject {
         return content
     }
 
+    /// Who a routine's turn is for the relay's record (NanoMuseProvenance): the feed's, a goal's, or a schedule's.
+    func runKind(_ r: NanoMuseRoutine) -> String {
+        if r.goalId != nil { return NanoMuseProvenance.runGoal }
+        if r.id == NanoMuseFeedFlow.routineId || (r.sessionId.map { NanoMuseFeedFlow.isFeedSession($0) } ?? false) { return NanoMuseProvenance.runFeed }
+        return NanoMuseProvenance.runSchedule
+    }
+
     /// Ask once; iOS keeps the answer.
     func requestNotificationPermission() {
         Task {
@@ -372,13 +379,6 @@ final class NanoMuseScheduler: ObservableObject {
 // MARK: - Events
 
 enum NanoMuseRoutineEvents {
-    /// Who a routine's turn is for the relay's record (NanoMuseProvenance): the feed's, a goal's, or a schedule's.
-    func runKind(_ r: NanoMuseRoutine) -> String {
-        if r.goalId != nil { return NanoMuseProvenance.runGoal }
-        if r.id == NanoMuseFeedFlow.routineId || (r.sessionId.map { NanoMuseFeedFlow.isFeedSession($0) } ?? false) { return NanoMuseProvenance.runFeed }
-        return NanoMuseProvenance.runSchedule
-    }
-
     /// A routine finished; the feed and the goals listen.
     static let finished = NanoMuseSignal<(NanoMuseRoutine, NanoMuseHeadless.Outcome)>()
 }

@@ -55,11 +55,14 @@ enum NanoMuseClientEvents {
         })
     }
 
-    /// How many events are waiting.
-    static var pending: Int {
+    /// Under the lock, synchronously: the async functions below never take the lock themselves.
+    private static func locked<T>(_ body: () -> T) -> T {
         lock.lock(); defer { lock.unlock() }
-        return queue.count
+        return body()
     }
+
+    /// How many events are waiting.
+    static var pending: Int { locked { queue.count } }
 
     /// One event: `kind` in dotted lower case, `data` cleaned to the shape above, the turn it is
     /// about (`turn`, when the record has named it) and its `conversation`. Queued now, judged
@@ -123,50 +126,50 @@ enum NanoMuseClientEvents {
 
     /// Sends what is waiting, a batch at a time, off the main thread.
     static func flush() {
-        lock.lock()
-        timer?.cancel()
-        timer = nil
-        let start = !draining
-        draining = true
-        lock.unlock()
-        guard start else { return }
+        guard claimDrain() else { return }
         Task.detached(priority: .utility) { await drain() }
     }
 
     /// For tests: what is waiting goes now, awaited.
     static func drainNow() async {
-        lock.lock()
-        timer?.cancel()
-        timer = nil
-        let start = !draining
-        draining = true
-        lock.unlock()
-        guard start else { return }
+        guard claimDrain() else { return }
         await drain()
     }
 
-    private static func drain() async {
-        defer {
-            lock.lock()
-            draining = false
-            lock.unlock()
+    /// Stops the timer and takes the one drain allowed at a time; false when a drain is on.
+    private static func claimDrain() -> Bool {
+        locked {
+            timer?.cancel()
+            timer = nil
+            let start = !draining
+            draining = true
+            return start
         }
-        while true {
-            lock.lock()
+    }
+
+    private static func takeBatch() -> [[String: Any]] {
+        locked {
             let events = Array(queue.prefix(batch))
             queue.removeFirst(events.count)
-            lock.unlock()
+            return events
+        }
+    }
+
+    private static func drain() async {
+        defer { locked { draining = false } }
+        while true {
+            let events = takeBatch()
             if events.isEmpty { return }
             guard let send = sender else { return }
             guard await enabled() else {
-                lock.lock(); dropped += events.count; lock.unlock()
+                locked { dropped += events.count }
                 return
             }
             do {
                 try await send(events)
-                lock.lock(); sent += 1; lock.unlock()
+                locked { sent += 1 }
             } catch {
-                lock.lock(); dropped += events.count; lock.unlock()
+                locked { dropped += events.count }
                 AppLogger(category: "NanoMuseClientEvents").info("a batch of \(events.count) events was not sent: \(NanoMuseCloud.describe(error))")
                 return
             }
