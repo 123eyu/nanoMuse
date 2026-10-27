@@ -110,7 +110,15 @@ def wire(monkeypatch: pytest.MonkeyPatch) -> Wire:
     def make(**kw: Any) -> AsyncOpenAI:
         http = kw["http_client"]
         w.httpx = _httpx_of(http)
-        http._transport = w.httpx.MockTransport(w.handler)
+        # the mock rides in at construction: an assignment to the private _transport
+        # stopped being read once httpx2 grew its mounts plumbing, and the wire's requests
+        # went to the real network instead (the timeout and the response hook that keeps
+        # the relay's turn id stay the client's own)
+        kw["http_client"] = w.httpx.AsyncClient(
+            transport=w.httpx.MockTransport(w.handler),
+            timeout=http.timeout,
+            event_hooks=http.event_hooks,
+        )
         return AsyncOpenAI(**kw)
 
     monkeypatch.setattr(chat_mod, "AsyncOpenAI", make)
