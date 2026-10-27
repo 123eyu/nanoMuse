@@ -20,6 +20,7 @@ import httpx
 
 from nanomuse.calendar.ics import Event, Occurrence, day_bounds, expand, parse_ics
 from nanomuse.logger import logger
+from nanomuse.private import keep_private
 
 if TYPE_CHECKING:
     from nanomuse.config import CalendarSettings
@@ -107,7 +108,7 @@ class CalendarFeeds:
                     del existing[name]
             self.cache_file.parent.mkdir(parents=True, exist_ok=True)
             self.cache_file.write_text(json.dumps(existing), encoding="utf-8")
-            self.cache_file.chmod(0o600)  # someone's whole calendar; keep it to this user
+            keep_private(self.cache_file)  # someone's whole calendar; keep it to this user
         except OSError as exc:
             logger.warning("calendar cache not written: {}", exc)
 

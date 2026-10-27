@@ -26,6 +26,7 @@ from typing import Any
 
 from nanomuse.channels.base import Channel, Field
 from nanomuse.logger import logger
+from nanomuse.private import keep_private
 from nanomuse.vault.vault import CredentialVault
 
 GROUP_POLICIES = ("mention", "open")
@@ -59,8 +60,8 @@ def _write_json(path: Path, data: dict[str, Any]) -> None:
     tmp = path.with_suffix(".tmp")
     tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), "utf-8")
     try:
-        tmp.chmod(0o600)
-    except OSError:  # pragma: no cover - windows
+        keep_private(tmp)
+    except OSError:  # pragma: no cover
         pass
     tmp.replace(path)
 

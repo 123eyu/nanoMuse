@@ -41,6 +41,7 @@ from nanomuse.logger import logger
 from nanomuse.memory.consolidate import TidyReport, tidy
 from nanomuse.nudges import NudgesPolicy
 from nanomuse.phone import PhoneLink
+from nanomuse.private import keep_private
 from nanomuse.reminders import Reminder
 from nanomuse.schema import Attachment, Message, Role
 from nanomuse.sentinel.grants import normalize_scope
@@ -578,7 +579,7 @@ class MuseService:
         tok = secrets.token_urlsafe(18)
         path.write_text(tok, "utf-8")
         try:
-            path.chmod(0o600)
+            keep_private(path)
         except OSError:  # pragma: no cover
             pass
         return tok
