@@ -100,8 +100,17 @@ async def fetch_public(
                 body = await read_capped(resp, MAX_BODY_BYTES)
             finally:
                 await resp.aclose()
+            # `read_capped` already undid the transfer encoding, so the response handed
+            # back must not say `content-encoding: gzip`: httpx would decode the body a
+            # second time and fail on every compressed page (#641). The length is the
+            # cut body's, not the wire's.
+            kept = [
+                (k, v)
+                for k, v in resp.headers.multi_items()
+                if k.lower() not in ("content-encoding", "content-length")
+            ]
             return httpx.Response(
-                resp.status_code, headers=resp.headers, content=body, request=resp.request
+                resp.status_code, headers=kept, content=body, request=resp.request
             )
         raise PermissionError(f"more than {MAX_REDIRECTS} redirects")
 

@@ -409,6 +409,37 @@ async def test_web_fetch_stops_reading_at_the_body_cap(monkeypatch: pytest.Monke
     assert len(resp.content) == 1000 and served <= 4096 * 2
 
 
+async def test_web_fetch_reads_a_compressed_page_once(monkeypatch: pytest.MonkeyPatch):
+    """#641: the streamed read already undoes the gzip, and the response handed back used
+    to repeat the wire's `content-encoding`, so httpx decoded the body a second time and
+    every compressed page failed with `incorrect header check`."""
+    import gzip
+
+    page = b"<html><body>" + b"hello gzip " * 40 + b"</body></html>"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            content=gzip.compress(page),
+            headers={"content-encoding": "gzip", "content-type": "text/html", "x-a": "1"},
+        )
+
+    resp = await fetch_public(
+        "http://public.example/zipped", timeout=5, transport=httpx.MockTransport(handler)
+    )
+    assert resp.content == page
+    assert "content-encoding" not in resp.headers and resp.headers["x-a"] == "1"
+
+    # the cap applies to the page as read, so a compressed page is cut where a plain one is
+    from nanomuse.tools import web as web_mod
+
+    monkeypatch.setattr(web_mod, "MAX_BODY_BYTES", 100)
+    resp = await fetch_public(
+        "http://public.example/zipped", timeout=5, transport=httpx.MockTransport(handler)
+    )
+    assert resp.content == page[:100]
+
+
 class _Chunks(httpx.AsyncByteStream):
     def __init__(self, gen):  # noqa: ANN001
         self._gen = gen
