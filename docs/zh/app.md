@@ -100,8 +100,8 @@ nanomuse serve --port 9000 --no-qr
   可以用模型自己的端点或另一个端点（例如给没有向量接口的 DeepSeek 配一个带
   `qwen3-embedding:0.6b` 的 Ollama；保险库：`EMBEDDINGS_API_KEY`），模型名留空用端点默认值。
   「测试」成功后会当场索引每一条记忆，卡片显示数量。
-  **网页搜索**：DuckDuckGo、带 key 的 Brave Search / Tavily / Serply、带或不带 key 的 You.com
-  和 Parallel（Parallel 不带 key 免费，限额较低），或按 URL 填 SearXNG；保险库名是 `SEARCH_API_KEY`。「测试」显示服务商、结果数和耗时，失败会
+  **网页搜索**：DuckDuckGo、带 key 的 Brave Search / Tavily / Serply、带或不带 key 的 You.com、
+  Parallel 和 Keenable（Parallel 不带 key 免费，限额较低；Keenable 不带 key 每小时 1000 次），或按 URL 填 SearXNG；保险库名是 `SEARCH_API_KEY`。「测试」显示服务商、结果数和耗时，失败会
   带说明退回 DuckDuckGo。
   **邮件**：常见服务商预设、地址和应用专用密码（`EMAIL_ADDRESS`、`EMAIL_PASSWORD`）以及
   IMAP/SMTP 服务器；「连接」验证两边，「断开」删除凭据和工具。
@@ -208,7 +208,7 @@ nanomuse serve --port 9000 --no-qr
 | POST | `/api/connections/endpoints/{id}/models` | 重新向接口要一遍模型并保存：返回条目加 `source: "live"`，它没回答时是 `"kept"` 和 `error`，沿用已保存的列表 |
 | PUT | `/api/connections/embeddings` `{mode, model, base_url, api_key}` | 按含义召回：`mode` 为 auto/on/off；`base_url` 为 `""` → 用模型的端点；`model` 为 `""` → 用端点的默认值；`api_key` 给了 → 保险库（`EMBEDDINGS_API_KEY`），`""` → 用模型的 key，没给 → 不变。当场重建向量模型 |
 | POST | `/api/connections/embeddings/test` | 调一次向量接口，然后给每条记忆建索引：`{ok, model, dims, indexed, ms}` 或 `{ok: false, error}` |
-| PUT | `/api/connections/search` `{provider, api_key, base_url}` | 网页搜索：`provider` 为 duckduckgo/brave/tavily/serply/you/parallel/searxng；`api_key` 给了 → 保险库（`SEARCH_API_KEY`），`""` 删掉它，没给 → 不变；`base_url` 是 SearXNG 实例。从下一次搜索起生效 |
+| PUT | `/api/connections/search` `{provider, api_key, base_url}` | 网页搜索：`provider` 为 duckduckgo/brave/tavily/serply/you/parallel/keenable/searxng；`api_key` 给了 → 保险库（`SEARCH_API_KEY`），`""` 删掉它，没给 → 不变；`base_url` 是 SearXNG 实例。从下一次搜索起生效 |
 | POST | `/api/connections/search/test` | 对配置的服务商搜一次，不回退：`{ok, provider, results, first, ms}` 或 `{ok: false, error}` |
 | PUT / DELETE | `/api/connections/email` | 保存 `{address, password, imap_host, imap_port, smtp_host, smtp_port, smtp_starttls, enabled}`（地址和密码进保险库）/ 断开并忘掉凭据 |
 | POST | `/api/connections/email/test` | 登录 IMAP 和 SMTP：`{ok, inbox}` 或 `{ok: false, error}` |
