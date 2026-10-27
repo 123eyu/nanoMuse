@@ -176,12 +176,13 @@ the key in `hello` instead).
 → hello    {device:{id,name,kind,os,version,actions[],llm?}}   kind: phone | computer | web
            llm (relay 0.28, optional): {provider, model}, the ids the device runs its model under ("cloud",
            "openrouter", a model id); plain ids only, never a key or a URL; kept on the device row for the operator
-← welcome  {device_id, devices:[…], server:{version,frame_limit,time}}
+← welcome  {device_id, devices:[…], server:{version,frame_limit,time,features?}}   features (relay 0.31): ["event_push"]
 ← devices  {devices:[{id,name,kind,os,version,actions[],online,last_seen,controllable,ip}]}
 
 → call     {id, to, action, args}
 ← call     {id, from:{id,name,kind}, action, args}          (delivered to the target)
 → event    {id, body}          ← event  {id, from, body}    progress, approvals, images
+→ event    {to, body}          ← event  {from, body}        no id: a push to a device or "*" (relay 0.31, below)
 → result   {id, ok, body | error, message}                  ← result (to the caller)
 ← error    {code, message, id?}   device_offline · not_controllable · self_call · duplicate_call · unknown_call · timeout
                                   too_large · rate_limited · bad_frame · device_online · bad_key · bad_device
@@ -223,6 +224,18 @@ slept, a Wi-Fi that changed) hears no `pong`: the runtime's client uses the
 protocol's own ping with a 20 s timeout, the desktop's drops the socket when
 nothing at all arrived between two of its `ping` frames (about 50 s) and
 reconnects the same way.
+
+Since relay 0.31 an `event` may also be sent without an `id`: a push, not
+progress on a call. A computer uses it for its own approval cards, which no
+call stands behind, and for the word that one was answered. `to` is one
+device id or `"*"`, every device of the account; either way the relay passes
+the frame only to devices whose `hello` announced `approve.any`, never back to
+the sender, so the sender keeps no list and an older app never sees one. Only
+the stages `approval` and `approval_result` pass; any other is dropped and
+logged. One device may push 30 a minute (over that, `rate_limited`), each
+`body` 16 KB at most (over that, `too_large`). A relay that has this lists
+`event_push` in `welcome.server.features`; a client sends a push only when it
+sees that, so an older relay hears none.
 
 Frames the relay does not know (`type` it has no handler for, a text frame
 that is not a JSON object, a binary frame) are answered with
