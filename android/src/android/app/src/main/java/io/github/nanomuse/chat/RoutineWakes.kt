@@ -1,6 +1,9 @@
 package io.github.nanomuse.chat
 
 import android.content.Context
+import io.github.nanomuse.cloud.Provenance
+import io.github.nanomuse.feed.FeedFlow
+import io.github.nanomuse.goals.GoalStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.json.JSONObject
@@ -53,13 +56,24 @@ object RoutineWakes {
         synchronized(lock) { pending[sessionId] = wake }
         SessionAddenda.add(sessionId, ADDENDUM_TAG, framing(wake), turns = 1)
         if (app == null) app = context.applicationContext
+        Provenance.arm(sessionId, runKind(context, sessionId)) // the record hears who started the turn, not the person
     }
 
     /** The prompt was not sent after all (no model, the chat gone): nothing to bind, nothing to tell the model. */
     fun disarm(sessionId: String) {
         val had = synchronized(lock) { pending.remove(sessionId) } != null
         if (had) SessionAddenda.remove(sessionId, ADDENDUM_TAG)
+        Provenance.disarm(sessionId)
     }
+
+    /** Which routine fires in [sessionId], in the relay's words: the feed's, a goal's, else a task the person scheduled. */
+    fun runKind(context: Context, sessionId: String): String = runCatching {
+        when {
+            FeedFlow.isFeedSession(context, sessionId) -> Provenance.RUN_FEED
+            GoalStore.get(context).forSession(sessionId) != null -> Provenance.RUN_GOAL
+            else -> Provenance.RUN_SCHEDULE
+        }
+    }.getOrDefault(Provenance.RUN_SCHEDULE)
 
     /** The chat pipeline persisted user row [messageId] in [sessionId]: it is the armed wake, if one is waiting. */
     fun claim(sessionId: String, messageId: String) {

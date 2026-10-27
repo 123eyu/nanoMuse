@@ -1190,4 +1190,20 @@
     <string name="nm_wait_busy">Abala ang modelo, %1$d s na ang lumipas</string>
     <string name="nm_wait_queued">%1$d ang nauuna sa iyo, %2$d s na ang lumipas</string>
     <string name="nm_wait_next">Ikaw na ang susunod, %1$d s na ang lumipas</string>
+    <string name="nm_fb_up">Magandang sagot</string>
+    <string name="nm_fb_down">Hindi magandang sagot</string>
+    <string name="nm_fb_why">Ano ang mali?</string>
+    <string name="nm_fb_reason_wrong">Mali</string>
+    <string name="nm_fb_reason_unhelpful">Hindi nakatulong</string>
+    <string name="nm_fb_reason_unsafe">Hindi dapat ginawa iyon</string>
+    <string name="nm_fb_reason_slow">Masyadong mabagal</string>
+    <string name="nm_fb_reason_other">Iba pa</string>
+    <string name="nm_fb_skip">Laktawan</string>
+    <string name="nm_fb_thanks">Naitala, salamat</string>
+    <string name="nm_stop_why">Bakit mo ito pinahinto?</string>
+    <string name="nm_stop_reason_wrong">Mali ang direksyon</string>
+    <string name="nm_stop_reason_slow">Masyadong mabagal</string>
+    <string name="nm_stop_reason_changed_mind">Nagbago ang isip ko</string>
+    <string name="nm_stop_reason_done">Tapos na pala</string>
+    <string name="nm_stop_reason_other">Iba pa</string>
 </resources>

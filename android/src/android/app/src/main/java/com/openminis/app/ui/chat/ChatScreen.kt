@@ -600,6 +600,14 @@ fun ChatScreen(
     // cooldown, a lifetime cap, and never again after the person went).
     var nmStarNudge by remember { mutableStateOf<io.github.nanomuse.community.StarPrompt.Ask?>(null) }
     var nmSawRun by remember { mutableStateOf(false) }
+    // nanoMuse: after a Stop in this chat, one question under the reply — why — with Skip (TurnFeedback)
+    val nmStopAsk by io.github.nanomuse.ui.feedback.TurnFeedback.stopAsk.collectAsState()
+    val nmStopAskHere = nmStopAsk?.takeIf { !isStreaming && it.sessionId == viewModel.activeSessionId && it.sessionId.isNotEmpty() }
+    LaunchedEffect(nmStopAskHere) {
+        val ask = nmStopAskHere ?: return@LaunchedEffect
+        kotlinx.coroutines.delay((io.github.nanomuse.ui.feedback.TurnFeedback.STOP_ASK_MS - (System.currentTimeMillis() - ask.at)).coerceAtLeast(0))
+        io.github.nanomuse.ui.feedback.TurnFeedback.dropStopAsk(ask) // unanswered for long enough: the moment has passed
+    }
     LaunchedEffect(isStreaming) {
         if (isStreaming) { nmSawRun = true; return@LaunchedEffect }
         if (!nmSawRun) return@LaunchedEffect
@@ -3834,6 +3842,7 @@ fun ChatScreen(
                     is FlatChatItem.NanoMuseAvatarShare -> false // nanoMuse
                     is FlatChatItem.NanoMuseAvatarConfirm -> false // nanoMuse
                     is FlatChatItem.NanoMuseAllowance -> false // nanoMuse
+                    is FlatChatItem.NanoMuseThumbs -> false // nanoMuse
                     is FlatChatItem.AssistantTyping -> false
                     is FlatChatItem.AssistantError -> grayedMap[originalMessageId(messageId)] == true
                     is FlatChatItem.AssistantLegacyContent -> grayedMap[originalMessageId(messageId)] == true
@@ -4120,6 +4129,12 @@ fun ChatScreen(
                                     tracedScrollToItem("RESUME-BANNER/settle", 0, 0)
                                 }
                             })
+                        }
+                    }
+                    // nanoMuse: the question after a Stop, before the star's card (reverseLayout: lowest on the screen)
+                    nmStopAskHere?.let { ask ->
+                        item(key = "__stop_ask__", contentType = "stop_ask") {
+                            io.github.nanomuse.ui.feedback.StopAskCard(ask, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
                         }
                     }
                     // nanoMuse: the ask for a star under a finished task, or on the 7th / 30th
@@ -4515,6 +4530,12 @@ fun ChatScreen(
                                     )
                                 }
                             }
+                            // nanoMuse: the two thumbs under the newest finished reply (and under an older one that was voted on)
+                            is FlatChatItem.NanoMuseThumbs -> io.github.nanomuse.ui.feedback.ThumbsRow(
+                                sessionId = viewModel.activeSessionId,
+                                messageId = item.messageId.substringBefore('#'),
+                                newest = !isStreaming && item.messageId.substringBefore('#') == messages.lastOrNull { it.role == "assistant" }?.id,
+                            )
                             // nanoMuse: under the dots, how long this step has waited and how many are ahead at the relay
                             is FlatChatItem.AssistantTyping -> Column {
                                 TypingIndicator()

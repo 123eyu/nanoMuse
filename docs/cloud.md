@@ -378,7 +378,7 @@ kinds and what their `data` holds:
 
 | kind | data |
 | --- | --- |
-| `sentinel.decision` | `tool`, `risk` (`safe`, `moderate`, `sensitive`, `critical`), `decision` (`allow`, `ask`, `deny`), `grant?` (`once`, `schedule`, `conversation`, `always`: the permission that covered it), `policy?` (what the policy said before anyone was asked), `by?` (who settled it: `policy`, `auto`, `grant`, `person`, `timeout`), `channel?`, `tainted?` (bool), `warnings?` (count), `ok?` (bool: whether the tool then ran without an error; the desktop sends it, the runtime does not) |
+| `sentinel.decision` | `tool`, `risk` (`safe`, `moderate`, `sensitive`, `critical`), `decision` (`allow`, `ask`, `deny`), `grant?` (`once`, `schedule`, `conversation`, `always`: the permission that covered it), `policy?` (what the policy said before anyone was asked), `by?` (who settled it: `policy`, `auto`, `grant`, `person`, `timeout`), `channel?`, `tainted?` (bool), `warnings?` (count), `ok?` (bool: whether the tool then ran without an error; the desktop sends it, the runtime does not), `class?` (the phone's own class of the risk: `safe`, `install`, `destructive`, `outbound`, `remote`, `money`; Android and iOS send it) |
 | `approval.result` | `tool?`, `risk?`, `allow` (bool), `scope?` (`once`, `schedule`, `conversation`, `always`), `by?` (`person`, `timeout`, `other_device`), `waited_s?`, `channel?`, `warnings?` |
 | `turn.stopped` | `reason`: `wrong`, `slow`, `changed_mind`, `done`, `other`, `skipped` (the person stopped a reply and said, or did not say, why), `turn_no?` |
 | `turn.feedback` | `vote` (`up`, `down`, `none` when taken back), `reason?` (`wrong`, `unhelpful`, `unsafe`, `slow`, `other`), `turn_no?` |

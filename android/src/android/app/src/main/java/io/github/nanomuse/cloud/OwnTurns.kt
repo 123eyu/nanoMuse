@@ -14,6 +14,7 @@ import com.openminis.app.logging.AppLogger
 import com.openminis.app.provider.LLMProvider
 import io.github.nanomuse.models.ModelSlots
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import org.json.JSONArray
@@ -23,6 +24,8 @@ import java.util.ArrayDeque
 import java.util.UUID
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.coroutineContext
 
 /**
  * The account's record for turns that did not pass through the relay (relay 0.29,
@@ -103,7 +106,7 @@ object OwnTurns {
             imageParts: List<LLMMessage.ImagePart>, tools: List<AgentToolDefinition>, thinkingLevel: ThinkingLevel,
         ): LLMResponse {
             val model = inner.model
-            val g = Gathered()
+            val g = Gathered(coroutineContext, messages)
             try {
                 val response = inner.sendMessageClamped(messages, systemPrompt, maxTokens, temperature, imageParts, tools, thinkingLevel)
                 g.content.append(response.text)
@@ -127,7 +130,7 @@ object OwnTurns {
             imageParts: List<LLMMessage.ImagePart>, tools: List<AgentToolDefinition>, thinkingLevel: ThinkingLevel,
         ): Flow<LLMStreamChunk> = flow {
             val model = inner.model
-            val g = Gathered()
+            val g = Gathered(currentCoroutineContext(), messages)
             try {
                 inner.streamMessageClamped(messages, systemPrompt, maxTokens, temperature, imageParts, tools, thinkingLevel).collect { chunk ->
                     g.take(chunk)
@@ -145,8 +148,13 @@ object OwnTurns {
         }
     }
 
-    /** The answer as it came, gathered from the chunks (or the one response). */
-    private class Gathered {
+    /**
+     * The answer as it came, gathered from the chunks (or the one response), and where the
+     * call sat, read from the coroutine as it went out (relay 0.31: run, turn, step, trajectory).
+     */
+    private class Gathered(context: CoroutineContext, messages: List<LLMMessage>) {
+        val sessionId: String? = Provenance.sessionIn(context)
+        val where: Provenance.Fields = Provenance.fields(context, conversationKey(messages), messages)
         val content = StringBuilder()
         val reasoning = StringBuilder()
         val calls = LinkedHashMap<String, JSONObject>()
@@ -231,8 +239,9 @@ object OwnTurns {
             )
         }
         val partial = !g.finished
+        val id = UUID.randomUUID().toString()
         val turn = JSONObject()
-            .put("id", UUID.randomUUID().toString())
+            .put("id", id)
             .put("ts", at / 1000)
             .put("provider", providerName)
             .put("model", model.id.take(120))
@@ -240,6 +249,7 @@ object OwnTurns {
             .put("messages", out)
             .put("response", response)
             .put("status", if (partial) "partial" else "ok")
+        g.where.into(turn)
         if (tools.isNotEmpty()) turn.put("tools", JSONArray().also { arr -> tools.forEach { arr.put(it.toOpenAIJson()) } })
         if (partial) turn.put("ended", g.ended ?: "abandoned")
         if (out.toString().length + response.toString().length > TURN_MAX_CHARS) {
@@ -252,6 +262,7 @@ object OwnTurns {
         }
         NanoMuseCloud.postTurn(context, turn)
         sent.incrementAndGet()
+        Provenance.noteOwnTurn(g.sessionId, id) // the events about this turn name it by this id, with "source": "own"
     }
 
     /**

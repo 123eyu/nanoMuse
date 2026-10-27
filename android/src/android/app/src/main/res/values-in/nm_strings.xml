@@ -1186,4 +1186,20 @@
     <string name="nm_wait_busy">Model sedang sibuk, sudah %1$d dtk</string>
     <string name="nm_wait_queued">%1$d di depan Anda, sudah %2$d dtk</string>
     <string name="nm_wait_next">Anda berikutnya, sudah %1$d dtk</string>
+    <string name="nm_fb_up">Jawaban bagus</string>
+    <string name="nm_fb_down">Jawaban kurang bagus</string>
+    <string name="nm_fb_why">Apa yang salah?</string>
+    <string name="nm_fb_reason_wrong">Salah</string>
+    <string name="nm_fb_reason_unhelpful">Tidak membantu</string>
+    <string name="nm_fb_reason_unsafe">Seharusnya tidak melakukan itu</string>
+    <string name="nm_fb_reason_slow">Terlalu lambat</string>
+    <string name="nm_fb_reason_other">Hal lain</string>
+    <string name="nm_fb_skip">Lewati</string>
+    <string name="nm_fb_thanks">Dicatat, terima kasih</string>
+    <string name="nm_stop_why">Kenapa dihentikan?</string>
+    <string name="nm_stop_reason_wrong">Arahnya salah</string>
+    <string name="nm_stop_reason_slow">Terlalu lambat</string>
+    <string name="nm_stop_reason_changed_mind">Berubah pikiran</string>
+    <string name="nm_stop_reason_done">Sudah selesai</string>
+    <string name="nm_stop_reason_other">Hal lain</string>
 </resources>

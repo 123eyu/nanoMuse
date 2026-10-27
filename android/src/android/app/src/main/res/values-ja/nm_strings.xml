@@ -1186,4 +1186,20 @@
     <string name="nm_wait_busy">モデルが混み合っています。%1$d 秒経過</string>
     <string name="nm_wait_queued">前に %1$d 件、%2$d 秒経過</string>
     <string name="nm_wait_next">次はあなたの番です。%1$d 秒経過</string>
+    <string name="nm_fb_up">良い返答</string>
+    <string name="nm_fb_down">良くない返答</string>
+    <string name="nm_fb_why">何が問題でしたか？</string>
+    <string name="nm_fb_reason_wrong">間違っている</string>
+    <string name="nm_fb_reason_unhelpful">役に立たなかった</string>
+    <string name="nm_fb_reason_unsafe">すべきではなかった</string>
+    <string name="nm_fb_reason_slow">遅すぎる</string>
+    <string name="nm_fb_reason_other">その他</string>
+    <string name="nm_fb_skip">スキップ</string>
+    <string name="nm_fb_thanks">受け取りました。ありがとうございます</string>
+    <string name="nm_stop_why">なぜ止めましたか？</string>
+    <string name="nm_stop_reason_wrong">方向が違っていた</string>
+    <string name="nm_stop_reason_slow">遅すぎた</string>
+    <string name="nm_stop_reason_changed_mind">気が変わった</string>
+    <string name="nm_stop_reason_done">もう終わっていた</string>
+    <string name="nm_stop_reason_other">その他</string>
 </resources>

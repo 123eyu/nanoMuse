@@ -1191,4 +1191,20 @@
     <string name="nm_wait_busy">O modelo está ocupado, %1$d s até agora</string>
     <string name="nm_wait_queued">%1$d na sua frente, %2$d s até agora</string>
     <string name="nm_wait_next">Você é o próximo, %1$d s até agora</string>
+    <string name="nm_fb_up">Boa resposta</string>
+    <string name="nm_fb_down">Resposta ruim</string>
+    <string name="nm_fb_why">O que deu errado?</string>
+    <string name="nm_fb_reason_wrong">Errada</string>
+    <string name="nm_fb_reason_unhelpful">Não ajudou</string>
+    <string name="nm_fb_reason_unsafe">Não devia ter feito isso</string>
+    <string name="nm_fb_reason_slow">Lenta demais</string>
+    <string name="nm_fb_reason_other">Outra coisa</string>
+    <string name="nm_fb_skip">Pular</string>
+    <string name="nm_fb_thanks">Anotado, obrigado</string>
+    <string name="nm_stop_why">Por que você parou?</string>
+    <string name="nm_stop_reason_wrong">Estava indo pelo caminho errado</string>
+    <string name="nm_stop_reason_slow">Lento demais</string>
+    <string name="nm_stop_reason_changed_mind">Mudei de ideia</string>
+    <string name="nm_stop_reason_done">Já estava pronto</string>
+    <string name="nm_stop_reason_other">Outra coisa</string>
 </resources>

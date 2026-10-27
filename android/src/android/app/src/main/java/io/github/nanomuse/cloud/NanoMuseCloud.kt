@@ -514,7 +514,22 @@ object NanoMuseCloud {
     fun postTurn(context: Context, turn: JSONObject): JSONObject {
         val key = apiKey(context) ?: throw CloudException("bad_key", "Not signed in")
         val req = request(context, "POST", "/v1/turns", turn, key).newBuilder()
-            .header(CloudHeaders.DEVICE, io.github.nanomuse.hub.Hub.deviceId(context).take(80)).build()
+            .header(CloudHeaders.DEVICE, io.github.nanomuse.hub.Hub.deviceId(context).take(80))
+            .header(Provenance.H_PLATFORM, Provenance.PLATFORM).build()
+        val r = try { http.newCall(req).execute() } catch (e: IOException) { throw CloudException("unreachable", e.message ?: "unreachable") }
+        return read(r)
+    }
+
+    /**
+     * `POST /v1/events`: what happened around the turns, as codes and numbers (relay 0.31,
+     * docs/cloud.md "Client events"); the answer is `{kept, dropped}`. Blocking, for
+     * [ClientEvents]' worker.
+     */
+    fun postEvents(context: Context, events: JSONArray): JSONObject {
+        val key = apiKey(context) ?: throw CloudException("bad_key", "Not signed in")
+        val req = request(context, "POST", "/v1/events", JSONObject().put("events", events), key).newBuilder()
+            .header(CloudHeaders.DEVICE, io.github.nanomuse.hub.Hub.deviceId(context).take(80))
+            .header(Provenance.H_PLATFORM, Provenance.PLATFORM).build()
         val r = try { http.newCall(req).execute() } catch (e: IOException) { throw CloudException("unreachable", e.message ?: "unreachable") }
         return read(r)
     }
