@@ -26,6 +26,8 @@ from nanomuse.llm.base import (
     DeltaCallback,
     ThinkStreamFilter,
     ToolsUnsupported,
+    begin_call,
+    end_call,
     proxied_http,
     says_no_tools,
     split_think,
@@ -190,8 +192,12 @@ class OpenAIResponsesLLM(BaseLLM):
             params["tool_choice"] = tool_choice
         if self.settings.extra_body:
             params["extra_body"] = self.settings.extra_body
+        call = begin_call(self.settings.base_url)
+        extra_headers = dict(call.headers)
         if self.session_header:
-            params["extra_headers"] = {self.session_header: session_id(self._session_fallback)}
+            extra_headers[self.session_header] = session_id(self._session_fallback)
+        if extra_headers:
+            params["extra_headers"] = extra_headers
 
         try:
             resp = await self._send(params, on_delta, on_reasoning_delta)
@@ -206,11 +212,39 @@ class OpenAIResponsesLLM(BaseLLM):
                 )
                 self.vision_available = False
                 params["input"] = _to_input_items(without_images(messages), False)[1]
-                return await self._send(params, on_delta, on_reasoning_delta)
+                resp = await self._send(params, on_delta, on_reasoning_delta)
+                end_call(
+                    call,
+                    settings=self.settings,
+                    params=params,
+                    response=resp,
+                    messages=self._chat_shape(without_images(messages), False),
+                )
+                return resp
             raise
         if with_images and self.vision_available is None:
             self.vision_available = True
+        end_call(
+            call,
+            settings=self.settings,
+            params=params,
+            response=resp,
+            messages=self._chat_shape(
+                messages if with_images or not pictures else without_images(messages), with_images
+            ),
+        )
         return resp
+
+    def _chat_shape(self, messages: list[Message], with_images: bool) -> list[dict[str, Any]]:
+        """The conversation in the Chat Completions shape the record keeps, whichever
+        protocol carried it."""
+        out = []
+        for m in messages:
+            d = m.to_openai(include_reasoning=self.settings.pass_reasoning)
+            if with_images and m.images:
+                d["content"] = content_parts(m)
+            out.append(d)
+        return out
 
     async def _send(
         self,

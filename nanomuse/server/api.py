@@ -122,6 +122,18 @@ class ThreadBody(BaseModel):
     title: str = ""
 
 
+class FeedbackBody(BaseModel):
+    """A thumb on a reply (``event`` + ``vote`` ``up``/``down``/"" to take it back, and
+    ``reason`` when the person said: ``wrong``, ``unhelpful``, ``unsafe``, ``slow``,
+    ``other``), or why Stop was pressed (``stop_reason``: ``wrong``, ``slow``,
+    ``changed_mind``, ``done``, ``other``, ``skipped``). Either, not both."""
+
+    event: str = Field("", max_length=64)
+    vote: str = Field("", max_length=8)
+    reason: str = Field("", max_length=16)
+    stop_reason: str = Field("", max_length=16)
+
+
 class FeedInstructionsBody(BaseModel):
     """The feed's preferences; only the fields given change (``daily``/``time`` are the
     daily routine, see ``MuseService.feed_posts``)."""
@@ -598,6 +610,24 @@ def create_app(settings: Settings, service: MuseService | None = None) -> FastAP
     async def stop_thread(thread_id: str) -> dict[str, Any]:
         _thread_or_404(thread_id)
         return {"ok": svc.stop_thread(thread_id)}
+
+    @app.post("/api/threads/{thread_id}/feedback", dependencies=dep)
+    async def thread_feedback(thread_id: str, body: FeedbackBody) -> dict[str, Any]:
+        """The lightest feedback: a thumb up or down beside a reply, or the reason for a
+        Stop. Kept with the conversation; told to the account's record when signed in."""
+        _thread_or_404(thread_id)
+        try:
+            if body.stop_reason:
+                svc.stop_reason(thread_id, body.stop_reason)
+                return {"ok": True}
+            if not body.event:
+                raise HTTPException(400, "event or stop_reason")
+            ev = svc.feedback(thread_id, body.event, body.vote, body.reason)
+            return {"ok": True, "event": ev}
+        except KeyError:
+            raise HTTPException(404, "no such event") from None
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from None
 
     @app.post("/api/threads/{thread_id}/clear", dependencies=dep)
     async def clear_thread(thread_id: str) -> dict[str, Any]:

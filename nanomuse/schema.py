@@ -180,6 +180,10 @@ class LLMResponse(BaseModel):
     finish_reason: str | None = None
     usage: dict[str, Any] = Field(default_factory=dict)
     model: str | None = None
+    # the id nanoMuse Cloud gave the turn it kept (``cloud``), or the id this runtime sent
+    # the turn up under from the person's own key (``own``); "" when neither
+    request_id: str = ""
+    turn_source: str = ""
 
     def to_message(self) -> Message:
         return Message.assistant(

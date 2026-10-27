@@ -31,11 +31,13 @@ from nanomuse.cloud import CLOUD_KEY, CloudClient, CloudError, model_url
 from nanomuse.hub import actions
 from nanomuse.hub.client import HubClient, HubError, IncomingCall
 from nanomuse.hub.profile import ProfileSync
+from nanomuse.llm import session as llm_session
 from nanomuse.logger import logger
 from nanomuse.schema import RiskLevel
 from nanomuse.sentinel.grants import grant_key, normalize_scope
 from nanomuse.server.events import MAIN_THREAD, STOPPED_NOTICE, now_iso
 from nanomuse.server.webui import current_thread
+from nanomuse.telemetry import telemetry
 from nanomuse.triggers.store import arrivals
 from nanomuse.ui import ApprovalRequest
 
@@ -89,6 +91,12 @@ class HubService:
         # the agent's name and look, shared with the account's other devices
         self.profile = ProfileSync(self)
         self._ensure_identity()
+        # every call to the relay says which device it came from and which run it was in;
+        # what happens around turns (and turns on the person's own key) goes up through
+        # the same client while the account is signed in (nanomuse.telemetry)
+        llm_session.set_device(self.device_id)
+        llm_session.set_cloud_base(self.settings.cloud.base_url)
+        telemetry.install(self.cloud, self._key)
 
     # ------------------------------------------------------------------ settings & identity
     @property
@@ -157,6 +165,7 @@ class HubService:
         if self.signed_in:
             # the look the account's other devices wear, when it moved while we were away
             self.profile.pull_soon()
+        telemetry.start()
 
     def _model_has_no_key(self) -> bool:
         """True when the configured model would be called with no key at all — not a local
@@ -217,6 +226,7 @@ class HubService:
         in that order, so that nothing is still talking to the relay when its client goes."""
         await self.leave()
         await self.profile.stop()
+        await telemetry.stop()
         await self.cloud.close()
 
     async def join(self) -> None:
@@ -509,6 +519,7 @@ class HubService:
         was_model = self._llm_is_cloud()
         self.svc.app.vault.delete(CLOUD_KEY)
         self.cloud.api_key = ""
+        telemetry.forget()
         cloud = dict(self.data.get("cloud") or {})
         for key in ("hint", "channel", "signed_in_at", "has_password", "account_id", "region"):
             cloud.pop(key, None)

@@ -100,9 +100,14 @@ class CloudClient:
         await self._client.aclose()
 
     async def _request(
-        self, method: str, path: str, body: dict[str, Any] | None = None, token: str | None = None
+        self,
+        method: str,
+        path: str,
+        body: dict[str, Any] | None = None,
+        token: str | None = None,
+        headers: dict[str, str] | None = None,
     ) -> dict[str, Any]:
-        headers = {}
+        headers = dict(headers or {})
         tok = self.api_key if token is None else token
         if tok:
             headers["Authorization"] = f"Bearer {tok}"
@@ -210,6 +215,61 @@ class CloudClient:
     async def delete_samples(self) -> int:
         data = await self._request("DELETE", "/v1/me/samples")
         return int(data.get("deleted") or 0)
+
+    # ---------------------------------------------------------- the record (relay 0.29–0.31)
+    async def post_turn(
+        self, turn: dict[str, Any], headers: dict[str, str] | None = None
+    ) -> dict[str, Any]:
+        """A turn this runtime ran on a key of the person's own, kept beside the Cloud ones
+        (``POST /v1/turns``; docs/cloud.md "The record"). ``headers`` are the
+        ``X-NanoMuse-*`` of the call (the device; the platform the user agent would not say)."""
+        return await self._request("POST", "/v1/turns", turn, headers=headers)
+
+    async def post_events(
+        self, events: list[dict[str, Any]], headers: dict[str, str] | None = None
+    ) -> dict[str, Any]:
+        """What happened around turns, as codes and numbers (``POST /v1/events``, relay 0.31;
+        docs/cloud.md "Client events")."""
+        return await self._request("POST", "/v1/events", {"events": events}, headers=headers)
+
+    async def has_blob(self, sha256: str) -> bool:
+        """Whether the relay already holds this file (``HEAD /v1/blobs/{sha256}``)."""
+        try:
+            response = await self._client.head(
+                f"{self.base_url}/v1/blobs/{sha256}",
+                headers={"Authorization": f"Bearer {self.api_key}"},
+            )
+        except httpx.HTTPError as exc:
+            raise CloudError(0, "offline", f"Cannot reach {self.base_url}: {exc}") from None
+        return response.status_code == 200
+
+    async def put_blob(self, sha256: str, mime: str, data: bytes) -> dict[str, Any]:
+        """A picture, audio or clip of a turn, stored once by its hash (``PUT /v1/blobs/{sha256}``)."""
+        try:
+            response = await self._client.put(
+                f"{self.base_url}/v1/blobs/{sha256}",
+                content=data,
+                headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": mime},
+            )
+        except httpx.TimeoutException:
+            raise CloudError(0, "timeout", f"{self.base_url} did not answer in time") from None
+        except httpx.HTTPError as exc:
+            raise CloudError(0, "offline", f"Cannot reach {self.base_url}: {exc}") from None
+        if response.status_code >= 400:
+            try:
+                err = (response.json() or {}).get("error") or {}
+            except ValueError:
+                err = {}
+            raise CloudError(
+                response.status_code,
+                str(err.get("code") or f"http_{response.status_code}"),
+                str(err.get("message") or response.text[:200]),
+            )
+        try:
+            out = response.json()
+        except ValueError:
+            out = {}
+        return out if isinstance(out, dict) else {}
 
     async def sessions(self) -> list[dict[str, Any]]:
         data = await self._request("GET", "/v1/me/sessions")

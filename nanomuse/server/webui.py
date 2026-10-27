@@ -16,6 +16,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from nanomuse.llm import session as llm_session
 from nanomuse.logger import logger
 from nanomuse.prompts import split_quiet
 from nanomuse.schema import ToolCall, ToolResult
@@ -432,6 +433,13 @@ class WebUI:
             event["reasoning"] = reasoning.strip()
         if thread in self.model_once:
             event["model_used"] = self.model_once[thread]
+        # the turn in the account's record this reply came from, so a thumb on the bubble
+        # can name it (``turn_source`` "own" when the turn ran on the person's own key)
+        turn_id, turn_source = llm_session.last_turn()
+        if turn_id:
+            event["turn"] = turn_id
+            if turn_source == "own":
+                event["turn_source"] = "own"
         self.last_assistant_text[thread] = text
         self._step_text[thread] = text
         self.last_assistant_event[thread] = self.emit(event)["id"]

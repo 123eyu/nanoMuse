@@ -295,7 +295,13 @@ them (with `status: partial`, `ended` in the app's word: `aborted`, `error`,
 `abandoned`), and from relay 0.31 `run`, `turn`, `step`, `trajectory`,
 `trajectory_step` and `platform` as [Provenance](#provenance) defines them;
 the row says `source: own`. With *Help improve* on, the turn's training view
-is kept too, as for a turn the relay answered. A reference to a file the account
+is kept too, as for a turn the relay answered. The Python runtime does this
+for every model call that does not go to the relay — a configured provider,
+the ChatGPT sign-in, the hands' own model — while an account is signed in on
+the computer: the call is sent up afterwards from a queue in memory, with
+the request as it went (less the key), the reply, the usage and the
+provenance; pictures past two megabytes go as files first. Signing out
+drops the queue; nothing is sent without an account. A reference to a file the account
 never put up is a 400 `unknown_blob`. One account sends at most
 `RECORD_UPLOADS_PER_MINUTE` turns and files a minute (120; a 429
 `rate_limited` says to send the rest later) and holds at most
@@ -372,12 +378,12 @@ kinds and what their `data` holds:
 
 | kind | data |
 | --- | --- |
-| `sentinel.decision` | `tool`, `risk` (`safe`, `moderate`, `sensitive`, `critical`), `decision` (`allow`, `ask`, `deny`), `grant?` (`once`, `schedule`, `conversation`, `always`) |
-| `approval.result` | `tool?`, `risk?`, `allow` (bool), `scope?` (`once`, `schedule`, `conversation`, `always`), `by?` (`person`, `timeout`, `other_device`) |
-| `turn.stopped` | `reason`: `wrong`, `slow`, `changed_mind`, `done`, `other`, `skipped` (the person stopped a reply and said, or did not say, why) |
-| `turn.feedback` | `vote` (`up`, `down`), `reason?` (`wrong`, `unhelpful`, `unsafe`, `slow`, `other`) |
-| `turn.ended` | `ended`: `aborted`, `error`, `abandoned` (an own-key turn kept short, in the app's word) |
-| `hands.step` | `trajectory`, `step`, `action`, `outcome?` (`ok`, `failed`, `handed_over`) |
+| `sentinel.decision` | `tool`, `risk` (`safe`, `moderate`, `sensitive`, `critical`), `decision` (`allow`, `ask`, `deny`), `grant?` (`once`, `schedule`, `conversation`, `always`: the permission that covered it), `policy?` (what the policy said before anyone was asked), `by?` (who settled it: `policy`, `auto`, `grant`, `person`, `timeout`), `channel?`, `tainted?` (bool), `warnings?` (count) |
+| `approval.result` | `tool?`, `risk?`, `allow` (bool), `scope?` (`once`, `schedule`, `conversation`, `always`), `by?` (`person`, `timeout`, `other_device`), `waited_s?`, `channel?`, `warnings?` |
+| `turn.stopped` | `reason`: `wrong`, `slow`, `changed_mind`, `done`, `other`, `skipped` (the person stopped a reply and said, or did not say, why), `turn_no?` |
+| `turn.feedback` | `vote` (`up`, `down`, `none` when taken back), `reason?` (`wrong`, `unhelpful`, `unsafe`, `slow`, `other`), `turn_no?` |
+| `turn.ended` | `ended`: `aborted` (the person pressed Stop), `error`, `abandoned` (a turn kept short, in the app's word; the runtime sends `aborted` for every stopped run, whichever key it ran on), `turn_no?` |
+| `hands.step` | `trajectory`, `step`, `action` (the action's kind: `tap`, `type`, `open_app`, …; `end` closes the run), `outcome?` (`ok`, `failed`, `refused`, `stopped`, `handed_over`; on `end`, the run's status: `done`, `ask`, `blocked`, `stopped`, `failed`, `max_steps`), `latency_ms?` (the model's time on the step) |
 | `app.opened`, `screen.viewed` | `screen?` (a screen's code name) |
 
 The operator reads them at `GET /v1/admin/client-events` (newest first;
