@@ -1,0 +1,38 @@
+package io.github.nanomuse.feed
+
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class FeedWriteCapacityTest {
+    @Test
+    fun `caps accepted drafts at remaining daily slots`() {
+        assertEquals(
+            FeedWriteCapacity.Plan(acceptedCount = 2, droppedByLimit = 2, remainingCapacity = 2),
+            FeedWriteCapacity.plan(existingCount = 10, requestedCount = 4, dailyLimit = 12),
+        )
+    }
+
+    @Test
+    fun `drops all requested drafts when the daily cap is already full`() {
+        assertEquals(
+            FeedWriteCapacity.Plan(acceptedCount = 0, droppedByLimit = 3, remainingCapacity = 0),
+            FeedWriteCapacity.plan(existingCount = 12, requestedCount = 3, dailyLimit = 12),
+        )
+    }
+
+    @Test
+    fun `accepts all drafts when they fit`() {
+        assertEquals(
+            FeedWriteCapacity.Plan(acceptedCount = 2, droppedByLimit = 0, remainingCapacity = 8),
+            FeedWriteCapacity.plan(existingCount = 4, requestedCount = 2, dailyLimit = 12),
+        )
+    }
+
+    @Test
+    fun `treats negative counts as zero`() {
+        assertEquals(
+            FeedWriteCapacity.Plan(acceptedCount = 0, droppedByLimit = 0, remainingCapacity = 0),
+            FeedWriteCapacity.plan(existingCount = -2, requestedCount = -1, dailyLimit = 0),
+        )
+    }
+}

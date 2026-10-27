@@ -1206,4 +1206,5 @@
     <string name="nm_stop_reason_changed_mind">Ich habe es mir anders überlegt</string>
     <string name="nm_stop_reason_done">Es war schon fertig</string>
     <string name="nm_stop_reason_other">Etwas anderes</string>
+    <string name="nm_feed_limit_notice">%1$d generierte Beiträge passten wegen des Tageslimits von 12 nicht mehr hinein.</string>
 </resources>

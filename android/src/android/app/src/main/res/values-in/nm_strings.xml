@@ -1202,4 +1202,5 @@
     <string name="nm_stop_reason_changed_mind">Berubah pikiran</string>
     <string name="nm_stop_reason_done">Sudah selesai</string>
     <string name="nm_stop_reason_other">Hal lain</string>
+    <string name="nm_feed_limit_notice">%1$d postingan yang dibuat tidak dimuat karena batas harian 12.</string>
 </resources>

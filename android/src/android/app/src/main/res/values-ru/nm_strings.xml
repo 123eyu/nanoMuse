@@ -1214,4 +1214,5 @@
     <string name="nm_stop_reason_changed_mind">Передумал</string>
     <string name="nm_stop_reason_done">Уже было готово</string>
     <string name="nm_stop_reason_other">Другое</string>
+    <string name="nm_feed_limit_notice">%1$d созданных публикаций не поместились из-за дневного лимита в 12.</string>
 </resources>
