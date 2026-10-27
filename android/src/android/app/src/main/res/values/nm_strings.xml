@@ -1186,5 +1186,5 @@
     <string name="nm_stop_reason_changed_mind">Changed my mind</string>
     <string name="nm_stop_reason_done">It was already done</string>
     <string name="nm_stop_reason_other">Something else</string>
-    <string name="nm_feed_limit_notice">%1$d of today's posts did not fit; the feed takes 12 a day</string>
+    <string name="nm_feed_limit_notice">%1$d of today\'s posts did not fit; the feed takes 12 a day</string>
 </resources>
