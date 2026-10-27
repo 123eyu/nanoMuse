@@ -114,7 +114,42 @@ lets every device of the account run things there without the card. Nobody there
 hears `not_allowed` when the card expires. `info` and `notify` never ask; a
 `task` runs under the device's own Sentinel, whose cards travel back to the
 caller as before. A device may `approve` only cards of its own runs that were
-sent to it, never the card asking whether it may run something.
+sent to it, never the card asking whether it may run something; the one exception is a
+computer's own card marked `any_device` ([below](#a-computer-s-own-cards-on-the-phone)), which
+any device of the account may answer.
+
+### A computer's own cards on the phone
+
+A scheduled task on nanoMuse Desktop runs while nobody may be at the computer, so the cards of
+its run also go to the account's phones. No call stands behind such a card, so it travels as a
+push (relay 0.31, [below](#frames)); the computer sends it only when `welcome.server.features`
+lists `event_push`, and the relay passes it only to devices whose `hello` announces
+`approve.any` (the Android app and the iPhone app):
+
+```
+→ event {to:"*", body:{stage:"approval", approval_id, preview, preview_zh, reason, app,
+                      task:{id, title}, chat, scopes:["once", "schedule"?], timeout, device,
+                      any_device:true}}
+← call  {action:"approve", args:{approval_id, allow, scope?:"once" | "schedule"}}   (to the computer)
+→ event {to:"*", body:{stage:"approval_result", approval_id, status, by?:{id, name}}}
+```
+
+`preview` and `preview_zh` say what the step does in English and in Chinese (the phone picks
+by its language), `app` is the app the hands would act in, `task` and `chat` name the task and
+the chat it lives in, `device` the computer, `timeout` is how many seconds the phone shows the
+card (600). `scopes` lists what the card may offer besides *Deny*: `schedule` (*Always in this
+task*) only for a hands step in a run of one task; that grant is kept on the computer, never on
+the phone. `any_device` says any device of the account may answer: the computer takes `approve`
+for this card from whichever device sends it first, where every other card is answered only by
+the device that started the run. The first answer, on the computer or on any phone, decides;
+the computer then pushes `approval_result` with `status` (`approved`, `denied`, or `cancelled`
+when the run let the card go) and `by`, the device that answered, and the phones drop the card.
+A phone where nobody answers in time only drops its own card and sends nothing, so the card on
+the computer keeps waiting. A card that hits a payment word goes too: only phones announce
+`approve.any`, and a phone answers behind its screen lock. Nothing runs on the phone, so the
+card is shown with *Let other devices operate this phone* off as well. In the background
+Android shows the card as a notification; iOS posts a notification while its hub connection is
+still open.
 
 ### Proposed `proxy_fetch`: the phone uses the computer's connection
 
@@ -352,7 +387,9 @@ computer's own hands) is in [every-device.md](every-device.md).
   [`NanoMuseDeviceMention.swift`](../android/src/ios/NanoMuse/NanoMuseDeviceMention.swift))
   has its `approval` events answered on the phone's card
   ([`NanoMuseRemoteApproval.swift`](../android/src/ios/NanoMuse/NanoMuseRemoteApproval.swift))
-  and `approve` sent back; `approval_result` closes the card. The reply is drawn while that
+  and `approve` sent back; `approval_result` closes the card. A computer's pushed card
+  ([above](#a-computer-s-own-cards-on-the-phone)) lands on the same card with *Allow once*,
+  *Always in this task* and *Deny*. The reply is drawn while that
   device works ([`NanoMuseDeviceReply.swift`](../android/src/ios/NanoMuse/NanoMuseDeviceReply.swift)):
   `tool`/`tool_result` as step capsules, `text` as it comes; the chat's stop sends `stop {call}`.
 - Runtime (`nanomuse serve`): [`nanomuse/cloud.py`](../nanomuse/cloud.py)

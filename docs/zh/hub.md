@@ -35,7 +35,21 @@ hub 上传递两类请求：
 
 - **编程助手。** `coding.agents`、`coding.sessions`、`coding.session`、`coding.send`、`coding.stop`、`coding.runs`：电脑上的 Cursor / Codex / Claude Code 会话，由那里的运行时或桌面版从磁盘读取，并通过这些助手自己的 CLI 来驱动。`coding.send {agent, text, session_id?, workspace?, wait}` 以 `event` 帧把运行过程流式传回（`started`、`text`、`tool`、`done`、`error`，每个都带运行 id，发起方据此可以 `coding.stop`），最后以完成的运行作答。只有电脑会宣告这些动作：装了这个模块的运行时，或者桌面版。[coding-agents.md](coding-agents.md)。
 
-每台设备自己决定允许别人做什么。手机上，「允许其他设备操作这台手机」（*设置 → nanoMuse Cloud → 设备*）关着时，这台手机只回答 `info`，别的一概不答；它仍然能看见并操纵其他设备。运行时这时的 `info` 只报电脑的名字和系统（没有账号名、主目录、工作目录和 shell），动作列表里只有 `info`。开着时，任何*对*这台设备做事的原始动作（`shell`、`files`、`file.get`、`file.put`、`open`、`screen`、`coding.send`、`coding.stop`）都要先经这台设备旁的人同意：惯常的审批卡片，「允许一次」或「对这台设备总是允许」；后一种长期有效的回答是「权限」下的一条授权（`remote_control:<device id>`）。nanoMuse 桌面版默认用同一张卡片询问；它的「免询问远程控制」（设置 → 设备）让账号下的每台设备都能不经卡片在那里做事。旁边没人，卡片过期后发起方听到的是 `not_allowed`。`info` 和 `notify` 从不询问；`task` 在设备自己的哨兵（Sentinel）之下运行，它的卡片照旧传回发起方。一台设备只能 `approve` 发给它的、属于它自己发起的运行的卡片，绝不能回答「是否允许它运行某事」的那张卡片。
+每台设备自己决定允许别人做什么。手机上，「允许其他设备操作这台手机」（*设置 → nanoMuse Cloud → 设备*）关着时，这台手机只回答 `info`，别的一概不答；它仍然能看见并操纵其他设备。运行时这时的 `info` 只报电脑的名字和系统（没有账号名、主目录、工作目录和 shell），动作列表里只有 `info`。开着时，任何*对*这台设备做事的原始动作（`shell`、`files`、`file.get`、`file.put`、`open`、`screen`、`coding.send`、`coding.stop`）都要先经这台设备旁的人同意：惯常的审批卡片，「允许一次」或「对这台设备总是允许」；后一种长期有效的回答是「权限」下的一条授权（`remote_control:<device id>`）。nanoMuse 桌面版默认用同一张卡片询问；它的「免询问远程控制」（设置 → 设备）让账号下的每台设备都能不经卡片在那里做事。旁边没人，卡片过期后发起方听到的是 `not_allowed`。`info` 和 `notify` 从不询问；`task` 在设备自己的哨兵（Sentinel）之下运行，它的卡片照旧传回发起方。一台设备只能 `approve` 发给它的、属于它自己发起的运行的卡片，绝不能回答「是否允许它运行某事」的那张卡片；唯一的例外是电脑自己发出、标了 `any_device` 的卡片（[见下](#a-computer-s-own-cards-on-the-phone)），账号下任何一台设备都能回答。
+
+### 电脑自己的卡片送到手机上 {#a-computer-s-own-cards-on-the-phone}
+
+nanoMuse 桌面版上的定时任务运行时，电脑旁边可能没人，所以这次运行的审批卡片也会送到账号下的手机上。这种卡片背后没有调用，所以作为推送发出（中继 0.31，见[帧](#frames)）：电脑只在 `welcome.server.features` 列出 `event_push` 时才发，中继只转给在 `hello` 里声明了 `approve.any` 的设备（Android 和 iPhone 的 App）：
+
+```
+→ event {to:"*", body:{stage:"approval", approval_id, preview, preview_zh, reason, app,
+                      task:{id, title}, chat, scopes:["once", "schedule"?], timeout, device,
+                      any_device:true}}
+← call  {action:"approve", args:{approval_id, allow, scope?:"once" | "schedule"}}   （发给电脑）
+→ event {to:"*", body:{stage:"approval_result", approval_id, status, by?:{id, name}}}
+```
+
+`preview` 和 `preview_zh` 分别用英文和中文说明这一步要做什么（手机按自己的语言挑一个），`app` 是手要操作的应用，`task` 和 `chat` 是任务和它所在的对话，`device` 是那台电脑，`timeout` 是手机上卡片显示的秒数（600）。`scopes` 列出卡片除了「拒绝」之外还能给的回答：`schedule`（「此定时任务中始终允许」）只出现在只有一个任务的运行里、手的一步上；这条授权记在电脑上，从不记在手机上。`any_device` 表示账号下任何一台设备都能回答：这张卡片的 `approve` 电脑收哪台设备先发来的都算，而别的卡片只有发起那次运行的设备能答。电脑上或任何一部手机上先给出的回答算数；随后电脑推送 `approval_result`，带上 `status`（`approved`、`denied`，运行放弃了这张卡片时是 `cancelled`）和 `by`（是哪台设备答的），手机收起卡片。手机上没人及时回答时，只收起自己的卡片，什么也不发，电脑上的卡片继续等。命中支付类敏感词的卡片也会送过去：声明 `approve.any` 的只有手机，手机在锁屏之后才能回答。这件事不会在手机上运行任何东西，所以「允许其他设备操作这台手机」关着时卡片也照样显示。在后台时，Android 把卡片显示成一条通知；iOS 在 hub 连接还开着时发一条通知。
 
 ### 提案 `proxy_fetch`：手机借用电脑的网络 {#proposed-proxy-fetch-the-phone-uses-the-computer-s-connection}
 
@@ -120,7 +134,7 @@ hub 上传递两类请求：
 - 中继：[`cloud/nanomuse_cloud/hub.py`](../../cloud/nanomuse_cloud/hub.py)：按账号的注册表、路由、`GET /v1/devices`、`DELETE /v1/devices/{id}`；控制台在 [`cloud/nanomuse_cloud/console/`](../../cloud/nanomuse_cloud/console/) 下。
 - Android：`io.github.nanomuse.hub`：`HubClient`（OkHttp，重连）、`Hub`（状态、偏好、`call`/`find`）、`HubActions`（手机替别人做的事，包括通过无界面聊天运行器执行的 `task`，其 `language` 会被遵守）、`HubService`（前台服务，`remoteMessaging`）。`nanomuse-pc`（`io.github.nanomuse.reach`）从手机的沙箱 shell 访问 hub 上的设备。
 - nanoMuse 桌面版：[`harness/dsh-nanomuse/src/hub.ts`](../../harness/dsh-nanomuse/src/hub.ts)（套接字、重连）、[`harness/dsh-nanomuse/src/actions.ts`](../../harness/dsh-nanomuse/src/actions.ts)（这台电脑替别人做的事，远程动作之前的那张卡片）；见 [desktop.md](desktop.md)。
-- iOS：[`NanoMuse/NanoMuseHub.swift`](../../android/src/ios/NanoMuse/NanoMuseHub.swift)：`info`、`open`、`notify`、`task`（它的 `language` 会被遵守）、`stop`；`screen` 以 `no_screen` 拒绝，shell 和文件类动作以 `not_supported` 拒绝。`task` 里需要批准的一步不会作为 `event` 发回去：nanoMuse 在前台时手机显示自己的卡片，在后台时这一步被拒绝，回答里会说明。反过来，手机发出的 `task`（`@〈设备〉`，[`NanoMuseDeviceMention.swift`](../../android/src/ios/NanoMuse/NanoMuseDeviceMention.swift)）收到的 `approval` 事件在手机的卡片上回答（[`NanoMuseRemoteApproval.swift`](../../android/src/ios/NanoMuse/NanoMuseRemoteApproval.swift)），`approve` 发回去；`approval_result` 关掉卡片。那台设备干活的时候回复就在画（[`NanoMuseDeviceReply.swift`](../../android/src/ios/NanoMuse/NanoMuseDeviceReply.swift)）：`tool`/`tool_result` 是步骤胶囊，`text` 来一段显示一段；聊天里的停止按钮发 `stop {call}`。
+- iOS：[`NanoMuse/NanoMuseHub.swift`](../../android/src/ios/NanoMuse/NanoMuseHub.swift)：`info`、`open`、`notify`、`task`（它的 `language` 会被遵守）、`stop`；`screen` 以 `no_screen` 拒绝，shell 和文件类动作以 `not_supported` 拒绝。`task` 里需要批准的一步不会作为 `event` 发回去：nanoMuse 在前台时手机显示自己的卡片，在后台时这一步被拒绝，回答里会说明。反过来，手机发出的 `task`（`@〈设备〉`，[`NanoMuseDeviceMention.swift`](../../android/src/ios/NanoMuse/NanoMuseDeviceMention.swift)）收到的 `approval` 事件在手机的卡片上回答（[`NanoMuseRemoteApproval.swift`](../../android/src/ios/NanoMuse/NanoMuseRemoteApproval.swift)），`approve` 发回去；`approval_result` 关掉卡片。电脑推送的卡片（[见上](#a-computer-s-own-cards-on-the-phone)）也落在同一张卡片上，可以选「允许一次」「此定时任务中始终允许」或「拒绝」。那台设备干活的时候回复就在画（[`NanoMuseDeviceReply.swift`](../../android/src/ios/NanoMuse/NanoMuseDeviceReply.swift)）：`tool`/`tool_result` 是步骤胶囊，`text` 来一段显示一段；聊天里的停止按钮发 `stop {call}`。
 - 运行时（`nanomuse serve`）：[`nanomuse/cloud.py`](../../nanomuse/cloud.py)（账号）、[`nanomuse/hub/client.py`](../../nanomuse/hub/client.py)（套接字、重连）、[`nanomuse/hub/actions.py`](../../nanomuse/hub/actions.py)（这台电脑替别人做的事）、[`nanomuse/hub/service.py`](../../nanomuse/hub/service.py)（收到的 `task` 放进一个可见的旁聊，`tool`/`tool_result`/`approval`/`approval_result` 各阶段双向传递，设备线程）、[`nanomuse/tools/devices.py`](../../nanomuse/tools/devices.py)（`devices`、`device_*`、`delegate`）；`/api/cloud/*` 和 `/api/hub/*` 在 [`nanomuse/server/api.py`](../../nanomuse/server/api.py)。测试：`tests/test_hub.py`，用一个假中继。
 - 网页版：`DevicesScreen`、设备聊天和转发过来的审批卡片，在 [`web/src/`](../../web/src/)；见 [every-device.md](every-device.md)。
 

@@ -672,7 +672,10 @@ warning in the iOS app fails its build: the helper is nanoMuse code.
   in that app only when that task runs, so the task stops asking while the same chat typed
   by hand still asks, and
   *Always in <app>* keeps them going in that app in every chat, until you revoke any of them
-  under Settings → Permissions. Text outside ASCII is typed through the clipboard
+  under Settings → Permissions. While a scheduled task runs, its cards also go to the
+  account's phones, since nobody may be at the computer: the phone offers *Allow once*,
+  *Always in this task* and *Deny*, the first answer anywhere decides, and the others close
+  ([hub.md](hub.md#a-computer-s-own-cards-on-the-phone)). Text outside ASCII is typed through the clipboard
   (`xclip`/`xsel` are not needed; Electron's clipboard is used) and Ctrl+V; the previous
   clipboard content is put back afterwards.
 - The log is `~/.nanomuse/desktop/desktop.log` (each operator action is a line, `operator:
