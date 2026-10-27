@@ -6837,13 +6837,18 @@ class ChatViewModel(
         // prompt addendum, are settled first — they apply to every session.
         io.github.nanomuse.chat.SessionAddenda.onTurnFinished(sid)
         nmAllowanceHeadsUp()
-        _messages.value.lastOrNull { it.role == "assistant" }?.content?.let { text ->
+        // Only the reply this turn produced: a turn that failed before its own assistant
+        // message existed leaves the previous reply as the last one, with the error pinned on
+        // it, and a feed run that read that reply wrote yesterday's posts again under today's
+        // date (#637). The reply counts when it follows the turn's user message and carries
+        // no error.
+        val reply = nmReplyOfThisTurn()
+        reply?.let { text ->
             io.github.nanomuse.goals.GoalFlow.afterTurn(context, sid, text)
             io.github.nanomuse.feed.FeedFlow.afterTurn(context, sid, text)
         }
         val fc = nmFirstConversation
         if (!fc.isBoundTo(sid)) return
-        val reply = _messages.value.lastOrNull { it.role == "assistant" }?.content
         val phaseBefore = fc.phase
         if (fc.afterTurn(reply)) {
             // The chooser sits under the latest question, so it moves down when the model
@@ -6857,6 +6862,15 @@ class ChatViewModel(
             io.github.nanomuse.feed.FeedFlow.writeFirstDay(context)
         }
     }
+
+    /**
+     * The text of the assistant message this turn produced, or null when the turn left none:
+     * the last assistant message must come after the last user message and carry no error
+     * (a terminal error is pinned on the last assistant message, whichever turn wrote it).
+     */
+    private fun nmReplyOfThisTurn(): String? = io.github.nanomuse.chat.TurnReply.ofThisTurn(
+        _messages.value.map { io.github.nanomuse.chat.TurnReply.Row(it.role, it.content, it.error) },
+    )
     // ───────────────────────────────────────────────────────────────────────
 
     /**
