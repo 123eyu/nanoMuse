@@ -234,6 +234,16 @@ models' word, as before. When no configured provider has a capability, the page 
 sentence (*Pictures need a provider with image models: Bailian, OpenAI, Gemini or
 OpenRouter.*) instead of failing.
 
+**Which video models a key has.** Bailian's `/models` list names no video models, so the app
+asks the host about each of the models this build knows (`VideoGen.KNOWN_DASHSCOPE_MODELS`,
+Wan 2.2 Flash first) with an empty task that bills nothing, and remembers the answer for a day.
+The *Video* picker offers that answer plus every model you listed on the provider yourself — an
+entry whose name says video (`t2v`, `i2v`, …) or whose output modalities say `video` in its
+details, whatever its name — as it is, probe or no probe. The remembered answer is asked again
+as soon as the models to ask about change (an entry you added, a build that knows a newer
+model), not only after the day is up. *Image & video models* keeps a field for typing any model
+id. ([#508](https://github.com/nano-muse/nanoMuse/issues/508))
+
 In the avatar studio, asking for a new set of candidates replaces the previous set. A picture
 or failure that finishes from the previous request cannot change the new set's tiles or files.
 Again starts the new request without waiting for the old picture to finish saving.
