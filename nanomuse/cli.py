@@ -27,6 +27,7 @@ from nanomuse.config import (
     Settings,
     find_config_file,
     load_settings,
+    read_toml,
     unknown_keys,
 )
 
@@ -112,7 +113,7 @@ def _settings(config: Path | None, auto: bool = False) -> Settings:
     except FileNotFoundError as exc:
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(1) from exc
-    except tomllib.TOMLDecodeError as exc:
+    except (tomllib.TOMLDecodeError, UnicodeDecodeError) as exc:
         where = find_config_file(config)
         console.print(f"[red]config.toml is not valid TOML[/red] ({where}): {exc}")
         raise typer.Exit(1) from exc
@@ -1650,9 +1651,8 @@ async def _doctor(settings: Settings, check_model: bool) -> None:
     line(settings.source != "defaults+env" or None, f"config: {settings.source}")
     if settings.source and settings.source != "defaults+env":
         try:
-            with open(settings.source, "rb") as fh:
-                stray = unknown_keys(tomllib.load(fh))
-        except (OSError, tomllib.TOMLDecodeError):
+            stray = unknown_keys(read_toml(Path(settings.source)))
+        except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError):
             stray = []
         if stray:
             shown = ", ".join(stray[:6]) + (" …" if len(stray) > 6 else "")

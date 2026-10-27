@@ -32,6 +32,21 @@ def test_help_lists_the_version_flag():
     assert "--version" in plain(result.output)
 
 
+def test_a_config_that_cannot_be_decoded_is_named_without_a_traceback(tmp_path, monkeypatch):
+    """A config.toml that is not decodable at all (a half-written file, bytes from another
+    encoding) raised UnicodeDecodeError past the handler that names TOMLDecodeError, so the
+    console showed a traceback from the loader instead of the one line that says which file is
+    wrong."""
+    cfg = tmp_path / "config.toml"
+    cfg.write_bytes(b"data_dir = \x81\x40\n")  # not UTF-8: 0x81 is never a lead byte here
+    monkeypatch.setenv("NANOMUSE_DATA_DIR", str(tmp_path / "data"))
+    result = runner.invoke(app, ["doctor", "--no-model", "--config", str(cfg)])
+    assert result.exit_code == 1
+    out = plain(result.output)
+    assert "config.toml is not valid TOML" in out and "config.toml" in out
+    assert "Traceback" not in out
+
+
 def test_doctor_reports_the_setup_without_calling_the_model(tmp_path, monkeypatch):
     for var in ("DEEPSEEK_API_KEY", "OPENAI_API_KEY", "NANOMUSE_CONFIG"):
         monkeypatch.delenv(var, raising=False)

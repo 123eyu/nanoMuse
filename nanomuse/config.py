@@ -17,6 +17,7 @@ top; secrets it refers to live in the vault as ``{{vault:NAME}}``.
 
 from __future__ import annotations
 
+import codecs
 import json
 import os
 import re
@@ -1129,13 +1130,37 @@ def unknown_keys(
     return out
 
 
+#: the byte-order marks a text editor or a Windows shell may put in front of a config file,
+#: and the encoding each one names
+_BYTE_ORDER_MARKS = (
+    (codecs.BOM_UTF8, "utf-8"),
+    (codecs.BOM_UTF16_LE, "utf-16-le"),
+    (codecs.BOM_UTF16_BE, "utf-16-be"),
+)
+
+
+def read_toml(path: Path) -> dict[str, Any]:
+    """A TOML file's tables, whichever program wrote it.
+
+    TOML reads neither of the two ways Windows writes a text file: Notepad offers *UTF-8 with
+    a BOM*, and PowerShell's ``>`` and ``Out-File`` write UTF-16LE. A ``config.toml`` saved
+    either way was "not valid TOML" at its first byte (and the UTF-16 one raised a bare
+    ``UnicodeDecodeError`` out of the console). The mark names the encoding; a file without
+    one is read exactly as before.
+    """
+    data = path.read_bytes()
+    for bom, encoding in _BYTE_ORDER_MARKS:
+        if data.startswith(bom):
+            return tomllib.loads(data[len(bom) :].decode(encoding))
+    return tomllib.loads(data.decode("utf-8"))
+
+
 def load_settings(path: str | Path | None = None) -> Settings:
     """Load settings from TOML (if found) + environment + what was changed in the app."""
     config_file = find_config_file(path)
     raw: dict[str, Any] = {}
     if config_file is not None:
-        with config_file.open("rb") as fh:
-            raw = tomllib.load(fh)
+        raw = read_toml(config_file)
         for key in unknown_keys(raw):
             logger.warning("{}: unknown key {} is ignored (a typo?)", config_file, key)
     raw = _expand_env(raw)
@@ -1180,6 +1205,7 @@ __all__ = [
     "find_config_file",
     "load_app_settings",
     "load_settings",
+    "read_toml",
     "save_app_settings",
     "unknown_keys",
 ]

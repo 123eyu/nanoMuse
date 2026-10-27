@@ -55,6 +55,30 @@ action = "deny"
     assert s.agent.workspace == tmp_path / "ws"
 
 
+def test_a_config_file_a_windows_program_wrote_is_read(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Notepad offers UTF-8 *with* a byte-order mark and PowerShell 5's ``>`` writes UTF-16LE;
+    TOML takes neither, so a config.toml saved that way stopped every command at its first
+    byte ("not valid TOML") or raised a bare UnicodeDecodeError out of the console. The mark
+    names the encoding; a file without one is read exactly as before."""
+    data_dir = tmp_path / "data"
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("NANOMUSE_CONFIG", raising=False)
+    monkeypatch.delenv("NANOMUSE_WORKSPACE", raising=False)
+    monkeypatch.delenv("NANOMUSE_DATA_DIR", raising=False)
+    body = f'data_dir = "{data_dir.as_posix()}"\n[agent]\nworkspace = "./mine"\n'
+    cfg = tmp_path / "config.toml"
+    for name, data in (
+        ("utf-8 with a mark", b"\xef\xbb\xbf" + body.encode()),
+        ("utf-16le, as PowerShell writes it", body.encode("utf-16")),
+        ("utf-16be with a mark", b"\xfe\xff" + body.encode("utf-16-be")),
+        ("plain utf-8", body.encode()),
+    ):
+        cfg.write_bytes(data)
+        assert load_settings(cfg).agent.workspace == Path("./mine"), name
+
+
 def test_missing_explicit_config_raises(tmp_path: Path):
     with pytest.raises(FileNotFoundError):
         load_settings(tmp_path / "nope.toml")
