@@ -256,7 +256,7 @@ export class ApprovalDesk {
     /** How a question was settled (relay 0.31 client events): by a standing grant, by the person (the stage or the card), or not at all. */
     private readonly settled: (req: ApprovalRequestEvent, outcome: ApprovalOutcome, by: 'grant' | 'person' | 'cancelled', waitedMs: number) => void = () => undefined,
     /** Told when a question comes up and when it is gone (answered anywhere, or let go), for the phones. */
-    private readonly watch: { asked(row: PendingApproval): void; gone(id: string): void } = { asked: () => undefined, gone: () => undefined },
+    private readonly watch: { asked(row: PendingApproval): void; gone(id: string, outcome: ApprovalOutcome): void } = { asked: () => undefined, gone: () => undefined },
   ) {}
 
   list(): PendingApproval[] {
@@ -314,7 +314,7 @@ export class ApprovalDesk {
       this.settled(req, outcome, outcome === 'cancelled' || outcome === 'unavailable' ? 'cancelled' : 'person', Date.now() - row.at)
       req.signal?.removeEventListener('abort', onAbort)
       if (this.pending.delete(id)) this.changed()
-      this.watch.gone(id)
+      this.watch.gone(id, outcome)
       if (stageAnswered) card?.abort(new Error('answered on the stage'))
       card?.release()
     }

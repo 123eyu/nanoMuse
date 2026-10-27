@@ -110,14 +110,14 @@ test('how a question was settled is told: a grant at once, the stage or the card
 
 test('the watcher hears a question come up and go, once each, and nothing for a granted one', async () => {
   const seen = []
-  const desk = new ApprovalDesk(() => undefined, (r) => r.agent.session.id === 's-granted', () => '', () => '', undefined, { asked: (row) => seen.push(`asked ${row.id}`), gone: (id) => seen.push(`gone ${id}`) })
+  const desk = new ApprovalDesk(() => undefined, (r) => r.agent.session.id === 's-granted', () => '', () => '', undefined, { asked: (row) => seen.push(`asked ${row.id}`), gone: (id, outcome) => seen.push(`gone ${id} ${outcome}`) })
   const pending = desk.handle(req('c8'), () => new Promise(() => undefined))
   await new Promise((r) => setImmediate(r))
   assert.deepEqual(seen, ['asked c8'])
   assert.equal(desk.decide('c8', true), true)
   assert.equal(await pending, 'allowed-once')
   await desk.handle(req('c9', 's-granted'), async () => 'rejected')
-  assert.deepEqual(seen, ['asked c8', 'gone c8'])
+  assert.deepEqual(seen, ['asked c8', 'gone c8 allowed-once'])
 })
 
 test('a request a grant covers is allowed without a card', async () => {
