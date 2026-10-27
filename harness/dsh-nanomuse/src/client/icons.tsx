@@ -89,6 +89,8 @@ export const IconImage = (p: IconProps) => icon([h('rect', { key: 1, x: 4, y: 5,
 export const IconVideo = (p: IconProps) => icon([h('rect', { key: 1, x: 3.5, y: 6, width: 13, height: 12, rx: 2.5 }), h('path', { key: 2, d: 'm16.5 10 4-2.5v9l-4-2.5' })], p)
 export const IconWave = (p: IconProps) => icon([h('path', { key: 1, d: 'M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4' })], p)
 export const IconAlarm = (p: IconProps) => icon([h('circle', { key: 1, cx: 12, cy: 13, r: 7 }), h('path', { key: 2, d: 'M12 9.5V13l2.5 1.5M5 5 3 7M19 5l2 2' })], p)
+export const IconThumbUp = (p: IconProps & { filled?: boolean }) => icon([h('path', { key: 1, d: 'M7.5 10.5v9.5M7.5 10.5 11 4.5c1.6 0 2.5 1 2.5 2.5V10h4.6a2 2 0 0 1 2 2.3l-1 6a2 2 0 0 1-2 1.7H7.5', fill: p.filled ? 'currentColor' : 'none' }), h('path', { key: 2, d: 'M3.5 10.5h4v9.5h-4z' })], p)
+export const IconThumbDown = (p: IconProps & { filled?: boolean }) => icon([h('path', { key: 1, d: 'M16.5 13.5V4M16.5 13.5 13 19.5c-1.6 0-2.5-1-2.5-2.5V14H5.9a2 2 0 0 1-2-2.3l1-6a2 2 0 0 1 2-1.7h9.6', fill: p.filled ? 'currentColor' : 'none' }), h('path', { key: 2, d: 'M16.5 4h4v9.5h-4z' })], p)
 export const IconCheckCircle = (p: IconProps) => icon([h('circle', { key: 1, cx: 12, cy: 12, r: 8.5 }), h('path', { key: 2, d: 'm8.5 12.2 2.4 2.4 4.8-5' })], p)
 export const IconHeartLine = (p: IconProps) => icon([h('path', { key: 1, d: 'M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z' })], p)
 export const IconUsers = (p: IconProps) => icon([h('circle', { key: 1, cx: 9, cy: 8.5, r: 3 }), h('path', { key: 2, d: 'M3.5 19a5.5 5.5 0 0 1 11 0M15.5 5.8a3 3 0 0 1 0 5.4M17 14a5 5 0 0 1 3.5 5' })], p)

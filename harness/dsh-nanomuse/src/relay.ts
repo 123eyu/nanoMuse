@@ -667,17 +667,40 @@ export class Relay {
 
   /**
    * `POST /v1/turns` (relay 0.29): a turn this computer ran on a key of its own, in the shape
-   * the relay keeps; `device` rides as `X-NanoMuse-Device`. A relay that keeps no record
-   * answers 404, which the caller treats as "not now".
+   * the relay keeps; `device` rides as `X-NanoMuse-Device` and the platform as
+   * `X-NanoMuse-Platform` (relay 0.31: Node's user agent says nothing of it). A relay that
+   * keeps no record answers 404, which the caller treats as "not now".
    */
   async postTurn(apiKey: string, turn: Record<string, unknown>, device: string, signal?: AbortSignal): Promise<void> {
     const res = await this.fetchImpl(`${this.origin}/v1/turns`, {
       method: 'POST',
-      headers: { ...this.auth(apiKey), ...JSON_HEADERS, ...(device ? { 'x-nanomuse-device': device } : {}) },
+      headers: { ...this.auth(apiKey), ...JSON_HEADERS, ...this.where(device) },
       body: JSON.stringify(turn),
       signal: signal ?? null,
     })
     if (!res.ok) await fail(res)
+  }
+
+  /**
+   * `POST /v1/events` (relay 0.31): what happened around turns, as codes and numbers
+   * (docs/cloud.md "Client events"); at most 100 a request. The relay answers 202 with what
+   * it kept and dropped; a 429 says the account sent too many requests this minute.
+   */
+  async postEvents(apiKey: string, events: Record<string, unknown>[], device: string, signal?: AbortSignal): Promise<{ kept: number; dropped: number }> {
+    const res = await this.fetchImpl(`${this.origin}/v1/events`, {
+      method: 'POST',
+      headers: { ...this.auth(apiKey), ...JSON_HEADERS, ...this.where(device) },
+      body: JSON.stringify({ events }),
+      signal: signal ?? null,
+    })
+    if (!res.ok) await fail(res)
+    const data = (await res.json().catch(() => ({}))) as { kept?: number; dropped?: number }
+    return { kept: Number(data.kept ?? 0), dropped: Number(data.dropped ?? 0) }
+  }
+
+  /** The device and the platform, on what this computer sends up of its own accord. */
+  private where(device: string): Record<string, string> {
+    return { ...(device ? { 'x-nanomuse-device': device } : {}), 'x-nanomuse-platform': 'desktop' }
   }
 
   private auth(apiKey: string): Record<string, string> {

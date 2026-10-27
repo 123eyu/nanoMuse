@@ -6,15 +6,15 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { test } from 'node:test'
-import { BLOB_PREFIX, OwnTurns, QUEUE_MAX, assistantMessage, toolRow, turnId } from '../lib/record.js'
+import { BLOB_PREFIX, OwnTurns, QUEUE_MAX, assistantMessage, provenanceFields, toolRow, turnId } from '../lib/record.js'
 
 const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3])
 const sha = createHash('sha256').update(png).digest('hex')
 const imageRef = { attachmentId: 'att-1', mediaType: 'image/png', bytes: png.length, width: 1, height: 1 }
 
-/** The fakes a test drives; `fail` makes the relay refuse. */
-function world({ enabled = true, known = [], fail = false } = {}) {
-  const w = { blobs: [], heads: [], turns: [], logs: [] }
+/** The fakes a test drives; `fail` makes the relay refuse; `provenance` says where each call sits. */
+function world({ enabled = true, known = [], fail = false, provenance } = {}) {
+  const w = { blobs: [], heads: [], turns: [], logs: [], sent: [] }
   w.turnsClient = new OwnTurns({
     enabled: () => enabled,
     readImage: async (ref) => ({ data: ref.attachmentId === 'att-1' ? png : Buffer.alloc(0) }),
@@ -22,6 +22,8 @@ function world({ enabled = true, known = [], fail = false } = {}) {
     putBlob: async (file) => { w.blobs.push(file) },
     postTurn: async (turn) => { if (fail) throw new Error('relay says no'); w.turns.push(turn) },
     providerName: (route) => (route === 'own-row' ? 'openrouter' : route),
+    ...(provenance ? { provenance } : {}),
+    onSent: (req, turn) => w.sent.push([req.sessionId, turn.id]),
     log: (level, text) => w.logs.push(`${level}: ${text}`),
     now: () => 1_760_000_000_000,
   })
@@ -94,6 +96,34 @@ test('the chunks pass through untouched and the turn goes up in the relay\'s sha
   assert.equal(w.blobs[0].sha256, sha)
   assert.equal(w.blobs[0].mime, 'image/png')
   assert.equal(w.turnsClient.sent, 1)
+})
+
+test('the turn carries where the call sat, read when the stream starts (relay 0.31): the run, the turn, the step, the hands\' run, the platform; and the record is told the id it went up under', async () => {
+  let where = { platform: 'desktop', run: 'schedule', turn: 3, step: 2, trajectory: 'run-1.m2abc', trajectory_step: 4 }
+  const w = world({ provenance: () => where })
+  const req = request([{ id: 'm1', role: 'user', content: [{ type: 'text', text: 'tidy up' }], source: { kind: 'schedule' } }])
+  const stream = w.turnsClient.watch(req, chunks([{ type: 'text-delta', index: 0, text: 'ok' }, { type: 'finish', reason: { kind: 'stop' } }]))[Symbol.asyncIterator]()
+  await stream.next()
+  // the fields are those of the moment the call went out, not of the step that follows
+  where = { platform: 'desktop', run: 'person', turn: 4 }
+  while (!(await stream.next()).done) { /* drained */ }
+  await w.turnsClient.settle()
+  const turn = w.turns[0]
+  assert.equal(turn.run, 'schedule')
+  assert.equal(turn.turn, 3)
+  assert.equal(turn.step, 2)
+  assert.equal(turn.trajectory, 'run-1.m2abc')
+  assert.equal(turn.trajectory_step, 4)
+  assert.equal(turn.platform, 'desktop')
+  assert.deepEqual(w.sent, [['sess-1', turn.id]])
+  assert.match(turn.id, /^dsh-\d+-[0-9a-f]{16}$/)
+  // what is not set or not of the right kind stays out
+  assert.deepEqual(provenanceFields({ platform: 'desktop', run: '', turn: 0, step: 'two', trajectory: 'run-2.x', trajectory_step: 0 }), { platform: 'desktop', trajectory: 'run-2.x' })
+  // without a provenance hook the turn says nothing of where it sat
+  const plain = world()
+  await drain(plain, request([{ id: 'm1', role: 'user', content: [{ type: 'text', text: 'hi' }], source: { kind: 'user' } }]), [{ type: 'finish', reason: { kind: 'stop' } }])
+  assert.equal(plain.turns[0].run, undefined)
+  assert.equal(plain.turns[0].platform, undefined)
 })
 
 test('a picture another device already put up is not sent again; the same picture twice in a turn is one file', async () => {

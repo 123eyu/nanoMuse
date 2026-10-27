@@ -26,6 +26,7 @@ import { renderRemoteBubbles } from './RemoteBubbles.ts'
 import { makeFirstRunIntro } from './FirstRun.tsx'
 import { AllowanceHeadsUp } from './AllowanceWays.tsx'
 import { WaitLine } from './WaitLine.tsx'
+import { StopAsk, makeThumbs } from './Feedback.tsx'
 import { interceptComposer, makeAvatarChat } from './AvatarChat.tsx'
 import { makeCapsule } from './Capsule.tsx'
 import { prefillComposer } from './composer.ts'
@@ -405,6 +406,10 @@ export function apply(ctx: ClientContext): void {
   const QuoteAction = makeQuoteAction(t)
   slots.inject('conversation.chat.assistant-actions', () =>
     slots.register({ name: 'conversation.chat.assistant-actions', id: 'nanomuse.quote', order: -10, locale: 'nanomuse' }, QuoteAction))
+  // The thumbs beside a reply (0.31): a mark for the account's record, a word of why after a thumb down.
+  const Thumbs = makeThumbs(t)
+  slots.inject('conversation.chat.assistant-actions', () =>
+    slots.register({ name: 'conversation.chat.assistant-actions', id: 'nanomuse.thumbs', order: -9, locale: 'nanomuse' }, Thumbs))
   // A turn the model did not finish, as a card (C12): the relay's refusals — the allowance used
   // up, a message too large, a sign-in that expired — in our words, with the ways on; any other
   // failure in one plain sentence. Shadows the harness's `turn-error` seat (the lowest priority renders).
@@ -427,6 +432,10 @@ export function apply(ctx: ClientContext): void {
   slots.inject('conversation.input.dock', () =>
     slots.register({ name: 'conversation.input.dock', id: 'nanomuse.wait', order: -9, locale: 'nanomuse', inject: (sessionId: string) => ({ sessionId }) },
       ({ sessionId }: { sessionId?: string }) => h(WaitLine, { t, sessionId, stop })))
+  // The question after a Stop (0.31), in the wait line's place: why, five answers, Skip.
+  slots.inject('conversation.input.dock', () =>
+    slots.register({ name: 'conversation.input.dock', id: 'nanomuse.stopask', order: -8, locale: 'nanomuse', inject: (sessionId: string) => ({ sessionId }) },
+      ({ sessionId }: { sessionId?: string }) => h(StopAsk, { t, sessionId })))
   // The document editor (IDENTITY / SOUL / MEMORY and Library texts) and ⌘K search, over the frame.
   const DocEditor = makeDocEditor(t, () => { layout.toggleSidebar() })
   slots.inject('shell.overlay', () =>

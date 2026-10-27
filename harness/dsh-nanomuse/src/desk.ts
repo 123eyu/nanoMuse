@@ -253,6 +253,8 @@ export class ApprovalDesk {
     private readonly granted: (req: ApprovalRequestEvent) => boolean = () => false,
     private readonly appFor: (req: ApprovalRequestEvent) => string = () => '',
     private readonly scheduleFor: (req: ApprovalRequestEvent) => string = () => '',
+    /** How a question was settled (relay 0.31 client events): by a standing grant, by the person (the stage or the card), or not at all. */
+    private readonly settled: (req: ApprovalRequestEvent, outcome: ApprovalOutcome, by: 'grant' | 'person' | 'cancelled', waitedMs: number) => void = () => undefined,
   ) {}
 
   list(): PendingApproval[] {
@@ -268,7 +270,10 @@ export class ApprovalDesk {
   async handle(req: ApprovalRequestEvent, next: () => Promise<ApprovalOutcome>): Promise<ApprovalOutcome> {
     const sessionId = req.agent.session.id
     if (this.skip.has(sessionId)) return next()
-    if (this.granted(req)) return 'allowed-once'
+    if (this.granted(req)) {
+      this.settled(req, 'allowed-once', 'grant', 0)
+      return 'allowed-once'
+    }
     const id = String(req.callId ?? `ap-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`)
     const row: PendingApproval = {
       id,
@@ -298,9 +303,12 @@ export class ApprovalDesk {
     // (one decision, both surfaces), while the asker's signal still cancels both.
     const card = cardSignal(req)
     this.changed()
+    let outcome: ApprovalOutcome = 'cancelled'
     try {
-      return await Promise.race([next(), fromStage])
+      outcome = await Promise.race([next(), fromStage])
+      return outcome
     } finally {
+      this.settled(req, outcome, outcome === 'cancelled' || outcome === 'unavailable' ? 'cancelled' : 'person', Date.now() - row.at)
       req.signal?.removeEventListener('abort', onAbort)
       if (this.pending.delete(id)) this.changed()
       if (stageAnswered) card?.abort(new Error('answered on the stage'))

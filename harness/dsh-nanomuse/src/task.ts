@@ -61,6 +61,10 @@ export interface TaskRunnerOptions {
   /** The session a conversation lived in before (survives a restart); absent means remember in memory only. */
   recall?(key: string): string | undefined
   remember?(key: string, sessionId: string): void
+  /** A turn for another device is about to open in `sessionId` (its calls are a `hub` run, relay 0.31). */
+  began?(sessionId: string): void
+  /** The other device answered (or did not answer) an approval of its run. */
+  approvalSettled?(sessionId: string, toolName: string, callId: string, status: 'approved' | 'denied' | 'expired' | 'cancelled', waitedMs: number): void
   /**
    * Whether this computer is handing over (a protected exit, later a restart-update):
    * while it says true, a task is refused with the usual `busy` error: the asker sees
@@ -180,6 +184,7 @@ export class TaskRunner {
     this.options.log('info', `nanomuse task: ${from.name || from.id} asked: ${text.replace(/\s+/g, ' ').slice(0, 80)}`)
     this.options.notice?.(from.name || from.id, text.replace(/\s+/g, ' ').slice(0, 120))
     try {
+      this.options.began?.(String(sessionId))
       agent.followup(createUserMessage({ content: [{ type: 'text', text: frame(from.name || from.id, this.options.deviceName(), text) }], source: { kind: 'user' } }))
       const final = await settled
       return { text: final, conversation, thread: sessionId, device: this.options.deviceName() }
@@ -328,6 +333,7 @@ export class TaskRunner {
       timeout: APPROVAL_TIMEOUT_S,
     })
     run.approvals.add(id)
+    const askedAt = Date.now()
     const status = await new Promise<ApprovalStatus>((resolve) => {
       const done = (s: ApprovalStatus) => {
         clearTimeout(timer)
@@ -342,6 +348,7 @@ export class TaskRunner {
       this.pendingApprovals.set(id, { fromId: run.call.from.id, decide: done })
     })
     if (status !== 'cancelled') run.call.event({ stage: 'approval_result', approval_id: id, status })
+    this.options.approvalSettled?.(String(run.sessionId), req.toolName, String(req.callId ?? ''), status, Date.now() - askedAt)
     this.options.log('info', `nanomuse task: ${run.call.from.name || run.call.from.id} ${status} ${req.toolName}`)
     return status === 'approved' ? 'allowed-once' : status === 'cancelled' ? 'cancelled' : 'rejected'
   }

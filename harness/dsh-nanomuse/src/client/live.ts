@@ -163,6 +163,8 @@ export interface Live {
   headsUp?: { left: number; grant: number; bonus: number } | null | undefined
   /** The account's model calls still without a first token (0.31): when each began and its session. Absent on an older host. */
   waiting?: Array<{ since: number; session: string }> | undefined
+  /** Turns the person stopped by hand and has not said why yet (0.31): the session, the turn's number, when. Absent on an older host. */
+  stopped?: Array<{ session: string; turn: number; at: number }> | undefined
   /** Whether the stream is open; false before the first snapshot and while reconnecting. */
   streaming: boolean
 }
