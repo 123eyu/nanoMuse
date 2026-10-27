@@ -223,7 +223,7 @@ final class OffloadPermissionManager: ObservableObject {
 
     // MARK: - Permission Check
 
-    func checkPermission(for command: String, sessionId: String?, fullCommand: String = "") async -> PermissionResult {
+    func checkPermissionBare(for command: String, sessionId: String?, fullCommand: String = "") async -> PermissionResult { // nanoMuse: was checkPermission; the wrapper of that name (NanoMuseGateEvents) tells the record what was decided
         // Mirror Android: prefer the caller-supplied session id; fall back to the
         // global bucket when the chat hasn't bound a session yet (or when invoked
         // outside chat). This keeps `Ask Once` grants per-session when possible

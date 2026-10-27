@@ -119,6 +119,7 @@ enum NanoMuseHubTasks {
             sessionId: sessionId,
             title: String(format: AppLocalized("From %@"), senderName),
             source: source,
+            run: NanoMuseProvenance.runHub, // another device started this turn (relay 0.31)
             timeout: timeout
         )
         let declined = watch.stop()

@@ -331,7 +331,20 @@ enum NanoMuseRelayMedia {
         var request = try authorized("POST", "/v1/turns")
         request.setValue("application/json; charset=utf-8", forHTTPHeaderField: "Content-Type")
         request.setValue(NanoMuseHub.shared.deviceId, forHTTPHeaderField: NanoMuseCloudHeaders.device)
+        request.setValue(NanoMuseProvenance.platform, forHTTPHeaderField: NanoMuseProvenance.platformHeader)
         request.httpBody = try JSONSerialization.data(withJSONObject: turn)
+        _ = try await perform(request)
+    }
+
+    /// A batch of client events, codes about turns (`POST /v1/events`; docs/cloud.md "Client
+    /// events"): a hundred at most, the device and the platform in the headers.
+    @MainActor
+    static func postEvents(_ events: [[String: Any]]) async throws {
+        var request = try authorized("POST", "/v1/events")
+        request.setValue("application/json; charset=utf-8", forHTTPHeaderField: "Content-Type")
+        request.setValue(NanoMuseHub.shared.deviceId, forHTTPHeaderField: NanoMuseCloudHeaders.device)
+        request.setValue(NanoMuseProvenance.platform, forHTTPHeaderField: NanoMuseProvenance.platformHeader)
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["events": events])
         _ = try await perform(request)
     }
 

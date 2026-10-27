@@ -291,7 +291,7 @@ final class NanoMuseScheduler: ObservableObject {
         r.lastFiredAt = startedAt
         update(r)
 
-        let outcome = await NanoMuseHeadless.run(prompt: prompt(for: r), sessionId: r.sessionId, title: r.label, source: "nanomuse-routine", routine: r.label)
+        let outcome = await NanoMuseHeadless.run(prompt: prompt(for: r), sessionId: r.sessionId, title: r.label, source: "nanomuse-routine", routine: r.label, run: runKind(r))
         guard var fresh = routine(id: id) else { return outcome.ok }
         if fresh.sessionId == nil, let sid = outcome.sessionId { fresh.sessionId = sid }
         fresh.runs.insert(NanoMuseRoutine.Run(at: startedAt, ok: outcome.ok, note: outcome.note), at: 0)
@@ -372,6 +372,13 @@ final class NanoMuseScheduler: ObservableObject {
 // MARK: - Events
 
 enum NanoMuseRoutineEvents {
+    /// Who a routine's turn is for the relay's record (NanoMuseProvenance): the feed's, a goal's, or a schedule's.
+    func runKind(_ r: NanoMuseRoutine) -> String {
+        if r.goalId != nil { return NanoMuseProvenance.runGoal }
+        if r.id == NanoMuseFeedFlow.routineId || (r.sessionId.map { NanoMuseFeedFlow.isFeedSession($0) } ?? false) { return NanoMuseProvenance.runFeed }
+        return NanoMuseProvenance.runSchedule
+    }
+
     /// A routine finished; the feed and the goals listen.
     static let finished = NanoMuseSignal<(NanoMuseRoutine, NanoMuseHeadless.Outcome)>()
 }
@@ -407,9 +414,10 @@ enum NanoMuseHeadless {
     /// Creates the session when `sessionId` is nil or gone; the turn's last assistant text comes back.
     /// With `routine` (the routine's label) the turn is marked as the routine's, not the person's:
     /// its row is a quiet line in the chat and the model is told so for this one turn
-    /// (`NanoMuseRoutineWakes`).
+    /// (`NanoMuseRoutineWakes`). `run` names who starts the turn for the relay's record
+    /// (`schedule`, `feed`, `goal`, `hub`; NanoMuseProvenance); nil leaves it the person's.
     @MainActor
-    static func run(prompt: String, sessionId: String?, title: String?, source: String, routine: String? = nil, timeout: TimeInterval = 10 * 60) async -> Outcome {
+    static func run(prompt: String, sessionId: String?, title: String?, source: String, routine: String? = nil, run: String? = nil, timeout: TimeInterval = 10 * 60) async -> Outcome {
         guard ProviderConfigStore.shared.defaultPrimaryGroupId != nil || !ProviderConfigStore.shared.modelEntries.isEmpty else {
             return Outcome(ok: false, sessionId: sessionId, text: "", note: AppLocalized("Add a model first; routines are run by your agent."))
         }
@@ -437,8 +445,12 @@ enum NanoMuseHeadless {
         if let wake, let session = sid {
             NanoMuseSessionAddenda.add(session: session, tag: NanoMuseRoutineWakes.addendumTag, text: NanoMuseRoutineWakes.framing(label: wake.label, at: wake.at), turns: 1)
         }
+        // who starts this turn, for every model call it makes, until it ends (relay 0.31)
+        if let run, let session = sid { NanoMuseProvenance.arm(session: session, run: run) }
         vm.inputText = prompt
         vm.send()
+        // a send that did not start (the guard in `send`) leaves the next turn the person's
+        if run != nil, !vm.isProcessing, let session = sid { NanoMuseProvenance.disarm(session: session) }
         // `send` appends the user row before it suspends: mark it now, so it is drawn as the
         // routine's line from its first frame and remembered under its row id once persisted.
         // A send that did not start (the guard in `send`) leaves no mark and no framing.

@@ -57,6 +57,8 @@ extension AIChatViewModel {
     func nmAfterTurn() {
         let key = nmSessionKey
         let reply = nmLastAssistantText()
+        // the record hears a turn that ended in an error (a Stop was told at the Stop); the next turn is the person's again
+        NanoMuseFeedback.shared.turnEnded(session: key, errored: messages.last.map { $0.role == .assistant && !($0.error ?? "").isEmpty } ?? false)
         NanoMuseGoalFlow.afterTurn(session: key, assistantText: reply)
         NanoMuseFeedFlow.afterTurn(session: key, assistantText: reply)
         NanoMuseFirstConversation.shared.afterTurn(session: key, assistantText: reply, vm: self)
