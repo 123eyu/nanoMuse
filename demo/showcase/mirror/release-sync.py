@@ -31,7 +31,6 @@ the sixty allowed); a run with nothing new makes one request and prints nothing.
 from __future__ import annotations
 
 import base64
-import fcntl
 import hashlib
 import json
 import os
@@ -42,6 +41,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
+from typing import IO
 
 REPO = os.environ.get("MIRROR_RELEASES_REPO", "nano-muse/nanoMuse")
 KEEP = max(1, int(os.environ.get("MIRROR_RELEASES_KEEP", "2")))
@@ -230,12 +230,26 @@ def sync_release(rel: dict, root: Path) -> list[dict]:
     return listing
 
 
+def _lock_single_instance(lock: IO[str]) -> None:
+    """Take the single-instance lock the one way this platform has; the OSError a caller
+    catches means another run still holds it."""
+    if sys.platform == "win32":
+        import msvcrt
+
+        lock.seek(0)
+        msvcrt.locking(lock.fileno(), msvcrt.LK_NBLCK, 1)  # type: ignore[attr-defined]
+    else:
+        import fcntl
+
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+
 def main() -> int:
     root = www_root() / "dl"
     root.mkdir(parents=True, exist_ok=True)
     lock = (root / ".lock").open("w")
     try:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        _lock_single_instance(lock)
     except OSError:
         return 0  # another run is on it
     try:

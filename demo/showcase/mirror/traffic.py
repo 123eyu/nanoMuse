@@ -29,7 +29,6 @@ last two weeks in the terminal. The systemd timer runs it every ten minutes.
 
 from __future__ import annotations
 
-import fcntl
 import hashlib
 import json
 import os
@@ -40,6 +39,7 @@ import sys
 import time
 import urllib.request
 from pathlib import Path
+from typing import IO
 from urllib.parse import urlsplit
 
 HERE = Path(__file__).resolve().parent
@@ -442,6 +442,20 @@ def report(conn: sqlite3.Connection, days: int = 14) -> None:
         )
 
 
+def _lock_single_instance(lock: IO[str]) -> None:
+    """Take the single-instance lock the one way this platform has; the OSError a caller
+    catches means another run still holds it."""
+    if sys.platform == "win32":
+        import msvcrt
+
+        lock.seek(0)
+        msvcrt.locking(lock.fileno(), msvcrt.LK_NBLCK, 1)  # type: ignore[attr-defined]
+    else:
+        import fcntl
+
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+
 def main(argv: list[str]) -> int:
     conn = open_db()
     if "--report" in argv:
@@ -450,7 +464,7 @@ def main(argv: list[str]) -> int:
     lock_path = DB_PATH.with_suffix(".lock")
     with open(lock_path, "w") as lock:
         try:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            _lock_single_instance(lock)
         except OSError:
             return 0  # the timer's run is still going
         tally = ingest(conn)
