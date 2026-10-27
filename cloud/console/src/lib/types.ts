@@ -719,8 +719,25 @@ export interface DataView {
   days: { day: number; samples: number; accounts: number; prompt_tokens: number; completion_tokens: number; turned_on: number; turned_off: number; default_on: number; deleted: number }[];
   by_model: { model: string; samples: number; tokens: number }[];
   by_platform: { platform: string; samples: number }[];
+  /** 0.31: who started the kept turns (person, schedule, feed, goal, hub; "" before the apps said) and the key they ran on (cloud, own). */
+  by_run: { run: string; samples: number }[];
+  by_source: { source: string; samples: number }[];
   by_account: { account_id: string; hint: string; channel: string; contribute: boolean; created_at: number; samples: number; prompt_tokens: number; completion_tokens: number; first_ts: number; last_ts: number; models: string[] }[];
   recent: Sample[];
+}
+/** What the apps report around turns (0.31): GET /v1/admin/client-events/summary. Codes and counts, never a message. */
+export interface ClientEventsSummary {
+  period: { days: number; since: number };
+  total: number;
+  accounts: number;
+  kinds: Record<string, number>;
+  days: ({ day: number } & Record<string, number>)[];
+  /** per kind, per data key, the split of its codes: facets["sentinel.decision"]["decision"] = { allow: n, ask: n, deny: n } */
+  facets: Record<string, Record<string, Record<string, number>>>;
+}
+/** The deletions ledger (0.31): GET /v1/admin/deletions. */
+export interface Deletions {
+  deletions: { subject: string; ts: number; scope: string }[];
 }
 /** The record (0.29): every turn in full, its pictures as files — GET /v1/admin/record. */
 export interface RecordView {

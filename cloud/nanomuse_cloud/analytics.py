@@ -32,7 +32,7 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from .client import PLATFORMS, client_version, is_app, platform_of, ua_family
+from .client import PLATFORMS, client_version, is_app, platform_from, platform_of, ua_family
 from .db import utc_day
 
 if TYPE_CHECKING:
@@ -257,7 +257,8 @@ def sample_shape(
         m = json.loads(meta) if meta else {}
     except ValueError:
         m = {}
-    ua = str(m.get("ua", "")) if isinstance(m, dict) else ""
+    if not isinstance(m, dict):
+        m = {}
     last_user = ""
     pictures = 0
     tool_calls = 0
@@ -283,7 +284,7 @@ def sample_shape(
         "account_id": account_id,
         "ts": int(ts),
         "model": str(model or "")[:80],
-        "platform": platform_of(ua),
+        "platform": platform_from(m),
         "messages": len(messages),
         "user_chars": len(last_user),
         "reply_chars": len(response or ""),
@@ -295,6 +296,10 @@ def sample_shape(
         "bytes": len(request or "") + len(response or ""),
         "prompt_tokens": int(prompt_tokens),
         "completion_tokens": int(completion_tokens),
+        # 0.31: who started the turn, where it ran, and the record's id for it (provenance)
+        "run": str(m.get("run") or "")[:24],
+        "source": str(m.get("source") or "")[:8],
+        "turn_id": str(m.get("turn_id") or "")[:96],
     }
 
 
@@ -328,6 +333,7 @@ class InFlightCall:
     retries: int = 0
     family: str = ""  # the client software's family (client.ua_family), kept at arrival
     shape: dict[str, Any] = field(default_factory=dict)
+    run: str = ""  # who started the turn (X-NanoMuse-Run, 0.31): person, schedule, feed, goal, hub, or ""
 
     def view(self, now_mono: float) -> dict[str, Any]:
         return {

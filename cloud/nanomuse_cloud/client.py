@@ -18,6 +18,9 @@ import logging
 from collections.abc import Mapping
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
+from typing import Any
+
+from .provenance import platform_claim
 
 UA_MAX = 160
 LANG_MAX = 40
@@ -28,10 +31,13 @@ class ClientInfo:
     ip: str = ""
     ua: str = ""  # the User-Agent header, cut to UA_MAX
     lang: str = ""  # Accept-Language, cut to LANG_MAX
+    platform_hint: str = ""  # X-NanoMuse-Platform (0.31), one of provenance.PLATFORM_CLAIMS or ""
 
     @property
     def platform(self) -> str:
-        return platform_of(self.ua)
+        """The platform the app names outright when it does (the desktop's Node fetch and
+        the runtime's SDK calls carry no telling user agent), else what the user agent says."""
+        return self.platform_hint or platform_of(self.ua)
 
 
 _NOBODY = ClientInfo()
@@ -113,6 +119,7 @@ def from_headers(headers: Mapping[str, str], peer_host: str | None, trusted: Tru
         ip=ip[:64],
         ua=(headers.get("user-agent") or "")[:UA_MAX],
         lang=(headers.get("accept-language") or "")[:LANG_MAX],
+        platform_hint=platform_claim(headers.get("x-nanomuse-platform")),
     )
 
 
@@ -164,6 +171,14 @@ def platform_of(ua: str) -> str:
     if ua.startswith("Mozilla/"):
         return "browser"
     return "other"
+
+
+def platform_from(meta: Mapping[str, Any]) -> str:
+    """The platform of a kept turn from its meta: the app's own claim when the meta carries
+    one (``platform``, 0.31), else the user agent's say. The one rule for the record, the
+    training view's shape and the exports, so an uploaded turn from the desktop's Node
+    fetch reads ``desktop`` and not ``other``."""
+    return platform_claim(meta.get("platform")) or platform_of(str(meta.get("ua") or ""))
 
 
 def is_app(platform: str) -> bool:

@@ -372,6 +372,36 @@ CREATE TABLE IF NOT EXISTS blob_refs (
     PRIMARY KEY (sha256, account_id, owner)
 );
 CREATE INDEX IF NOT EXISTS blob_refs_account ON blob_refs(account_id, sha256);
+-- 0.31: what the apps report around a turn (provenance.py, docs/cloud.md "Client events"):
+-- the Sentinel's decision on a tool call, an approval's result, why a reply was stopped, a
+-- thumb up or down. Codes and numbers only, never a message; tied to the turn's id when the
+-- app knows it. Deleted with the account and with Data controls' delete, like the turns.
+CREATE TABLE IF NOT EXISTS client_events (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_id    TEXT NOT NULL,
+    ts            INTEGER NOT NULL,              -- when it happened, as the app says; else arrival
+    device        TEXT NOT NULL DEFAULT '',      -- X-NanoMuse-Device
+    platform      TEXT NOT NULL DEFAULT '',
+    kind          TEXT NOT NULL,                 -- sentinel.decision | approval.result | turn.stopped | turn.feedback | …
+    turn_id       TEXT NOT NULL DEFAULT '',      -- the record's id for the turn (x-nanomuse-request, or an own-… id)
+    conversation  TEXT NOT NULL DEFAULT '',
+    data          TEXT NOT NULL DEFAULT '{}'     -- a flat JSON object of codes, numbers and booleans
+);
+CREATE INDEX IF NOT EXISTS client_events_account ON client_events(account_id, ts);
+CREATE INDEX IF NOT EXISTS client_events_ts ON client_events(ts);
+CREATE INDEX IF NOT EXISTS client_events_turn ON client_events(turn_id) WHERE turn_id<>'';
+-- 0.31: the deletions ledger (docs/cloud.md "Deletions"): when an account deletes what the
+-- relay kept of it, or the account itself, the export's pseudonym for it (provenance.subject_of)
+-- is written here with the time, so a training set built from an earlier export can drop that
+-- subject's lines. The pseudonym names nobody without the relay's secret; the row outlives
+-- the account on purpose, and is all that does.
+CREATE TABLE IF NOT EXISTS deletions (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    subject       TEXT NOT NULL,
+    ts            INTEGER NOT NULL,
+    scope         TEXT NOT NULL                  -- samples (Data controls' delete) | account
+);
+CREATE INDEX IF NOT EXISTS deletions_ts ON deletions(ts);
 """
 
 # How long a deleted account's key hashes are remembered. Long enough for every device of the
@@ -608,6 +638,30 @@ class Database:
         # ledger's `extra` has the hosted figure back to the first version that billed it).
         add("calls", "cached_tokens", "INTEGER NOT NULL DEFAULT 0")
         add("turns", "cached_tokens", "INTEGER NOT NULL DEFAULT 0")
+        # 0.31: where a turn came from (provenance.py): who started it (`run`: person,
+        # schedule, feed, goal, hub; "" for an app from before the header), its turn and
+        # step in the conversation, the screen-operation task and step it belongs to, and
+        # the script of what the person wrote. The call's row says who started it too; the
+        # training view's shape carries the same, its source (cloud or own key) and the
+        # record's id for the turn, so feedback and the Sentinel's decisions join it.
+        for col, ddl in (
+            ("run", "TEXT NOT NULL DEFAULT ''"),
+            ("turn_no", "INTEGER NOT NULL DEFAULT 0"),
+            ("step", "INTEGER NOT NULL DEFAULT 0"),
+            ("trajectory", "TEXT NOT NULL DEFAULT ''"),
+            ("trajectory_step", "INTEGER NOT NULL DEFAULT 0"),
+            ("script", "TEXT NOT NULL DEFAULT ''"),
+        ):
+            add("turns", col, ddl)
+        add("calls", "run", "TEXT NOT NULL DEFAULT ''")
+        for col, ddl in (
+            ("run", "TEXT NOT NULL DEFAULT ''"),
+            ("source", "TEXT NOT NULL DEFAULT ''"),
+            ("turn_id", "TEXT NOT NULL DEFAULT ''"),
+        ):
+            add("sample_stats", col, ddl)
+        self._conn.execute("CREATE INDEX IF NOT EXISTS sample_stats_turn ON sample_stats(turn_id) WHERE turn_id<>''")
+        self._conn.execute("CREATE INDEX IF NOT EXISTS turns_trajectory ON turns(account_id, trajectory, ts) WHERE trajectory<>''")
 
     # -- 0.15: settings the operator changes while the relay runs ------------------------------
 
@@ -1137,6 +1191,7 @@ class Database:
             # by the service (Cloud.delete_account → purge_record) before it gets here
             c.execute("DELETE FROM turns WHERE account_id=?", (account_id,))
             c.execute("DELETE FROM blob_refs WHERE account_id=?", (account_id,))
+            c.execute("DELETE FROM client_events WHERE account_id=?", (account_id,))
             c.execute("DELETE FROM calls WHERE account_id=?", (account_id,))
             c.execute("DELETE FROM events WHERE account_id=?", (account_id,))
             c.execute("DELETE FROM video_tasks WHERE account_id=?", (account_id,))
@@ -1244,7 +1299,82 @@ class Database:
     def delete_samples(self, account_id: str) -> int:
         with self.tx() as c:
             c.execute("DELETE FROM sample_stats WHERE account_id=?", (account_id,))
+            c.execute("DELETE FROM client_events WHERE account_id=?", (account_id,))
             return c.execute("DELETE FROM samples WHERE account_id=?", (account_id,)).rowcount
+
+    # -- 0.31: what the apps report around a turn, and the deletions ledger ------------------
+
+    CLIENT_EVENT_COLUMNS = ("account_id", "ts", "device", "platform", "kind", "turn_id", "conversation", "data")
+
+    def add_client_events(self, rows: list[dict[str, Any]]) -> int:
+        """The events of one request, each already cleaned (provenance.clean_event) and
+        carrying the account, device and platform the caller added."""
+        if not rows:
+            return 0
+        cols = self.CLIENT_EVENT_COLUMNS
+        with self.tx() as c:
+            c.executemany(
+                f"INSERT INTO client_events({','.join(cols)}) VALUES ({','.join('?' * len(cols))})",
+                [[r.get(k, "") for k in cols] for r in rows],
+            )
+        return len(rows)
+
+    def client_events(
+        self, account_id: str | None = None, kinds: list[str] | None = None, since: int = 0, limit: int = 200, before: int = 0
+    ) -> list[sqlite3.Row]:
+        """Newest first; ``before`` is the id of the last row seen (ids grow with time)."""
+        q = "SELECT * FROM client_events WHERE ts>=?"
+        args: list = [since]
+        if account_id is not None:
+            q += " AND account_id=?"
+            args.append(account_id)
+        if kinds:
+            q += f" AND kind IN ({','.join('?' * len(kinds))})"
+            args.extend(kinds)
+        if before:
+            q += " AND id<?"
+            args.append(before)
+        q += " ORDER BY id DESC LIMIT ?"
+        args.append(max(1, min(limit, 1000)))
+        with self._lock:
+            return self._conn.execute(q, args).fetchall()
+
+    def client_events_for_turns(self, turn_ids: list[str]) -> list[sqlite3.Row]:
+        if not turn_ids:
+            return []
+        with self._lock:
+            return self._conn.execute(
+                f"SELECT * FROM client_events WHERE turn_id IN ({','.join('?' * len(turn_ids))}) ORDER BY id", turn_ids
+            ).fetchall()
+
+    def client_events_summary(self, since: int, day_offset_s: int = 0) -> list[sqlite3.Row]:
+        """Events per day and kind since ``since``: the operator's figure, no row read whole."""
+        with self._lock:
+            return self._conn.execute(
+                "SELECT ((ts + ?) / 86400) * 86400 - ? AS day, kind, COUNT(*) AS n, COUNT(DISTINCT account_id) AS accounts "
+                "FROM client_events WHERE ts>=? GROUP BY day, kind ORDER BY day, kind",
+                (day_offset_s, day_offset_s, since),
+            ).fetchall()
+
+    def client_events_accounts(self, since: int) -> int:
+        with self._lock:
+            return int(self._conn.execute("SELECT COUNT(DISTINCT account_id) FROM client_events WHERE ts>=?", (since,)).fetchone()[0])
+
+    def client_event_count(self, account_id: str | None = None) -> int:
+        with self._lock:
+            if account_id is None:
+                return int(self._conn.execute("SELECT COUNT(*) FROM client_events").fetchone()[0])
+            return int(self._conn.execute("SELECT COUNT(*) FROM client_events WHERE account_id=?", (account_id,)).fetchone()[0])
+
+    def add_deletion(self, subject: str, scope: str, ts: int | None = None) -> None:
+        with self.tx() as c:
+            c.execute("INSERT INTO deletions(subject, ts, scope) VALUES (?,?,?)", (subject, ts or now(), scope))
+
+    def deletions(self, since: int = 0, limit: int = 10_000) -> list[sqlite3.Row]:
+        with self._lock:
+            return self._conn.execute(
+                "SELECT subject, ts, scope FROM deletions WHERE ts>=? ORDER BY ts, id LIMIT ?", (since, max(1, min(limit, 100_000)))
+            ).fetchall()
 
     # -- 0.29: the record (turns, blobs, blob_refs) -------------------------------------------
 
@@ -1256,8 +1386,9 @@ class Database:
         with self.tx() as c:
             c.execute(
                 "INSERT OR REPLACE INTO turns(id, account_id, ts, model, platform, device, conversation, source, status, "
-                "request, response, prompt_tokens, completion_tokens, cached_tokens, media, media_bytes, meta) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "request, response, prompt_tokens, completion_tokens, cached_tokens, media, media_bytes, meta, "
+                "run, turn_no, step, trajectory, trajectory_step, script) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     row["id"],
                     row["account_id"],
@@ -1276,6 +1407,12 @@ class Database:
                     len(media),
                     sum(int(m.get("bytes") or 0) for m in media),
                     row.get("meta", "{}"),
+                    str(row.get("run") or "")[:24],
+                    int(row.get("turn_no") or 0),
+                    int(row.get("step") or 0),
+                    str(row.get("trajectory") or "")[:80],
+                    int(row.get("trajectory_step") or 0),
+                    str(row.get("script") or "")[:8],
                 ),
             )
             for m in media:
@@ -1547,6 +1684,16 @@ class Database:
         with self._lock:
             return self._conn.execute(
                 "SELECT platform, COUNT(*) AS n FROM sample_stats WHERE ts>=? GROUP BY platform ORDER BY n DESC", (since,)
+            ).fetchall()
+
+    def samples_by_column(self, column: str, since: int) -> list[sqlite3.Row]:
+        """Kept turns of the period grouped by one of the shape's short columns (0.31:
+        ``run``, ``source``); the column name is the caller's constant, never input."""
+        if column not in ("run", "source", "platform", "model"):
+            raise ValueError(column)
+        with self._lock:
+            return self._conn.execute(
+                f"SELECT {column}, COUNT(*) AS n FROM sample_stats WHERE ts>=? GROUP BY {column} ORDER BY n DESC", (since,)
             ).fetchall()
 
     def event_accounts(self, kind: str) -> int:
@@ -2674,6 +2821,7 @@ class Database:
         "hands",
         "retries",
         "request_id",
+        "run",
     )
 
     def add_call(self, row: dict[str, Any]) -> int:
@@ -3052,6 +3200,9 @@ class Database:
         "bytes",
         "prompt_tokens",
         "completion_tokens",
+        "run",
+        "source",
+        "turn_id",
     )
 
     def add_sample_stats(self, rows: list[dict[str, Any]]) -> int:
@@ -3060,7 +3211,7 @@ class Database:
         if not rows:
             return 0
         cols = self.SAMPLE_STAT_COLUMNS
-        text = ("sample_id", "account_id", "model", "platform", "user_hash")
+        text = ("sample_id", "account_id", "model", "platform", "user_hash", "run", "source", "turn_id")
         tokens = ("prompt_tokens", "completion_tokens")
         with self.tx() as c:
             c.executemany(

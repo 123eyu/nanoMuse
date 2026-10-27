@@ -1884,8 +1884,19 @@ async def test_data_controls_keep_the_training_view_only_and_are_deletable(stack
     assert first["request"][2] == {"role": "tool", "tool_call_id": "c1", "content": "", "omitted": True}
     dumped = json.dumps(first)
     assert "AAAA" not in dumped and "Ada" not in dumped and "SECRET" not in dumped
-    # 0.10: the address goes with the turn for the operator (the test client has none)
-    assert first["meta"] == {"ua": "nanoMuse-Android/0.1.27", "lang": "zh-CN", "ip": first["meta"]["ip"]}
+    # 0.10: the address goes with the turn for the operator (the test client has none);
+    # 0.31: the kept turn says where it came from — the relay's model (`cloud`), the record's
+    # id for it, the script of what the person wrote — and nothing of who started it when
+    # the app did not say (no X-NanoMuse-Run header here)
+    assert first["meta"] == {
+        "ua": "nanoMuse-Android/0.1.27",
+        "lang": "zh-CN",
+        "ip": first["meta"]["ip"],
+        "source": "cloud",
+        "turn_id": first["meta"]["turn_id"],
+        "script": "latin",
+    }
+    assert len(first["meta"]["turn_id"]) == 16 and "run" not in first["meta"]
     assert first["platform"] == "android"
     assert first["prompt_tokens"] == 100 and first["completion_tokens"] == 50
     account = (await client.get(f"/v1/admin/accounts/{data['account']['id']}", headers=admin)).json()["account"]
