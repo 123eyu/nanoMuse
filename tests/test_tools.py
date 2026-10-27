@@ -34,6 +34,73 @@ async def test_files_writes_the_lines_it_was_given(tmp_path: Path):
     assert (tmp_path / "win.txt").read_bytes() == b"a\r\nb\r\n"
 
 
+async def test_files_reads_a_file_the_way_it_reads_a_command(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """A file is often a command's output: PowerShell 5's ``>`` and ``reg export`` write
+    UTF-16LE, Notepad offers UTF-8 with a mark, a redirect on a Chinese console writes code
+    page 936. Read as plain UTF-8, the model got NULs and replacement characters instead of
+    the text; the file now goes through the shell tool's own decoder."""
+    import nanomuse.stdio as stdio
+
+    files = Files(workspace=tmp_path)
+    (tmp_path / "powershell.txt").write_bytes("第一行\nsecond\n".encode("utf-16"))
+    r = await files.execute(action="read", path="powershell.txt")
+    assert r.ok and r.output == "第一行\nsecond\n"
+
+    (tmp_path / "notepad.txt").write_bytes(b"\xef\xbb\xbf" + "中文".encode())
+    r = await files.execute(action="read", path="notepad.txt")
+    assert r.ok and r.output == "中文"
+
+    (tmp_path / "plain.txt").write_bytes(b"plain\n")
+    r = await files.execute(action="read", path="plain.txt")
+    assert r.ok and r.output == "plain\n"
+
+    # the console's code page is the last resort, as in the shell tool (asked of the console
+    # itself, so the test names it rather than depending on the machine running it)
+    (tmp_path / "cmd.txt").write_bytes("中文目录".encode("cp936"))
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(stdio, "console_encoding", lambda: "cp936")
+        r = await files.execute(action="read", path="cmd.txt")
+        assert r.ok and r.output == "中文目录"
+
+
+async def test_files_read_cut_inside_a_character_stays_utf8(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """The byte window can end inside a multi-byte character. The strict UTF-8 read then
+    failed on the tail, and a console code page that takes any byte (cp1252) read the whole
+    file as mojibake: `€€€` came back as `â‚¬â‚¬â‚¬`. The unfinished character is cut off
+    before the bytes are read."""
+    import nanomuse.stdio as stdio
+    from nanomuse.tools import files as files_module
+
+    # a 52-byte window: seventeen 3-byte characters and the first byte of the next
+    monkeypatch.setattr(files_module, "MAX_READ_CHARS", 11)
+    monkeypatch.setattr(stdio, "console_encoding", lambda: "cp1252")
+    (tmp_path / "euro.txt").write_text("€" * 100, encoding="utf-8")
+    r = await Files(workspace=tmp_path).execute(action="read", path="euro.txt")
+    assert r.ok and r.output.startswith("€" * 11) and "â" not in r.output
+    # the trim is only for a cut that lands inside a character
+    assert files_module.whole_utf8(b"abc") == b"abc"
+    assert files_module.whole_utf8("中文".encode()) == "中文".encode()
+    assert files_module.whole_utf8("中文".encode()[:-1]) == "中".encode()
+    assert files_module.whole_utf8("中文".encode()[:-2]) == "中".encode()
+    assert files_module.whole_utf8(b"\xff\xfe") == b"\xff\xfe"  # not UTF-8 at all: untouched
+
+
+async def test_files_read_cuts_between_characters(tmp_path: Path):
+    """The cap is characters, not bytes: a long file is cut at the cap with a trailing
+    character whole, never half of one (which would read as U+FFFD)."""
+    from nanomuse.tools import files as files_module
+
+    text = "中" * (files_module.MAX_READ_CHARS + 50)
+    (tmp_path / "big.txt").write_text(text, encoding="utf-8")
+    r = await Files(workspace=tmp_path).execute(action="read", path="big.txt")
+    assert r.ok and "truncated" in r.output and "�" not in r.output
+    assert r.output.startswith("中" * 100)
+
+
 async def test_files_workspace_scoping(tmp_path: Path):
     ws = tmp_path / "ws"
     ws.mkdir()

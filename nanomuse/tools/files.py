@@ -13,9 +13,50 @@ from pathlib import Path
 from typing import Any
 
 from nanomuse.schema import RiskLevel, ToolResult
+from nanomuse.stdio import decode_output
 from nanomuse.tools.base import BaseTool, CallAssessment, short_json
 
 MAX_READ_CHARS = 60_000
+# a character takes at most four bytes (UTF-8) and two (UTF-16), so this many bytes always
+# hold as many characters as a report keeps: the cut lands between characters, not inside one
+_BYTES_PER_CHAR = 4
+
+
+def read_capped_text(path: Path, limit: int) -> str:
+    """The first ``limit`` characters of a file, read the way the shell tool reads a command's
+    output: a byte-order mark decides, then UTF-8, then the console's code page.
+
+    A file often is a command's output: ``dir > out.txt`` on PowerShell 5 writes UTF-16LE,
+    ``reg export`` too, and a redirect on a Chinese console writes code page 936. Read as
+    UTF-8, all three reached the model as NULs and replacement characters.
+    """
+    window = limit * _BYTES_PER_CHAR + 4
+    with path.open("rb") as fh:
+        data = fh.read(window)
+    if len(data) == window:
+        data = whole_utf8(data)
+    return decode_output(data)
+
+
+def whole_utf8(data: bytes) -> bytes:
+    """``data`` without a UTF-8 sequence a cut left unfinished at its end: a lead byte of a
+    two-, three- or four-byte character followed by fewer continuation bytes than it needs.
+
+    Without this, a UTF-8 file longer than the window stopped being UTF-8 to the strict first
+    read, and a console code page that accepts any byte (cp1252) read the whole file as
+    mojibake. A cut through anything else (ASCII, UTF-16, a code page) is left as it is.
+    """
+    for back in range(1, 4):
+        if back > len(data):
+            return data
+        byte = data[-back]
+        if 0x80 <= byte <= 0xBF:  # a continuation byte: the lead is further back
+            continue
+        if 0xC2 <= byte <= 0xF4:  # a lead byte: whole only if its continuation bytes all follow
+            need = 2 if byte < 0xE0 else 3 if byte < 0xF0 else 4
+            return data[:-back] if need > back else data
+        return data  # ASCII, or a byte UTF-8 never uses: not a cut character
+    return data
 
 
 def unescape_flat(content: str) -> tuple[str, bool]:
@@ -175,8 +216,7 @@ class Files(BaseTool):
                     return ToolResult(output=text or "(empty file)")
                 # read what fits and one more character, not the whole file: a log of a few
                 # hundred MB is truncated either way, and need not be loaded for it
-                with target.open("r", encoding="utf-8", errors="replace") as fh:
-                    text = fh.read(MAX_READ_CHARS + 1)
+                text = read_capped_text(target, MAX_READ_CHARS + 1)
                 if len(text) > MAX_READ_CHARS:
                     size = target.stat().st_size
                     text = text[:MAX_READ_CHARS] + f"\n... [truncated, {size} bytes total]"

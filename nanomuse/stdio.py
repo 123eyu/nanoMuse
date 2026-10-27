@@ -63,7 +63,12 @@ def _console_code_page() -> int | None:
     return codepage or None
 
 
-_UTF16_BOMS = ((codecs.BOM_UTF16_LE, "utf-16-le"), (codecs.BOM_UTF16_BE, "utf-16-be"))
+_BOMS = (
+    (codecs.BOM_UTF16_LE, "utf-16-le"),
+    (codecs.BOM_UTF16_BE, "utf-16-be"),
+    # Notepad's "UTF-8 with a mark" is still UTF-8, but the mark is not part of the text
+    (codecs.BOM_UTF8, "utf-8"),
+)
 
 
 def decode_output(data: bytes) -> str:
@@ -71,11 +76,12 @@ def decode_output(data: bytes) -> str:
 
     UTF-8 first and strictly, so a modern tool that names its encoding stays readable on a
     console whose code page says otherwise; only bytes that are not UTF-8 at all are read in
-    that code page. A UTF-16 byte-order mark decides first of all: ``wsl.exe`` answers its
-    own ``-l -q`` that way. Bytes that fit neither are replaced rather than raised, because
-    a command's output is a report and never worth a traceback.
+    that code page. A byte-order mark decides first of all, and is not part of the text:
+    ``wsl.exe`` answers its own ``-l -q`` in UTF-16, and a file written by Notepad or by
+    ``reg export`` starts with one of the other two. Bytes that fit neither are replaced
+    rather than raised, because a command's output is a report and never worth a traceback.
     """
-    for bom, encoding in _UTF16_BOMS:
+    for bom, encoding in _BOMS:
         if data.startswith(bom):
             return data[len(bom) :].decode(encoding, errors="replace")
     try:

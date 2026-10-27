@@ -35,6 +35,12 @@ def test_a_utf16_answer_with_a_byte_order_mark_comes_back_as_text() -> None:
     assert stdio.decode_output(codecs.BOM_UTF16_BE + CHINESE.encode("utf-16-be")) == CHINESE
 
 
+def test_a_utf8_mark_is_read_off_rather_than_shown() -> None:
+    # Notepad's "UTF-8 with a mark", and what `reg export` writes in the other order: the text
+    # is UTF-8 either way, and the mark itself is not something the model should read
+    assert stdio.decode_output(codecs.BOM_UTF8 + CHINESE.encode("utf-8")) == CHINESE
+
+
 def test_a_console_that_reports_utf8_is_not_read_in_another_code_page(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
