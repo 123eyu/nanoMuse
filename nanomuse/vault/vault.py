@@ -20,6 +20,8 @@ from typing import Any
 
 from cryptography.fernet import Fernet, InvalidToken
 
+from nanomuse.private import keep_private
+
 PLACEHOLDER_RE = re.compile(r"\{\{\s*vault:([A-Za-z0-9_.-]+)\s*\}\}")
 # a stored value shorter than this is never redacted from a text (see `redact`)
 _REDACT_MIN_CHARS = 3
@@ -50,8 +52,8 @@ class CredentialVault:
         self.key_path.touch(mode=0o600, exist_ok=True)
         self.key_path.write_bytes(key)
         try:
-            os.chmod(self.key_path, 0o600)
-        except OSError:  # pragma: no cover - windows
+            keep_private(self.key_path)
+        except OSError:  # pragma: no cover
             pass
         return key
 
@@ -85,7 +87,7 @@ class CredentialVault:
         tmp.touch(mode=0o600, exist_ok=True)
         tmp.write_bytes(token)
         try:
-            os.chmod(tmp, 0o600)
+            keep_private(tmp)
         except OSError:  # pragma: no cover
             pass
         tmp.replace(self.path)

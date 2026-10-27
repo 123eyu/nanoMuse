@@ -33,6 +33,8 @@ from urllib.parse import parse_qs, urlencode, urlparse
 import httpx
 from loguru import logger
 
+from nanomuse.private import keep_private
+
 # --------------------------------------------------------------------------- constants
 CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann"
 AUTHORIZE_URL = "https://auth.openai.com/oauth/authorize"
@@ -84,10 +86,6 @@ HONESTY_LINE_ZH = (
 )
 
 _PLAN_LABELS = {"plus": "ChatGPT Plus", "pro": "ChatGPT Pro", "team": "ChatGPT Team"}
-
-
-def _platform() -> str:
-    return sys.platform
 
 
 def plan_label(plan: str) -> str:
@@ -565,8 +563,7 @@ class TokenStore:
         fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
             json.dump(token.to_dict(), fh, ensure_ascii=False, indent=1)
-        if _platform() != "win32":
-            os.chmod(tmp, 0o600)
+        keep_private(tmp)
         os.replace(tmp, self.path)
 
     def clear(self) -> bool:

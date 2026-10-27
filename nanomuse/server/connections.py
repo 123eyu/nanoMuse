@@ -35,6 +35,7 @@ from nanomuse.config import (
 from nanomuse.contacts import OWN
 from nanomuse.llm.chatgpt import DEFAULT_MODEL as CHATGPT_DEFAULT_MODEL
 from nanomuse.logger import logger
+from nanomuse.private import keep_private
 from nanomuse.schema import Message
 from nanomuse.search import WebSearchProvider
 from nanomuse.server.endpoints import Endpoints
@@ -1329,7 +1330,7 @@ class Connections:
         stem = re.sub(r"[^A-Za-z0-9\u3400-\u9fff_-]+", "-", name).strip("-") or "contacts"
         path = folder / f"{stem}.vcf"
         path.write_text(text, encoding="utf-8")
-        path.chmod(0o600)
+        keep_private(path)
         return await self.add_contacts_source({"name": name, "url": str(path)})
 
     def remove_contacts_source(self, name: str) -> bool:

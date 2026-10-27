@@ -31,6 +31,7 @@ from urllib.parse import urlparse
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from nanomuse.logger import logger
+from nanomuse.private import keep_private
 from nanomuse.schema import RiskLevel
 
 DEFAULT_DATA_DIR = Path.home() / ".nanomuse"
@@ -907,7 +908,7 @@ def save_app_settings(data_dir: Path, data: dict[str, Any]) -> None:
     tmp.touch(mode=0o600, exist_ok=True)
     tmp.write_text(json.dumps({"version": 1, **data}, ensure_ascii=False, indent=1), "utf-8")
     try:
-        tmp.chmod(0o600)
+        keep_private(tmp)
     except OSError:  # pragma: no cover
         pass
     tmp.replace(path)

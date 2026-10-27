@@ -26,6 +26,7 @@ from typing import Any
 
 from nanomuse.background import keep_task
 from nanomuse.logger import logger
+from nanomuse.private import keep_private
 
 VAPID_FILE = "push-vapid.json"
 SUBSCRIPTIONS_FILE = "push-subscriptions.json"
@@ -49,7 +50,7 @@ def _write_private(path: Path, text: str) -> None:
     content lands in it, so there is no moment with the secrets world-readable."""
     path.touch(mode=0o600, exist_ok=True)
     try:
-        path.chmod(0o600)  # an older file written without the mode
+        keep_private(path)  # an older file written without the mode
     except OSError:
         pass
     path.write_text(text, encoding="utf-8")

@@ -23,6 +23,7 @@ import httpx
 
 from nanomuse.contacts.vcard import Contact, parse_vcards, render_vcard
 from nanomuse.logger import logger
+from nanomuse.private import keep_private
 
 if TYPE_CHECKING:
     from nanomuse.config import ContactsSettings
@@ -172,7 +173,7 @@ class ContactBook:
                     del existing[name]
             self.cache_file.parent.mkdir(parents=True, exist_ok=True)
             self.cache_file.write_text(json.dumps(existing), encoding="utf-8")
-            self.cache_file.chmod(0o600)  # someone's whole address book
+            keep_private(self.cache_file)  # someone's whole address book
         except OSError as exc:
             logger.warning("contacts cache not written: {}", exc)
 
@@ -394,7 +395,7 @@ class ContactBook:
         assert self.own_file is not None
         self.own_file.parent.mkdir(parents=True, exist_ok=True)
         self.own_file.write_text("".join(render_vcard(c) for c in contacts), encoding="utf-8")
-        self.own_file.chmod(0o600)
+        keep_private(self.own_file)
         self._load_own()
 
 
