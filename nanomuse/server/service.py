@@ -35,6 +35,7 @@ from nanomuse.config import LLMSettings, Settings
 from nanomuse.goals import Goal
 from nanomuse.hub.service import HubService
 from nanomuse.llm import BaseLLM
+from nanomuse.llm import session as llm_session
 from nanomuse.llm.factory import create_llm, llm_ready
 from nanomuse.logger import logger
 from nanomuse.memory.consolidate import TidyReport, tidy
@@ -59,6 +60,7 @@ from nanomuse.server.providers import ChatGPTSignIn, Providers
 from nanomuse.server.push import PushService
 from nanomuse.server.webui import WebUI, current_thread
 from nanomuse.sync import ConversationSync, parse_mention, system_note
+from nanomuse.telemetry import telemetry
 from nanomuse.tools.browser import Browser
 from nanomuse.tools.coding_tool import CodingAgents
 from nanomuse.tools.reminder_tools import Reminders
@@ -1070,6 +1072,60 @@ class MuseService:
         self.ui.emit(
             {"type": "notice", "level": "info", "text": STOPPED_NOTICE, "thread": thread.id}
         )
+        # the stop itself; the person's reason, if they give one, follows as its own note
+        telemetry.event(
+            "turn.ended",
+            {"ended": "aborted", "turn_no": agent.turns},
+            turn=agent.last_call,
+            conversation=thread.id,
+        )
+
+    # ------------------------------------------------------------------ feedback
+    FEEDBACK_VOTES = ("up", "down", "")
+    FEEDBACK_REASONS = ("wrong", "unhelpful", "unsafe", "slow", "other", "")
+    STOP_REASONS = ("wrong", "slow", "changed_mind", "done", "other", "skipped")
+
+    def feedback(
+        self, thread_id: str, event_id: str, vote: str, reason: str = ""
+    ) -> dict[str, Any]:
+        """A thumb up or down on a reply (``vote`` "" takes it back), with a word on why
+        when the person gave one. The bubble keeps the mark; the account's record hears
+        ``turn.feedback`` for the turn the reply came from, when the runtime is signed in.
+        The reply's words stay here."""
+        thread = self.threads.get(thread_id)
+        if thread is None:
+            raise KeyError(thread_id)
+        if vote not in self.FEEDBACK_VOTES:
+            raise ValueError("vote is up, down or empty")
+        if reason not in self.FEEDBACK_REASONS:
+            raise ValueError("reason is one of " + ", ".join(r for r in self.FEEDBACK_REASONS if r))
+        ev = thread.timeline.get(event_id)
+        if ev is None or ev.get("type") != "assistant":
+            raise KeyError(event_id)
+        self.ui.patch(thread_id, event_id, feedback=vote)
+        turn = (str(ev.get("turn") or ""), str(ev.get("turn_source") or ""))
+        if not turn[0]:
+            turn = thread.agent.last_call
+        data: dict[str, Any] = {"vote": vote or "none", "turn_no": thread.agent.turns}
+        if reason:
+            data["reason"] = reason
+        telemetry.event("turn.feedback", data, turn=turn, conversation=thread_id)
+        return ev
+
+    def stop_reason(self, thread_id: str, reason: str) -> None:
+        """Why the person pressed Stop, in one of a few words (``skipped`` when they did not
+        say); ``turn.stopped`` in the record for the run that was stopped."""
+        thread = self.threads.get(thread_id)
+        if thread is None:
+            raise KeyError(thread_id)
+        if reason not in self.STOP_REASONS:
+            raise ValueError("reason is one of " + ", ".join(self.STOP_REASONS))
+        telemetry.event(
+            "turn.stopped",
+            {"reason": reason, "turn_no": thread.agent.turns},
+            turn=thread.agent.last_call,
+            conversation=thread_id,
+        )
 
     def clear_thread(self, thread_id: str) -> bool:
         thread = self.threads.get(thread_id)
@@ -1179,14 +1235,15 @@ class MuseService:
             )
             if label:
                 thread.purposes[text] = label
+        run = llm_session.run_of(source)
         if once is not None:
             thread.inbox.put_nowait(
-                Incoming(text, attachments, language, once[0], once[1], delivery)
+                Incoming(text, attachments, language, once[0], once[1], delivery, run=run)
             )
         else:
             thread.inbox.put_nowait(
-                Incoming(text, attachments, language, delivery=delivery)
-                if attachments or language or delivery
+                Incoming(text, attachments, language, delivery=delivery, run=run)
+                if attachments or language or delivery or run != "person"
                 else text
             )
         self._ensure_worker(thread)
@@ -1285,7 +1342,11 @@ class MuseService:
                     )
                     self.ui.begin_run(thread.id, background=purpose, model_used=incoming.model)
                     final = await thread.agent.run(
-                        text, purpose=purpose, files=incoming.files, language=incoming.language
+                        text,
+                        purpose=purpose,
+                        files=incoming.files,
+                        language=incoming.language,
+                        run=incoming.run,
                     )
                     quiet, final = (
                         prompts.split_quiet(final or "") if purpose else (False, final or "")
@@ -2215,7 +2276,9 @@ class MuseService:
             raise ValueError("a tidy-up is already running")
         self._tidying = True
         try:
-            report = await tidy(store, self.app.llm, dry_run=dry_run)
+            # a routine's call, whoever asked for the pass: not a turn of a conversation
+            with llm_session.run("schedule"):
+                report = await tidy(store, self.app.llm, dry_run=dry_run)
         finally:
             self._tidying = False
         if dry_run:
@@ -2296,7 +2359,8 @@ class MuseService:
             if language in ("", "auto")
             else language,
         )
-        response = await self.app.llm.ask_complete([Message.user(prompt)], tools=None)
+        with llm_session.run("feed"):
+            response = await self.app.llm.ask_complete([Message.user(prompt)], tools=None)
         ideas = _parse_ideas(response.content or "")
         data = {
             "generated_at": now_iso(),
@@ -2484,7 +2548,8 @@ class MuseService:
                 context="\n".join(self._feed_context()),
                 language=self.feed_language(),
             )
-            response = await self.app.llm.ask_complete([Message.user(prompt)], tools=None)
+            with llm_session.run("feed"):
+                response = await self.app.llm.ask_complete([Message.user(prompt)], tools=None)
             posts = _parse_posts(response.content or "")
             now = now_iso()
             for p in posts:

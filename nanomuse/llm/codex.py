@@ -23,7 +23,7 @@ from loguru import logger
 
 from nanomuse import __version__
 from nanomuse.config import DEFAULT_DATA_DIR, LLMSettings
-from nanomuse.llm.base import BaseLLM, DeltaCallback
+from nanomuse.llm.base import BaseLLM, DeltaCallback, begin_call, end_call
 from nanomuse.llm.chatgpt import (
     DEFAULT_MODEL,
     ORIGINATOR,
@@ -611,6 +611,9 @@ class CodexLLM(BaseLLM):
         codex_body = to_codex(body)
         if self.settings.extra_body:
             codex_body.update(self.settings.extra_body)
+        # a turn on the person's own sign-in: counted in its turn and, when the runtime is
+        # signed in to nanoMuse Cloud, sent up to the account's record afterwards
+        call = begin_call(None)
         state = StreamState(model=self.model)
         try:
             async for event in self.client.events(codex_body):
@@ -628,7 +631,7 @@ class CodexLLM(BaseLLM):
             raise RuntimeError(f"ChatGPT: {exc.message}") from exc
         if state.error:
             raise RuntimeError(f"ChatGPT: {state.error['message']}")
-        return LLMResponse(
+        response = LLMResponse(
             content="".join(state.content).strip() or None,
             tool_calls=[
                 ToolCall(
@@ -644,6 +647,8 @@ class CodexLLM(BaseLLM):
             usage=dict(state.usage),
             model=self.model,
         )
+        end_call(call, settings=self.settings, params=body, response=response)
+        return response
 
 
 __all__ = [

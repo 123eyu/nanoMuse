@@ -56,7 +56,7 @@
 
 历史记录和样本分页利用现有时间索引跳过较新的秒，再按插入顺序处理同一秒内的记录。导出和分析回填沿用这一分页边界，无需迁移数据库。
 
-**用自己 key 跑的轮次。** 1.0.7 起，App 用自己的 key 跑完一轮后把它传上来，这样不论模型在哪，记录都是完整的：先对每张图 `PUT /v1/blobs/{sha256}`（请求体是原始字节，带 `Content-Type`；哈希会被校验；先 `HEAD` 一下，或者看返回里的 `known: true`，就知道别的设备是不是已经传过），再 `POST /v1/turns`，带 `model`、`messages`（引用，或者内联的 data URL）、`response: {message, usage?}`，以及 App 手里的 `provider`、`ts`、`conversation`、`id` 和 `status`（`status: partial` 时再带一个 `ended`，用 App 自己的词：`aborted`、`error`、`abandoned`），中继 0.31 起还有按[来历](#provenance)一节定义的 `run`、`turn`、`step`、`trajectory`、`trajectory_step` 和 `platform`；这一行记 `source: own`。「帮助改进」开着时，这一轮的训练视图也一并保留，和中继自己答的一轮一样。引用一个账号从未上传的文件，返回 400 `unknown_blob`。一个账号每分钟最多传 `RECORD_UPLOADS_PER_MINUTE` 个轮次和文件（120；超过回 429 `rate_limited`，剩下的晚点再传），文件总量最多 `MEDIA_ACCOUNT_MAX_MB`（2048；超过回 413 `quota_exceeded`）；整个存储超过 `MEDIA_MAX_GB` 后，在每小时的清理跑过之前谁的文件都不收（507 `store_full`）。两者都在请求的事件循环之外写入。
+**用自己 key 跑的轮次。** 1.0.7 起，App 用自己的 key 跑完一轮后把它传上来，这样不论模型在哪，记录都是完整的：先对每张图 `PUT /v1/blobs/{sha256}`（请求体是原始字节，带 `Content-Type`；哈希会被校验；先 `HEAD` 一下，或者看返回里的 `known: true`，就知道别的设备是不是已经传过），再 `POST /v1/turns`，带 `model`、`messages`（引用，或者内联的 data URL）、`response: {message, usage?}`，以及 App 手里的 `provider`、`ts`、`conversation`、`id` 和 `status`（`status: partial` 时再带一个 `ended`，用 App 自己的词：`aborted`、`error`、`abandoned`），中继 0.31 起还有按[来历](#provenance)一节定义的 `run`、`turn`、`step`、`trajectory`、`trajectory_step` 和 `platform`；这一行记 `source: own`。「帮助改进」开着时，这一轮的训练视图也一并保留，和中继自己答的一轮一样。Python 运行时对每一次不是发给中继的模型调用都这么做——自己配置的服务商、ChatGPT 登录、双手用的模型——只要这台电脑上登录了账号：调用结束后从内存里的队列发上去，带发出去的请求（去掉 key）、回复、token 用量和来历；超过两兆的图片先作为文件传。退出登录时队列直接丢弃；没有账号时什么都不发。引用一个账号从未上传的文件，返回 400 `unknown_blob`。一个账号每分钟最多传 `RECORD_UPLOADS_PER_MINUTE` 个轮次和文件（120；超过回 429 `rate_limited`，剩下的晚点再传），文件总量最多 `MEDIA_ACCOUNT_MAX_MB`（2048；超过回 413 `quota_exceeded`）；整个存储超过 `MEDIA_MAX_GB` 后，在每小时的清理跑过之前谁的文件都不收（507 `store_full`）。两者都在请求的事件循环之外写入。
 
 **形象的短视频。** 同一套文件也把画出来的形象的短视频在设备间传递：做了动画的那台设备把短视频传上来，在 profile 里指明（`PUT /v1/me/profile` 的 `clips: {mood: {sha256, mime, bytes}}`），其他设备直接下载，不用各自再渲染。短视频随形象走：`clips: null`、换成别的形象或 `DELETE /v1/me/profile` 都会清掉。
 
@@ -83,12 +83,12 @@
 
 | kind | data |
 | --- | --- |
-| `sentinel.decision` | `tool`、`risk`（`safe`、`moderate`、`sensitive`、`critical`）、`decision`（`allow`、`ask`、`deny`）、`grant?`（`once`、`schedule`、`conversation`、`always`） |
-| `approval.result` | `tool?`、`risk?`、`allow`（布尔）、`scope?`（`once`、`schedule`、`conversation`、`always`）、`by?`（`person`、`timeout`、`other_device`） |
-| `turn.stopped` | `reason`：`wrong`、`slow`、`changed_mind`、`done`、`other`、`skipped`（人手动停了一条回复，说了或没说为什么） |
-| `turn.feedback` | `vote`（`up`、`down`）、`reason?`（`wrong`、`unhelpful`、`unsafe`、`slow`、`other`） |
-| `turn.ended` | `ended`：`aborted`、`error`、`abandoned`（自己 key 的一轮中途结束，用 App 自己的词） |
-| `hands.step` | `trajectory`、`step`、`action`、`outcome?`（`ok`、`failed`、`handed_over`） |
+| `sentinel.decision` | `tool`、`risk`（`safe`、`moderate`、`sensitive`、`critical`）、`decision`（`allow`、`ask`、`deny`）、`grant?`（`once`、`schedule`、`conversation`、`always`：放行它的那条授权）、`policy?`（问人之前策略本身的判定）、`by?`（最后由谁定的：`policy`、`auto`、`grant`、`person`、`timeout`）、`channel?`、`tainted?`（布尔）、`warnings?`（条数） |
+| `approval.result` | `tool?`、`risk?`、`allow`（布尔）、`scope?`（`once`、`schedule`、`conversation`、`always`）、`by?`（`person`、`timeout`、`other_device`）、`waited_s?`、`channel?`、`warnings?` |
+| `turn.stopped` | `reason`：`wrong`、`slow`、`changed_mind`、`done`、`other`、`skipped`（人手动停了一条回复，说了或没说为什么）、`turn_no?` |
+| `turn.feedback` | `vote`（`up`、`down`，收回时是 `none`）、`reason?`（`wrong`、`unhelpful`、`unsafe`、`slow`、`other`）、`turn_no?` |
+| `turn.ended` | `ended`：`aborted`（人按了停止）、`error`、`abandoned`（一轮中途结束，用 App 自己的词；运行时对每次被停掉的运行都发 `aborted`，不管跑在哪个 key 上）、`turn_no?` |
+| `hands.step` | `trajectory`、`step`、`action`（动作的种类：`tap`、`type`、`open_app`……；`end` 表示这次运行结束）、`outcome?`（`ok`、`failed`、`refused`、`stopped`、`handed_over`；`end` 那条上是整次运行的状态：`done`、`ask`、`blocked`、`stopped`、`failed`、`max_steps`）、`latency_ms?`（模型在这一步花的时间） |
 | `app.opened`、`screen.viewed` | `screen?`（页面的代号） |
 
 运营者在 `GET /v1/admin/client-events` 读它们（最新在前；`kind=` 逗号分隔，`account_id=`，`before=` 上一页最后一条的 id），以 JSON lines 导出（`/v1/admin/client-events/export?since=`，带化名 `subject`，不带账号 id），并在管理页「数据控制」面板看数字（`/v1/admin/client-events/summary?days=`：按天和类型的条数，以及每种类型各代号的分布：Sentinel 判了什么、审批怎么走的、回复为什么被停、赞踩各多少）。*设置 → 数据控制* 的删除把它们和轮次一起删；注销账号也一起删。

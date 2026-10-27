@@ -25,6 +25,8 @@ from nanomuse.llm.base import (
     DeltaCallback,
     ThinkStreamFilter,
     ToolsUnsupported,
+    begin_call,
+    end_call,
     proxied_http,
     says_no_tools,
     split_think,
@@ -104,8 +106,14 @@ class OpenAIChatLLM(BaseLLM):
             params["tool_choice"] = tool_choice
         if self.settings.extra_body:
             params["extra_body"] = self.settings.extra_body
+        # where the call sits (relay 0.31: the X-NanoMuse-* headers, to the relay only) and
+        # the vendor's own session header, when it has one
+        call = begin_call(self.settings.base_url)
+        extra_headers = dict(call.headers)
         if self.session_header:
-            params["extra_headers"] = {self.session_header: session_id(self._session_fallback)}
+            extra_headers[self.session_header] = session_id(self._session_fallback)
+        if extra_headers:
+            params["extra_headers"] = extra_headers
         # the body's size, so the next 413 from a relay is diagnosable from the log (the
         # pictures are in it as base64); measured only when debug logging is on
         logger.opt(lazy=True).debug(
@@ -129,10 +137,13 @@ class OpenAIChatLLM(BaseLLM):
                 )
                 self.vision_available = False
                 params["messages"] = self._wire_messages(messages, False)
-                return await self._send(params, on_delta, on_reasoning_delta)
+                resp = await self._send(params, on_delta, on_reasoning_delta)
+                end_call(call, settings=self.settings, params=params, response=resp)
+                return resp
             raise
         if with_images and self.vision_available is None:
             self.vision_available = True
+        end_call(call, settings=self.settings, params=params, response=resp)
         return resp
 
     def _wire_messages(self, messages: list[Message], with_images: bool) -> list[dict[str, Any]]:

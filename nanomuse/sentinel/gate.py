@@ -30,6 +30,24 @@ from nanomuse.ui import UI, ApprovalRequest
 from nanomuse.vault import PLACEHOLDER_RE, CredentialVault
 
 
+def _note(kind: str, data: dict[str, Any]) -> None:
+    """A client event about a decision (``sentinel.decision``, ``approval.result``): the
+    tool, the risk, the outcome and who settled it — codes, never the arguments or the
+    summary. Nothing leaves without a signed-in account (nanomuse.telemetry)."""
+    try:
+        from nanomuse.telemetry import telemetry
+
+        telemetry.event(kind, data)
+    except Exception:  # noqa: BLE001 - a note about the gate, never the gate
+        pass
+
+
+def _settled_by(verdict: Any) -> str:
+    """Who answered an approval: the person, or nobody in time."""
+    reason = str(getattr(verdict, "reason", "") or "")
+    return "timeout" if reason.startswith("no answer") else "person"
+
+
 @dataclass
 class TaskContext:
     """The agent run a tool call belongs to: gives approvals a purpose, and the
@@ -185,10 +203,22 @@ class Sentinel:
             grant_key=key,
             grant_options=["once", "conversation", "always"],
         )
+        asked_at = time.monotonic()
         verdict = await self.ui.ask_approval(request)
         scope = normalize_scope(verdict.scope)
         if verdict.approved and scope in ("conversation", "always"):
             self.grants.add(self.APP_TOOL, app_id, scope, conversation)
+        _note(
+            "approval.result",
+            {
+                "tool": self.APP_TOOL,
+                "risk": RiskLevel.MODERATE.value,
+                "allow": bool(verdict.approved),
+                "scope": scope if verdict.approved else "",
+                "by": _settled_by(verdict),
+                "waited_s": round(time.monotonic() - asked_at, 1),
+            },
+        )
         self.audit.record(
             "app_permission",
             tool=self.APP_TOOL,
@@ -232,6 +262,9 @@ class Sentinel:
         decision, reasons = result_policy.decision, list(result_policy.reasons)
         approved: bool | None = None
         scope: str | None = None
+        # who settled a question the policy raised: the policy itself (none raised), auto
+        # mode, a standing permission, the person, or nobody in time
+        settled_by = "policy"
 
         if decision == Decision.ASK:
             grant = (
@@ -247,9 +280,11 @@ class Sentinel:
             waved_through = assessment.warnings or result_policy.tainted_ask
             if self.settings.mode == "auto" and not waved_through:
                 decision = Decision.ALLOW
+                settled_by = "auto"
                 reasons.append("auto mode: approval skipped")
             elif grant is not None:
                 decision = Decision.ALLOW
+                settled_by = "grant"
                 scope = grant.scope
                 reasons.append(f"covered by your '{grant.scope}' permission for {grant.key}")
             else:
@@ -267,8 +302,23 @@ class Sentinel:
                     grant_key=key,
                     grant_options=options,  # type: ignore[arg-type]
                 )
+                asked_at = time.monotonic()
                 verdict = await self.ui.ask_approval(request)
                 approved, scope = verdict.approved, normalize_scope(verdict.scope)
+                settled_by = _settled_by(verdict)
+                _note(
+                    "approval.result",
+                    {
+                        "tool": tool.name,
+                        "channel": channel_of(tool.name),
+                        "risk": assessment.risk.value,
+                        "allow": bool(approved),
+                        "scope": scope if approved else "",
+                        "by": settled_by,
+                        "waited_s": round(time.monotonic() - asked_at, 1),
+                        "warnings": len(assessment.warnings),
+                    },
+                )
                 if verdict.approved:
                     decision = Decision.ALLOW
                     if scope not in options:
@@ -293,6 +343,20 @@ class Sentinel:
                     )
 
         self.ui.on_sentinel(decision.value, assessment.summary, reasons)
+        _note(
+            "sentinel.decision",
+            {
+                "tool": tool.name,
+                "channel": channel_of(tool.name),
+                "risk": assessment.risk.value,
+                "policy": result_policy.decision.value,
+                "decision": decision.value,
+                "grant": scope or "",
+                "by": settled_by,
+                "tainted": bool(self.tainted),
+                "warnings": len(assessment.warnings),
+            },
+        )
         redacted_args = self._redact_obj(args)
 
         if decision == Decision.DENY:

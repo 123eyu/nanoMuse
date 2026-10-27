@@ -33,9 +33,11 @@ class Incoming:
     """A user message on its way to the agent: the text, what was attached to it, the
     language of the client's screens (a BCP-47 tag, "" when the client did not say), and,
     for *Use nanoMuse Cloud this time*, the model client this one turn runs on (``llm``)
-    and its id (``model``); None and "" for a turn on the configured model."""
+    and its id (``model``); None and "" for a turn on the configured model. ``run`` is what
+    set the turn going, in the relay's word (``person``, ``schedule``, ``feed``, ``goal``,
+    ``hub``; docs/cloud.md "Provenance")."""
 
-    __slots__ = ("delivery", "files", "language", "llm", "model", "text")
+    __slots__ = ("delivery", "files", "language", "llm", "model", "run", "text")
 
     def __init__(
         self,
@@ -45,6 +47,7 @@ class Incoming:
         llm: BaseLLM | None = None,
         model: str = "",
         delivery: str = "",
+        run: str = "person",
     ):
         self.text = text
         self.files = files or []
@@ -52,6 +55,7 @@ class Incoming:
         self.llm = llm
         self.model = model
         self.delivery = delivery
+        self.run = run
 
 
 class MuseAgent:
@@ -89,6 +93,9 @@ class MuseAgent:
         # The id model calls carry for a vendor that wants one per conversation (OpenCode Go):
         # the thread's, else one of this agent's own for as long as it lives.
         self.session_id = conversation_id or llm_session.new_fallback()
+        # the id the record keeps the latest model call under and where it was kept
+        # (``cloud`` or ``own``; ""/"" before the first), for the notes about the turn
+        self.last_call: tuple[str, str] = ("", "")
         self.messages: list[Message] = []
         self.state = AgentState.IDLE
         self.turns = 0
@@ -416,6 +423,7 @@ class MuseAgent:
         purpose: str | None = None,
         files: list[Attachment] | None = None,
         language: str = "",
+        run: str = "person",
     ) -> str:
         """One task: a user message (or a background prompt) worked to completion.
 
@@ -423,7 +431,9 @@ class MuseAgent:
         to the message itself. ``files`` are the attachments that came with the message.
         ``language`` is the BCP-47 tag of the client's screens when the client sent one;
         it is remembered for the conversation and names the reply language ahead of the
-        script of the message. Task-scoped approvals end when this call returns.
+        script of the message. ``run`` is what set the turn going (``person`` by default;
+        ``schedule``, ``feed``, ``goal``, ``hub`` for the runs nobody typed), told to the
+        relay with every call of the turn. Task-scoped approvals end when this call returns.
         """
         if self.state == AgentState.RUNNING:
             raise RuntimeError("agent is already running")
@@ -446,6 +456,7 @@ class MuseAgent:
             purpose or user_input, conversation=self.conversation_id
         )
         session_token = llm_session.enter(self.session_id)
+        turn_token = llm_session.begin_turn(run, self.turns)
         try:
             while step < self.settings.agent.max_steps:
                 step += 1
@@ -476,6 +487,8 @@ class MuseAgent:
                         on_reasoning_delta=self.ui.on_reasoning_delta,
                         max_tokens=self.llm.roomier_max_tokens(),
                     )
+                if response.request_id:
+                    self.last_call = (response.request_id, response.turn_source)
                 if self.llm.vision_available is False and not self._told_no_vision:
                     if any(m.images for m in self.messages if m.role == Role.USER):
                         self._told_no_vision = True
@@ -576,6 +589,7 @@ class MuseAgent:
             self.state = AgentState.ERROR
             raise
         finally:
+            llm_session.end_turn(turn_token)
             llm_session.leave(session_token)
             self.sentinel.end_task(task_token)
             self._save_session()

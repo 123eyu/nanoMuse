@@ -168,22 +168,139 @@ class ThinkStreamFilter:
 
 
 def proxied_http(proxy: str, timeout: float) -> Any:
-    """The HTTP client for an OpenAI SDK client when ``[llm] proxy`` is set: every request
-    through that proxy, the environment's ``HTTPS_PROXY`` ignored. None (the SDK's own
-    client, which honours the environment) when it is not. Built from the SDK's own class,
+    """The HTTP client for an OpenAI SDK client: through ``[llm] proxy`` when it is set (the
+    environment's ``HTTPS_PROXY`` ignored), else the SDK's own defaults (which honour the
+    environment); either way with the response hook that keeps the id nanoMuse Cloud gives
+    a turn (:func:`nanomuse.llm.session.note_response`). Built from the SDK's own class,
     since the SDK may ship its own copy of httpx."""
-    if not proxy:
-        return None
     from openai import DefaultAsyncHttpxClient
 
-    return DefaultAsyncHttpxClient(proxy=proxy, trust_env=False, timeout=timeout)
+    from nanomuse.llm import session
+
+    async def on_response(response: Any) -> None:
+        session.note_response(response)
+
+    kw: dict[str, Any] = {"timeout": timeout, "event_hooks": {"response": [on_response]}}
+    if proxy:
+        kw.update(proxy=proxy, trust_env=False)
+    return DefaultAsyncHttpxClient(**kw)
+
+
+# ------------------------------------------------------------------ the relay's view of a call
+#
+# A call to nanoMuse Cloud carries where it sits (the X-NanoMuse-* headers, relay 0.31); a
+# call to any other provider is sent up afterwards as a turn on the person's own key, when
+# the account is signed in (nanomuse.telemetry). Both clients begin and end a call here.
+
+
+class CallContext:
+    """What one model call is told about itself before it goes, and what is done after."""
+
+    __slots__ = ("headers", "number", "to_cloud", "where")
+
+    def __init__(self, to_cloud: bool, number: int, headers: dict[str, str], where: dict[str, Any]):
+        self.to_cloud = to_cloud
+        self.number = number
+        self.headers = headers
+        self.where = where
+
+
+def begin_call(base_url: str | None) -> CallContext:
+    """Count the call in its turn; the relay's headers when the slot is the relay."""
+    from nanomuse.llm import session
+
+    number = session.next_call()
+    session.clear_last_turn()
+    to_cloud = session.is_cloud(base_url)
+    where = session.provenance(number)
+    headers = session.relay_headers(number) if to_cloud else {}
+    return CallContext(to_cloud, number, headers, where)
+
+
+def end_call(
+    ctx: CallContext,
+    *,
+    settings: Any,
+    params: dict[str, Any],
+    response: LLMResponse,
+    messages: list[dict[str, Any]] | None = None,
+) -> None:
+    """After the answer: a Cloud call's response names the turn the relay kept; any other
+    provider's turn goes up to the record (and, with *Help improve* on, the training view)
+    under an id of our own. The response carries the id either way."""
+    from nanomuse.llm import session
+
+    if ctx.to_cloud:
+        response.request_id, response.turn_source = session.last_turn()
+        return
+    from nanomuse.telemetry import telemetry, turn_body
+
+    if not telemetry.ready or not telemetry.upload_turns:
+        return
+    import uuid
+
+    turn_id = uuid.uuid4().hex[:16]
+    message: dict[str, Any] = {"role": "assistant", "content": response.content}
+    if response.reasoning:
+        message["reasoning_content"] = response.reasoning
+    if response.tool_calls:
+        message["tool_calls"] = [
+            {
+                "id": tc.id,
+                "type": "function",
+                "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+            }
+            for tc in response.tool_calls
+        ]
+    if response.finish_reason:
+        message["finish_reason"] = response.finish_reason
+    if messages is None:
+        # the Chat shape as sent; a Responses client passes the same conversation in it
+        messages = params.get("messages") if isinstance(params.get("messages"), list) else None
+    if not messages:
+        return
+    telemetry.own_turn(
+        turn_body(
+            turn_id=turn_id,
+            model=str(params.get("model") or getattr(settings, "model", "") or ""),
+            provider=provider_id(settings),
+            messages=messages,
+            response=message,
+            usage=response.usage,
+            conversation=session.current_conversation() or "",
+            extra=params,
+            provenance=ctx.where,
+        )
+    )
+    session.note_own_turn(turn_id)
+    response.request_id, response.turn_source = turn_id, "own"
+
+
+def provider_id(settings: Any) -> str:
+    """The catalogue id a slot means (``openrouter``, ``bailian``), the entry whose endpoint
+    its address is, else its protocol word; never the URL or the key."""
+    provider = str(getattr(settings, "provider", "") or "")
+    try:
+        from nanomuse.llm import catalogue
+
+        cat = catalogue.load()
+        entry = cat.by_base_url(getattr(settings, "base_url", None)) or cat.get(provider)
+        if entry is not None:
+            return str(entry.id)
+    except Exception:  # noqa: BLE001 - the id is a label
+        pass
+    return provider or "openai"
 
 
 __all__ = [
     "BaseLLM",
+    "CallContext",
     "DeltaCallback",
     "ThinkStreamFilter",
     "ToolsUnsupported",
+    "begin_call",
+    "end_call",
+    "provider_id",
     "proxied_http",
     "says_no_tools",
     "split_think",

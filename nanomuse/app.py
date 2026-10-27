@@ -507,7 +507,9 @@ class NanoMuseApp:
         if goal.status != "active":
             raise ValueError(f"goal {goal_id} is {goal.status}")
         self.agent.reset()
-        return await self.agent.run(prompts.ADVANCE_GOAL_PROMPT.format(goal=goal.render()))
+        return await self.agent.run(
+            prompts.ADVANCE_GOAL_PROMPT.format(goal=goal.render()), run="goal"
+        )
 
 
 __all__ = ["NanoMuseApp"]
