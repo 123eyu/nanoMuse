@@ -323,6 +323,9 @@
     <string name="nm_avatar_menu_model">画像モデル</string>
     <string name="nm_avatar_menu_regenerate_moods">表情を描き直す</string>
     <string name="nm_avatar_menu_reset">内蔵の顔に戻す</string>
+    <string name="nm_avatar_menu_export">ギャラリーに保存</string>
+    <string name="nm_avatar_export_done">ギャラリーの nanoMuse/avatar に保存しました: 画像 %1$d 枚、クリップ %2$d 本</string>
+    <string name="nm_avatar_export_failed">ギャラリーに保存できませんでした</string>
     <string name="nm_avatar_mood_idle">待機中</string>
     <string name="nm_avatar_mood_working">作業中</string>
     <string name="nm_avatar_mood_waiting">あなたの操作を待っています</string>
@@ -362,7 +365,7 @@
     <string name="nm_avatar_pick_body">いつでもさらに 4 枚描けます。描くまでは今の候補が残ります。</string>
     <string name="nm_avatar_use_this">これにする</string>
     <string name="nm_avatar_use_this_hint">次に、表情（作業中、待機中、完了、おっと）をこの画像からバックグラウンドで描きます。</string>
-    <string name="nm_avatar_footer">画像は端末の minis-global/nanomuse/avatar に保存されます。顔 1 つにつきプロバイダから 5 枚の画像を使います: 選んだ 1 枚と 4 つの表情です。</string>
+    <string name="nm_avatar_footer">画像は端末内のアプリ専用領域にあり、ファイルマネージャーからは開けません。メニューの「ギャラリーに保存」で、顔とその表情、クリップを Pictures と Movies の nanoMuse/avatar にコピーできます。顔 1 つにつきプロバイダから 5 枚の画像を使います: 選んだ 1 枚と 4 つの表情です。</string>
     <string name="nm_own_clip_title">自分の動画</string>
     <string name="nm_own_clip_body">自分の短い動画が待機中の顔として再生され、他の状態でも同じ動画が使われます。H.264 の MP4 または MOV、最長 15 秒、最大 30 MB。無音でループ再生されます。</string>
     <string name="nm_own_clip_on">自分の動画が有効で、すべての状態で再生されます。静止画が使われる場所では描かれた画像がそのまま使われます。「標準の顔」で取り除けます。</string>

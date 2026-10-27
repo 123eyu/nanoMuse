@@ -332,6 +332,9 @@
     <string name="nm_avatar_menu_model">Модель изображений</string>
     <string name="nm_avatar_menu_regenerate_moods">Перерисовать настроения</string>
     <string name="nm_avatar_menu_reset">Вернуть встроенный образ</string>
+    <string name="nm_avatar_menu_export">Сохранить в галерею</string>
+    <string name="nm_avatar_export_done">Сохранено в галерею в nanoMuse/avatar: изображений %1$d, клипов %2$d</string>
+    <string name="nm_avatar_export_failed">В галерею ничего не удалось сохранить</string>
     <string name="nm_avatar_mood_idle">В покое</string>
     <string name="nm_avatar_mood_working">Работает</string>
     <string name="nm_avatar_mood_waiting">Ждёт вас</string>
@@ -371,7 +374,7 @@
     <string name="nm_avatar_pick_body">Можно нарисовать ещё четыре в любой момент; старые сохраняются, пока вы этого не сделаете.</string>
     <string name="nm_avatar_use_this">Использовать этот</string>
     <string name="nm_avatar_use_this_hint">Дальше из него в фоне рисуются настроения: работает, ждёт, готово, ошибка.</string>
-    <string name="nm_avatar_footer">Картинки хранятся на этом телефоне в minis-global/nanomuse/avatar. Каждый образ стоит пять изображений у вашего провайдера: одно выбранное плюс четыре настроения.</string>
+    <string name="nm_avatar_footer">Картинки лежат в собственном хранилище приложения на этом телефоне, которое не откроет ни один файловый менеджер. «Сохранить в галерею» в меню копирует образ, его настроения и клипы в Pictures и Movies в папку nanoMuse/avatar. Каждый образ стоит пять изображений у вашего провайдера: одно выбранное плюс четыре настроения.</string>
     <string name="nm_own_clip_title">Ваш собственный клип</string>
     <string name="nm_own_clip_body">Короткое видео из вашей галереи играет как лицо в покое, а остальные состояния тоже используют его. MP4 или MOV с видео H.264, не длиннее 15 секунд и не больше 30 МБ; играет без звука, по кругу.</string>
     <string name="nm_own_clip_on">Ваш клип включён и играет в каждом состоянии; там, где показывается неподвижная картинка, по-прежнему используются нарисованные. «Лицо по умолчанию» убирает его.</string>

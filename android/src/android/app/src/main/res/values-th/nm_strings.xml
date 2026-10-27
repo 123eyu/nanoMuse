@@ -323,6 +323,9 @@
     <string name="nm_avatar_menu_model">โมเดลภาพ</string>
     <string name="nm_avatar_menu_regenerate_moods">วาดอารมณ์ใหม่</string>
     <string name="nm_avatar_menu_reset">กลับไปใช้ใบหน้าเริ่มต้น</string>
+    <string name="nm_avatar_menu_export">บันทึกลงแกลเลอรี</string>
+    <string name="nm_avatar_export_done">บันทึกลงแกลเลอรีใต้ nanoMuse/avatar แล้ว: รูปภาพ %1$d รูป คลิป %2$d คลิป</string>
+    <string name="nm_avatar_export_failed">บันทึกลงแกลเลอรีไม่ได้</string>
     <string name="nm_avatar_mood_idle">พัก</string>
     <string name="nm_avatar_mood_working">กำลังทำงาน</string>
     <string name="nm_avatar_mood_waiting">รอคุณอยู่</string>
@@ -362,7 +365,7 @@
     <string name="nm_avatar_pick_body">คุณวาดอีกสี่แบบได้ทุกเมื่อ แบบเดิมจะเก็บไว้จนกว่าคุณจะวาดใหม่</string>
     <string name="nm_avatar_use_this">ใช้แบบนี้</string>
     <string name="nm_avatar_use_this_hint">อารมณ์ต่าง ๆ (ทำงาน รอ เสร็จ ผิดพลาด) จะวาดจากรูปนี้ต่อในเบื้องหลัง</string>
-    <string name="nm_avatar_footer">รูปภาพเก็บไว้บนโทรศัพท์เครื่องนี้ที่ minis-global/nanomuse/avatar ใบหน้าแต่ละแบบใช้ห้ารูปจากผู้ให้บริการของคุณ: รูปที่คุณเลือกหนึ่งรูปและอารมณ์อีกสี่รูป</string>
+    <string name="nm_avatar_footer">รูปภาพอยู่ในพื้นที่เก็บข้อมูลของแอปเองบนโทรศัพท์เครื่องนี้ ซึ่งตัวจัดการไฟล์เปิดไม่ได้ “บันทึกลงแกลเลอรี” ในเมนูจะคัดลอกใบหน้า อารมณ์ และคลิปไปยัง Pictures และ Movies ใต้ nanoMuse/avatar ใบหน้าแต่ละแบบใช้ห้ารูปจากผู้ให้บริการของคุณ: รูปที่คุณเลือกหนึ่งรูปและอารมณ์อีกสี่รูป</string>
     <string name="nm_own_clip_title">คลิปของคุณเอง</string>
     <string name="nm_own_clip_body">วิดีโอสั้นของคุณจะเล่นเป็นใบหน้าตอนพัก และอารมณ์อื่นก็ใช้คลิปเดียวกัน MP4 หรือ MOV ที่เป็นวิดีโอ H.264 ยาวไม่เกิน 15 วินาทีและไม่เกิน 30 MB เล่นวนซ้ำแบบปิดเสียง</string>
     <string name="nm_own_clip_on">คลิปของคุณเปิดอยู่และเล่นในทุกอารมณ์ ตรงที่แสดงภาพนิ่งยังใช้ภาพที่วาดไว้ “ใบหน้าเริ่มต้น” จะลบคลิปออก</string>

@@ -323,6 +323,9 @@
     <string name="nm_avatar_menu_model">Model imej</string>
     <string name="nm_avatar_menu_regenerate_moods">Lukis semula ekspresi</string>
     <string name="nm_avatar_menu_reset">Kembali ke wajah terbina dalam</string>
+    <string name="nm_avatar_menu_export">Simpan ke galeri</string>
+    <string name="nm_avatar_export_done">Disimpan ke galeri di bawah nanoMuse/avatar: imej %1$d, klip %2$d</string>
+    <string name="nm_avatar_export_failed">Tiada apa yang dapat disimpan ke galeri</string>
     <string name="nm_avatar_mood_idle">Berehat</string>
     <string name="nm_avatar_mood_working">Bekerja</string>
     <string name="nm_avatar_mood_waiting">Menunggu anda</string>
@@ -362,7 +365,7 @@
     <string name="nm_avatar_pick_body">Anda boleh melukis empat lagi bila-bila masa; yang lama disimpan sehingga anda berbuat demikian.</string>
     <string name="nm_avatar_use_this">Guna yang ini</string>
     <string name="nm_avatar_use_this_hint">Ekspresi (bekerja, menunggu, selesai, alamak) dilukis daripadanya selepas ini, di latar belakang.</string>
-    <string name="nm_avatar_footer">Gambar disimpan di telefon ini di bawah minis-global/nanomuse/avatar. Setiap wajah memerlukan lima imej daripada penyedia anda: satu yang anda pilih dan empat ekspresi.</string>
+    <string name="nm_avatar_footer">Gambar berada dalam storan milik aplikasi pada telefon ini, yang tidak dapat dibuka oleh pengurus fail. “Simpan ke galeri” dalam menu menyalin wajah, ekspresinya dan klipnya ke Pictures dan Movies di bawah nanoMuse/avatar. Setiap wajah memerlukan lima imej daripada penyedia anda: satu yang anda pilih dan empat ekspresi.</string>
     <string name="nm_own_clip_title">Klip anda sendiri</string>
     <string name="nm_own_clip_body">Video pendek milik anda dimainkan sebagai wajah semasa rehat, dan mood lain turut menggunakannya. MP4 atau MOV dengan video H.264, paling lama 15 saat dan 30 MB; dimainkan tanpa bunyi, berulang.</string>
     <string name="nm_own_clip_on">Klip anda aktif dan dimainkan untuk setiap mood; di tempat imej pegun ditunjukkan, gambar yang dilukis kekal digunakan. “Wajah lalai” membuangnya.</string>

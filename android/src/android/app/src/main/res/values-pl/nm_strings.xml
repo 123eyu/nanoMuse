@@ -332,6 +332,9 @@
     <string name="nm_avatar_menu_model">Model obrazów</string>
     <string name="nm_avatar_menu_regenerate_moods">Narysuj nastroje ponownie</string>
     <string name="nm_avatar_menu_reset">Wróć do wbudowanej twarzy</string>
+    <string name="nm_avatar_menu_export">Zapisz w galerii</string>
+    <string name="nm_avatar_export_done">Zapisano w galerii w nanoMuse/avatar: obrazy %1$d, klipy %2$d</string>
+    <string name="nm_avatar_export_failed">Nie udało się nic zapisać w galerii</string>
     <string name="nm_avatar_mood_idle">W spoczynku</string>
     <string name="nm_avatar_mood_working">Pracuje</string>
     <string name="nm_avatar_mood_waiting">Czeka na ciebie</string>
@@ -371,7 +374,7 @@
     <string name="nm_avatar_pick_body">Cztery kolejne możesz narysować w każdej chwili; do tego czasu stare zostają.</string>
     <string name="nm_avatar_use_this">Użyj tego</string>
     <string name="nm_avatar_use_this_hint">Nastroje (praca, czekanie, gotowe, ups) rysowane są z niego w następnej kolejności, w tle.</string>
-    <string name="nm_avatar_footer">Obrazki są przechowywane na tym telefonie w minis-global/nanomuse/avatar. Każda twarz to pięć obrazów od twojego dostawcy: jeden wybrany przez ciebie plus cztery nastroje.</string>
+    <string name="nm_avatar_footer">Obrazki leżą we własnej pamięci aplikacji na tym telefonie, której nie otworzy żaden menedżer plików. „Zapisz w galerii” w menu kopiuje twarz, jej nastroje i klipy do Pictures i Movies w nanoMuse/avatar. Każda twarz to pięć obrazów od twojego dostawcy: jeden wybrany przez ciebie plus cztery nastroje.</string>
     <string name="nm_own_clip_title">Twój własny klip</string>
     <string name="nm_own_clip_body">Krótki film z Twojej galerii gra jako twarz w spoczynku, a pozostałe nastroje też z niego korzystają. MP4 lub MOV z wideo H.264, najwyżej 15 sekund i 30 MB; odtwarza się w pętli, bez dźwięku.</string>
     <string name="nm_own_clip_on">Twój klip jest włączony i gra w każdym nastroju; tam, gdzie pokazywany jest nieruchomy obraz, nadal używane są narysowane obrazy. „Domyślna twarz” go usuwa.</string>
