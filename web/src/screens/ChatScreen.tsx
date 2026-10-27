@@ -20,6 +20,7 @@ import type { AttachmentInfo, HubDevice, SkillInfo, ThreadMeta, TimelineEvent, U
 import { cx, timeDivider, timeShort } from "../util";
 import { MuseSheet } from "./MuseSheet";
 import { countDay, countTask, StarNudgeOnce } from "../components/StarNudge";
+import { noteStopped, StopAskCard, Thumbs, useStopAsk } from "../components/Feedback";
 import { useShowSteps } from "../steps";
 
 export function ChatScreen() {
@@ -94,10 +95,24 @@ export function ChatScreen() {
     try {
       const r = await api.stopThread(activeThread);
       if (!r.ok) toast(t("Nothing to stop"));
+      else noteStopped(activeThread); // one question, why, where the chat's cards go; Skip is an answer
     } catch (e) {
       toast((e as Error).message);
     }
   };
+  const stopAsk = useStopAsk(activeThread);
+  // The newest finished reply, the one the thumbs go under (a reply voted on earlier keeps
+  // its mark): the last bubble with words, with nothing of the person's after it, once the
+  // run has ended. A quiet background line is not a reply.
+  const newestReplyId = useMemo(() => {
+    if (thread?.busy || stream) return null;
+    for (let i = events.length - 1; i >= 0; i--) {
+      const e = events[i];
+      if (e.type === "assistant") return e.text && !e.quiet ? e.id : null;
+      if (e.type === "user") return null;
+    }
+    return null;
+  }, [events, thread?.busy, stream]);
 
   // A task this browser saw through (contract C1): busy → idle, the turn started by the person
   // here (a `user` bubble, not a background notice or another device's ask) and ended with a
@@ -291,6 +306,8 @@ export function ChatScreen() {
               onOpenBrowser={setBrowserView}
               files={files}
               onCloudRetry={cloudRetryFor(i)}
+              thread={activeThread}
+              newestReplyId={newestReplyId}
             />
           ))}
           {stream && (stream.text || stream.reasoning) && (
@@ -313,6 +330,8 @@ export function ChatScreen() {
           {/* A message written on another device is never this device's unfinished turn (C9):
               nothing here ever offers to continue it. While that device works, this says so. */}
           {working && !thread?.busy && <WorkingLine who={working} />}
+          {/* the person pressed Stop a moment ago: one question, why, until answered, skipped or stale */}
+          {stopAsk && !thread?.busy && <StopAskCard ask={stopAsk} className="mx-1 my-2" />}
           {!thread?.busy && status.state === "idle" && taskCount !== null && <StarNudgeOnce moment="tasks" n={taskCount} className="mx-1 my-2" />}
           {!thread?.busy && status.state === "idle" && dayCount !== null && <StarNudgeOnce moment="days_used" n={dayCount} className="mx-1 my-2" />}
         </div>
@@ -358,6 +377,8 @@ function EventView({
   onOpenBrowser,
   files,
   onCloudRetry,
+  thread,
+  newestReplyId,
 }: {
   event: TimelineEvent;
   prev?: TimelineEvent;
@@ -368,6 +389,9 @@ function EventView({
   files: readonly string[];
   /** a failed turn's *Use nanoMuse Cloud this time*, when it applies */
   onCloudRetry?: () => Promise<void>;
+  /** the chat this list is of, and the reply the thumbs go under (none while a run is on) */
+  thread?: string;
+  newestReplyId?: string | null;
 }) {
   // a small centred time, iMessage style, when the conversation pauses for a while
   const divider = needsDivider(prev, event) ? <TimeDivider ts={event.ts} /> : null;
@@ -386,6 +410,7 @@ function EventView({
             onOpenFile={onOpenFile}
             spoken={event.via === "call"}
             modelUsed={event.model_used}
+            thumbs={thread ? { thread, eventId: event.id, vote: event.feedback ?? "", newest: event.id === newestReplyId } : undefined}
           />
         );
       case "tool":
@@ -524,6 +549,7 @@ function AssistantBubble({
   onOpenFile,
   spoken,
   modelUsed,
+  thumbs,
 }: {
   text: string;
   reasoning?: string;
@@ -534,6 +560,8 @@ function AssistantBubble({
   spoken?: boolean;
   /** *Use nanoMuse Cloud this time*: the account's model this reply came from */
   modelUsed?: string;
+  /** the lightest feedback: two thumbs under the newest reply, the mark kept on one voted on */
+  thumbs?: { thread: string; eventId: string; vote: "up" | "down" | ""; newest: boolean };
   onOpenFile?: (path: string) => void;
 }) {
   // live stream: thinking is open while it streams; a finished bubble keeps it folded
@@ -580,6 +608,7 @@ function AssistantBubble({
           </div>
         )}
         {modelUsed && !streaming && <div className="ml-1 text-[11px] text-muted">{t("Answered by nanoMuse Cloud this time ({model})", { model: modelUsed })}</div>}
+        {thumbs && !streaming && blocks.length > 0 && <Thumbs {...thumbs} />}
       </div>
     </div>
   );
