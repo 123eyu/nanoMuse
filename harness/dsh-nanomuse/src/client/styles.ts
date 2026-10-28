@@ -875,6 +875,7 @@ html[data-nm-platform='darwin']:not([data-nm-fullscreen]) .nm-room-top { height:
 .nm-room-inner { max-width: 920px; margin: 0 auto; padding: 4px 40px 48px; box-sizing: border-box; }
 .nm-room-h2 { font-size: 15px; font-weight: 600; margin: 26px 0 8px; }
 .nm-room-error { font-size: 13px; color: var(--dsw-alias-state-error-primary, #d2453d); padding: 8px 0; }
+.nm-room-notice { font-size: 13px; color: var(--dsw-alias-label-secondary); padding: 8px 0; }
 .nm-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 320px; text-align: center; color: var(--dsw-alias-label-tertiary); }
 .nm-empty-icon { display: inline-flex; color: var(--dsw-alias-label-dimmed); }
 .nm-empty-text { font-size: 14px; }
