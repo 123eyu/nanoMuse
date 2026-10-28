@@ -368,7 +368,8 @@ the pictures and screenshots inline where they were sent (fetched with the
 admin token, so an `<img>` alone would not do), each tool call with its
 arguments folded, the final reply marked, and the whole call one click away;
 the *Data and sync* page shows questions beside calls everywhere it counted
-calls before.
+calls before, and an account's *Kept turns* tab (one row per call) links to
+the same page filtered to that account.
 
 ## Provenance
 
