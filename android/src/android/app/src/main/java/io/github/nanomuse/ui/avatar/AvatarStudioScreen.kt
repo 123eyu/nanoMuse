@@ -62,6 +62,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -80,12 +81,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openminis.app.R
 import com.openminis.app.agent.SoulStore
+import io.github.nanomuse.avatar.AvatarExport
 import io.github.nanomuse.avatar.AvatarStore
 import io.github.nanomuse.avatar.AvatarStudio
 import io.github.nanomuse.avatar.ImageGen
 import io.github.nanomuse.ui.home.MuseTones
 import io.github.nanomuse.ui.home.avatarDiscColor
 import io.github.nanomuse.ui.sysfiles.MuseTopBar
+import kotlinx.coroutines.launch
 
 const val ROUTE_AVATAR_STUDIO = "nanomuse/avatar"
 
@@ -132,6 +135,23 @@ fun AvatarStudioScreen(onBack: () -> Unit, onOpenSoul: () -> Unit, onOpenMediaMo
     val ownMoods by io.github.nanomuse.avatar.OwnClip.moods.collectAsState()
     val clipChooser = rememberOwnClipChooser()
     OwnClipChooserHost(clipChooser)
+    // *Save to gallery* (#664): the face's files are in the app's own storage, which no file
+    // manager opens; this copies them to Pictures and Movies under nanoMuse/avatar.
+    val scope = rememberCoroutineScope()
+    var exporting by remember { mutableStateOf(false) }
+    fun exportToGallery() {
+        if (exporting) return
+        exporting = true
+        scope.launch {
+            val result = AvatarExport.export(context)
+            exporting = false
+            val text = when {
+                result == null || result.total == 0 -> context.getString(R.string.nm_avatar_export_failed)
+                else -> context.getString(R.string.nm_avatar_export_done, result.pictures, result.clips)
+            }
+            android.widget.Toast.makeText(context, text, android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
     val generating = slots.any { it is AvatarStudio.Slot.Loading }
     // Read each time: the media page may have changed it while this screen was below it.
     val endpoint = ImageGen.endpoint(context)
@@ -175,6 +195,13 @@ fun AvatarStudioScreen(onBack: () -> Unit, onOpenSoul: () -> Unit, onOpenMediaMo
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.nm_own_clip_default)) },
                                 onClick = { menu = false; io.github.nanomuse.avatar.OwnClip.clear() },
+                            )
+                        }
+                        if (current != null || ownClip != null || ownMoods.isNotEmpty()) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.nm_avatar_menu_export)) },
+                                enabled = !exporting,
+                                onClick = { menu = false; exportToGallery() },
                             )
                         }
                         if (current != null) {

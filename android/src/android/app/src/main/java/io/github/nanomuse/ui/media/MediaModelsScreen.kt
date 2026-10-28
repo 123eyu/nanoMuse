@@ -224,7 +224,8 @@ fun MediaModelsScreen(
             if (videoInst != null) {
                 ModelList(
                     header = stringResource(R.string.nm_media_models_on, videoInst.label),
-                    models = videoModels.orEmpty(),
+                    // the key's answer plus the entries the person listed on the provider (#508)
+                    models = MediaModels.videoChoices(context, videoInst, videoModels),
                     recommended = MediaModels.DEFAULT_VIDEO_MODEL,
                     selected = videoModel,
                     checking = videoChecking,

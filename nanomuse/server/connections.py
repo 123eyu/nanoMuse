@@ -868,7 +868,8 @@ class Connections:
 
     def set_search(self, body: dict[str, Any]) -> dict[str, Any]:
         """Who answers web searches: DuckDuckGo (nothing to set), Brave, Tavily or Serply
-        with a key, You.com or Parallel with or without one, or a SearXNG instance by URL."""
+        with a key, You.com, Parallel or Keenable with or without one, or a SearXNG instance
+        by URL."""
         from nanomuse.search import PROVIDERS as SEARCH_PROVIDERS
 
         web = dict(self.data.get("search") or {})

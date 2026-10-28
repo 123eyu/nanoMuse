@@ -326,6 +326,9 @@
     <string name="nm_avatar_menu_model">Görsel modeli</string>
     <string name="nm_avatar_menu_regenerate_moods">Ruh hallerini yeniden çiz</string>
     <string name="nm_avatar_menu_reset">Yerleşik yüze dön</string>
+    <string name="nm_avatar_menu_export">Galeriye kaydet</string>
+    <string name="nm_avatar_export_done">Galeriye nanoMuse/avatar altına kaydedildi: görsel %1$d, klip %2$d</string>
+    <string name="nm_avatar_export_failed">Galeriye hiçbir şey kaydedilemedi</string>
     <string name="nm_avatar_mood_idle">Dinlenirken</string>
     <string name="nm_avatar_mood_working">Çalışıyor</string>
     <string name="nm_avatar_mood_waiting">Seni bekliyor</string>
@@ -365,7 +368,7 @@
     <string name="nm_avatar_pick_body">İstediğin zaman dört tane daha çizebilirsin; eskiler sen çizene kadar saklanır.</string>
     <string name="nm_avatar_use_this">Bunu kullan</string>
     <string name="nm_avatar_use_this_hint">Ruh halleri (çalışıyor, bekliyor, tamamlandı, hata) bundan sonra arka planda ondan çizilir.</string>
-    <string name="nm_avatar_footer">Resimler bu telefonda minis-global/nanomuse/avatar altında saklanır. Her yüz sağlayıcından beş görsel tutar: seçtiğin bir tane artı dört ruh hali.</string>
+    <string name="nm_avatar_footer">Resimler bu telefonda uygulamanın kendi depolama alanında durur; hiçbir dosya yöneticisi oraya giremez. Menüdeki “Galeriye kaydet”, yüzü, ruh hallerini ve klipleri Pictures ve Movies altındaki nanoMuse/avatar klasörüne kopyalar. Her yüz sağlayıcından beş görsel tutar: seçtiğin bir tane artı dört ruh hali.</string>
     <string name="nm_own_clip_title">Kendi klibiniz</string>
     <string name="nm_own_clip_body">Size ait kısa bir video, beklemedeki yüz olarak oynar ve diğer ruh halleri de ona döner. H.264 videolu MP4 veya MOV, en fazla 15 saniye ve 30 MB; sessiz ve döngüde oynar.</string>
     <string name="nm_own_clip_on">Klibiniz açık ve her ruh halinde oynuyor; sabit bir görüntünün gösterildiği yerlerde çizilen resimler kullanılmaya devam eder. “Varsayılan yüz” onu kaldırır.</string>
@@ -1212,4 +1215,5 @@
     <string name="nm_stop_reason_changed_mind">Fikrimi değiştirdim</string>
     <string name="nm_stop_reason_done">Zaten bitmişti</string>
     <string name="nm_stop_reason_other">Başka bir şey</string>
+    <string name="nm_feed_limit_notice">Günlük 12 sınırı nedeniyle oluşturulan %1$d gönderi eklenemedi.</string>
 </resources>

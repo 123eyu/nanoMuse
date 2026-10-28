@@ -323,6 +323,9 @@
     <string name="nm_avatar_menu_model">이미지 모델</string>
     <string name="nm_avatar_menu_regenerate_moods">표정 다시 그리기</string>
     <string name="nm_avatar_menu_reset">기본 얼굴로 돌아가기</string>
+    <string name="nm_avatar_menu_export">갤러리에 저장</string>
+    <string name="nm_avatar_export_done">갤러리의 nanoMuse/avatar에 저장했습니다: 그림 %1$d장, 클립 %2$d개</string>
+    <string name="nm_avatar_export_failed">갤러리에 저장하지 못했습니다</string>
     <string name="nm_avatar_mood_idle">쉬는 중</string>
     <string name="nm_avatar_mood_working">작업 중</string>
     <string name="nm_avatar_mood_waiting">기다리는 중</string>
@@ -362,7 +365,7 @@
     <string name="nm_avatar_pick_body">언제든 네 장을 더 그릴 수 있습니다. 그 전까지 이전 그림은 남아 있습니다.</string>
     <string name="nm_avatar_use_this">이것으로 하기</string>
     <string name="nm_avatar_use_this_hint">표정(작업 중, 기다리는 중, 완료, 이런)은 이어서 백그라운드에서 그립니다.</string>
-    <string name="nm_avatar_footer">그림은 이 휴대전화의 minis-global/nanomuse/avatar에 저장됩니다. 얼굴 하나에 제공자에서 이미지 다섯 장이 듭니다. 고른 한 장과 네 가지 표정.</string>
+    <string name="nm_avatar_footer">그림은 이 휴대전화의 앱 전용 저장 공간에 있어 파일 관리자로는 열 수 없습니다. 메뉴의 “갤러리에 저장”이 얼굴과 표정, 클립을 Pictures와 Movies의 nanoMuse/avatar 아래로 복사합니다. 얼굴 하나에 제공자에서 이미지 다섯 장이 듭니다. 고른 한 장과 네 가지 표정.</string>
     <string name="nm_own_clip_title">내 동영상</string>
     <string name="nm_own_clip_body">내 짧은 동영상이 대기 중 얼굴로 재생되고, 다른 상태에서도 같은 동영상을 씁니다. H.264 영상의 MP4 또는 MOV, 최대 15초, 30 MB까지. 음소거로 반복 재생됩니다.</string>
     <string name="nm_own_clip_on">내 동영상이 켜져 있고 모든 상태에서 재생됩니다. 정지 화면이 쓰이는 곳에서는 그린 그림이 그대로 쓰입니다. “기본 얼굴”로 제거할 수 있습니다.</string>
@@ -1208,4 +1211,5 @@
     <string name="nm_stop_reason_changed_mind">마음이 바뀌었어요</string>
     <string name="nm_stop_reason_done">이미 다 됐어요</string>
     <string name="nm_stop_reason_other">기타</string>
+    <string name="nm_feed_limit_notice">일일 한도 12개로 인해 생성된 게시물 %1$d개를 추가하지 못했습니다.</string>
 </resources>

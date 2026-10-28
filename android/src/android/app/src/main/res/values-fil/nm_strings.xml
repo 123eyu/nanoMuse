@@ -326,6 +326,9 @@
     <string name="nm_avatar_menu_model">Image model</string>
     <string name="nm_avatar_menu_regenerate_moods">Iguhit muli ang mga mood</string>
     <string name="nm_avatar_menu_reset">Bumalik sa built-in na mukha</string>
+    <string name="nm_avatar_menu_export">I-save sa gallery</string>
+    <string name="nm_avatar_export_done">Na-save sa gallery sa ilalim ng nanoMuse/avatar: mga larawan %1$d, mga clip %2$d</string>
+    <string name="nm_avatar_export_failed">Walang na-save sa gallery</string>
     <string name="nm_avatar_mood_idle">Nagpapahinga</string>
     <string name="nm_avatar_mood_working">Gumagawa</string>
     <string name="nm_avatar_mood_waiting">Naghihintay sa iyo</string>
@@ -365,7 +368,7 @@
     <string name="nm_avatar_pick_body">Maaari kang gumuhit ng apat pa anumang oras; itinatago ang mga luma hanggang gawin mo iyon.</string>
     <string name="nm_avatar_use_this">Gamitin ito</string>
     <string name="nm_avatar_use_this_hint">Ang mga mood (gumagawa, naghihintay, tapos na, nagkamali) ay iguguhit mula rito sa susunod, sa background.</string>
-    <string name="nm_avatar_footer">Nakatago ang mga larawan sa teleponong ito sa ilalim ng minis-global/nanomuse/avatar. Ang bawat mukha ay nagkakahalaga ng limang larawan mula sa provider mo: isang pinili mo at apat na mood.</string>
+    <string name="nm_avatar_footer">Nasa sariling storage ng app sa teleponong ito ang mga larawan, na hindi mabubuksan ng file manager. Kinokopya ng “I-save sa gallery” sa menu ang mukha, ang mga mood nito at ang mga clip sa Pictures at Movies sa ilalim ng nanoMuse/avatar. Ang bawat mukha ay nagkakahalaga ng limang larawan mula sa provider mo: isang pinili mo at apat na mood.</string>
     <string name="nm_own_clip_title">Ang sarili mong clip</string>
     <string name="nm_own_clip_body">Isang maikling video mo ang tumutugtog bilang mukha kapag nakapahinga, at ginagamit din ito ng ibang mood. MP4 o MOV na may H.264 na video, hanggang 15 segundo at 30 MB; naka-mute at paulit-ulit itong tumutugtog.</string>
     <string name="nm_own_clip_on">Naka-on ang clip mo at tumutugtog ito sa bawat mood; kung saan ipinapakita ang isang still, ginagamit pa rin ang mga iginuhit na larawan. Inaalis ito ng “Default na mukha”.</string>
@@ -1212,4 +1215,5 @@
     <string name="nm_stop_reason_changed_mind">Nagbago ang isip ko</string>
     <string name="nm_stop_reason_done">Tapos na pala</string>
     <string name="nm_stop_reason_other">Iba pa</string>
+    <string name="nm_feed_limit_notice">Hindi naisama ang %1$d nabuong post dahil sa pang-araw-araw na limitasyong 12.</string>
 </resources>

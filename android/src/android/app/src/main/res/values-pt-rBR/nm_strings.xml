@@ -327,6 +327,9 @@
     <string name="nm_avatar_menu_model">Modelo de imagem</string>
     <string name="nm_avatar_menu_regenerate_moods">Redesenhar os humores</string>
     <string name="nm_avatar_menu_reset">Voltar ao rosto padrão</string>
+    <string name="nm_avatar_menu_export">Salvar na galeria</string>
+    <string name="nm_avatar_export_done">Salvo na galeria em nanoMuse/avatar: imagens %1$d, clipes %2$d</string>
+    <string name="nm_avatar_export_failed">Nada pôde ser salvo na galeria</string>
     <string name="nm_avatar_mood_idle">Em repouso</string>
     <string name="nm_avatar_mood_working">Trabalhando</string>
     <string name="nm_avatar_mood_waiting">Esperando você</string>
@@ -366,7 +369,7 @@
     <string name="nm_avatar_pick_body">Você pode desenhar mais quatro quando quiser; os antigos ficam guardados até lá.</string>
     <string name="nm_avatar_use_this">Usar este</string>
     <string name="nm_avatar_use_this_hint">Os humores (trabalhando, esperando, concluído, ops) são desenhados a partir dele em seguida, em segundo plano.</string>
-    <string name="nm_avatar_footer">As imagens ficam neste celular em minis-global/nanomuse/avatar. Cada rosto custa cinco imagens do seu provedor: a que você escolheu mais quatro humores.</string>
+    <string name="nm_avatar_footer">As imagens ficam no armazenamento próprio do app neste celular, que nenhum gerenciador de arquivos abre. “Salvar na galeria”, no menu, copia o rosto, seus humores e seus clipes para Pictures e Movies em nanoMuse/avatar. Cada rosto custa cinco imagens do seu provedor: a que você escolheu mais quatro humores.</string>
     <string name="nm_own_clip_title">Seu próprio clipe</string>
     <string name="nm_own_clip_body">Um vídeo curto seu toca como o rosto em repouso, e os outros humores recorrem a ele. MP4 ou MOV com vídeo H.264, de até 15 segundos e 30 MB; toca sem som, em repetição.</string>
     <string name="nm_own_clip_on">Seu clipe está ativo e toca em todos os humores; onde uma imagem parada é mostrada, as desenhadas continuam em uso. “Rosto padrão” o remove.</string>
@@ -1213,4 +1216,5 @@
     <string name="nm_stop_reason_changed_mind">Mudei de ideia</string>
     <string name="nm_stop_reason_done">Já estava pronto</string>
     <string name="nm_stop_reason_other">Outra coisa</string>
+    <string name="nm_feed_limit_notice">%1$d postagens geradas não couberam devido ao limite diário de 12.</string>
 </resources>

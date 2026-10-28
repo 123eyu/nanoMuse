@@ -2,7 +2,8 @@
 
 DuckDuckGo needs no key and is the default, but it is scraped, not served: it rate-limits
 and breaks now and then. When that matters, pick a provider with an API — Brave, Tavily or
-Serply with a key, You.com with or without one (keyless, 100 searches a day), Parallel's
+Serply with a key, You.com with or without one (keyless, 100 searches a day), Keenable
+with or without one (keyless, 1,000 searches an hour), Parallel's
 Search MCP with or without one, or a SearXNG instance you run yourself — in ``[connectors.search]`` or from *Connections →
 Web search*. Whatever is picked, a failed search falls back to DuckDuckGo once, with a
 note in the result, so a lapsed key does not stop a task.
@@ -62,12 +63,23 @@ PROVIDERS: dict[str, dict[str, Any]] = {
         "host": "search.parallel.ai",
         "keys_url": "https://platform.parallel.ai/",
     },
+    # Keenable: the same host with or without a key. Keyless allows 1,000 searches an hour per
+    # address; a key in `X-API-Key` lifts the hourly cap.
+    "keenable": {
+        "label": "Keenable",
+        "needs_key": False,
+        "optional_key": True,
+        "host": "api.keenable.ai",
+        "keys_url": "https://keenable.ai/console",
+    },
     "searxng": {"label": "SearXNG", "needs_key": False, "host": ""},
 }
 TIMEOUT = 20.0
 # On You.com requests only, at the vendor's request, so they can tell nanoMuse's traffic apart.
 YOU_USER_AGENT = "youdotcom-integration/nano-muse-nanomuse"
 PARALLEL_MCP_URL = "https://search.parallel.ai/mcp"
+# Keenable's keyless endpoint wants the calling app's name; it goes on every Keenable request.
+KEENABLE_TITLE = "nanoMuse"
 MCP_PROTOCOL_VERSION = "2025-06-18"
 
 
@@ -151,6 +163,8 @@ class WebSearchProvider:
             return "You.com (no key: 100 searches a day)"
         if self.name == "parallel" and not self.api_key():
             return "Parallel (no key: free, lower limits)"
+        if self.name == "keenable" and not self.api_key():
+            return "Keenable (no key: 1,000 searches an hour)"
         return f"{self.label} ({'key set' if self.api_key() else 'no key'})"
 
     async def search(
@@ -223,6 +237,8 @@ class WebSearchProvider:
             return await self._you(query, max_results, region)
         if self.name == "parallel":
             return await self._parallel(query, max_results)
+        if self.name == "keenable":
+            return await self._keenable(query, max_results)
         if self.name == "searxng":
             return await self._searxng(query, max_results, region)
         return await self._ddg(query, max_results, region)
@@ -408,6 +424,37 @@ class WebSearchProvider:
             )
             for r in rows[:max_results]
             if isinstance(r, dict)
+        ]
+
+    async def _keenable(self, query: str, max_results: int) -> list[SearchResult]:
+        """Keenable: ``/v1/search/public`` without a key (1,000 searches an hour per address),
+        ``/v1/search`` with one in ``X-API-Key``; the same host and body either way. A
+        result's text is its ``snippet``, page text over several lines."""
+        key = self.api_key()
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "X-Keenable-Title": KEENABLE_TITLE,
+        }
+        if key:
+            headers["X-API-Key"] = key
+        url = "https://api.keenable.ai/v1/search" + ("" if key else "/public")
+        async with _client() as client:
+            resp = await client.post(
+                url, json={"query": query, "max_results": min(max_results, 20)}, headers=headers
+            )
+        if not key and resp.status_code == 429:
+            raise SearchError("the keyless limit is reached for now (HTTP 429)")
+        _raise_for(resp)
+        rows = resp.json().get("results") or []
+        return [
+            SearchResult(
+                title=r.get("title") or "",
+                url=r.get("url") or "",
+                # The snippet is page text over several lines; one line keeps the list readable.
+                snippet=" ".join((r.get("snippet") or "").split())[:400],
+            )
+            for r in rows[:max_results]
         ]
 
     async def _searxng(self, query: str, max_results: int, region: str) -> list[SearchResult]:

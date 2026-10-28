@@ -323,6 +323,9 @@
     <string name="nm_avatar_menu_model">Model gambar</string>
     <string name="nm_avatar_menu_regenerate_moods">Gambar ulang ekspresinya</string>
     <string name="nm_avatar_menu_reset">Kembali ke wajah bawaan</string>
+    <string name="nm_avatar_menu_export">Simpan ke galeri</string>
+    <string name="nm_avatar_export_done">Disimpan ke galeri di nanoMuse/avatar: gambar %1$d, klip %2$d</string>
+    <string name="nm_avatar_export_failed">Tidak ada yang bisa disimpan ke galeri</string>
     <string name="nm_avatar_mood_idle">Santai</string>
     <string name="nm_avatar_mood_working">Bekerja</string>
     <string name="nm_avatar_mood_waiting">Menunggumu</string>
@@ -362,7 +365,7 @@
     <string name="nm_avatar_pick_body">Kamu bisa menggambar empat lagi kapan saja; yang lama disimpan sampai kamu melakukannya.</string>
     <string name="nm_avatar_use_this">Pakai yang ini</string>
     <string name="nm_avatar_use_this_hint">Ekspresinya (bekerja, menunggu, selesai, ups) digambar dari gambar ini berikutnya, di latar belakang.</string>
-    <string name="nm_avatar_footer">Gambar disimpan di ponsel ini di minis-global/nanomuse/avatar. Setiap wajah memakai lima gambar dari penyediamu: satu yang kamu pilih ditambah empat ekspresi.</string>
+    <string name="nm_avatar_footer">Gambar ada di penyimpanan milik aplikasi di ponsel ini, yang tidak bisa dibuka pengelola file. “Simpan ke galeri” di menu menyalin wajah, ekspresinya, dan klipnya ke Pictures dan Movies di nanoMuse/avatar. Setiap wajah memakai lima gambar dari penyediamu: satu yang kamu pilih ditambah empat ekspresi.</string>
     <string name="nm_own_clip_title">Klip Anda sendiri</string>
     <string name="nm_own_clip_body">Video pendek milik Anda diputar sebagai wajah saat diam, dan suasana lain memakainya juga. MP4 atau MOV dengan video H.264, paling lama 15 detik dan 30 MB; diputar tanpa suara, berulang.</string>
     <string name="nm_own_clip_on">Klip Anda aktif dan diputar untuk setiap suasana; di tempat gambar diam ditampilkan, gambar yang digambar tetap dipakai. “Wajah bawaan” menghapusnya.</string>
@@ -1208,4 +1211,5 @@
     <string name="nm_stop_reason_changed_mind">Berubah pikiran</string>
     <string name="nm_stop_reason_done">Sudah selesai</string>
     <string name="nm_stop_reason_other">Hal lain</string>
+    <string name="nm_feed_limit_notice">%1$d postingan yang dibuat tidak dimuat karena batas harian 12.</string>
 </resources>

@@ -326,6 +326,9 @@
     <string name="nm_avatar_menu_model">Modelo de imagen</string>
     <string name="nm_avatar_menu_regenerate_moods">Redibujar los estados de ánimo</string>
     <string name="nm_avatar_menu_reset">Volver a la cara integrada</string>
+    <string name="nm_avatar_menu_export">Guardar en la galería</string>
+    <string name="nm_avatar_export_done">Guardado en la galería bajo nanoMuse/avatar: imágenes %1$d, clips %2$d</string>
+    <string name="nm_avatar_export_failed">No se pudo guardar nada en la galería</string>
     <string name="nm_avatar_mood_idle">En reposo</string>
     <string name="nm_avatar_mood_working">Trabajando</string>
     <string name="nm_avatar_mood_waiting">Esperándote</string>
@@ -365,7 +368,7 @@
     <string name="nm_avatar_pick_body">Puedes dibujar otras cuatro cuando quieras; las anteriores se conservan hasta que lo hagas.</string>
     <string name="nm_avatar_use_this">Usar esta</string>
     <string name="nm_avatar_use_this_hint">Los estados de ánimo (trabajando, esperando, hecho, ups) se dibujan a partir de ella después, en segundo plano.</string>
-    <string name="nm_avatar_footer">Las imágenes se guardan en este teléfono en minis-global/nanomuse/avatar. Cada cara cuesta cinco imágenes de tu proveedor: la que eliges más cuatro estados de ánimo.</string>
+    <string name="nm_avatar_footer">Las imágenes están en el almacenamiento propio de la app en este teléfono, que ningún gestor de archivos puede abrir. «Guardar en la galería», en el menú, copia la cara, sus estados de ánimo y sus clips a Pictures y Movies bajo nanoMuse/avatar. Cada cara cuesta cinco imágenes de tu proveedor: la que eliges más cuatro estados de ánimo.</string>
     <string name="nm_own_clip_title">Tu propio clip</string>
     <string name="nm_own_clip_body">Un vídeo corto tuyo se reproduce como la cara en reposo, y los demás estados recurren a él. MP4 o MOV con vídeo H.264, de hasta 15 segundos y 30 MB; se reproduce sin sonido en bucle.</string>
     <string name="nm_own_clip_on">Tu clip está activo y se reproduce en todos los estados; donde se muestra una imagen fija siguen usándose las dibujadas. «Cara predeterminada» lo quita.</string>
@@ -1212,4 +1215,5 @@
     <string name="nm_stop_reason_changed_mind">Cambié de idea</string>
     <string name="nm_stop_reason_done">Ya estaba hecho</string>
     <string name="nm_stop_reason_other">Otra cosa</string>
+    <string name="nm_feed_limit_notice">%1$d publicaciones generadas no cupieron por el límite diario de 12.</string>
 </resources>

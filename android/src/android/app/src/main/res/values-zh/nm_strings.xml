@@ -316,6 +316,9 @@
     <string name="nm_avatar_menu_model">图像模型</string>
     <string name="nm_avatar_menu_regenerate_moods">重画状态</string>
     <string name="nm_avatar_menu_reset">换回内置形象</string>
+    <string name="nm_avatar_menu_export">保存到相册</string>
+    <string name="nm_avatar_export_done">已保存到相册 nanoMuse/avatar 下：图片 %1$d 张，视频 %2$d 段</string>
+    <string name="nm_avatar_export_failed">没能保存到相册</string>
     <string name="nm_avatar_mood_idle">待命</string>
     <string name="nm_avatar_mood_working">干活中</string>
     <string name="nm_avatar_mood_waiting">等你回复</string>
@@ -355,7 +358,7 @@
     <string name="nm_avatar_pick_body">随时可以再画四张；没重画之前旧的会留着。</string>
     <string name="nm_avatar_use_this">就用这个</string>
     <string name="nm_avatar_use_this_hint">接下来会在后台以它为底画出各个状态：干活、等你、搞定、出错。</string>
-    <string name="nm_avatar_footer">图片存在这台手机的 minis-global/nanomuse/avatar 下。每换一次形象会向你的服务商要五张图：你选的那张加四个状态。</string>
+    <string name="nm_avatar_footer">图片放在这台手机上 App 自己的存储里，文件管理器打不开。菜单里的「保存到相册」会把形象、它的各个状态和视频复制到相册的 nanoMuse/avatar 下。每换一次形象会向你的服务商要五张图：你选的那张加四个状态。</string>
     <string name="nm_own_clip_title">你自己的视频</string>
     <string name="nm_own_clip_body">一段你自己的短视频会作为待机时的形象播放，其他状态也沿用它。MP4 或 MOV，H.264 视频，最长 15 秒、最大 30 MB；静音循环播放。</string>
     <string name="nm_own_clip_on">你的视频已启用，所有状态都播放它；需要静态图的地方仍用画好的图片。「默认形象」可移除它。</string>
@@ -1185,4 +1188,5 @@
     <string name="nm_stop_reason_changed_mind">改主意了</string>
     <string name="nm_stop_reason_done">已经做完了</string>
     <string name="nm_stop_reason_other">其他原因</string>
+    <string name="nm_feed_limit_notice">因每日 12 条上限，有 %1$d 条生成内容未能加入动态。</string>
 </resources>

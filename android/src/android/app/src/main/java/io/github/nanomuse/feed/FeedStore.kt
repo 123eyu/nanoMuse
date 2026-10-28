@@ -72,18 +72,18 @@ object FeedStore {
         _posts.value = _posts.value.filterNot { it.file == post.file }
     }
 
-    /** Writes a batch of posts for today, continuing today's numbering. Returns what was written. */
-    fun append(drafts: List<Draft>, now: Long = System.currentTimeMillis()): List<FeedPost> {
-        if (drafts.isEmpty()) return emptyList()
+    /** Writes a batch for today and reports posts omitted by the daily limit. */
+    fun append(drafts: List<Draft>, now: Long = System.currentTimeMillis()): AppendResult {
+        if (drafts.isEmpty()) return AppendResult(emptyList(), 0)
         val day = java.time.Instant.ofEpochMilli(now).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString()
         val dir = File(root, day).apply { mkdirs() }
         var next = (dir.listFiles()?.mapNotNull { FeedPost.parse(it)?.index }?.maxOrNull() ?: 0) + 1
+        val plan = FeedWriteCapacity.plan(next - 1, drafts.size, MAX_POSTS_PER_DAY)
+        if (plan.droppedByLimit > 0) {
+            AppLogger.warning(TAG, "daily limit of $MAX_POSTS_PER_DAY posts reached; ${plan.droppedByLimit} draft(s) not written")
+        }
         val written = mutableListOf<FeedPost>()
-        for ((index, d) in drafts.withIndex()) {
-            if (next > MAX_POSTS_PER_DAY) {
-                AppLogger.warning(TAG, "daily limit of $MAX_POSTS_PER_DAY posts reached; ${drafts.size - index} draft(s) not written")
-                break
-            }
+        for (d in drafts.take(plan.acceptedCount)) {
             val file = File(dir, "%02d.md".format(Locale.ROOT, next))
             val post = FeedPost(
                 day = day, index = next, title = d.title.trim().take(80), type = d.type, emoji = d.emoji,
@@ -97,7 +97,15 @@ object FeedStore {
         reload()
         refreshSandbox()
         AppLogger.info(TAG, "wrote ${written.size} post(s) for $day")
-        return written
+        return AppendResult(written, plan.droppedByLimit)
+    }
+
+    /** Remaining slots today, calculated using the same daily cap as [append]. */
+    fun remainingCapacity(now: Long = System.currentTimeMillis()): Int {
+        val day = java.time.Instant.ofEpochMilli(now).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString()
+        val dir = File(root, day)
+        val lastIndex = dir.listFiles()?.mapNotNull { FeedPost.parse(it)?.index }?.maxOrNull() ?: 0
+        return FeedWriteCapacity.plan(lastIndex, 0, MAX_POSTS_PER_DAY).remainingCapacity
     }
 
     private fun refreshSandbox() {
@@ -121,6 +129,8 @@ object FeedStore {
         val body: String,
         val source: List<String>,
     )
+
+    data class AppendResult(val written: List<FeedPost>, val droppedByLimit: Int)
 
     /**
      * The order of one day's posts on the page. A batch is written in one go, so its posts share
