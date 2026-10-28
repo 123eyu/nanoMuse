@@ -15,7 +15,12 @@ NOW = 1000
 
 
 class ScriptedPolicy:
-    """Known controls over observable tool results, not model reasoning."""
+    """Known controls over observable tool results, not model reasoning.
+
+    ``pre_fix`` is ``reconcile`` before two fixes: it reports "completed" for any bound
+    commit receipt without comparing its content, and it never falls back to an
+    idempotent write when readback is pending or unavailable.
+    """
 
     def __init__(
         self,
@@ -83,7 +88,9 @@ class ScriptedPolicy:
         data = json.loads(latest.content or "{}")
         if self.stage == "commit" and self.valid_status(data):
             self.evidence_ref = data["event_seq"]
-            if data.get("state") == "committed" and data.get("effects") == [self.request]:
+            if self.name == "pre_fix" or (
+                data.get("state") == "committed" and data.get("effects") == [self.request]
+            ):
                 return self.finish("completed", "Commit receipt")
             return self.finish("conflict", "Commit receipt conflicts with requested content")
         if data.get("availability") in ("denied", "budget_blocked", "attempt_budget_blocked"):
@@ -130,7 +137,7 @@ class ScriptedPolicy:
             if data.get("availability") in ("pending", "unavailable"):
                 # Native same-obligation idempotency permits a safe write even
                 # when readback is unavailable. Authorization is still checked.
-                if self.idempotent and self.attempts_left > 0:
+                if self.idempotent and self.attempts_left > 0 and self.name != "pre_fix":
                     self.ready_to_commit = True
                     return self.call("permission")
                 return self.call("lookup")

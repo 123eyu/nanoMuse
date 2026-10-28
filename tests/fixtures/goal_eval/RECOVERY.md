@@ -33,9 +33,7 @@ From a checkout with the normal development dependencies installed:
 ```sh
 .venv/bin/python tests/goal_eval_recovery.py run --output /tmp/recovery-controls
 .venv/bin/python tests/goal_eval_recovery.py replay --output /tmp/recovery-controls
-.venv/bin/python tests/goal_eval_recovery_comparison.py run --baseline-source tests/fixtures/goal_eval/recovery_baseline_v1.py --output /tmp/recovery-change
-.venv/bin/python tests/goal_eval_recovery_comparison.py replay --output /tmp/recovery-change
-.venv/bin/python -m pytest tests/test_goal_eval_recovery.py tests/test_goal_eval_recovery_comparison.py -q
+.venv/bin/python -m pytest tests/test_goal_eval_recovery.py -q
 ```
 
 The default candidate is `tests/goal_eval_recovery_policy.py`.

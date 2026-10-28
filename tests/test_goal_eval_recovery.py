@@ -6,6 +6,7 @@ import asyncio
 import copy
 import json
 import shutil
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -13,9 +14,24 @@ import goal_eval_recovery as benchmark
 import pytest
 from goal_eval_recovery_oracle import assess
 
-from nanomuse.schema import Message
+from nanomuse.schema import LLMResponse, Message
 
-HERE = Path(__file__).resolve().parent
+# The cases the two pre_fix defects reach; the other 30 pass for pre_fix and reconcile alike.
+PRE_FIX_FAILURES = {
+    "idempotent_lookup_down",
+    "idempotent_lookup_down_lost_ack",
+    "idempotent_lookup_down_before_timeout",
+    "idempotent_lookup_down_exhausted",
+    "idempotent_lookup_down_revoked",
+    "idempotent_permission_cap_plus_one",
+    "idempotent_lookup_down_bad_receipt_binding",
+    "idempotent_lookup_down_bad_receipt_effect",
+    "receipt_effect_conflict_existing_path",
+    "idempotent_lookup_down_exhausted_committed",
+    "idempotent_pending_lookup",
+    "idempotent_lookup_down_existing_conflict",
+    "idempotent_lookup_down_existing_match",
+}
 
 
 @pytest.fixture(scope="module")
@@ -29,73 +45,89 @@ def suite(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
     data = benchmark.load_dataset()
     cases = {case["id"]: case for case in data["cases"]}
     entries = {
-        (policy, case_id): json.loads(
-            (output / "runs" / policy / case_id / "trial.json").read_text(encoding="utf-8")
+        (control, case_id): json.loads(
+            (output / "runs" / control / case_id / "trial.json").read_text(encoding="utf-8")
         )
-        for policy in benchmark.POLICIES
+        for control in benchmark.CONTROLS
         for case_id in data["inventory"]
     }
     return {"output": output, "summary": summary, "cases": cases, "entries": entries}
 
 
-def _entry(suite: dict[str, Any], policy: str, case_id: str) -> dict[str, Any]:
-    return suite["entries"][(policy, case_id)]
+def _entry(suite: dict[str, Any], control: str, case_id: str) -> dict[str, Any]:
+    return suite["entries"][(control, case_id)]
+
+
+def _copy_archive(suite: dict[str, Any], tmp_path: Path, name: str) -> Path:
+    damaged = tmp_path / name
+    shutil.copytree(suite["output"], damaged)
+    return damaged
 
 
 def test_reconcile_matches_every_fixed_gold_case(suite: dict[str, Any]) -> None:
-    cases = suite["cases"]
-    for case_id in benchmark.load_dataset()["inventory"]:
+    assert len(suite["cases"]) == 43
+    for case_id, case in suite["cases"].items():
         entry = _entry(suite, "reconcile", case_id)
-        result = assess(cases[case_id], entry["record"])
+        result = assess(case, entry["record"])
         assert result["passed"], (case_id, result["violations"])
         assert result == entry["oracle"]
 
 
+def test_pre_fix_fails_exactly_the_cases_its_two_defects_reach(suite: dict[str, Any]) -> None:
+    failed = {
+        case_id
+        for case_id in suite["cases"]
+        if not _entry(suite, "pre_fix", case_id)["oracle"]["passed"]
+    }
+    assert failed == PRE_FIX_FAILURES
+    comparison = suite["summary"]["comparison"]
+    assert comparison["comparison_kind"] == "known_defect_regression"
+    assert (comparison["before"], comparison["after"]) == ("pre_fix", "reconcile")
+    assert comparison["planned_pairs"] == comparison["eligible_pairs"] == 43
+    assert comparison["changes"] == {"improved": 13, "unchanged": 30}
+    assert {row["case_id"] for row in comparison["rows"] if row["change"] == "improved"} == failed
+    assert "regression check, not a measured improvement" in comparison["limitation"]
+
+
+def test_summary_counts_each_control_from_its_trials(suite: dict[str, Any]) -> None:
+    assert suite["summary"]["cases"] == 43
+    assert suite["summary"]["trials"] == 43 * len(benchmark.CONTROLS)
+    assert list(suite["summary"]["controls"]) == list(benchmark.CONTROLS)
+    for control, row in suite["summary"]["controls"].items():
+        trials = [_entry(suite, control, case_id) for case_id in suite["cases"]]
+        assert row["total"] == 43
+        assert row["handling_passed"] == sum(t["oracle"]["passed"] for t in trials)
+        assert row["tool_calls"] == sum(t["oracle"]["calls"] for t in trials)
+        assert row["failed_assertions"] == dict(
+            Counter(
+                name for t in trials for name, ok in t["oracle"]["assertions"].items() if not ok
+            )
+        )
+    assert suite["summary"]["controls"]["reconcile"]["failed_assertions"] == {}
+
+
+@pytest.mark.parametrize(
+    ("control", "case_id", "failed"),
+    [
+        (
+            "blind_retry",
+            "commit_lost_ack",
+            ("retry_reconciliation", "no_duplicate_requested_effects"),
+        ),
+        ("always_complete", "unavailable_uncommitted", ("completed_requires_world_and_evidence",)),
+        ("always_abstain", "normal_ack", ("handling_matches_expected",)),
+        ("ignore_binding", "foreign_subject_evidence", ("completed_requires_world_and_evidence",)),
+        ("ignore_authorization", "denied_authorization", ("no_unauthorized_commit",)),
+        ("merge_by_target", "distinct_obligations", ("expected_effects",)),
+    ],
+)
 def test_injected_controls_are_caught_by_the_relevant_gold_assertions(
-    suite: dict[str, Any],
+    suite: dict[str, Any], control: str, case_id: str, failed: tuple[str, ...]
 ) -> None:
-    cases = suite["cases"]
-
-    blind = assess(
-        cases["commit_lost_ack"], _entry(suite, "blind_retry", "commit_lost_ack")["record"]
-    )
-    assert not blind["passed"]
-    assert not blind["assertions"]["retry_reconciliation"]
-    assert not blind["assertions"]["no_duplicate_requested_effects"]
-
-    false_completion = assess(
-        cases["unavailable_uncommitted"],
-        _entry(suite, "always_complete", "unavailable_uncommitted")["record"],
-    )
-    assert not false_completion["passed"]
-    assert not false_completion["assertions"]["completed_requires_world_and_evidence"]
-
-    abstention = assess(
-        cases["normal_ack"], _entry(suite, "always_abstain", "normal_ack")["record"]
-    )
-    assert not abstention["passed"]
-    assert not abstention["assertions"]["handling_matches_expected"]
-
-    wrong_binding = assess(
-        cases["foreign_subject_evidence"],
-        _entry(suite, "ignore_binding", "foreign_subject_evidence")["record"],
-    )
-    assert not wrong_binding["passed"]
-    assert not wrong_binding["assertions"]["completed_requires_world_and_evidence"]
-
-    denied = assess(
-        cases["denied_authorization"],
-        _entry(suite, "ignore_authorization", "denied_authorization")["record"],
-    )
-    assert not denied["passed"]
-    assert not denied["assertions"]["no_unauthorized_commit"]
-
-    merged = assess(
-        cases["distinct_obligations"],
-        _entry(suite, "merge_by_target", "distinct_obligations")["record"],
-    )
-    assert not merged["passed"]
-    assert not merged["assertions"]["expected_effects"]
+    result = assess(suite["cases"][case_id], _entry(suite, control, case_id)["record"])
+    assert not result["passed"]
+    for assertion in failed:
+        assert not result["assertions"][assertion]
 
 
 def test_declared_native_idempotency_allows_same_binding_retry(suite: dict[str, Any]) -> None:
@@ -145,8 +177,8 @@ def test_independent_oracle_rejects_tampered_records(
     suite: dict[str, Any], case_id: str, mutation: str, assertion: str
 ) -> None:
     case = copy.deepcopy(suite["cases"][case_id])
-    policy = "ignore_authorization" if mutation == "unauthorized_commit" else "reconcile"
-    record = copy.deepcopy(_entry(suite, policy, case_id)["record"])
+    control = "ignore_authorization" if mutation == "unauthorized_commit" else "reconcile"
+    record = copy.deepcopy(_entry(suite, control, case_id)["record"])
 
     if mutation == "drop_report":
         record["reports"].pop()
@@ -184,15 +216,15 @@ def test_core_outcome_evidence_tracks_world_truth_only_when_observer_available(
     suite: dict[str, Any],
 ) -> None:
     for case_id, case in suite["cases"].items():
-        for policy in benchmark.POLICIES:
-            entry = _entry(suite, policy, case_id)
+        for control in benchmark.CONTROLS:
+            entry = _entry(suite, control, case_id)
             criteria = entry["evaluation"]["criteria"]
             world_completed = entry["oracle"]["world_completed"]
             if case["observer_available"]:
-                assert (criteria["outcome"] == "met") is world_completed, (case_id, policy)
+                assert (criteria["outcome"] == "met") is world_completed, (case_id, control)
             else:
-                assert criteria["outcome"] == "unknown", (case_id, policy, criteria)
-                assert entry["evaluation"]["status"] != "verified", (case_id, policy)
+                assert criteria["outcome"] == "unknown", (case_id, control, criteria)
+                assert entry["evaluation"]["status"] != "verified", (case_id, control)
 
 
 def test_unknown_world_outcomes_are_not_counted_as_report_false_completions(
@@ -208,7 +240,7 @@ def test_unknown_world_outcomes_are_not_counted_as_report_false_completions(
         for report in _entry(suite, "reconcile", case_id)["record"]["reports"]
     ]
     assert len(reports) == sum(len(case["triggers"]) for case in suite["cases"].values())
-    assert suite["summary"]["policies"]["reconcile"]["false_completion_count"] == sum(
+    assert suite["summary"]["controls"]["reconcile"]["false_completion_count"] == sum(
         _entry(suite, "reconcile", case_id)["oracle"]["false_completion_count"]
         for case_id in suite["cases"]
     )
@@ -237,6 +269,39 @@ def test_final_permitted_call_can_supply_valid_completion_evidence(
     assert entry["record"]["events"][-1]["op"] == "lookup"
     assert entry["record"]["reports"][0]["handling"] == "completed"
     assert entry["oracle"]["passed"]
+
+
+def test_idempotency_budgets_hidden_outcomes_revocation_and_receipts(
+    suite: dict[str, Any],
+) -> None:
+    cap = _entry(suite, "reconcile", "idempotent_final_permission_cap")
+    plus_one = _entry(suite, "reconcile", "idempotent_permission_cap_plus_one")
+    assert cap["record"]["reports"][0]["handling"] == "unresolved"
+    assert len(cap["record"]["events"]) == 3
+    assert plus_one["record"]["reports"][0]["handling"] == "completed"
+    assert len(plus_one["record"]["events"]) == 4
+    assert plus_one["record"]["events"][-1]["op"] == "commit"
+
+    no_effect = _entry(suite, "reconcile", "idempotent_lookup_down_exhausted")
+    hidden_effect = _entry(suite, "reconcile", "idempotent_lookup_down_exhausted_committed")
+    assert no_effect["oracle"]["world_completed"] is False
+    assert hidden_effect["oracle"]["world_completed"] is True
+    assert no_effect["record"]["reports"][0]["handling"] == "unresolved"
+    assert hidden_effect["record"]["reports"][0]["handling"] == "unresolved"
+
+    for case_id in ("idempotent_lookup_down_revoked", "idempotent_lookup_down_denied"):
+        entry = _entry(suite, "reconcile", case_id)
+        assert entry["record"]["reports"][0]["handling"] == "blocked"
+        assert entry["oracle"]["assertions"]["no_unauthorized_commit"] is True
+
+    for case_id in (
+        "idempotent_lookup_down_bad_receipt_binding",
+        "idempotent_lookup_down_bad_receipt_effect",
+        "receipt_effect_conflict_existing_path",
+    ):
+        entry = _entry(suite, "reconcile", case_id)
+        assert entry["record"]["reports"][0]["handling"] in ("unresolved", "conflict")
+        assert entry["oracle"]["passed"]
 
 
 def test_actor_and_independent_observer_can_have_different_knowledge(
@@ -329,22 +394,23 @@ def test_service_budget_refusal_cannot_establish_absent_effect(
     assert json.loads(response.content or "{}")["handling"] == "unresolved"
 
 
-def test_compare_keeps_missing_case_policy_pair_in_planned_denominator(
+def test_compare_keeps_missing_case_control_pair_in_planned_denominator(
     suite: dict[str, Any],
 ) -> None:
     entries = [
         entry
         for entry in suite["entries"].values()
         if not (
-            entry["record"]["policy"] == "reconcile" and entry["record"]["case_id"] == "normal_ack"
+            entry["record"]["control"] == "reconcile" and entry["record"]["case_id"] == "normal_ack"
         )
     ]
-    comparison = benchmark.compare(entries, list(suite["cases"]))
+    comparison = benchmark.compare(entries, list(suite["cases"]), "pre_fix", "reconcile")
     assert comparison["planned_pairs"] == len(suite["cases"])
+    assert comparison["eligible_pairs"] == len(suite["cases"]) - 1
     assert comparison["changes"]["missing"] == 1
     row = next(row for row in comparison["rows"] if row["case_id"] == "normal_ack")
     assert row["change"] == "missing"
-    assert row["candidate"] is None
+    assert row["after_passed"] is None
 
 
 @pytest.mark.parametrize("identity", ["condition_digest", "judge_identity"])
@@ -353,14 +419,31 @@ def test_compare_refuses_changed_conditions_or_judge(suite: dict[str, Any], iden
     candidate = next(
         entry
         for entry in entries
-        if entry["record"]["policy"] == "reconcile" and entry["record"]["case_id"] == "normal_ack"
+        if entry["record"]["control"] == "reconcile" and entry["record"]["case_id"] == "normal_ack"
     )
     candidate["record"][identity] = "changed"
-    result = benchmark.compare(entries, list(suite["cases"]))
+    result = benchmark.compare(entries, list(suite["cases"]), "pre_fix", "reconcile")
     assert result["changes"]["incomparable"] == 1
     assert result["eligible_pairs"] == result["planned_pairs"] - 1
     row = next(row for row in result["rows"] if row["case_id"] == "normal_ack")
     assert row["change"] == "incomparable"
+
+
+def test_compare_reports_regressions_and_rejects_duplicate_trials(suite: dict[str, Any]) -> None:
+    inventory = list(suite["cases"])
+    entries = copy.deepcopy(list(suite["entries"].values()))
+    target = next(
+        entry
+        for entry in entries
+        if entry["record"]["control"] == "reconcile" and entry["record"]["case_id"] == "normal_ack"
+    )
+    target["oracle"]["passed"] = False
+    result = benchmark.compare(entries, inventory, "pre_fix", "reconcile")
+    row = next(row for row in result["rows"] if row["case_id"] == "normal_ack")
+    assert row["change"] == "regressed"
+    assert result["changes"]["regressed"] == 1
+    with pytest.raises(ValueError, match="duplicate trial"):
+        benchmark.compare(entries + [copy.deepcopy(entries[0])], inventory, "pre_fix", "reconcile")
 
 
 def test_independent_world_disagrees_with_a_plausible_completion_receipt(
@@ -376,14 +459,75 @@ def test_independent_world_disagrees_with_a_plausible_completion_receipt(
     assert not result["assertions"]["completed_requires_world_and_evidence"]
 
 
-def test_fixture_gold_change_is_rejected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    changed = tmp_path / "recovery_v1.json"
-    data = json.loads(benchmark.FIXTURE.read_text(encoding="utf-8"))
-    data["cases"][0]["expected_handling"][0] = "unresolved"
+@pytest.mark.parametrize("which", ["fixture", "extension"])
+def test_fixture_gold_change_is_rejected(tmp_path: Path, which: str) -> None:
+    source = benchmark.FIXTURE if which == "fixture" else benchmark.EXTENSION
+    data = json.loads(source.read_text(encoding="utf-8"))
+    data["cases"][0]["expected_handling"][0] += "-changed"
+    changed = tmp_path / source.name
     changed.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    monkeypatch.setattr(benchmark, "FIXTURE", changed)
     with pytest.raises(ValueError, match="dataset changed"):
-        benchmark.load_dataset(changed)
+        benchmark.load_dataset(**{which: changed})
+
+
+@pytest.mark.parametrize("failure", ["constructor", "bad_json", "first_trigger", "after_commit"])
+def test_actor_failures_are_saved_as_failed_trials_and_replay(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: str
+) -> None:
+    benchmark.deny_network(monkeypatch.setattr)
+    case_id = "duplicate_obligation" if failure == "first_trigger" else "normal_ack"
+    data = benchmark.load_dataset()
+    case = next(case for case in data["cases"] if case["id"] == case_id)
+    monkeypatch.setattr(
+        benchmark, "load_dataset", lambda: {**data, "inventory": [case_id], "cases": [case]}
+    )
+    real = benchmark.ScriptedPolicy
+    crashed: list[str] = []
+
+    class FaultyActor:
+        def __init__(self, name: str, task: dict[str, Any], prior: set[str]) -> None:
+            if failure == "constructor" or (
+                failure == "first_trigger" and name == "reconcile" and not crashed
+            ):
+                crashed.append(name)
+                raise RuntimeError("actor construction failed")
+            self.delegate = real(name, task, prior)
+
+        def next(self, messages: list[Any]) -> LLMResponse:
+            if failure == "bad_json":
+                return LLMResponse(content="not-json", finish_reason="stop")
+            if failure == "after_commit" and self.delegate.stage == "commit":
+                raise RuntimeError("injected failure after real effect")
+            return self.delegate.next(messages)
+
+    monkeypatch.setattr(benchmark, "ScriptedPolicy", FaultyActor)
+    output = tmp_path / "run"
+    asyncio.run(benchmark.run_suite(output))
+    trial = json.loads(
+        (output / "runs/reconcile" / case_id / "trial.json").read_text(encoding="utf-8")
+    )
+    record = trial["record"]
+    assert not trial["oracle"]["passed"]
+    assert trial["oracle"]["assertions"]["execution_succeeded"] is False
+    assert record["execution_errors"][0]["error_type"] == (
+        "JSONDecodeError" if failure == "bad_json" else "RuntimeError"
+    )
+    assert record["reports"][0]["handling"] == "unresolved"
+    assert "harness_error" in record["reports"][0]["reason"]
+    if failure == "bad_json":
+        assert record["model_calls"] == 1
+    elif failure == "constructor":
+        assert record["model_calls"] == 0
+    elif failure == "first_trigger":
+        assert len(record["reports"]) == 2
+        assert record["reports"][1]["handling"] == "completed"
+        assert record["model_calls"] > 0
+    else:
+        # The service committed before the actor failed: the partial world is kept.
+        assert record["model_calls"] > 0
+        assert trial["oracle"]["world_completed"] is True
+        assert trial["oracle"]["effect_count"] == 1
+    assert benchmark.replay(output)["consistent"] is True
 
 
 def test_replay_recomputes_without_running_agent(
@@ -394,15 +538,36 @@ def test_replay_recomputes_without_running_agent(
     )
     result = benchmark.replay(suite["output"])
     assert result["consistent"] is True
-    assert result["trials"] == len(benchmark.load_dataset()["inventory"]) * len(benchmark.POLICIES)
+    assert result["trials"] == len(benchmark.load_dataset()["inventory"]) * len(benchmark.CONTROLS)
+
+
+def test_manifest_is_portable_and_environment_is_recorded_not_compared(
+    suite: dict[str, Any], tmp_path: Path
+) -> None:
+    manifest = json.loads((suite["output"] / "manifest.json").read_text(encoding="utf-8"))
+    assert set(manifest["sources"]) == {
+        "tests/goal_eval_recovery.py",
+        "tests/goal_eval_recovery_oracle.py",
+        "tests/goal_eval_recovery_policy.py",
+        "tests/fixtures/goal_eval/recovery_v1.json",
+        "tests/fixtures/goal_eval/recovery_extension_v1.json",
+        "nanomuse/goals/evaluation.py",
+    }
+    assert set(manifest["environment"]) == {"python", "platform"}
+    assert str(benchmark.ROOT) not in json.dumps(manifest)
+    assert all("\\" not in name for name in manifest["files"])
+
+    other = _copy_archive(suite, tmp_path, "other-machine")
+    manifest["environment"] = {"python": "0.0.0", "platform": "another platform"}
+    benchmark.write_json(other / "manifest.json", manifest)
+    assert benchmark.replay(other)["consistent"] is True
 
 
 @pytest.mark.parametrize("damage", ["missing_trial", "changed_bytes"])
 def test_replay_rejects_missing_or_modified_archive_files(
     suite: dict[str, Any], tmp_path: Path, damage: str
 ) -> None:
-    damaged = tmp_path / damage
-    shutil.copytree(suite["output"], damaged)
+    damaged = _copy_archive(suite, tmp_path, damage)
     target = damaged / "runs/reconcile/normal_ack/trial.json"
     if damage == "missing_trial":
         target.unlink()
@@ -416,13 +581,12 @@ def test_replay_rejects_missing_or_modified_archive_files(
 def test_replay_rederives_data_even_if_file_hash_is_replaced(
     suite: dict[str, Any], tmp_path: Path, damage: str
 ) -> None:
-    damaged = tmp_path / damage
-    shutil.copytree(suite["output"], damaged)
+    damaged = _copy_archive(suite, tmp_path, damage)
     relative = "summary.json" if damage == "summary" else "runs/reconcile/normal_ack/trial.json"
     target = damaged / relative
     data = json.loads(target.read_text(encoding="utf-8"))
     if damage == "summary":
-        data["policies"]["always_complete"]["handling_passed"] = len(suite["cases"])
+        data["controls"]["always_complete"]["handling_passed"] = len(suite["cases"])
     else:
         data["evaluation_input"]["evidence"][0]["value"] = False
     benchmark.write_json(target, data)
@@ -433,26 +597,13 @@ def test_replay_rederives_data_even_if_file_hash_is_replaced(
         benchmark.replay(damaged)
 
 
-@pytest.mark.parametrize("identity", ["dataset_version", "evaluator_version", "runtime_root"])
-def test_replay_requires_the_recorded_runtime_and_judge(
+@pytest.mark.parametrize("identity", ["datasets", "evaluator_version", "controls", "inventory"])
+def test_replay_requires_the_recorded_dataset_judge_and_controls(
     suite: dict[str, Any], tmp_path: Path, identity: str
 ) -> None:
-    damaged = tmp_path / identity
-    shutil.copytree(suite["output"], damaged)
+    damaged = _copy_archive(suite, tmp_path, identity)
     manifest = json.loads((damaged / "manifest.json").read_text(encoding="utf-8"))
     manifest[identity] = "different"
     benchmark.write_json(damaged / "manifest.json", manifest)
     with pytest.raises(ValueError, match="archive experiment identity mismatch"):
-        benchmark.replay(damaged)
-
-
-def test_replay_rejects_deleted_source_manifest_entry(
-    suite: dict[str, Any], tmp_path: Path
-) -> None:
-    damaged = tmp_path / "missing-source"
-    shutil.copytree(suite["output"], damaged)
-    manifest = json.loads((damaged / "manifest.json").read_text(encoding="utf-8"))
-    manifest["sources"].pop(next(iter(manifest["sources"])))
-    benchmark.write_json(damaged / "manifest.json", manifest)
-    with pytest.raises(ValueError, match="source inventory mismatch"):
         benchmark.replay(damaged)

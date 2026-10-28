@@ -11,9 +11,9 @@ import argparse
 import asyncio
 import hashlib
 import json
+import platform
 import socket
 import sqlite3
-import subprocess
 import time
 from collections import Counter
 from collections.abc import Callable
@@ -46,7 +46,6 @@ from nanomuse.ui import HeadlessUI
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
-RUNTIME_ROOT = Path(evaluation_core.__file__).resolve().parents[2]
 
 
 _REAL_CONNECT = socket.socket.connect
@@ -91,18 +90,26 @@ def deny_network(patch: Callable[[object, str, object], None]) -> None:
 
 
 FIXTURE = HERE / "fixtures/goal_eval/recovery_v1.json"
+EXTENSION = HERE / "fixtures/goal_eval/recovery_extension_v1.json"
+ORACLE = HERE / "goal_eval_recovery_oracle.py"
+POLICY = HERE / "goal_eval_recovery_policy.py"
+EVALUATOR = Path(evaluation_core.__file__).resolve()
 NOW = 1000
-POLICIES = (
-    "blind_retry",
+# reconcile is the correct control; the others are known-wrong ones the oracle must catch.
+CONTROLS = (
     "reconcile",
+    "blind_retry",
     "always_complete",
     "always_abstain",
     "ignore_binding",
     "ignore_authorization",
     "merge_by_target",
+    "pre_fix",
 )
 # Pinned after design review; changing released gold requires a dataset version.
 FIXTURE_SHA256 = "98d461cf1df5ab32e6deb5542a09fcfed30ed08fc8e63db9f739ade6406d90d6"
+EXTENSION_SHA256 = "65efb8ae5cdcf516096e1fd0b99deb93f5775194243794c4da34628a0c7806c2"
+EFFECT_FIELDS = ("key", "subject", "payload", "origin", "event_seq")
 
 
 def digest(path: Path) -> str:
@@ -115,18 +122,32 @@ def write_json(path: Path, value: Any) -> None:
     )
 
 
-def load_dataset(path: Path = FIXTURE) -> dict[str, Any]:
+def _read_pinned(path: Path, sha256: str) -> dict[str, Any]:
     # Universal newline hashing also works on Windows checkouts.
     text = path.read_text(encoding="utf-8")
-    if hashlib.sha256(text.encode()).hexdigest() != FIXTURE_SHA256:
+    if hashlib.sha256(text.encode()).hexdigest() != sha256:
         raise ValueError("dataset changed; review gold and version before running")
-    data = json.loads(text)
-    ids = [case["id"] for case in data["cases"]]
-    if data["dataset_version"] != "goal-eval.recovery.v1.1" or ids != data["inventory"]:
+    data: dict[str, Any] = json.loads(text)
+    return data
+
+
+def load_dataset(fixture: Path = FIXTURE, extension: Path = EXTENSION) -> dict[str, Any]:
+    """The 25 frozen cases followed by the 18 regression cases, as one dataset."""
+    parent = _read_pinned(fixture, FIXTURE_SHA256)
+    child = _read_pinned(extension, EXTENSION_SHA256)
+    if (
+        parent["dataset_version"] != "goal-eval.recovery.v1.1"
+        or parent["inventory"] != [case["id"] for case in parent["cases"]]
+        or child["dataset_version"] != "goal-eval.recovery-extension.v1.1"
+        or child["parent_dataset"] != parent["dataset_version"]
+        or child["inventory"] != [case["id"] for case in child["cases"]]
+    ):
         raise ValueError("invalid dataset inventory")
+    cases = parent["cases"] + child["cases"]
+    ids = [case["id"] for case in cases]
     if len(ids) != len(set(ids)):
         raise ValueError("duplicate case")
-    for case in data["cases"]:
+    for case in cases:
         keys = [r["key"] for r in case["requests"]]
         if len(keys) != len(set(keys)) or not set(case["triggers"]) <= set(keys):
             raise ValueError("invalid obligation identity")
@@ -141,7 +162,21 @@ def load_dataset(path: Path = FIXTURE) -> dict[str, Any]:
             or public["lookup_consumes_commit_attempts"] is not False
         ):
             raise ValueError("public service contract differs from enforced contract")
-    return data
+    return {
+        "datasets": {
+            parent["dataset_version"]: FIXTURE_SHA256,
+            child["dataset_version"]: EXTENSION_SHA256,
+        },
+        "inventory": ids,
+        "cases": cases,
+    }
+
+
+def read_effects(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    return [
+        dict(zip(EFFECT_FIELDS, row, strict=True))
+        for row in conn.execute("SELECT * FROM effects ORDER BY rowid")
+    ]
 
 
 class ActionWorld:
@@ -167,10 +202,7 @@ class ActionWorld:
     def effects(self) -> list[dict[str, Any]]:
         # Separate connection and committed rows, not policy acknowledgements.
         with sqlite3.connect(self.path) as conn:
-            return [
-                dict(zip(("key", "subject", "payload", "origin", "event_seq"), row, strict=True))
-                for row in conn.execute("SELECT * FROM effects ORDER BY rowid")
-            ]
+            return read_effects(conn)
 
     def allowed(self) -> bool:
         state = self.case["authorization"]
@@ -297,15 +329,7 @@ class RecoveryTool(BaseTool):
         return ToolResult(output=canonical(result))
 
 
-async def execute_case(
-    case: dict[str, Any],
-    policy: str,
-    path: Path,
-    *,
-    actor_factory: Callable[..., Any] = ScriptedPolicy,
-    actor_source: Path = HERE / "goal_eval_recovery_policy.py",
-    capture_errors: bool = False,
-) -> dict[str, Any]:
+async def execute_case(case: dict[str, Any], control: str, path: Path) -> dict[str, Any]:
     path.mkdir(parents=True)
     world = ActionWorld(case, path / "world.sqlite")
     reports: list[dict[str, Any]] = []
@@ -324,7 +348,7 @@ async def execute_case(
         }
         llm: MockLLM | None = None
         try:
-            actor = actor_factory(policy, public_task, prior_targets)
+            actor = ScriptedPolicy(control, public_task, prior_targets)
             llm = MockLLM([actor.next] * (case["max_calls"] + 4))
             settings = Settings()
             settings.data_dir = path / f"data-{trigger}"
@@ -349,8 +373,6 @@ async def execute_case(
                 raise ValueError("actor result must be a JSON object")
             reports.append({**report, "trigger": trigger, "key": key})
         except Exception as exc:
-            if not capture_errors:
-                raise
             error_type = type(exc).__name__
             message = str(exc)
             execution_errors.append(
@@ -376,15 +398,14 @@ async def execute_case(
                 model_calls += len(llm.calls)
     return {
         "case_id": case["id"],
-        "policy": policy,
+        "control": control,
         "condition_digest": hashlib.sha256(canonical(case).encode()).hexdigest(),
         "judge_identity": {
-            "oracle_sha256": digest(HERE / "goal_eval_recovery_oracle.py"),
+            "oracle_sha256": digest(ORACLE),
             "evaluator_version": EVALUATOR_VERSION,
-            "evaluator_sha256": digest(Path(evaluation_core.__file__)),
+            "evaluator_sha256": digest(EVALUATOR),
             "runner_sha256": digest(Path(__file__)),
         },
-        "actor_source_sha256": digest(actor_source),
         "execution_mode": "sandbox_agent_rerun.scripted_mock",
         "events": world.events,
         "effects": world.effects(),
@@ -392,8 +413,6 @@ async def execute_case(
         "execution_errors": execution_errors,
         "model_calls": model_calls,
         "elapsed_seconds": time.perf_counter() - started,
-        "model_tokens": None,
-        "model_cost": None,
     }
 
 
@@ -430,7 +449,7 @@ def core_assessment(
         ),
     )
     contract = Contract(f"recovery:{case['id']}", 1, criteria)
-    run = Run(f"{record['policy']}:{case['id']}")
+    run = Run(f"{record['control']}:{case['id']}")
     rows = record["effects"]
     expected = Counter(tuple(r[k] for k in ("key", "subject", "payload")) for r in case["requests"])
     actual = Counter(tuple(r[k] for k in ("key", "subject", "payload")) for r in rows)
@@ -467,92 +486,93 @@ def core_assessment(
     return inputs, evaluate(contract, run, evidence, now=NOW)
 
 
-def compare(records: list[dict[str, Any]], inventory: list[str]) -> dict[str, Any]:
-    """Keep missing pairs in the denominator and surface all changes."""
+def compare(
+    records: list[dict[str, Any]], inventory: list[str], before: str, after: str
+) -> dict[str, Any]:
+    """Classify each case between two controls; missing and incomparable pairs stay counted."""
     index: dict[tuple[str, str], dict[str, Any]] = {}
     for entry in records:
-        key = entry["record"]["case_id"], entry["record"]["policy"]
+        key = entry["record"]["case_id"], entry["record"]["control"]
         if key in index:
             raise ValueError("duplicate trial")
         index[key] = entry
     rows = []
     for case_id in inventory:
-        left, right = index.get((case_id, "blind_retry")), index.get((case_id, "reconcile"))
+        left, right = index.get((case_id, before)), index.get((case_id, after))
+        delta = None
         if left is None or right is None:
-            transition = "missing"
-        elif (
-            left["record"]["condition_digest"] != right["record"]["condition_digest"]
-            or left["record"]["judge_identity"] != right["record"]["judge_identity"]
-        ):
-            transition = "incomparable"
+            change = "missing"
         else:
-            before, after = left["oracle"]["passed"], right["oracle"]["passed"]
-            transition = (
-                "improved"
-                if after and not before
-                else "regressed"
-                if before and not after
-                else "unchanged"
-            )
+            delta = right["oracle"]["calls"] - left["oracle"]["calls"]
+            was, now = left["oracle"]["passed"], right["oracle"]["passed"]
+            if (
+                left["record"]["condition_digest"] != right["record"]["condition_digest"]
+                or left["record"]["judge_identity"] != right["record"]["judge_identity"]
+            ):
+                change = "incomparable"
+            elif now and not was:
+                change = "improved"
+            elif was and not now:
+                change = "regressed"
+            else:
+                change = "unchanged"
         rows.append(
             {
                 "case_id": case_id,
-                "change": transition,
-                "baseline": left["oracle"] if left else None,
-                "candidate": right["oracle"] if right else None,
-                "evidence": {
-                    name: f"runs/{name}/{case_id}/trial.json"
-                    for name in ("blind_retry", "reconcile")
-                },
+                "change": change,
+                "before_passed": left["oracle"]["passed"] if left else None,
+                "after_passed": right["oracle"]["passed"] if right else None,
+                "tool_call_delta": delta,
+                "evidence": {name: f"runs/{name}/{case_id}/trial.json" for name in (before, after)},
             }
         )
     return {
-        "comparison_kind": "injected_scripted_policy_sensitivity",
+        "comparison_kind": "known_defect_regression",
+        "before": before,
+        "after": after,
         "planned_pairs": len(inventory),
         "eligible_pairs": sum(row["change"] not in ("missing", "incomparable") for row in rows),
         "changes": dict(Counter(row["change"] for row in rows)),
         "rows": rows,
-        "limitation": "No actual developer change or autonomous-model improvement is measured.",
+        "limitation": (
+            f"The changed cases were written after the {before} defects were found, so this "
+            "is a regression check, not a measured improvement."
+        ),
     }
 
 
 def summarize(records: list[dict[str, Any]], data: dict[str, Any]) -> dict[str, Any]:
+    controls = {}
+    for control in CONTROLS:
+        trials = [e for e in records if e["record"]["control"] == control]
+        reports = [r for e in trials for r in e["record"]["reports"]]
+        controls[control] = {
+            "handling_passed": sum(e["oracle"]["passed"] for e in trials),
+            "total": len(data["cases"]),
+            "world_completed": sum(e["oracle"]["world_completed"] for e in trials),
+            "reports": len(reports),
+            "completed_reports": sum(r.get("handling") == "completed" for r in reports),
+            "false_completion_count": sum(e["oracle"]["false_completion_count"] for e in trials),
+            "tool_calls": sum(e["oracle"]["calls"] for e in trials),
+            "failed_assertions": dict(
+                Counter(
+                    name for e in trials for name, ok in e["oracle"]["assertions"].items() if not ok
+                )
+            ),
+        }
     return {
-        "dataset_version": data["dataset_version"],
         "cases": len(data["cases"]),
         "trials": len(records),
-        "policies": {
-            policy: {
-                "handling_passed": sum(
-                    e["oracle"]["passed"] for e in records if e["record"]["policy"] == policy
-                ),
-                "total": len(data["cases"]),
-                "world_completed": sum(
-                    e["oracle"]["world_completed"]
-                    for e in records
-                    if e["record"]["policy"] == policy
-                ),
-                "reports": sum(
-                    len(e["record"]["reports"]) for e in records if e["record"]["policy"] == policy
-                ),
-                "completed_reports": sum(
-                    report["handling"] == "completed"
-                    for e in records
-                    if e["record"]["policy"] == policy
-                    for report in e["record"]["reports"]
-                ),
-                "false_completion_count": sum(
-                    e["oracle"]["false_completion_count"]
-                    for e in records
-                    if e["record"]["policy"] == policy
-                ),
-                "tool_calls": sum(
-                    e["oracle"]["calls"] for e in records if e["record"]["policy"] == policy
-                ),
-            }
-            for policy in POLICIES
-        },
-        "comparison": compare(records, data["inventory"]),
+        "controls": controls,
+        "comparison": compare(records, data["inventory"], "pre_fix", "reconcile"),
+    }
+
+
+def archive_files(output: Path) -> dict[str, str]:
+    return {
+        p.relative_to(output).as_posix(): digest(p)
+        for p in sorted(output.rglob("*"))
+        if p.is_file() and p != output / "manifest.json"
     }
 
 
@@ -562,10 +582,10 @@ async def run_suite(output: Path) -> dict[str, Any]:
         raise ValueError("output must be a new or empty directory")
     output.mkdir(parents=True, exist_ok=True)
     records = []
-    for policy in POLICIES:
+    for control in CONTROLS:
         for case in data["cases"]:
-            target = output / "runs" / policy / case["id"]
-            record = await execute_case(case, policy, target)
+            target = output / "runs" / control / case["id"]
+            record = await execute_case(case, control, target)
             inputs, result = core_assessment(case, record)
             entry = {
                 "record": record,
@@ -577,38 +597,15 @@ async def run_suite(output: Path) -> dict[str, Any]:
             records.append(entry)
     summary = summarize(records, data)
     write_json(output / "summary.json", summary)
-    source_paths = sorted((RUNTIME_ROOT / "nanomuse").rglob("*.py")) + [
-        Path(__file__),
-        HERE / "goal_eval_recovery_oracle.py",
-        HERE / "goal_eval_recovery_policy.py",
-        FIXTURE,
-    ]
+    sources = (Path(__file__), ORACLE, POLICY, FIXTURE, EXTENSION, EVALUATOR)
     manifest = {
-        "dataset_version": data["dataset_version"],
-        "dataset_sha256": FIXTURE_SHA256,
+        "datasets": data["datasets"],
         "evaluator_version": EVALUATOR_VERSION,
-        "execution_mode": "sandbox_agent_rerun.scripted_mock",
+        "controls": list(CONTROLS),
         "inventory": data["inventory"],
-        "policies": list(POLICIES),
-        "head": subprocess.check_output(
-            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True
-        ).strip(),
-        "runtime_head": subprocess.check_output(
-            ["git", "-C", str(RUNTIME_ROOT), "rev-parse", "HEAD"], text=True
-        ).strip(),
-        "runtime_root": str(RUNTIME_ROOT),
-        "runtime_dirty_paths": subprocess.check_output(
-            ["git", "-C", str(RUNTIME_ROOT), "status", "--porcelain"], text=True
-        ).splitlines(),
-        "workspace_dirty_paths": subprocess.check_output(
-            ["git", "-C", str(ROOT), "status", "--porcelain"], text=True
-        ).splitlines(),
-        "sources": {str(p): digest(p) for p in source_paths},
-        "files": {
-            p.relative_to(output).as_posix(): digest(p)
-            for p in sorted(output.rglob("*"))
-            if p.is_file()
-        },
+        "sources": {p.resolve().relative_to(ROOT).as_posix(): digest(p) for p in sources},
+        "environment": {"python": platform.python_version(), "platform": platform.platform()},
+        "files": archive_files(output),
         "authenticity": "Hashes detect changes relative to this manifest; not source authentication.",
     }
     write_json(output / "manifest.json", manifest)
@@ -620,37 +617,24 @@ def replay(output: Path) -> dict[str, Any]:
     data = load_dataset()
     manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
     if (
-        manifest["dataset_sha256"] != FIXTURE_SHA256
-        or manifest["dataset_version"] != data["dataset_version"]
+        manifest["datasets"] != data["datasets"]
         or manifest["evaluator_version"] != EVALUATOR_VERSION
-        or manifest["runtime_root"] != str(RUNTIME_ROOT)
+        or manifest["controls"] != list(CONTROLS)
         or manifest["inventory"] != data["inventory"]
-        or manifest["policies"] != list(POLICIES)
     ):
         raise ValueError("archive experiment identity mismatch")
-    found = {p.relative_to(output).as_posix() for p in output.rglob("*") if p.is_file()}
-    if found != set(manifest["files"]) | {"manifest.json"}:
+    files = archive_files(output)
+    if files.keys() != manifest["files"].keys():
         raise ValueError("archive file inventory mismatch")
     for name, expected in manifest["files"].items():
-        if digest(output / name) != expected:
+        if files[name] != expected:
             raise ValueError(f"archive changed: {name}")
-    expected_sources = {str(p) for p in sorted((RUNTIME_ROOT / "nanomuse").rglob("*.py"))} | {
-        str(Path(__file__)),
-        str(HERE / "goal_eval_recovery_oracle.py"),
-        str(HERE / "goal_eval_recovery_policy.py"),
-        str(FIXTURE),
-    }
-    if set(manifest["sources"]) != expected_sources:
-        raise ValueError("source inventory mismatch")
-    for name, expected in manifest["sources"].items():
-        if digest(Path(name)) != expected:
-            raise ValueError("source changed; use a new experiment for judge comparison")
     records = []
-    for policy in POLICIES:
+    for control in CONTROLS:
         for case in data["cases"]:
-            path = output / "runs" / policy / case["id"] / "trial.json"
+            path = output / "runs" / control / case["id"] / "trial.json"
             entry = json.loads(path.read_text(encoding="utf-8"))
-            if entry["record"]["case_id"] != case["id"] or entry["record"]["policy"] != policy:
+            if entry["record"]["case_id"] != case["id"] or entry["record"]["control"] != control:
                 raise ValueError("trial identity mismatch")
             if (
                 entry["record"]["condition_digest"]
@@ -658,12 +642,7 @@ def replay(output: Path) -> dict[str, Any]:
             ):
                 raise ValueError("trial condition mismatch")
             with sqlite3.connect(f"file:{path.parent / 'world.sqlite'}?mode=ro", uri=True) as conn:
-                durable_effects = [
-                    dict(
-                        zip(("key", "subject", "payload", "origin", "event_seq"), row, strict=True)
-                    )
-                    for row in conn.execute("SELECT * FROM effects ORDER BY rowid")
-                ]
+                durable_effects = read_effects(conn)
             if durable_effects != entry["record"]["effects"]:
                 raise ValueError("archived world state mismatch")
             if entry["oracle"] != assess(case, entry["record"]):
