@@ -6,7 +6,9 @@
 // `notify`, `task` and `stop` work (the task runs on this phone's Muse, NanoMuseHubTasks);
 // `screen` is refused with `no_screen`, and `shell`, `files` and `approve` are not offered on
 // iOS (the sandbox has no entry point for other devices), so a caller asking for them gets a
-// clear `not_supported` rather than a hang. Mirrors io.github.nanomuse.hub on Android.
+// clear `not_supported` rather than a hang. A computer's own approval card, pushed as an `event`
+// without an id (`approve.any`), shows on the phone's card (NanoMuseRemoteApproval) and is
+// answered with `approve`. Mirrors io.github.nanomuse.hub on Android.
 
 import Foundation
 import UIKit
@@ -81,7 +83,7 @@ enum NanoMuseHubErrors {
 final class NanoMuseHub: ObservableObject {
     static let shared = NanoMuseHub()
 
-    static let actions = ["info", "open", "notify", "task", "stop"]
+    static let actions = ["info", "open", "notify", "task", "stop", "approve.any"]
     static let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
 
     /// Where the connection stands, for the Devices page; `connected` is the short form.
@@ -361,7 +363,8 @@ final class NanoMuseHub: ObservableObject {
                 done(.failure(HubError(code: frame["error"] as? String ?? "failed", message: frame["message"] as? String ?? "failed")))
             }
         case "event":
-            if let id = frame["id"] as? String, let body = frame["body"] as? [String: Any] { eventHandlers[id]?(body) }
+            guard let body = frame["body"] as? [String: Any] else { return }
+            if let id = frame["id"] as? String, !id.isEmpty { eventHandlers[id]?(body) } else { onPush(from: frame["from"] as? [String: Any] ?? [:], body: body) }
         case "profile":
             // Another device of the account wrote the agent's look.
             NanoMuseProfileSync.shared.onHubFrame(frame)
@@ -529,6 +532,33 @@ final class NanoMuseHub: ObservableObject {
             "actions": Self.actions,
             "note": "iOS answers info, open, notify and task (its Muse runs the task while nanoMuse is open); no shell, files or screen",
         ]
+    }
+
+    /// An event with no call behind it (relay 0.31): a computer's own approval card for any device of
+    /// the account, or the word that it was answered. Nothing runs here, so the remote-control switch
+    /// does not apply; the grant, if any, is kept on the computer.
+    private func onPush(from sender: [String: Any], body: [String: Any]) {
+        guard let deviceId = sender["id"] as? String, !deviceId.isEmpty, let approvalId = body["approval_id"] as? String, !approvalId.isEmpty else { return }
+        let deviceName = (sender["name"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? deviceId
+        switch body["stage"] as? String {
+        case "approval":
+            guard (body["any_device"] as? Bool) == true, let question = NanoMuseScheduledQuestion(args: body) else { return }
+            if UIApplication.shared.applicationState != .active {
+                let title = String(format: AppLocalized("Allow %@ to take this step on %@?"), NanoMuseHomeView.currentAgentName(), deviceName)
+                notify(title: title, text: question.preview, from: question.taskTitle) { _ in }
+            }
+            Task { @MainActor [weak self] in
+                let outcome = await NanoMuseRemoteApprovals.shared.ask(question, from: (id: deviceId, name: deviceName))
+                guard case .answer(let answer) = outcome else { return }
+                var args: [String: Any] = ["approval_id": approvalId, "allow": answer != "deny"]
+                if answer != "deny" { args["scope"] = answer }
+                _ = try? await self?.call(to: deviceId, action: "approve", args: args, timeout: 30)
+            }
+        case "approval_result":
+            _ = NanoMuseRemoteApprovals.shared.close(deviceId: deviceId, approvalId: approvalId)
+        default:
+            return
+        }
     }
 
     private func notify(title: String, text: String, from: String, done: @escaping @Sendable (Bool) -> Void) {

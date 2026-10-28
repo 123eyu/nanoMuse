@@ -13,10 +13,10 @@
 //  person at the other device answered first (`approval_result`) leaves without an answer
 //  from here.
 //
-//  The same card answers a computer's own question (`approval.ask`, docs/hub.md): a step of a
+//  The same card answers a computer's own question (a pushed `approval` event, docs/hub.md): a step of a
 //  scheduled task there, asked here because nobody may be at that computer. Its answers are
 //  Allow once, Always in this task (kept on the computer, not here) and Deny; the computer's
-//  `approval.close` takes the card away once it was decided there or on another phone.
+//  `approval_result` takes the card away once it was decided there or on another phone.
 //
 
 import Foundation
@@ -48,7 +48,7 @@ struct NanoMuseRemoteQuestion: Sendable {
     }
 }
 
-/// A computer's `approval.ask`: a step of one of its scheduled tasks.
+/// A computer's pushed `approval` event: a step of one of its scheduled tasks.
 struct NanoMuseScheduledQuestion: Sendable {
     let id: String
     let preview: String
@@ -242,7 +242,7 @@ final class NanoMuseRemoteApprovals: ObservableObject {
         }
     }
 
-    /// A computer's `approval.ask` from `device`: the card, then the answer. Nothing is
+    /// A computer's pushed card from `device`: the card, then the answer. Nothing is
     /// remembered here; *Always in this task* is kept on the computer.
     func ask(_ question: NanoMuseScheduledQuestion, from device: (id: String, name: String)) async -> ScheduledOutcome {
         let id = Self.scheduledId(deviceId: device.id, approvalId: question.id)
@@ -278,7 +278,7 @@ final class NanoMuseRemoteApprovals: ObservableObject {
         }
     }
 
-    /// The computer's `approval.close`: decided there or on another phone. False when this phone was not asking.
+    /// The computer's `approval_result`: decided there or on another phone. False when this phone was not asking.
     func close(deviceId: String, approvalId: String) -> Bool {
         let id = Self.scheduledId(deviceId: deviceId, approvalId: approvalId)
         guard waiters[id] != nil else { return false }
