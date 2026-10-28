@@ -134,6 +134,37 @@ def test_make_sender_both_routes_phones_to_sms_and_addresses_to_mail(monkeypatch
     assert mailed == [("dev-a@example.com", "654321")] and len(fake.urls) == 1
 
 
+def test_codes_in_the_log_are_an_error_on_a_public_relay_only(caplog):
+    """CODE_SENDER=log with open sign-up is a mistake on a relay the internet reaches, and the
+    expected setup on a machine of one's own: localhost, a LAN address (self-host.sh --local
+    --bind 0.0.0.0 writes that), a Tailscale address. Only the first is an error at start."""
+    public = (
+        "https://cloud.example.com",
+        "http://11.22.33.44:8787",
+        "http://[2400:1::1]:8787",
+    )
+    private = (
+        "http://127.0.0.1:8787",
+        "http://localhost:8787",
+        "http://192.168.1.20:8787",
+        "http://10.0.0.5:8787",
+        "http://172.16.3.4:8787",
+        "http://100.101.102.103:8787",
+        "http://[fd7a:115c:a1e0::1]:8787",
+    )
+    for base in public:
+        caplog.clear()
+        make_sender(aliyun_settings(sender="log", public_base=base, signup_open=True))
+        assert [r.levelname for r in caplog.records] == ["ERROR"], base
+    for base in private:
+        caplog.clear()
+        make_sender(aliyun_settings(sender="log", public_base=base, signup_open=True))
+        assert caplog.records == [], base
+    caplog.clear()
+    make_sender(aliyun_settings(sender="log", public_base=public[0], signup_open=False))
+    assert caplog.records == []
+
+
 def test_the_code_mail_states_the_lifetime_in_whole_minutes_like_the_sms(monkeypatch):
     """Both templates say how long the code is good for in minutes, rounded the same way:
     CODE_TTL_S=600 reads as ten, and a lifetime under a minute still reads as one, never
