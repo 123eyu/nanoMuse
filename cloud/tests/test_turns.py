@@ -389,6 +389,17 @@ def test_the_record_figures_read_their_index_and_never_the_rows(tmp_path):
         assert "USING COVERING INDEX turns_figures" in plan and "SEARCH turns USING INDEX" not in plan, (sql, plan)
     # and the figures are right
     assert db.turn_figures(since)["turns"] == 2 and db.calls_per_turn(since) == [(3, 2)]
+    # the page's calls and their events come by the partial indexes: a look-up by key alone
+    # did not reach them (their WHERE must be repeated) and scanned the whole record instead
+    seen.clear()
+    db._conn.set_trace_callback(seen.append)
+    assert [r["id"] for r in db.turns_of(["t-0000", "t-0003"])] == ["t-0000", "t-0001", "t-0002", "t-0003", "t-0004", "t-0005"]
+    db.client_events_for_turns(["t-0000"])
+    db._conn.set_trace_callback(None)
+    plans = [" | ".join(r[3] for r in db._conn.execute("EXPLAIN QUERY PLAN " + sql).fetchall()) for sql in seen if sql.startswith("SELECT")]
+    assert (
+        len(plans) == 2 and "USING INDEX turns_key (turn_key=?)" in plans[0] and "USING INDEX client_events_turn (turn_id=?)" in plans[1]
+    ), plans
 
 
 def test_a_page_of_keys_is_written_a_few_rows_at_a_time(tmp_path):

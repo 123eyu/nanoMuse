@@ -2259,7 +2259,7 @@ def create_app(
         the backfill has not yet assigned to a turn."""
         return with_places(
             await asyncio.to_thread(
-                lambda: cloud.admin_turn_groups(
+                lambda: cloud.reads.admin_turn_groups(
                     since,
                     max(1, min(limit, 100)),
                     before,
@@ -2293,7 +2293,7 @@ def create_app(
     async def admin_turn_one(turn_id: str) -> dict:
         """One call of the record in full: the whole request as the model saw it (the system
         prompt, every message, the tools offered) and the answer."""
-        found = await asyncio.to_thread(cloud.admin_turn, turn_id[:96])
+        found = await asyncio.to_thread(cloud.reads.admin_turn, turn_id[:96])
         if found is None:
             raise CloudError(404, "not_found", "No such turn")
         return with_places({"turn": found})
