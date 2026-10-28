@@ -385,12 +385,6 @@ async def execute_case(case: dict[str, Any], control: str, path: Path) -> dict[s
         "case_id": case["id"],
         "control": control,
         "condition_digest": hashlib.sha256(canonical(case).encode()).hexdigest(),
-        "judge_identity": {
-            "oracle_sha256": digest(ORACLE),
-            "evaluator_version": EVALUATOR_VERSION,
-            "evaluator_sha256": digest(EVALUATOR),
-            "runner_sha256": digest(Path(__file__)),
-        },
         "actions": world.actions,
         "effects": world.effects(),
         "claims": claims,
@@ -476,61 +470,6 @@ def core_assessment(
     return inputs, evaluate(contract, run, evidence, now=clock)
 
 
-def compare(
-    records: list[dict[str, Any]], inventory: list[str], before: str, after: str
-) -> dict[str, Any]:
-    """Classify each case between two controls; missing and incomparable pairs stay counted."""
-    index: dict[tuple[str, str], dict[str, Any]] = {}
-    for entry in records:
-        key = entry["record"]["case_id"], entry["record"]["control"]
-        if key in index:
-            raise ValueError("duplicate trial")
-        index[key] = entry
-    rows = []
-    for case_id in inventory:
-        left, right = index.get((case_id, before)), index.get((case_id, after))
-        delta = None
-        if left is None or right is None:
-            change = "missing"
-        else:
-            delta = right["oracle"]["calls"] - left["oracle"]["calls"]
-            was, now = left["oracle"]["passed"], right["oracle"]["passed"]
-            if (
-                left["record"]["condition_digest"] != right["record"]["condition_digest"]
-                or left["record"]["judge_identity"] != right["record"]["judge_identity"]
-            ):
-                change = "incomparable"
-            elif now and not was:
-                change = "improved"
-            elif was and not now:
-                change = "regressed"
-            else:
-                change = "unchanged"
-        rows.append(
-            {
-                "case_id": case_id,
-                "change": change,
-                "before_passed": left["oracle"]["passed"] if left else None,
-                "after_passed": right["oracle"]["passed"] if right else None,
-                "tool_call_delta": delta,
-                "evidence": {name: f"runs/{name}/{case_id}/trial.json" for name in (before, after)},
-            }
-        )
-    return {
-        "comparison_kind": "known_defect_regression",
-        "before": before,
-        "after": after,
-        "planned_pairs": len(inventory),
-        "eligible_pairs": sum(row["change"] not in ("missing", "incomparable") for row in rows),
-        "changes": dict(Counter(row["change"] for row in rows)),
-        "rows": rows,
-        "limitation": (
-            f"The changed cases were written after the {before} defects were found, so this "
-            "is a regression check, not a measured improvement."
-        ),
-    }
-
-
 def summarize(records: list[dict[str, Any]], data: dict[str, Any]) -> dict[str, Any]:
     controls = {}
     for control in CONTROLS:
@@ -554,7 +493,6 @@ def summarize(records: list[dict[str, Any]], data: dict[str, Any]) -> dict[str, 
         "cases": len(data["cases"]),
         "trials": len(records),
         "controls": controls,
-        "comparison": compare(records, data["inventory"], "pre_fix", "reconcile"),
     }
 
 

@@ -58,7 +58,9 @@ the actor sees, including the service clock.
 
 `provenance` records where each case came from. The first 25 were written before the
 two `pre_fix` defects were found and the other 18 after, so the 18 are regression
-cases, not held-out validation. All 43 are AI-authored and cross-reviewed, not
+cases, not held-out validation. `pre_fix` fails exactly the 13 cases its two
+defects reach, all among the 18, and the tests pin that list.
+All 43 are AI-authored and cross-reviewed, not
 human-labelled production data. The actor sees the obligation, the public service
 contract, its earlier attempts and tool results; never the fault schedule, the
 expected answers or the oracle.
@@ -99,12 +101,6 @@ manifest holds relative paths only (repo-relative for sources, archive-relative 
 files) and records the Python version and platform without comparing them, so an
 archive replays on another machine with the same sources. Hashes detect changes
 relative to the manifest; they do not authenticate it.
-
-`summary.json` has one comparison, `pre_fix` to `reconcile`, which classifies each
-case as improved, regressed, unchanged, missing or incomparable; missing and
-incomparable pairs stay in the denominator. It shows 13 improved cases. Those 13
-were written after the defects were found, so this is a regression check, not a
-measured improvement.
 
 ## What this does not show
 

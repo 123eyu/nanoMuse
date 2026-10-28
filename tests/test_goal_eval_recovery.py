@@ -107,13 +107,6 @@ def test_pre_fix_fails_exactly_the_cases_its_two_defects_reach(suite: dict[str, 
         if not _entry(suite, "pre_fix", case_id)["oracle"]["passed"]
     }
     assert failed == PRE_FIX_FAILURES
-    comparison = suite["summary"]["comparison"]
-    assert comparison["comparison_kind"] == "known_defect_regression"
-    assert (comparison["before"], comparison["after"]) == ("pre_fix", "reconcile")
-    assert comparison["planned_pairs"] == comparison["eligible_pairs"] == 43
-    assert comparison["changes"] == {"improved": 13, "unchanged": 30}
-    assert {row["case_id"] for row in comparison["rows"] if row["change"] == "improved"} == failed
-    assert "regression check, not a measured improvement" in comparison["limitation"]
 
 
 def test_summary_counts_each_control_from_its_trials(suite: dict[str, Any]) -> None:
@@ -501,58 +494,6 @@ def test_service_budget_refusal_cannot_establish_absent_effect(
         ]
     )
     assert json.loads(response.content or "{}")["handling"] == "unresolved"
-
-
-def test_compare_keeps_missing_case_control_pair_in_planned_denominator(
-    suite: dict[str, Any],
-) -> None:
-    entries = [
-        entry
-        for entry in suite["entries"].values()
-        if not (
-            entry["record"]["control"] == "reconcile" and entry["record"]["case_id"] == "normal_ack"
-        )
-    ]
-    comparison = benchmark.compare(entries, list(suite["cases"]), "pre_fix", "reconcile")
-    assert comparison["planned_pairs"] == len(suite["cases"])
-    assert comparison["eligible_pairs"] == len(suite["cases"]) - 1
-    assert comparison["changes"]["missing"] == 1
-    row = next(row for row in comparison["rows"] if row["case_id"] == "normal_ack")
-    assert row["change"] == "missing"
-    assert row["after_passed"] is None
-
-
-@pytest.mark.parametrize("identity", ["condition_digest", "judge_identity"])
-def test_compare_refuses_changed_conditions_or_judge(suite: dict[str, Any], identity: str) -> None:
-    entries = copy.deepcopy(list(suite["entries"].values()))
-    candidate = next(
-        entry
-        for entry in entries
-        if entry["record"]["control"] == "reconcile" and entry["record"]["case_id"] == "normal_ack"
-    )
-    candidate["record"][identity] = "changed"
-    result = benchmark.compare(entries, list(suite["cases"]), "pre_fix", "reconcile")
-    assert result["changes"]["incomparable"] == 1
-    assert result["eligible_pairs"] == result["planned_pairs"] - 1
-    row = next(row for row in result["rows"] if row["case_id"] == "normal_ack")
-    assert row["change"] == "incomparable"
-
-
-def test_compare_reports_regressions_and_rejects_duplicate_trials(suite: dict[str, Any]) -> None:
-    inventory = list(suite["cases"])
-    entries = copy.deepcopy(list(suite["entries"].values()))
-    target = next(
-        entry
-        for entry in entries
-        if entry["record"]["control"] == "reconcile" and entry["record"]["case_id"] == "normal_ack"
-    )
-    target["oracle"]["passed"] = False
-    result = benchmark.compare(entries, inventory, "pre_fix", "reconcile")
-    row = next(row for row in result["rows"] if row["case_id"] == "normal_ack")
-    assert row["change"] == "regressed"
-    assert result["changes"]["regressed"] == 1
-    with pytest.raises(ValueError, match="duplicate trial"):
-        benchmark.compare(entries + [copy.deepcopy(entries[0])], inventory, "pre_fix", "reconcile")
 
 
 def test_independent_world_disagrees_with_a_plausible_completion_receipt(
