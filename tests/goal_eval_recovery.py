@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import copy
 import hashlib
 import json
 import platform
@@ -89,12 +90,10 @@ def deny_network(patch: Callable[[object, str, object], None]) -> None:
     patch(socket, "create_connection", _guarded_create_connection)
 
 
-FIXTURE = HERE / "fixtures/goal_eval/recovery_v1.json"
-EXTENSION = HERE / "fixtures/goal_eval/recovery_extension_v1.json"
+FIXTURE = HERE / "fixtures/goal_eval/recovery_v2.json"
 ORACLE = HERE / "goal_eval_recovery_oracle.py"
 POLICY = HERE / "goal_eval_recovery_policy.py"
 EVALUATOR = Path(evaluation_core.__file__).resolve()
-NOW = 1000
 TOOL = "recovery_action"
 # reconcile is the correct control; the others are known-wrong ones the oracle must catch.
 CONTROLS = (
@@ -108,8 +107,7 @@ CONTROLS = (
     "pre_fix",
 )
 # Pinned after design review; changing released gold requires a dataset version.
-FIXTURE_SHA256 = "98d461cf1df5ab32e6deb5542a09fcfed30ed08fc8e63db9f739ade6406d90d6"
-EXTENSION_SHA256 = "65efb8ae5cdcf516096e1fd0b99deb93f5775194243794c4da34628a0c7806c2"
+FIXTURE_SHA256 = "aa37aa1ada170048046819a476e02a46ae781df749a64566fe5ae9df5b2bedea"
 EFFECT_FIELDS = ("key", "subject", "payload", "origin", "event_seq")
 
 
@@ -123,28 +121,26 @@ def write_json(path: Path, value: Any) -> None:
     )
 
 
-def _read_pinned(path: Path, sha256: str) -> dict[str, Any]:
+def load_dataset(fixture: Path = FIXTURE) -> dict[str, Any]:
+    """The pinned cases with the defaults filled in and each public service contract built."""
     # Universal newline hashing also works on Windows checkouts.
-    text = path.read_text(encoding="utf-8")
-    if hashlib.sha256(text.encode()).hexdigest() != sha256:
+    text = fixture.read_text(encoding="utf-8")
+    if hashlib.sha256(text.encode()).hexdigest() != FIXTURE_SHA256:
         raise ValueError("dataset changed; review gold and version before running")
-    data: dict[str, Any] = json.loads(text)
-    return data
-
-
-def load_dataset(fixture: Path = FIXTURE, extension: Path = EXTENSION) -> dict[str, Any]:
-    """The 25 frozen cases followed by the 18 regression cases, as one dataset."""
-    parent = _read_pinned(fixture, FIXTURE_SHA256)
-    child = _read_pinned(extension, EXTENSION_SHA256)
-    if (
-        parent["dataset_version"] != "goal-eval.recovery.v1.1"
-        or parent["inventory"] != [case["id"] for case in parent["cases"]]
-        or child["dataset_version"] != "goal-eval.recovery-extension.v1.1"
-        or child["parent_dataset"] != parent["dataset_version"]
-        or child["inventory"] != [case["id"] for case in child["cases"]]
-    ):
-        raise ValueError("invalid dataset inventory")
-    cases = parent["cases"] + child["cases"]
+    data = json.loads(text)
+    if data["dataset_version"] != "goal-eval.recovery.v2":
+        raise ValueError("invalid dataset version")
+    cases = []
+    for raw in data["cases"]:
+        case = {**copy.deepcopy(data["defaults"]), **raw}
+        # The three mirrors state what the case enforces, so the actor is told exactly that.
+        case["service_contract"] = {
+            **data["service_contract"],
+            "idempotent_by_key": case["service_idempotent"],
+            "max_commit_attempts_per_key": case["max_attempts"],
+            "max_calls_per_trigger": case["max_calls"],
+        }
+        cases.append(case)
     ids = [case["id"] for case in cases]
     if len(ids) != len(set(ids)):
         raise ValueError("duplicate case")
@@ -154,23 +150,7 @@ def load_dataset(fixture: Path = FIXTURE, extension: Path = EXTENSION) -> dict[s
             raise ValueError("invalid obligation identity")
         if len(case["expected_handling"]) != len(case["triggers"]):
             raise ValueError("missing expected trigger result")
-        public = case["service_contract"]
-        if (
-            public["max_commit_attempts_per_key"] != case["max_attempts"]
-            or public["max_calls_per_trigger"] != case["max_calls"]
-            or public["idempotent_by_key"] != case["service_idempotent"]
-            or public["read_lookup_allowed_after_write_revocation"] is not True
-            or public["lookup_consumes_commit_attempts"] is not False
-        ):
-            raise ValueError("public service contract differs from enforced contract")
-    return {
-        "datasets": {
-            parent["dataset_version"]: FIXTURE_SHA256,
-            child["dataset_version"]: EXTENSION_SHA256,
-        },
-        "inventory": ids,
-        "cases": cases,
-    }
+    return {"datasets": {data["dataset_version"]: FIXTURE_SHA256}, "inventory": ids, "cases": cases}
 
 
 def read_effects(conn: sqlite3.Connection) -> list[dict[str, Any]]:
@@ -220,7 +200,7 @@ class ActionWorld:
         return {
             "availability": "ok",
             "authoritative": True,
-            "observed_at": NOW,
+            "observed_at": self.case["service_contract"]["clock"],
             "binding": dict(request),
             "state": "committed" if rows else "not_committed",
             "effects": rows,
@@ -454,6 +434,7 @@ def core_assessment(
         ),
     )
     contract = Contract(f"recovery:{case['id']}", 1, criteria)
+    clock = case["service_contract"]["clock"]
     run = Run(f"{record['control']}:{case['id']}")
     rows = record["effects"]
     expected = Counter(tuple(r[k] for k in ("key", "subject", "payload")) for r in case["requests"])
@@ -476,8 +457,8 @@ def core_assessment(
             call_id=f"host:{c.id}",
             criterion_id=c.id,
             collector=c.collectors[0],
-            observed_at=NOW,
-            collected_at=NOW,
+            observed_at=clock,
+            collected_at=clock,
             subject=c.subject,
             metric=c.metric,
             value=values[c.id],
@@ -490,9 +471,9 @@ def core_assessment(
         "contract": asdict(contract),
         "run": asdict(run),
         "evidence": [asdict(e) for e in evidence],
-        "now": NOW,
+        "now": clock,
     }
-    return inputs, evaluate(contract, run, evidence, now=NOW)
+    return inputs, evaluate(contract, run, evidence, now=clock)
 
 
 def compare(
@@ -606,7 +587,7 @@ async def run_suite(output: Path) -> dict[str, Any]:
             records.append(entry)
     summary = summarize(records, data)
     write_json(output / "summary.json", summary)
-    sources = (Path(__file__), ORACLE, POLICY, FIXTURE, EXTENSION, EVALUATOR)
+    sources = (Path(__file__), ORACLE, POLICY, FIXTURE, EVALUATOR)
     manifest = {
         "datasets": data["datasets"],
         "evaluator_version": EVALUATOR_VERSION,

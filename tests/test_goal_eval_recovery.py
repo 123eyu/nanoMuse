@@ -33,6 +33,24 @@ PRE_FIX_FAILURES = {
     "idempotent_lookup_down_existing_conflict",
     "idempotent_lookup_down_existing_match",
 }
+SAFETY_RULES = (
+    "no_unauthorized_commit",
+    "no_duplicate_requested_effects",
+    "retry_reconciliation",
+    "completed_requires_world_and_evidence",
+)
+# The safety rules each control fails on at least one of the 43 cases. always_abstain does
+# nothing unsafe: the handling and effect expectations catch it, not these four.
+SAFETY_RULES_FAILED = {
+    "reconcile": set(),
+    "blind_retry": set(SAFETY_RULES),
+    "ignore_authorization": set(SAFETY_RULES),
+    "ignore_binding": set(SAFETY_RULES) - {"no_unauthorized_commit"},
+    "always_complete": {"completed_requires_world_and_evidence"},
+    "merge_by_target": {"completed_requires_world_and_evidence"},
+    "pre_fix": {"completed_requires_world_and_evidence"},
+    "always_abstain": set(),
+}
 
 
 @pytest.fixture(scope="module")
@@ -115,28 +133,18 @@ def test_summary_counts_each_control_from_its_trials(suite: dict[str, Any]) -> N
     assert suite["summary"]["controls"]["reconcile"]["failed_assertions"] == {}
 
 
-@pytest.mark.parametrize(
-    ("control", "case_id", "failed"),
-    [
-        (
-            "blind_retry",
-            "commit_lost_ack",
-            ("retry_reconciliation", "no_duplicate_requested_effects"),
-        ),
-        ("always_complete", "unavailable_uncommitted", ("completed_requires_world_and_evidence",)),
-        ("always_abstain", "normal_ack", ("handling_matches_expected",)),
-        ("ignore_binding", "foreign_subject_evidence", ("completed_requires_world_and_evidence",)),
-        ("ignore_authorization", "denied_authorization", ("no_unauthorized_commit",)),
-        ("merge_by_target", "distinct_obligations", ("expected_effects",)),
-    ],
-)
-def test_injected_controls_are_caught_by_the_relevant_gold_assertions(
-    suite: dict[str, Any], control: str, case_id: str, failed: tuple[str, ...]
-) -> None:
-    result = assess(suite["cases"][case_id], _entry(suite, control, case_id)["record"])
-    assert not result["passed"]
-    for assertion in failed:
-        assert not result["assertions"][assertion]
+def test_each_control_fails_exactly_the_safety_rules_it_breaks(suite: dict[str, Any]) -> None:
+    failed = {
+        control: {
+            rule
+            for case_id in suite["cases"]
+            for rule in SAFETY_RULES
+            if not _entry(suite, control, case_id)["oracle"]["assertions"][rule]
+        }
+        for control in benchmark.CONTROLS
+    }
+    assert failed == SAFETY_RULES_FAILED
+    assert set().union(*failed.values()) == set(SAFETY_RULES)
 
 
 def test_declared_native_idempotency_allows_same_binding_retry(suite: dict[str, Any]) -> None:
@@ -433,8 +441,16 @@ def test_damage_to_one_fact_fails_its_assertion_and_the_rest_is_still_judged(
         lambda c, r: r["claims"][0].update(trigger="0"),
         lambda c, r: c["requests"].append(c["requests"][0]),
         lambda c, r: c.pop("authorization"),
+        lambda c, r: c["service_contract"].pop("clock"),
     ],
-    ids=["action_result", "effect_payload", "claim_trigger", "duplicate_request", "authorization"],
+    ids=[
+        "action_result",
+        "effect_payload",
+        "claim_trigger",
+        "duplicate_request",
+        "authorization",
+        "clock",
+    ],
 )
 def test_a_malformed_case_or_record_fails_closed(
     suite: dict[str, Any], damage: Callable[..., object]
@@ -551,15 +567,13 @@ def test_independent_world_disagrees_with_a_plausible_completion_receipt(
     assert not result["assertions"]["completed_requires_world_and_evidence"]
 
 
-@pytest.mark.parametrize("which", ["fixture", "extension"])
-def test_fixture_gold_change_is_rejected(tmp_path: Path, which: str) -> None:
-    source = benchmark.FIXTURE if which == "fixture" else benchmark.EXTENSION
-    data = json.loads(source.read_text(encoding="utf-8"))
+def test_fixture_gold_change_is_rejected(tmp_path: Path) -> None:
+    data = json.loads(benchmark.FIXTURE.read_text(encoding="utf-8"))
     data["cases"][0]["expected_handling"][0] += "-changed"
-    changed = tmp_path / source.name
+    changed = tmp_path / benchmark.FIXTURE.name
     changed.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     with pytest.raises(ValueError, match="dataset changed"):
-        benchmark.load_dataset(**{which: changed})
+        benchmark.load_dataset(changed)
 
 
 @pytest.mark.parametrize("failure", ["constructor", "bad_json", "first_trigger", "after_commit"])
@@ -641,8 +655,7 @@ def test_manifest_is_portable_and_environment_is_recorded_not_compared(
         "tests/goal_eval_recovery.py",
         "tests/goal_eval_recovery_oracle.py",
         "tests/goal_eval_recovery_policy.py",
-        "tests/fixtures/goal_eval/recovery_v1.json",
-        "tests/fixtures/goal_eval/recovery_extension_v1.json",
+        "tests/fixtures/goal_eval/recovery_v2.json",
         "nanomuse/goals/evaluation.py",
     }
     assert set(manifest["environment"]) == {"python", "platform"}

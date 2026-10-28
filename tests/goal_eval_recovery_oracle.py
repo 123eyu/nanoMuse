@@ -12,7 +12,6 @@ from collections.abc import Callable, Mapping, Sequence
 from functools import cached_property
 from typing import Any, NamedTuple
 
-NOW = 1000
 Item = dict[str, Any]
 # A rule returns None when it holds. When it fails it returns the seq of every event that shows
 # the breach, the list may be empty. Entries that are not seq numbers (a claim or effect that cites
@@ -39,6 +38,7 @@ _CASE = {
     "max_calls": _INT,
     "max_attempts": _INT,
     "service_idempotent": _BOOL,
+    "service_contract": _DICT,
 }
 _RECORD = {"actions": _LIST, "effects": _LIST, "claims": _LIST, "execution_errors": _LIST}
 _ACTION = {"seq": _INT, "trigger": _INT, "args": _DICT, "result": _DICT}
@@ -69,6 +69,7 @@ def _well_formed(case: Any, record: Any) -> bool:
         and all(_shaped(e, _REQUEST) for e in case["expected_effects"])
         and case["max_calls"] >= 0
         and case["max_attempts"] >= 0
+        and type(case["service_contract"].get("clock")) is int
         and type(case.get("expected_commit_attempts", 0)) is int
         and all(_shaped(a, _ACTION) and _shaped(a["args"], _ARGS) for a in record["actions"])
         and all(_shaped(e, _EFFECT) for e in record["effects"])
@@ -95,6 +96,7 @@ class _Trace:
 
     def __init__(self, case: Item, record: Item) -> None:
         self.case = case
+        self.clock: int = case["service_contract"]["clock"]
         self.effects: list[Item] = record["effects"]
         self.claims: list[Item] = record["claims"]
         self.errors: list[Any] = record["execution_errors"]
@@ -158,8 +160,8 @@ def _tally(items: list[Item]) -> Counter[tuple[Any, ...]]:
     return Counter(tuple(item[field] for field in _FIELDS) for item in items)
 
 
-def _observes(call: _Call, request: Item, state: str) -> bool:
-    """True when the call returned an authoritative, current reading of the request."""
+def _observes(t: _Trace, call: _Call, request: Item, state: str) -> bool:
+    """True when the call returned an authoritative reading of the request, current at the clock."""
     result = call.result
     shown = [] if state == "not_committed" else [_binding(request)]
     observed_at = result.get("observed_at")
@@ -168,7 +170,7 @@ def _observes(call: _Call, request: Item, state: str) -> bool:
         and result.get("availability") == "ok"
         and result.get("authoritative") is True
         and type(observed_at) is int
-        and observed_at == NOW
+        and observed_at == t.clock
         and result.get("binding") == _binding(request)
         and result.get("state") == state
         and result.get("effects") == shown
@@ -200,7 +202,7 @@ def _completion_shown(t: _Trace, claim: Item) -> bool:
         and _exactly_once(t.effects, request)
         and call.trigger == claim["trigger"]
         and _bound(call.args, request)
-        and _observes(call, request, "committed")
+        and _observes(t, call, request, "committed")
     )
 
 
@@ -226,7 +228,7 @@ def _exhaustion_shown(t: _Trace, claim: Item) -> bool:
     commits = t.commits.get(request["key"], [])
     return (
         call.trigger == claim["trigger"]
-        and _observes(call, request, "not_committed")
+        and _observes(t, call, request, "not_committed")
         and len(commits) >= t.case["max_attempts"]
         and all(call.seq > commit.seq for commit in commits)
     )
@@ -329,7 +331,7 @@ def _retry_is_safe(t: _Trace, request: Item, previous: _Call, retry: _Call) -> b
         previous.seq < c.seq < retry.seq
         and c.trigger == retry.trigger
         and _bound(c.args, request)
-        and _observes(c, request, "not_committed")
+        and _observes(t, c, request, "not_committed")
         for c in t.calls
     )
 
@@ -452,4 +454,4 @@ def assess(case: Any, record: Any) -> dict[str, Any]:
     )
 
 
-__all__ = ["NOW", "assess"]
+__all__ = ["assess"]

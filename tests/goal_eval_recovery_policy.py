@@ -11,8 +11,6 @@ from typing import Any
 from nanomuse.goals.evaluation import canonical
 from nanomuse.schema import Function, LLMResponse, Message, ToolCall
 
-NOW = 1000
-
 
 class ScriptedPolicy:
     """Known controls over observable tool results, not model reasoning.
@@ -32,6 +30,7 @@ class ScriptedPolicy:
         self.request = dict(public_task["obligation"])
         self.max_calls = public_task["service_contract"]["max_calls_per_trigger"]
         self.idempotent = public_task["service_contract"]["idempotent_by_key"]
+        self.clock = public_task["service_contract"]["clock"]
         self.attempts_left = (
             public_task["service_contract"]["max_commit_attempts_per_key"]
             - public_task["prior_commit_attempts"]
@@ -70,7 +69,7 @@ class ScriptedPolicy:
         return (
             data.get("availability") == "ok"
             and data.get("authoritative") is True
-            and data.get("observed_at") == NOW
+            and data.get("observed_at") == self.clock
             and data.get("binding") == self.request
         )
 
