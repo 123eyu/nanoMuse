@@ -1371,11 +1371,14 @@ class Database:
             return self._conn.execute(q, args).fetchall()
 
     def client_events_for_turns(self, turn_ids: list[str]) -> list[sqlite3.Row]:
+        """The events the apps reported about the turns named (``turn_id<>''`` is the partial
+        index's own term, client_events_turn; see turns_of)."""
         if not turn_ids:
             return []
         with self._lock:
             return self._conn.execute(
-                f"SELECT * FROM client_events WHERE turn_id IN ({','.join('?' * len(turn_ids))}) ORDER BY id", turn_ids
+                f"SELECT * FROM client_events WHERE turn_id<>'' AND turn_id IN ({','.join('?' * len(turn_ids))}) ORDER BY id",
+                turn_ids,
             ).fetchall()
 
     def client_events_summary(self, since: int, day_offset_s: int = 0) -> list[sqlite3.Row]:
@@ -1625,12 +1628,15 @@ class Database:
             return self._conn.execute(q, args).fetchall()
 
     def turns_of(self, keys: list[str]) -> list[sqlite3.Row]:
-        """Every call of the turns named, oldest first, so the caller can lay each turn out."""
+        """Every call of the turns named, oldest first, so the caller can lay each turn out.
+        ``turn_key<>''`` repeats the partial index's own term (turns_key): a partial index
+        serves a query only when its WHERE says what the index's does, and ``IN`` alone does
+        not — without it, this was a scan of the record, every body read."""
         if not keys:
             return []
         with self._lock:
             return self._conn.execute(
-                f"SELECT * FROM turns WHERE turn_key IN ({','.join('?' * len(keys))}) ORDER BY ts, rowid", keys
+                f"SELECT * FROM turns WHERE turn_key<>'' AND turn_key IN ({','.join('?' * len(keys))}) ORDER BY ts, rowid", keys
             ).fetchall()
 
     def calls_per_turn(self, since: int = 0, account_id: str | None = None) -> list[tuple[int, int]]:
