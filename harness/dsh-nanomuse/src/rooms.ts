@@ -402,6 +402,35 @@ const MIME: Record<string, string> = {
   '.pdf': 'application/pdf', '.html': 'text/html; charset=utf-8', '.htm': 'text/html; charset=utf-8',
 }
 const TEXT_KINDS = new Set(['.md', '.markdown', '.txt', '.html', '.htm', '.csv', '.json', '.tex', '.svg'])
+/** What the Library takes in from disk for now: Markdown and plain text, which the editor shows and the agent reads as they are (#689). */
+export const IMPORT_KINDS = new Set(['.md', '.markdown', '.txt'])
+/** The most one imported file may hold — the editor's own reading limit. */
+export const IMPORT_MAX_BYTES = 2 * 1024 * 1024
+/** Characters no file system takes in a name, control characters, and the path separators (one segment only). */
+const UNSAFE_IN_NAME = /[\u0000-\u001f<>:"/\\|?*]+/g
+const NAME_MAX = 80
+
+/** The stem of a file name a person typed or brought in, made safe for every file system: one path
+ * segment, no reserved characters, trailing dots and spaces dropped (Windows), at most 80 characters;
+ * `''` when nothing is left. */
+export function safeStem(name: string): string {
+  const base = name.replace(/\\/g, '/').split('/').filter(Boolean).pop() ?? ''
+  const stem = base.replace(/\.[^.]*$/, '')
+  return stem.replace(UNSAFE_IN_NAME, ' ').replace(/\s+/g, ' ').trim().replace(/[. ]+$/, '').slice(0, NAME_MAX).trim()
+}
+
+/** `stem.ext` under `folder`, or `stem (2).ext`, `stem (3).ext`… when that name is taken. */
+export async function freePath(folder: string, stem: string, ext: string): Promise<string> {
+  for (let n = 1; n < 1000; n++) {
+    const candidate = join(folder, `${stem}${n > 1 ? ` (${n})` : ''}${ext}`)
+    try {
+      await lstat(candidate)
+    } catch {
+      return candidate
+    }
+  }
+  throw new RelayError(409, 'exists', 'Too many files of that name')
+}
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -1373,6 +1402,40 @@ export default class NanomuseRooms extends Service {
     await this.save()
   }
 
+  /**
+   * A blank Markdown file in the Library folder, for the person to write in the editor
+   * themselves (#689): `Untitled.md` (`未命名.md`), numbered when the name is taken.
+   */
+  async newDocument(name: string): Promise<LibraryItem> {
+    const folder = this.libraryFolder()
+    await mkdir(folder, { recursive: true })
+    const stem = safeStem(name) || (this.lang.startsWith('zh') ? '未命名' : 'Untitled')
+    const path = await freePath(folder, stem, '.md')
+    await writeFile(path, '', { encoding: 'utf8', flag: 'wx' })
+    const item = await this.addToLibrary(path, '', '')
+    if (!item) throw new RelayError(500, 'internal', 'The file could not be listed')
+    return item
+  }
+
+  /**
+   * A file brought in from disk (#689): its text is written under the Library folder with the
+   * name it had (numbered when taken) and listed on the Documents shelf, so the editor shows it
+   * and a Library chat can read it. Markdown and plain text only for now; other formats will
+   * come once there is a conversion to Markdown.
+   */
+  async importDocument(name: string, text: string): Promise<LibraryItem> {
+    const ext = extname(name).toLowerCase()
+    if (!IMPORT_KINDS.has(ext)) throw new RelayError(415, 'unsupported', 'Only Markdown and plain-text files can be imported for now')
+    if (Buffer.byteLength(text, 'utf8') > IMPORT_MAX_BYTES) throw new RelayError(413, 'too_large', 'The file is too large to import')
+    const folder = this.libraryFolder()
+    await mkdir(folder, { recursive: true })
+    const path = await freePath(folder, safeStem(name) || 'Document', ext)
+    await writeFile(path, text, { encoding: 'utf8', flag: 'wx' })
+    const item = await this.addToLibrary(path, '', '')
+    if (!item) throw new RelayError(500, 'internal', 'The file could not be listed')
+    return item
+  }
+
   /** A new document / web page / video / podcast: a chat where the agent makes it and presents the file. */
   async createArtifact(kind: string, brief: string): Promise<string> {
     const text = brief.trim()
@@ -1902,7 +1965,8 @@ export default class NanomuseRooms extends Service {
       if (req.method === 'GET' && route === '/files') return send(res, 200, { home: homeDir(), library: this.libraryFolder(), downloads: await downloadsDir(), state: join(dshHome(), 'nanomuse') })
       if (req.method === 'GET' && route === '/library/file') return this.serveFile(res, url.searchParams.get('id') ?? '', url.searchParams.get('raw') === '1')
       if (req.method !== 'POST') return send(res, 404, { error: { code: 'not_found', message: `No ${req.method ?? ''} ${route}` } })
-      const body = await json(req)
+      // an imported file travels as text in the body: room for the editor's 2 MiB plus the JSON around it
+      const body = await json(req, route === '/library/import' ? IMPORT_MAX_BYTES * 2 + 4096 : undefined)
       switch (route) {
         case '/lang': {
           const lang = String(body.lang ?? '').trim().slice(0, 20)
@@ -1998,6 +2062,10 @@ export default class NanomuseRooms extends Service {
           return send(res, 204)
         case '/library/create':
           return send(res, 200, { sessionId: await this.createArtifact(String(body.kind ?? 'document'), String(body.text ?? '')) })
+        case '/library/new':
+          return send(res, 200, { item: await this.newDocument(String(body.name ?? '')) })
+        case '/library/import':
+          return send(res, 200, { item: await this.importDocument(String(body.name ?? ''), String(body.text ?? '')) })
         case '/library/delete':
           await this.removeFromLibrary(String(body.id ?? ''))
           return send(res, 204)
