@@ -9,6 +9,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import ipaddress
 import json
 import logging
 import smtplib
@@ -285,9 +286,22 @@ class AliyunSmsSender:
             raise SendError("sms")
 
 
+def is_private_base(base: str) -> bool:
+    """A relay nobody reaches from the internet: localhost, a loopback, LAN, link-local or
+    Tailscale address (self-host.sh --local writes those). Its log is read by the person who
+    runs it, so codes in the log are what they asked for."""
+    host = urllib.parse.urlsplit(base).hostname or ""
+    if host == "localhost":
+        return True
+    try:
+        return not ipaddress.ip_address(host).is_global
+    except ValueError:
+        return False
+
+
 def make_sender(s: Settings) -> CodeSender:
     if s.sender == "log":
-        if s.signup_open and not s.public_base.startswith(("http://127.", "http://localhost")):
+        if s.signup_open and not is_private_base(s.public_base):
             # a relay with a public address and open sign-up that writes the codes to its log:
             # nobody receives a code, and whoever reads the log can sign in as anyone — say so at startup
             log.error(

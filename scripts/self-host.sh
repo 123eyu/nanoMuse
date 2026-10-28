@@ -10,7 +10,8 @@
 # the secrets and the accounts; it only re-asks, with the current values as defaults.
 #
 #   --local            no domain, no TLS; the relay listens on 127.0.0.1:8787
-#   --bind ADDR        with --local: listen on another address (0.0.0.0 for the whole LAN)
+#   --bind ADDR        with --local: listen on another address; 0.0.0.0 for the whole LAN, and
+#                      the URLs then carry this machine's LAN address so phones can use them
 #   --port N           with --local: another port (default 8787)
 #   --no-start         write cloud/.env only
 #
@@ -31,7 +32,7 @@ while [ $# -gt 0 ]; do
       [ $# -ge 2 ] && [[ "$2" =~ ^[0-9]+$ ]] || { echo "--port needs a number (try --help)" >&2; exit 2; }
       PORT="$2"; shift ;;
     --no-start) START=0 ;;
-    -h|--help) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "unknown option: $1 (try --help)" >&2; exit 2 ;;
   esac
   shift
@@ -50,6 +51,18 @@ docker info >/dev/null 2>&1 || die "docker is installed but not running, or you 
 random_hex() {
   if command -v openssl >/dev/null 2>&1; then openssl rand -hex 32
   else od -An -N32 -tx1 /dev/urandom | tr -d ' \n'; fi
+}
+lan_address() { # the IPv4 address other machines on the network reach this one at; empty when unknown
+  local a="" ifc=""
+  if command -v ip >/dev/null 2>&1; then # Linux
+    a="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{ for (i = 1; i <= NF; i++) if ($i == "src") { print $(i + 1); exit } }' || true)"
+  fi
+  if [ -z "$a" ] && command -v ipconfig >/dev/null 2>&1 && command -v route >/dev/null 2>&1; then # macOS
+    ifc="$(route -n get 1.1.1.1 2>/dev/null | awk '/interface:/ { print $2; exit }' || true)"
+    [ -n "$ifc" ] && a="$(ipconfig getifaddr "$ifc" 2>/dev/null || true)"
+  fi
+  if [ -z "$a" ]; then a="$(hostname -I 2>/dev/null | awk '{ print $1 }' || true)"; fi
+  printf '%s' "$a"
 }
 
 # --- the current .env, if any ---------------------------------------------------------------
@@ -90,6 +103,7 @@ chmod 600 "$ENV_FILE"
 # --- 1. domain -----------------------------------------------------------------------------
 cur_domain="$(get CLOUD_DOMAIN)"
 [ "$cur_domain" = "cloud.example.com" ] && cur_domain=""
+prev_base="$(get PUBLIC_BASE)"
 if [ "$LOCAL" = 1 ]; then
   DOMAIN=local
   say
@@ -102,7 +116,18 @@ else
 fi
 if [ "$DOMAIN" = local ] || [ "$DOMAIN" = localhost ]; then
   LOCAL=1
-  BASE="http://$([ "$BIND" = 0.0.0.0 ] && echo 127.0.0.1 || echo "$BIND"):$PORT"
+  # PUBLIC_BASE is what the invitation links and the printed URLs carry. Listening on every
+  # interface is for the phones on the network, and they reach this machine at its LAN
+  # address, not at 127.0.0.1; a specific --bind address is used as given.
+  HOST="$BIND"
+  if [ "$BIND" = 0.0.0.0 ]; then
+    HOST="$(lan_address)"
+    if [ -z "$HOST" ]; then
+      HOST=127.0.0.1
+      say "     No network address found; the URLs say 127.0.0.1. A phone needs this machine's LAN address instead."
+    fi
+  fi
+  BASE="http://$HOST:$PORT"
   set_kv CLOUD_DOMAIN localhost
   set_kv PUBLIC_BASE "$BASE"
 else
@@ -185,8 +210,11 @@ fi
 # CLOUD_SECRET keys the hashes every account is stored under; it is generated once and never
 # rotated by this script (rotating it would orphan every account).
 [ -z "$(get CLOUD_SECRET)" ] && set_kv CLOUD_SECRET "$(random_hex)"
-# A private relay for a few people: say so in INVITE_URL so invitations point here.
-[ "$(get INVITE_URL)" = "https://nanomuse.cn/web/?invite=" ] && set_kv INVITE_URL "$BASE/app/?invite="
+# A private relay for a few people: say so in INVITE_URL so invitations point here, and
+# follow the address when a second run changes it (--local first, --bind 0.0.0.0 later).
+case "$(get INVITE_URL)" in
+  "https://nanomuse.cn/web/?invite="|"$prev_base/app/?invite=") set_kv INVITE_URL "$BASE/app/?invite=" ;;
+esac
 
 say
 say "Wrote $ENV_FILE (mode 600). Back it up together with cloud/data/; see docs/self-hosting.md."
@@ -209,7 +237,9 @@ say "Starting the relay$([ "$LOCAL" = 0 ] && echo " and Caddy")…"
 "${COMPOSE[@]}" "${FILES[@]}" up -d --build
 
 health="$BASE/healthz"
-[ "$LOCAL" = 1 ] && health="http://127.0.0.1:$PORT/healthz"
+# --local publishes the port on the bind address only: 0.0.0.0 answers on loopback, a
+# specific address does not, so that one is asked at the address itself.
+[ "$LOCAL" = 1 ] && health="http://$([ "$BIND" = 0.0.0.0 ] && echo 127.0.0.1 || echo "$BIND"):$PORT/healthz"
 printf 'Waiting for %s ' "$health"
 ok=0
 for _ in $(seq 1 90); do
@@ -239,6 +269,6 @@ say
 say "Point each app at $BASE: on Android and iPhone, tap \"Use a different server\" on the"
 say "sign-in screen; on the desktop, set the plugin's baseURL in cordis.patch.yml; for the"
 say "terminal runtime, export NANOMUSE_CLOUD_BASE_URL=$BASE. The exact steps: docs/self-hosting.md."
-if [ "$LOCAL" = 1 ]; then
-  say "A phone on the same network needs --bind 0.0.0.0 and this machine's LAN address instead of 127.0.0.1."
+if [ "$LOCAL" = 1 ] && [ "$BIND" = 127.0.0.1 ]; then
+  say "Only this machine can reach the relay. For the phones on the same network, run it again with --bind 0.0.0.0: the URLs then carry this machine's LAN address."
 fi
