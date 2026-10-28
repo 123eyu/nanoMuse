@@ -386,6 +386,10 @@ html[data-nm-muse] [data-chat-flow-kind="assistant-step"] [data-slot="conversati
 html[data-nm-muse] [data-chat-flow-kind="assistant-step"] [data-slot="conversation.chat.node"] > [class*="_root"] > [class*="_body"]:empty { display: none; }
 html[data-nm-muse] [data-chat-flow-kind="assistant-step"] [data-slot="conversation.chat.node"] > [class*="_root"] > [class*="_body"] > [class*="_markdown"] > :first-child { margin-top: 0; }
 html[data-nm-muse] [data-chat-flow-kind="assistant-step"] [data-slot="conversation.chat.node"] > [class*="_root"] > [class*="_body"] > [class*="_markdown"] > :last-child { margin-bottom: 0; }
+/* A folded thinking row in the bubble: the harness fixes its height with contain: size, which
+   also leaves it no width of its own; in a fit-content bubble that width is 0, and the row was an
+   empty grey pill that took no clicks (#683). Layout containment only; the height still holds. */
+html[data-nm-muse] [data-chat-flow-kind="assistant-step"] [data-slot="conversation.chat.node"] > [class*="_root"] > [class*="_body"] [data-variant="think"]:not([data-expanded]) { contain: layout; }
 /* Timestamps and per-message actions appear on hover, as Muse keeps its chat quiet. */
 html[data-nm-muse] [data-chat-flow-kind="user"] [class*="_actions"][data-clock],
 html[data-nm-muse] [data-chat-flow-kind="turn-tail"] [class*="_actions"][data-clock] { opacity: 0; transition: opacity 160ms; }
