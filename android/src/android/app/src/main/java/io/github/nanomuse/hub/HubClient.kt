@@ -111,6 +111,8 @@ class HubClient(
     private val onSync: (JSONObject) -> Unit = {},
     /** a turn started or ended on another device: `{"type": "working", "cid", "from", "device_name", "working", "at"}` (contract C9) */
     private val onWorking: (JSONObject) -> Unit = {},
+    /** an event with no call behind it (relay 0.31): a computer's own approval card, or the word that it was answered */
+    private val onPush: (JSONObject) -> Unit = {},
 ) {
     private class Pending(val onEvent: ((JSONObject) -> Unit)?) {
         val done = CountDownLatch(1)
@@ -283,6 +285,7 @@ class HubClient(
             }
             "result", "event", "error" -> {
                 val id = frame.optString("id")
+                if (frame.optString("type") == "event" && id.isBlank()) { runCatching { onPush(frame) }; return }
                 val p = pending[id]
                 if (p == null) {
                     if (frame.optString("type") == "error" && id.isBlank()) AppLogger.warning(TAG, "hub error: ${frame.optString("code")} ${frame.optString("message")}")

@@ -628,6 +628,12 @@
     <string name="nm_risk_title_device">อนุญาตให้ “%1$s” ควบคุมโทรศัพท์เครื่องนี้ไหม</string>
     <string name="nm_risk_desc_device">“%1$s” อุปกรณ์อีกเครื่องในบัญชีของคุณ ต้องการ%2$sบนโทรศัพท์เครื่องนี้ รายละเอียดแสดงอยู่ด้านล่าง “เสมอ” จะให้อุปกรณ์นั้นทำสิ่งแบบนี้ที่นี่ได้โดยไม่ถาม เพิกถอนได้ใต้ สิทธิ์</string>
     <string name="nm_risk_preview_device">สิ่งที่อุปกรณ์ขอ</string>
+    <string name="nm_risk_title_scheduled">อนุญาตให้ %1$s ทำขั้นตอนนี้บน “%2$s” ไหม</string>
+    <string name="nm_risk_desc_scheduled">งานตามกำหนดเวลา “%1$s” กำลังทำงานบน “%2$s” และรอคำตอบจากคุณ ขั้นตอนนี้ทำที่เครื่องนั้น ไม่ใช่บนโทรศัพท์เครื่องนี้</string>
+    <string name="nm_risk_desc_scheduled_app">งานตามกำหนดเวลา “%1$s” กำลังทำงานบน “%2$s” และจะทำงานใน %3$s กำลังรอคำตอบจากคุณ ขั้นตอนนี้ทำที่เครื่องนั้น ไม่ใช่บนโทรศัพท์เครื่องนี้</string>
+    <string name="nm_risk_preview_scheduled">ขั้นตอนบนคอมพิวเตอร์</string>
+    <string name="nm_risk_allow_task">อนุญาตเสมอในงานนี้</string>
+    <string name="nm_risk_task_remembered_toast">บันทึกไว้บน “%1$s” แล้ว งานนี้จะไม่ถามที่นั่นอีก เพิกถอนได้ที่ การตั้งค่า → สิทธิ์ บนคอมพิวเตอร์เครื่องนั้น</string>
     <string name="nm_risk_preview_show_all">แสดงทั้งหมด (%1$d บรรทัด)</string>
     <string name="nm_risk_preview_show_less">แสดงน้อยลง</string>
     <string name="nm_risk_class_remote">ควบคุมระยะไกล</string>

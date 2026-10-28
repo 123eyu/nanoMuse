@@ -628,6 +628,12 @@
     <string name="nm_risk_title_device">Izinkan “%1$s” mengoperasikan ponsel ini?</string>
     <string name="nm_risk_desc_device">“%1$s”, perangkat lain di akunmu, ingin %2$s di ponsel ini. Detailnya ditampilkan di bawah. “Selalu” membiarkan perangkat itu melakukan hal seperti ini di sini tanpa bertanya; tarik kembali di bagian Izin.</string>
     <string name="nm_risk_preview_device">Yang diminta perangkat itu</string>
+    <string name="nm_risk_title_scheduled">Izinkan %1$s melakukan langkah ini di “%2$s”?</string>
+    <string name="nm_risk_desc_scheduled">Tugas terjadwal “%1$s” sedang berjalan di “%2$s” dan menunggu jawabanmu. Langkah ini berjalan di sana, bukan di ponsel ini.</string>
+    <string name="nm_risk_desc_scheduled_app">Tugas terjadwal “%1$s” sedang berjalan di “%2$s” dan ingin bertindak di %3$s. Tugas ini menunggu jawabanmu; langkahnya berjalan di sana, bukan di ponsel ini.</string>
+    <string name="nm_risk_preview_scheduled">Langkah di komputer</string>
+    <string name="nm_risk_allow_task">Selalu dalam tugas ini</string>
+    <string name="nm_risk_task_remembered_toast">Disimpan di “%1$s”: tugas ini tidak bertanya lagi di sana. Cabut di Setelan → Izin pada komputer itu.</string>
     <string name="nm_risk_preview_show_all">Tampilkan semua (%1$d baris)</string>
     <string name="nm_risk_preview_show_less">Tampilkan lebih sedikit</string>
     <string name="nm_risk_class_remote">Kendali jarak jauh</string>

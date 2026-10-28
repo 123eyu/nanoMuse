@@ -143,6 +143,8 @@ export class HubClient {
   /** The id the relay confirmed in `welcome`; absent while disconnected. */
   deviceId: string | undefined
   connected = false
+  /** What the relay understands beyond the frames every version has (`welcome.server.features`, relay 0.31). */
+  features: string[] = []
   /** The reason the last connection ended, for the UI. */
   lastError: string | undefined
 
@@ -308,6 +310,17 @@ export class HubClient {
     this.send({ type: 'devices' })
   }
 
+  /**
+   * An event with no call behind it (relay 0.31, `event_push`): to one device or to `'*'`, and
+   * the relay passes it only to the devices announcing `approve.any`. False when the relay
+   * does not take pushes or the socket is down; nothing is queued.
+   */
+  push(to: string, body: Record<string, unknown>): boolean {
+    if (!this.connected || !this.features.includes('event_push')) return false
+    this.send({ type: 'event', to, body })
+    return true
+  }
+
   // -- the socket -----------------------------------------------------------------------
 
   private async connect(): Promise<void> {
@@ -398,6 +411,8 @@ export class HubClient {
       case 'welcome': {
         this.deviceId = String(frame.device_id ?? this.options.device().id)
         this.devices = toDevices(frame.devices)
+        const server = frame.server && typeof frame.server === 'object' ? (frame.server as Record<string, unknown>) : {}
+        this.features = Array.isArray(server.features) ? server.features.filter((f): f is string => typeof f === 'string') : []
         this.attempt = 0
         this.lastError = undefined
         this.setConnected(true)

@@ -631,6 +631,12 @@
     <string name="nm_risk_title_device">Darf „%1$s“ dieses Telefon bedienen?</string>
     <string name="nm_risk_desc_device">„%1$s“, ein anderes Gerät auf deinem Konto, möchte auf diesem Telefon %2$s. Was genau, steht unten. „Immer“ lässt dieses Gerät so etwas hier ohne Nachfrage tun; nimm es unter Berechtigungen zurück.</string>
     <string name="nm_risk_preview_device">Was das Gerät angefragt hat</string>
+    <string name="nm_risk_title_scheduled">Darf %1$s diesen Schritt auf „%2$s“ ausführen?</string>
+    <string name="nm_risk_desc_scheduled">Die geplante Aufgabe „%1$s“ läuft auf „%2$s“ und wartet auf deine Antwort. Der Schritt läuft dort, nicht auf diesem Telefon.</string>
+    <string name="nm_risk_desc_scheduled_app">Die geplante Aufgabe „%1$s“ läuft auf „%2$s“ und will in %3$s handeln. Sie wartet auf deine Antwort; der Schritt läuft dort, nicht auf diesem Telefon.</string>
+    <string name="nm_risk_preview_scheduled">Der Schritt auf dem Computer</string>
+    <string name="nm_risk_allow_task">Immer in dieser Aufgabe</string>
+    <string name="nm_risk_task_remembered_toast">Auf „%1$s“ gespeichert: Diese Aufgabe fragt dort nicht mehr. Widerrufen unter Einstellungen → Berechtigungen auf diesem Computer.</string>
     <string name="nm_risk_preview_show_all">Alle anzeigen (%1$d Zeilen)</string>
     <string name="nm_risk_preview_show_less">Weniger anzeigen</string>
     <string name="nm_risk_class_remote">Fernsteuerung</string>

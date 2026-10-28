@@ -27,7 +27,7 @@
  */
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { ApprovalDesk, appOf, type ApprovalScope, isOwnApp, checkForUpdate, compareVersions, DEVICE_GRANT_PREFIX, grantCovers, HoldDesk, modelFor, pickChatModel, pickHandsModel, REMOTE_CONTROL_GRANT_ID, scheduleRunIds, sharedConnectors, standingGrants, takesImages, UPDATE_RETRY_MS, updateCacheFresh, withGrant, type Grant, type Hold, type HoldTool, type PendingApproval, type StandingGrant, type UpdateInfo } from './desk.ts'
+import { ApprovalDesk, appLabel, appOf, type ApprovalScope, isOwnApp, checkForUpdate, compareVersions, DEVICE_GRANT_PREFIX, grantCovers, HoldDesk, modelFor, pickChatModel, pickHandsModel, REMOTE_CONTROL_GRANT_ID, scheduleRunIds, sharedConnectors, standingGrants, takesImages, UPDATE_RETRY_MS, updateCacheFresh, withGrant, type Grant, type Hold, type HoldTool, type PendingApproval, type StandingGrant, type UpdateInfo } from './desk.ts'
 import { arch, homedir, hostname, release, type, userInfo } from 'node:os'
 import { dirname, join } from 'node:path'
 import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto'
@@ -46,7 +46,7 @@ import z from '@deepseek-ai/schemastery'
 import { mountGuarded } from './admit.ts'
 import { brief, REMOTE_ACTIONS, run as runAction, type RemoteAction } from './actions.ts'
 import { CODING_ACTIONS, CodingService, codingBrief, GATED_CODING_ACTIONS } from './coding.ts'
-import { helloLlm, HubClient, HubError, type Caller, type HubDevice } from './hub.ts'
+import { helloLlm, HubClient, HubError, type Caller, type HubDevice, type IncomingCall } from './hub.ts'
 import { ProfileStore, type Profile } from './profile.ts'
 import { cloudOffFailure, relayFailure, transportFailure, type RelayRefusal } from './refusals.ts'
 import { Relay, RelayError, type Account, type Estimate, type Invite, type ProfileWrite, type RelayModel, type SignIn } from './relay.ts'
@@ -62,6 +62,7 @@ import { Provenance } from './provenance.ts'
 import { RelayProxy } from './relay-proxy.ts'
 import { ClientEvents } from './events.ts'
 import { DEFAULT_VIDEO_MODEL, hostOf, KNOWN_DASHSCOPE_MODELS, looksLikeVideoModel, probe as probeVideoModel, speaksDashScope, type VideoEndpoint } from './video.ts'
+import { PHONE_CARD_SECONDS, PhoneApprovals, type CardStatus } from './phone-approvals.ts'
 import { editImage as ownEditImage, generateImage as ownGenerateImage, imageShapeOf, type ImageEndpoint } from './images.ts'
 import { checkMove, checkScreenshot, displayInfo, isBlack, runtimeInfo, screenHead, type MoveCheck, type RuntimeInfo, type ScreenshotCheck } from './hands-check.ts'
 import { apiOf, baseUrlFor, CAPABILITIES, capabilitiesForAuth, capabilitiesOf, CHATGPT_KEY_REF, CHATGPT_PROVIDER, ChatGptDesk, hasUserinfo, keyRefFor, kindOf, listModelRows, listModels, loadCatalogue, modelsOf, ownProviderRow, parseModelReasoning, regionOf, sighted, typedModelIds, USERINFO_TEXT, type Capability, type ChatGptState, type LoginView, type OwnModel, type OwnProvider, type ProviderEntry, type Region } from './providers.ts'
@@ -676,7 +677,10 @@ export default class NanomuseCloud extends Service {
     (req) => this.handsApp(req.toolName),
     (req) => this.scheduleAsking(req.toolName, String(req.agent.session.id)),
     (req, outcome, by, waitedMs) => this.approvalSettled(String(req.agent.session.id), req.toolName, String(req.callId ?? ''), outcome, by, waitedMs),
+    { asked: (row) => void this.askPhones(row), gone: (id, outcome) => this.phoneApprovals?.close(id, cardStatus(outcome)) },
   )
+  /** A scheduled run's cards on the account's phones (`docs/hub.md`); made with the hub. */
+  private phoneApprovals: PhoneApprovals | undefined
   /** Where each session's model calls sit (relay 0.31): the run, the turn, the step, the hands' trajectory. */
   readonly provenance = new Provenance()
   /** The loopback door the model adapter reaches the relay through, so each call carries its provenance. */
@@ -796,6 +800,11 @@ export default class NanomuseCloud extends Service {
       },
       log: (level, text) => this.ctx.logger[level](text),
     })
+    this.phoneApprovals = new PhoneApprovals(
+      this.hub,
+      () => ({ id: this.hub.deviceId ?? this.state.deviceId ?? '', name: this.deviceName() }),
+      (text) => this.ctx.logger.info('nanomuse cloud: %s', text),
+    )
     this.coding = new CodingService({
       storePath: join(this.dir(), 'coding', 'runs.json'),
       hub: this.hub,
@@ -926,7 +935,7 @@ export default class NanomuseCloud extends Service {
         'nanomuse cloud: task',
       )
       ctx.effect(() => this.hub.handle('stop', (args, call) => runner.stop(args, call)), 'nanomuse cloud: stop')
-      ctx.effect(() => this.hub.handle('approve', (args, call) => runner.approve(args, call)), 'nanomuse cloud: approve')
+      ctx.effect(() => this.hub.handle('approve', (args, call) => this.phoneApprove(args, call) ?? runner.approve(args, call)), 'nanomuse cloud: approve')
       ctx.effect(() => () => {
         this.tasks = undefined
       }, 'nanomuse cloud: tasks off')
@@ -1402,6 +1411,51 @@ export default class NanomuseCloud extends Service {
       void this.grant(`computer_app:${row.app}`, sessionId, scope === 'schedule' ? row.scheduleId : undefined).catch((error: unknown) => this.ctx.logger.warn('nanomuse cloud: grant not kept: %s', message(error)))
     }
     return ok
+  }
+
+  /**
+   * A question of a scheduled run also goes to the phones, since nobody may be at this computer
+   * when the task runs; whichever answers first decides it. A card that hits a payment word goes
+   * too: only the phones announce `approve.any`, and a phone has a screen lock.
+   */
+  private async askPhones(row: PendingApproval): Promise<void> {
+    const tasks = this.scheduledTurns.get(row.sessionId) ?? []
+    if (!tasks.length || !this.phoneApprovals || !this.hub.features.includes('event_push')) return
+    const ctx = this.sessionCtx
+    const [chat, title] = await Promise.all([
+      ctx ? this.sessionTitle(ctx, row.sessionId as SessionId, Date.now()).catch(() => '') : Promise.resolve(''),
+      this.scheduleTitle(row.sessionId, tasks[0]!).catch(() => ''),
+    ])
+    // answered on this screen while the titles were read
+    if (!this.approvalDesk.list().some((a) => a.id === row.id)) return
+    this.phoneApprovals.ask({
+      approval_id: row.id,
+      preview: row.summary || row.purpose || row.toolName,
+      preview_zh: row.summaryZh,
+      reason: row.purpose,
+      app: row.app ? appLabel(row.app) : '',
+      task: { id: tasks[0]!, title: tasks.length > 1 ? `${title} (+${tasks.length - 1})` : title },
+      chat,
+      scopes: row.app && row.scheduleId ? ['once', 'schedule'] : ['once'],
+      timeout: PHONE_CARD_SECONDS,
+      device: this.deviceName(),
+    })
+  }
+
+  /**
+   * `approve` for a card pushed to the phones: any device of the account may answer it, and the
+   * answer is taken like the stage's. Undefined for any other card, which the task runner answers
+   * (only for the device that started that run).
+   */
+  private phoneApprove(args: Record<string, unknown>, call: IncomingCall): Promise<Record<string, unknown>> | undefined {
+    const id = String(args.approval_id ?? '')
+    if (!this.phoneApprovals?.has(id)) return undefined
+    const answer = this.phoneApprovals.answer(args)
+    if (!answer) return Promise.resolve({ ok: false })
+    const ok = this.decideApproval(id, answer.allow, answer.scope)
+    if (ok) this.phoneApprovals.answeredBy(id, call.from)
+    this.ctx.logger.info('nanomuse cloud: %s answered approval %s on its phone card: %s', call.from.name || call.from.id, id, answer.allow ? answer.scope : 'deny')
+    return Promise.resolve({ ok })
   }
 
   /** The app a hands step of ours would act in: the one in front; '' for any other tool. */
@@ -4463,6 +4517,11 @@ export function send(res: ServerResponse, status: number, body?: unknown): void 
     return
   }
   res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' }).end(JSON.stringify(body))
+}
+
+/** How the desk's outcome reads in `approval_result`. */
+function cardStatus(outcome: ApprovalOutcome): CardStatus {
+  return outcome === 'allowed-once' ? 'approved' : outcome === 'rejected' ? 'denied' : 'cancelled'
 }
 
 export function message(error: unknown): string {

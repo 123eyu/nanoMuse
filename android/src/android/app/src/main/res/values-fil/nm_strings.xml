@@ -631,6 +631,12 @@
     <string name="nm_risk_title_device">Payagan ang “%1$s” na patakbuhin ang teleponong ito?</string>
     <string name="nm_risk_desc_device">Gusto ng “%1$s”, isa pang device sa account mo, na %2$s sa teleponong ito. Nasa ibaba kung ano nga ba ito. Hinahayaan ng “Lagi” ang device na iyon na gawin ang mga ganitong bagay dito nang hindi nagtatanong; bawiin ito sa ilalim ng Mga pahintulot.</string>
     <string name="nm_risk_preview_device">Ang hiniling ng device</string>
+    <string name="nm_risk_title_scheduled">Payagan si %1$s na gawin ang hakbang na ito sa “%2$s”?</string>
+    <string name="nm_risk_desc_scheduled">Tumatakbo ang naka-iskedyul na gawain na “%1$s” sa “%2$s” at hinihintay ang sagot mo. Doon tatakbo ang hakbang, hindi sa teleponong ito.</string>
+    <string name="nm_risk_desc_scheduled_app">Tumatakbo ang naka-iskedyul na gawain na “%1$s” sa “%2$s” at gustong kumilos sa %3$s. Hinihintay nito ang sagot mo; doon tatakbo ang hakbang, hindi sa teleponong ito.</string>
+    <string name="nm_risk_preview_scheduled">Ang hakbang sa computer</string>
+    <string name="nm_risk_allow_task">Palagi sa gawaing ito</string>
+    <string name="nm_risk_task_remembered_toast">Naitago sa “%1$s”: hindi na magtatanong doon ang gawaing ito. Bawiin sa Settings → Permissions sa computer na iyon.</string>
     <string name="nm_risk_preview_show_all">Ipakita lahat (%1$d linya)</string>
     <string name="nm_risk_preview_show_less">Ipakita nang mas kaunti</string>
     <string name="nm_risk_class_remote">Remote na kontrol</string>

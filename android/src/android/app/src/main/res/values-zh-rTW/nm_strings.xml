@@ -609,6 +609,12 @@
     <string name="nm_risk_title_device">允許「%1$s」操作這支手機嗎？</string>
     <string name="nm_risk_desc_device">「%1$s」是你帳號下的另一台裝置，想在這支手機上 %2$s。具體內容見下方。選「始終」後，那台裝置以後在這裡做這類事不再詢問；可在「權限」裡收回。</string>
     <string name="nm_risk_preview_device">那台裝置的請求</string>
+    <string name="nm_risk_title_scheduled">允許%1$s在「%2$s」上執行這一步嗎？</string>
+    <string name="nm_risk_desc_scheduled">排程任務「%1$s」正在「%2$s」上執行，等你回答。這一步在那台電腦上執行，不在這支手機上。</string>
+    <string name="nm_risk_desc_scheduled_app">排程任務「%1$s」正在「%2$s」上執行，要在 %3$s 裡操作，正等你回答。這一步在那台電腦上執行，不在這支手機上。</string>
+    <string name="nm_risk_preview_scheduled">電腦上的這一步</string>
+    <string name="nm_risk_allow_task">此排程任務中一律允許</string>
+    <string name="nm_risk_task_remembered_toast">已記在「%1$s」上：這個任務在那裡不再詢問。可在那台電腦的「設定 → 權限」裡撤回。</string>
     <string name="nm_risk_preview_show_all">全部顯示（%1$d 行）</string>
     <string name="nm_risk_preview_show_less">收起</string>
     <string name="nm_risk_class_remote">遠端控制</string>

@@ -634,6 +634,12 @@
     <string name="nm_risk_title_device">Permiți ca „%1$s” să opereze acest telefon?</string>
     <string name="nm_risk_desc_device">„%1$s”, alt dispozitiv din contul tău, vrea să %2$s pe acest telefon. Ce anume e afișat mai jos. „Întotdeauna” lasă acel dispozitiv să facă astfel de lucruri aici fără să întrebe; retrage asta sub Permisiuni.</string>
     <string name="nm_risk_preview_device">Ce a cerut dispozitivul</string>
+    <string name="nm_risk_title_scheduled">Permiți ca %1$s să facă acest pas pe „%2$s”?</string>
+    <string name="nm_risk_desc_scheduled">Sarcina programată „%1$s” rulează pe „%2$s” și așteaptă răspunsul tău. Pasul rulează acolo, nu pe acest telefon.</string>
+    <string name="nm_risk_desc_scheduled_app">Sarcina programată „%1$s” rulează pe „%2$s” și vrea să acționeze în %3$s. Așteaptă răspunsul tău; pasul rulează acolo, nu pe acest telefon.</string>
+    <string name="nm_risk_preview_scheduled">Pasul de pe computer</string>
+    <string name="nm_risk_allow_task">Mereu în această sarcină</string>
+    <string name="nm_risk_task_remembered_toast">Păstrat pe „%1$s”: această sarcină nu mai întreabă acolo. Revocă din Setări → Permisiuni pe acel computer.</string>
     <string name="nm_risk_preview_show_all">Afișează tot (%1$d linii)</string>
     <string name="nm_risk_preview_show_less">Afișează mai puțin</string>
     <string name="nm_risk_class_remote">Control la distanță</string>

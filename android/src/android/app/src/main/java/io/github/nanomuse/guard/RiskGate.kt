@@ -31,6 +31,10 @@ data class RiskRequest(
     val pageUrl: String? = null,
     /** For browser requests: the element's own text. */
     val elementText: String? = null,
+    /** For a computer's scheduled task: the app the step acts in there. */
+    val app: String? = null,
+    /** How long the card waits before silence counts as no. */
+    val timeoutMs: Long = RiskGate.TIMEOUT_MS,
     val createdAt: Long = System.currentTimeMillis(),
 ) {
     /**
@@ -40,7 +44,7 @@ data class RiskRequest(
      * confirms with the phone's screen lock ([needsCredential]), and the first time is always
      * asked because the grant can only come from the card.
      */
-    val canSession: Boolean get() = assessment.warnings.isEmpty() && assessment.riskClass != RiskClass.MONEY && kind != GuardKind.DEVICE
+    val canSession: Boolean get() = assessment.warnings.isEmpty() && assessment.riskClass != RiskClass.MONEY && kind != GuardKind.DEVICE && kind != GuardKind.SCHEDULED
     val canAlways: Boolean get() = assessment.warnings.isEmpty() && !assessment.target.isNullOrBlank()
     val canRemember: Boolean get() = canSession || canAlways
     val needsCredential: Boolean get() = assessment.riskClass == RiskClass.MONEY
@@ -109,7 +113,7 @@ object RiskGate {
                 if (!cont.isActive) return@withLock
                 awaiters[request.id] = cont
                 timeouts[request.id] = scope.launch {
-                    delay(TIMEOUT_MS)
+                    delay(request.timeoutMs)
                     resolve(request.id, RiskDecision.TIMEOUT)
                 }
                 if (_pending.value == null) {
@@ -127,6 +131,11 @@ object RiskGate {
     fun decide(id: String, decision: RiskDecision, by: String = BY_PERSON) {
         answeredBy[id] = by
         scope.launch { resolve(id, decision) }
+    }
+
+    /** The question went away where it was asked (answered on the computer): the card leaves without a decision. */
+    fun withdraw(id: String) {
+        scope.launch { resolve(id, RiskDecision.DENY, record = false) }
     }
 
     fun notifyPending() {

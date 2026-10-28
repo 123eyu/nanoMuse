@@ -632,6 +632,12 @@
     <string name="nm_risk_title_device">Autoriser « %1$s » à piloter ce téléphone ?</string>
     <string name="nm_risk_desc_device">« %1$s », un autre appareil de votre compte, veut %2$s sur ce téléphone. Le détail est ci-dessous. « Toujours » laisse cet appareil faire ce genre de choses ici sans demander ; revenez dessus sous Permissions.</string>
     <string name="nm_risk_preview_device">Ce que l’appareil a demandé</string>
+    <string name="nm_risk_title_scheduled">Autoriser %1$s à effectuer cette étape sur « %2$s » ?</string>
+    <string name="nm_risk_desc_scheduled">La tâche planifiée « %1$s » tourne sur « %2$s » et attend votre réponse. L\'étape s\'exécute là-bas, pas sur ce téléphone.</string>
+    <string name="nm_risk_desc_scheduled_app">La tâche planifiée « %1$s » tourne sur « %2$s » et veut agir dans %3$s. Elle attend votre réponse ; l\'étape s\'exécute là-bas, pas sur ce téléphone.</string>
+    <string name="nm_risk_preview_scheduled">L\'étape sur l\'ordinateur</string>
+    <string name="nm_risk_allow_task">Toujours dans cette tâche</string>
+    <string name="nm_risk_task_remembered_toast">Enregistré sur « %1$s » : cette tâche n\'y demande plus rien. Révocable dans Réglages → Autorisations sur cet ordinateur.</string>
     <string name="nm_risk_preview_show_all">Tout afficher (%1$d lignes)</string>
     <string name="nm_risk_preview_show_less">Réduire</string>
     <string name="nm_risk_class_remote">Contrôle à distance</string>

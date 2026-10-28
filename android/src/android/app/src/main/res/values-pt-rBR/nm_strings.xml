@@ -632,6 +632,12 @@
     <string name="nm_risk_title_device">Permitir que “%1$s” opere este celular?</string>
     <string name="nm_risk_desc_device">“%1$s”, outro dispositivo da sua conta, quer %2$s neste celular. O que exatamente está abaixo. “Sempre” deixa esse dispositivo fazer coisas assim aqui sem perguntar; desfaça em Permissões.</string>
     <string name="nm_risk_preview_device">O que o dispositivo pediu</string>
+    <string name="nm_risk_title_scheduled">Permitir que %1$s faça esta etapa em “%2$s”?</string>
+    <string name="nm_risk_desc_scheduled">A tarefa agendada “%1$s” está rodando em “%2$s” e espera sua resposta. A etapa roda lá, não neste celular.</string>
+    <string name="nm_risk_desc_scheduled_app">A tarefa agendada “%1$s” está rodando em “%2$s” e quer agir em %3$s. Ela espera sua resposta; a etapa roda lá, não neste celular.</string>
+    <string name="nm_risk_preview_scheduled">A etapa no computador</string>
+    <string name="nm_risk_allow_task">Sempre nesta tarefa</string>
+    <string name="nm_risk_task_remembered_toast">Guardado em “%1$s”: esta tarefa para de perguntar lá. Revogue em Configurações → Permissões naquele computador.</string>
     <string name="nm_risk_preview_show_all">Mostrar tudo (%1$d linhas)</string>
     <string name="nm_risk_preview_show_less">Mostrar menos</string>
     <string name="nm_risk_class_remote">Controle remoto</string>

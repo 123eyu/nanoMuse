@@ -194,7 +194,9 @@ private fun Decisions(request: RiskRequest) {
         }
         if (request.canAlways) {
             val target = RiskText.targetLabel(context, request) ?: ""
-            val remembered = stringResource(R.string.nm_risk_remembered_toast)
+            // a scheduled task's grant is kept on the computer that asked, not on this phone
+            val remembered = if (request.kind == GuardKind.SCHEDULED) stringResource(R.string.nm_risk_task_remembered_toast, request.pageUrl.orEmpty())
+            else stringResource(R.string.nm_risk_remembered_toast)
             val always = {
                 RiskGate.decide(request.id, RiskDecision.ALLOW_ALWAYS)
                 android.widget.Toast.makeText(context, remembered, android.widget.Toast.LENGTH_LONG).show()
@@ -226,7 +228,7 @@ private fun Decisions(request: RiskRequest) {
                     modifier = Modifier.padding(top = 6.dp, start = 4.dp, end = 4.dp),
                 )
             } else {
-                GreyPill(stringResource(R.string.nm_risk_allow_always, target), onClick = always)
+                GreyPill(if (request.kind == GuardKind.SCHEDULED) stringResource(R.string.nm_risk_allow_task) else stringResource(R.string.nm_risk_allow_always, target), onClick = always)
             }
         }
         Spacer(Modifier.height(8.dp))
@@ -299,6 +301,7 @@ private fun Preview(request: RiskRequest, expanded: Boolean, onToggle: () -> Uni
                     GuardKind.SCREEN -> R.string.nm_risk_preview_screen
                     GuardKind.COMPUTER -> R.string.nm_risk_preview_computer
                     GuardKind.DEVICE -> R.string.nm_risk_preview_device
+                    GuardKind.SCHEDULED -> R.string.nm_risk_preview_scheduled
                 },
             ),
             fontSize = 11.sp,

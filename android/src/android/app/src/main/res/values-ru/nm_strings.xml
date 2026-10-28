@@ -637,6 +637,12 @@
     <string name="nm_risk_title_device">Разрешить «%1$s» управлять этим телефоном?</string>
     <string name="nm_risk_desc_device">«%1$s», другое устройство на вашем аккаунте, хочет %2$s на этом телефоне. Что именно, показано ниже. «Всегда» позволяет этому устройству делать такое здесь без вопросов; отозвать можно в Разрешениях.</string>
     <string name="nm_risk_preview_device">О чём попросило устройство</string>
+    <string name="nm_risk_title_scheduled">Разрешить %1$s выполнить этот шаг на «%2$s»?</string>
+    <string name="nm_risk_desc_scheduled">Задача по расписанию «%1$s» выполняется на «%2$s» и ждёт вашего ответа. Шаг выполняется там, а не на этом телефоне.</string>
+    <string name="nm_risk_desc_scheduled_app">Задача по расписанию «%1$s» выполняется на «%2$s» и хочет действовать в %3$s. Она ждёт вашего ответа; шаг выполняется там, а не на этом телефоне.</string>
+    <string name="nm_risk_preview_scheduled">Шаг на компьютере</string>
+    <string name="nm_risk_allow_task">Всегда в этой задаче</string>
+    <string name="nm_risk_task_remembered_toast">Сохранено на «%1$s»: эта задача там больше не спрашивает. Отозвать можно в Настройки → Разрешения на том компьютере.</string>
     <string name="nm_risk_preview_show_all">Показать всё (%1$d строк)</string>
     <string name="nm_risk_preview_show_less">Свернуть</string>
     <string name="nm_risk_class_remote">Удалённое управление</string>

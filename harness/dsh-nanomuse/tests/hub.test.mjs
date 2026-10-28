@@ -323,3 +323,19 @@ test('hello names the model only as two plain ids; a key, a URL or a sentence is
   assert.equal(helloLlm('custom', 'sk-abcdefghijklmnopqrstuvwxyz0123456789 keep this secret'), undefined)
   assert.equal(helloLlm('custom', 'm'.repeat(81)), undefined)
 })
+
+test('a push goes out only once the relay lists event_push, and features are read again on every welcome', async () => {
+  const h = harness()
+  const s = await connected(h)
+  const body = { stage: 'approval', approval_id: 'ap_1', any_device: true }
+  assert.equal(h.client.push('*', body), false, 'a relay without the feature hears no push')
+  assert.equal(s.sent.some((f) => f.type === 'event'), false)
+
+  s.push({ type: 'welcome', device_id: DEVICE.id, devices: [], server: { features: ['event_push', 7] } })
+  assert.deepEqual(h.client.features, ['event_push'])
+  assert.equal(h.client.push('*', body), true)
+  assert.deepEqual(s.sent.at(-1), { type: 'event', to: '*', body })
+
+  h.client.stop()
+  assert.equal(h.client.push('*', body), false, 'nothing is queued while the socket is down')
+})

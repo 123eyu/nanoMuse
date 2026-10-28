@@ -153838,6 +153838,360 @@
         }
       }
     },
+    "Allow %@ to take this step on %@?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Darf %1$@ diesen Schritt auf %2$@ ausführen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow %1$@ to take this step on %2$@?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Permitir que %1$@ haga este paso en %2$@?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autoriser %1$@ à effectuer cette étape sur %2$@ ?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@が %2$@ でこの操作をしてもよいですか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@이(가) %2$@에서 이 단계를 실행해도 될까요?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешить %1$@ выполнить этот шаг на %2$@?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许%1$@在 %2$@ 上执行这一步吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允許%1$@在 %2$@ 上執行這一步嗎？"
+          }
+        }
+      }
+    },
+    "The scheduled task “%@” is running on %@ and waits for your answer. The step runs there, not on this phone." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die geplante Aufgabe „%1$@“ läuft auf %2$@ und wartet auf deine Antwort. Der Schritt läuft dort, nicht auf diesem Telefon."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The scheduled task “%1$@” is running on %2$@ and waits for your answer. The step runs there, not on this phone."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tarea programada «%1$@» se está ejecutando en %2$@ y espera tu respuesta. El paso se hace allí, no en este teléfono."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tâche planifiée « %1$@ » tourne sur %2$@ et attend votre réponse. L’étape s’exécute là-bas, pas sur ce téléphone."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スケジュールされたタスク「%1$@」が %2$@ で実行中で、あなたの返事を待っています。操作はこの端末ではなく、そのコンピュータで行われます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "예약된 작업 “%1$@”이(가) %2$@에서 실행 중이며 답을 기다리고 있습니다. 이 단계는 이 휴대폰이 아니라 그 컴퓨터에서 실행됩니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Задача по расписанию «%1$@» выполняется на %2$@ и ждёт вашего ответа. Шаг выполняется там, а не на этом телефоне."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "定时任务「%1$@」正在 %2$@ 上运行，等你回答。这一步在那台电脑上执行，不在这部手机上。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "排程任務「%1$@」正在 %2$@ 上執行，等你回答。這一步在那台電腦上執行，不在這支手機上。"
+          }
+        }
+      }
+    },
+    "The scheduled task “%@” is running on %@ and wants to act in %@. It waits for your answer; the step runs there, not on this phone." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die geplante Aufgabe „%1$@“ läuft auf %2$@ und will in %3$@ handeln. Sie wartet auf deine Antwort; der Schritt läuft dort, nicht auf diesem Telefon."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The scheduled task “%1$@” is running on %2$@ and wants to act in %3$@. It waits for your answer; the step runs there, not on this phone."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tarea programada «%1$@» se está ejecutando en %2$@ y quiere actuar en %3$@. Espera tu respuesta; el paso se hace allí, no en este teléfono."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tâche planifiée « %1$@ » tourne sur %2$@ et veut agir dans %3$@. Elle attend votre réponse ; l’étape s’exécute là-bas, pas sur ce téléphone."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スケジュールされたタスク「%1$@」が %2$@ で実行中で、%3$@ を操作しようとしています。返事を待っています。操作はこの端末ではなく、そのコンピュータで行われます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "예약된 작업 “%1$@”이(가) %2$@에서 실행 중이며 %3$@에서 동작하려고 합니다. 답을 기다리고 있으며, 이 단계는 이 휴대폰이 아니라 그 컴퓨터에서 실행됩니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Задача по расписанию «%1$@» выполняется на %2$@ и хочет действовать в %3$@. Она ждёт вашего ответа; шаг выполняется там, а не на этом телефоне."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "定时任务「%1$@」正在 %2$@ 上运行，要在 %3$@ 里操作，正等你回答。这一步在那台电脑上执行，不在这部手机上。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "排程任務「%1$@」正在 %2$@ 上執行，要在 %3$@ 裡操作，正等你回答。這一步在那台電腦上執行，不在這支手機上。"
+          }
+        }
+      }
+    },
+    "Always in this task" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Immer in dieser Aufgabe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Always in this task"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siempre en esta tarea"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toujours dans cette tâche"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このタスクでは常に許可"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 작업에서 항상 허용"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Всегда в этой задаче"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此定时任务中始终允许"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此排程任務中一律允許"
+          }
+        }
+      }
+    },
+    "No answer in %d seconds leaves the question waiting on %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ohne Antwort in %1$d Sekunden wartet die Frage weiter auf %2$@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No answer in %1$d seconds leaves the question waiting on %2$@."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si no respondes en %1$d segundos, la pregunta sigue esperando en %2$@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sans réponse en %1$d secondes, la question reste en attente sur %2$@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d 秒以内に返事がなければ、質問は %2$@ で待ち続けます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d초 안에 답하지 않으면 질문은 %2$@에서 계속 기다립니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Без ответа за %1$d секунд вопрос продолжит ждать на %2$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d 秒内没有回答，这个问题会留在 %2$@ 上继续等。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d 秒內沒有回答，這個問題會留在 %2$@ 上繼續等。"
+          }
+        }
+      }
+    },
+    "Always in this task is kept on %@: this task stops asking there. Revoke it under Settings → Permissions on that computer." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Immer in dieser Aufgabe“ wird auf %@ gespeichert: Diese Aufgabe fragt dort nicht mehr. Widerrufen unter Einstellungen → Berechtigungen auf diesem Computer."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Always in this task is kept on %@: this task stops asking there. Revoke it under Settings → Permissions on that computer."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«Siempre en esta tarea» se guarda en %@: esta tarea deja de preguntar allí. Revócalo en Ajustes → Permisos de ese ordenador."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "« Toujours dans cette tâche » est enregistré sur %@ : cette tâche n’y demande plus rien. Révocable dans Réglages → Autorisations sur cet ordinateur."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「このタスクでは常に許可」は %@ に記録されます。このタスクはそこで確認しなくなります。そのコンピュータの「設定 → 権限」で取り消せます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 작업에서 항상 허용은 %@에 저장됩니다. 이 작업은 그곳에서 더 묻지 않습니다. 그 컴퓨터의 설정 → 권한에서 취소할 수 있습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«Всегда в этой задаче» сохраняется на %@: эта задача там больше не спрашивает. Отозвать можно в Настройки → Разрешения на том компьютере."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「此定时任务中始终允许」记在 %@ 上：这个任务在那里不再询问。可在那台电脑的「设置 → 权限」里撤回。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「此排程任務中一律允許」記在 %@ 上：這個任務在那裡不再詢問。可在那台電腦的「設定 → 權限」裡撤回。"
+          }
+        }
+      }
+    },
     "Allow once" : {
       "extractionState" : "manual",
       "localizations" : {

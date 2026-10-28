@@ -637,6 +637,12 @@
     <string name="nm_risk_title_device">Zezwolić „%1$s” na sterowanie tym telefonem?</string>
     <string name="nm_risk_desc_device">„%1$s”, inne urządzenie na twoim koncie, chce %2$s na tym telefonie. Co dokładnie, widać poniżej. „Zawsze” pozwala temu urządzeniu robić tu takie rzeczy bez pytania; cofniesz to w Uprawnieniach.</string>
     <string name="nm_risk_preview_device">O co poprosiło urządzenie</string>
+    <string name="nm_risk_title_scheduled">Pozwolić, by %1$s wykonał ten krok na „%2$s”?</string>
+    <string name="nm_risk_desc_scheduled">Zaplanowane zadanie „%1$s” działa na „%2$s” i czeka na Twoją odpowiedź. Krok wykona się tam, nie na tym telefonie.</string>
+    <string name="nm_risk_desc_scheduled_app">Zaplanowane zadanie „%1$s” działa na „%2$s” i chce działać w %3$s. Czeka na Twoją odpowiedź; krok wykona się tam, nie na tym telefonie.</string>
+    <string name="nm_risk_preview_scheduled">Krok na komputerze</string>
+    <string name="nm_risk_allow_task">Zawsze w tym zadaniu</string>
+    <string name="nm_risk_task_remembered_toast">Zapisano na „%1$s”: to zadanie przestaje tam pytać. Cofniesz to w Ustawienia → Uprawnienia na tym komputerze.</string>
     <string name="nm_risk_preview_show_all">Pokaż wszystko (%1$d wierszy)</string>
     <string name="nm_risk_preview_show_less">Pokaż mniej</string>
     <string name="nm_risk_class_remote">Zdalne sterowanie</string>
