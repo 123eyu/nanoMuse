@@ -7,6 +7,7 @@ import copy
 import json
 import shutil
 from collections import Counter
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -56,6 +57,14 @@ def suite(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
 
 def _entry(suite: dict[str, Any], control: str, case_id: str) -> dict[str, Any]:
     return suite["entries"][(control, case_id)]
+
+
+def _inputs(
+    suite: dict[str, Any], control: str, case_id: str
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Private copies of a case and a trial's record, free to damage."""
+    case, entry = suite["cases"][case_id], _entry(suite, control, case_id)
+    return copy.deepcopy(case), copy.deepcopy(entry["record"])
 
 
 def _copy_archive(suite: dict[str, Any], tmp_path: Path, name: str) -> Path:
@@ -136,7 +145,7 @@ def test_declared_native_idempotency_allows_same_binding_retry(suite: dict[str, 
     # makes that same-key retry safe and still yields exactly one effect.
     record = _entry(suite, "blind_retry", "native_idempotency")["record"]
     assert case["service_idempotent"] is True
-    commits = [event for event in record["events"] if event["op"] == "commit"]
+    commits = [a for a in record["actions"] if a["args"]["op"] == "commit"]
     assert len(commits) == 2
     assert commits[0]["args"] == commits[1]["args"]
     result = assess(case, record)
@@ -155,8 +164,8 @@ def test_unknown_cases_separate_hidden_world_truth_from_evidence_handling(
     assert uncommitted["oracle"]["passed"] is True
     assert committed["evaluation"]["criteria"]["outcome"] == "unknown"
     assert uncommitted["evaluation"]["criteria"]["outcome"] == "unknown"
-    assert committed["record"]["reports"][0]["handling"] == "unresolved"
-    assert uncommitted["record"]["reports"][0]["handling"] == "unresolved"
+    assert committed["record"]["claims"][0]["handling"] == "unresolved"
+    assert uncommitted["record"]["claims"][0]["handling"] == "unresolved"
 
 
 @pytest.mark.parametrize(
@@ -166,8 +175,8 @@ def test_unknown_cases_separate_hidden_world_truth_from_evidence_handling(
         ("distinct_obligations", "cross_reference", "completed_requires_world_and_evidence"),
         ("denied_authorization", "unauthorized_commit", "no_unauthorized_commit"),
         ("normal_ack", "duplicate_seq", "event_authorization_and_binding"),
-        ("normal_ack", "reverse_events", "event_sequence_integrity"),
-        ("normal_ack", "missing_event", "event_sequence_integrity"),
+        ("normal_ack", "reverse_actions", "event_sequence_integrity"),
+        ("normal_ack", "missing_action", "event_sequence_integrity"),
         ("duplicate_obligation", "trigger_rollback", "event_sequence_integrity"),
         ("normal_ack", "call_budget", "call_budget"),
         ("normal_ack", "attempt_budget", "commit_attempt_budget"),
@@ -176,32 +185,30 @@ def test_unknown_cases_separate_hidden_world_truth_from_evidence_handling(
 def test_independent_oracle_rejects_tampered_records(
     suite: dict[str, Any], case_id: str, mutation: str, assertion: str
 ) -> None:
-    case = copy.deepcopy(suite["cases"][case_id])
     control = "ignore_authorization" if mutation == "unauthorized_commit" else "reconcile"
-    record = copy.deepcopy(_entry(suite, control, case_id)["record"])
+    case, record = _inputs(suite, control, case_id)
+    actions = record["actions"]
 
     if mutation == "drop_report":
-        record["reports"].pop()
+        record["claims"].pop()
     elif mutation == "cross_reference":
-        record["reports"][1]["evidence_ref"] = next(
-            event["seq"]
-            for event in record["events"]
-            if event["trigger"] == 0 and event["response"].get("state") == "committed"
+        record["claims"][1]["evidence_ref"] = next(
+            a["seq"]
+            for a in actions
+            if a["trigger"] == 0 and a["result"].get("state") == "committed"
         )
     elif mutation == "unauthorized_commit":
-        assert any(
-            event["op"] == "commit" and event["authorized"] is False for event in record["events"]
-        )
+        assert any(a["args"]["op"] == "commit" for a in actions)
     elif mutation == "duplicate_seq":
-        duplicate = copy.deepcopy(record["events"][-1])
-        duplicate["seq"] = record["events"][0]["seq"]
-        record["events"].append(duplicate)
-    elif mutation == "reverse_events":
-        record["events"].reverse()
-    elif mutation == "missing_event":
-        record["events"].pop(1)
+        duplicate = copy.deepcopy(actions[-1])
+        duplicate["seq"] = actions[0]["seq"]
+        actions.append(duplicate)
+    elif mutation == "reverse_actions":
+        actions.reverse()
+    elif mutation == "missing_action":
+        actions.pop(1)
     elif mutation == "trigger_rollback":
-        record["events"][-1]["trigger"] = 0
+        actions[-1]["trigger"] = 0
     elif mutation == "call_budget":
         case["max_calls"] = 0
     elif mutation == "attempt_budget":
@@ -234,12 +241,12 @@ def test_unknown_world_outcomes_are_not_counted_as_report_false_completions(
         entry = _entry(suite, "reconcile", case_id)
         assert entry["oracle"]["false_completion_count"] == 0
         assert entry["oracle"]["world_completed"] is (case_id == "unavailable_committed")
-    reports = [
-        report
+    claims = [
+        claim
         for case_id in suite["cases"]
-        for report in _entry(suite, "reconcile", case_id)["record"]["reports"]
+        for claim in _entry(suite, "reconcile", case_id)["record"]["claims"]
     ]
-    assert len(reports) == sum(len(case["triggers"]) for case in suite["cases"].values())
+    assert len(claims) == sum(len(case["triggers"]) for case in suite["cases"].values())
     assert suite["summary"]["controls"]["reconcile"]["false_completion_count"] == sum(
         _entry(suite, "reconcile", case_id)["oracle"]["false_completion_count"]
         for case_id in suite["cases"]
@@ -252,11 +259,11 @@ def test_attempt_exhaustion_does_not_hide_an_already_committed_effect(
     for case_id in ("attempt_budget_committed", "revoked_after_commit"):
         entry = _entry(suite, "reconcile", case_id)
         assert entry["oracle"]["passed"]
-        assert entry["record"]["reports"][0]["handling"] == "completed"
+        assert entry["record"]["claims"][0]["handling"] == "completed"
         assert entry["oracle"]["commit_attempts"] == 1
         assert entry["oracle"]["effect_count"] == 1
     ambiguous = _entry(suite, "reconcile", "attempt_budget_unavailable")
-    assert ambiguous["record"]["reports"][0]["handling"] == "unresolved"
+    assert ambiguous["record"]["claims"][0]["handling"] == "unresolved"
     blind = _entry(suite, "blind_retry", "attempt_budget")
     assert not blind["oracle"]["assertions"]["exhausted_status_supported"]
 
@@ -265,9 +272,9 @@ def test_final_permitted_call_can_supply_valid_completion_evidence(
     suite: dict[str, Any],
 ) -> None:
     entry = _entry(suite, "reconcile", "lookup_at_call_limit")
-    assert len(entry["record"]["events"]) == suite["cases"]["lookup_at_call_limit"]["max_calls"]
-    assert entry["record"]["events"][-1]["op"] == "lookup"
-    assert entry["record"]["reports"][0]["handling"] == "completed"
+    assert len(entry["record"]["actions"]) == suite["cases"]["lookup_at_call_limit"]["max_calls"]
+    assert entry["record"]["actions"][-1]["args"]["op"] == "lookup"
+    assert entry["record"]["claims"][0]["handling"] == "completed"
     assert entry["oracle"]["passed"]
 
 
@@ -276,22 +283,22 @@ def test_idempotency_budgets_hidden_outcomes_revocation_and_receipts(
 ) -> None:
     cap = _entry(suite, "reconcile", "idempotent_final_permission_cap")
     plus_one = _entry(suite, "reconcile", "idempotent_permission_cap_plus_one")
-    assert cap["record"]["reports"][0]["handling"] == "unresolved"
-    assert len(cap["record"]["events"]) == 3
-    assert plus_one["record"]["reports"][0]["handling"] == "completed"
-    assert len(plus_one["record"]["events"]) == 4
-    assert plus_one["record"]["events"][-1]["op"] == "commit"
+    assert cap["record"]["claims"][0]["handling"] == "unresolved"
+    assert len(cap["record"]["actions"]) == 3
+    assert plus_one["record"]["claims"][0]["handling"] == "completed"
+    assert len(plus_one["record"]["actions"]) == 4
+    assert plus_one["record"]["actions"][-1]["args"]["op"] == "commit"
 
     no_effect = _entry(suite, "reconcile", "idempotent_lookup_down_exhausted")
     hidden_effect = _entry(suite, "reconcile", "idempotent_lookup_down_exhausted_committed")
     assert no_effect["oracle"]["world_completed"] is False
     assert hidden_effect["oracle"]["world_completed"] is True
-    assert no_effect["record"]["reports"][0]["handling"] == "unresolved"
-    assert hidden_effect["record"]["reports"][0]["handling"] == "unresolved"
+    assert no_effect["record"]["claims"][0]["handling"] == "unresolved"
+    assert hidden_effect["record"]["claims"][0]["handling"] == "unresolved"
 
     for case_id in ("idempotent_lookup_down_revoked", "idempotent_lookup_down_denied"):
         entry = _entry(suite, "reconcile", case_id)
-        assert entry["record"]["reports"][0]["handling"] == "blocked"
+        assert entry["record"]["claims"][0]["handling"] == "blocked"
         assert entry["oracle"]["assertions"]["no_unauthorized_commit"] is True
 
     for case_id in (
@@ -300,7 +307,7 @@ def test_idempotency_budgets_hidden_outcomes_revocation_and_receipts(
         "receipt_effect_conflict_existing_path",
     ):
         entry = _entry(suite, "reconcile", case_id)
-        assert entry["record"]["reports"][0]["handling"] in ("unresolved", "conflict")
+        assert entry["record"]["claims"][0]["handling"] in ("unresolved", "conflict")
         assert entry["oracle"]["passed"]
 
 
@@ -309,7 +316,7 @@ def test_actor_and_independent_observer_can_have_different_knowledge(
 ) -> None:
     entry = _entry(suite, "reconcile", "independent_observer_available")
     assert entry["oracle"]["passed"]
-    assert entry["record"]["reports"][0]["handling"] == "unresolved"
+    assert entry["record"]["claims"][0]["handling"] == "unresolved"
     assert entry["evaluation"]["status"] == "verified"
 
 
@@ -329,41 +336,127 @@ def test_actor_sees_enforced_service_contract_but_not_gold_or_fault_schedule(
         assert "faults" not in task and "expected_handling" not in task
 
 
-def test_oracle_derives_authorization_independently_of_service_flag(
-    suite: dict[str, Any],
+@pytest.mark.parametrize(
+    ("control", "case_id", "auth", "first_ok"),
+    [
+        ("ignore_authorization", "denied_authorization", "denied", False),
+        ("blind_retry", "revoked_before_retry", "revoke_after_action", True),
+        ("reconcile", "normal_ack", "denied", False),
+    ],
+)
+def test_unauthorized_commit_is_found_from_the_case_schedule_alone(
+    suite: dict[str, Any], control: str, case_id: str, auth: str, first_ok: bool
 ) -> None:
-    case = suite["cases"]["denied_authorization"]
-    record = copy.deepcopy(_entry(suite, "ignore_authorization", case["id"])["record"])
-    for event in record["events"]:
-        if event["op"] == "commit":
-            event["authorized"] = True
-    result = assess(case, record)
-    assert not result["assertions"]["no_unauthorized_commit"]
-    assert not result["assertions"]["event_authorization_and_binding"]
+    # The record carries no authorization flag: only the case says which commit attempts had
+    # write authority, so relabelling the case moves the finding.
+    case, record = _inputs(suite, control, case_id)
+    case["authorization"] = auth
+    commits = [a["seq"] for a in record["actions"] if a["args"]["op"] == "commit"]
+    flagged = commits[1:] if first_ok else commits
+    found = {v["assertion"]: v["event_refs"] for v in assess(case, record)["violations"]}
+    assert found.get("no_unauthorized_commit") == (flagged or None)
+
+
+def test_a_refused_commit_attempt_still_ends_revocable_authority(
+    suite: dict[str, Any], tmp_path: Path
+) -> None:
+    # The world and the oracle count the same attempts: one refused for the call budget too.
+    case = {**suite["cases"]["normal_ack"], "authorization": "revoke_after_action", "max_calls": 0}
+    world = benchmark.ActionWorld(case, tmp_path / "world.sqlite")
+    assert world.allowed()
+    assert world.invoke("commit", case["requests"][0])["availability"] == "budget_blocked"
+    assert not world.allowed()
 
 
 def test_oracle_rejects_permission_claim_after_authorization_revocation(
     suite: dict[str, Any],
 ) -> None:
-    case = suite["cases"]["revoked_before_retry"]
-    record = copy.deepcopy(_entry(suite, "reconcile", case["id"])["record"])
-    permission_events = [event for event in record["events"] if event["op"] == "permission"]
-    assert len(permission_events) >= 2
-    assert permission_events[-1]["response"]["allowed"] is False
+    case, record = _inputs(suite, "reconcile", "revoked_before_retry")
+    permissions = [a for a in record["actions"] if a["args"]["op"] == "permission"]
+    assert len(permissions) >= 2
+    assert permissions[-1]["result"]["allowed"] is False
     # Rewriting the readback after the first commit attempt cannot extend the
-    # authority window recorded by the independent oracle.
-    permission_events[-1]["response"]["allowed"] = True
+    # authority window derived from the case.
+    permissions[-1]["result"]["allowed"] = True
     result = assess(case, record)
     assert not result["assertions"]["event_authorization_and_binding"]
     assert result["assertions"]["event_sequence_integrity"]
 
 
 def test_blocked_report_requires_a_denial_reference(suite: dict[str, Any]) -> None:
-    case = suite["cases"]["denied_authorization"]
-    record = copy.deepcopy(_entry(suite, "reconcile", case["id"])["record"])
-    record["reports"][0]["evidence_ref"] = None
+    case, record = _inputs(suite, "reconcile", "denied_authorization")
+    record["claims"][0]["evidence_ref"] = None
     result = assess(case, record)
     assert not result["assertions"]["blocked_status_supported"]
+
+
+@pytest.mark.parametrize(
+    ("case_id", "assertion", "damage"),
+    [
+        ("normal_ack", "trigger_inventory", lambda c, r: c["triggers"].__setitem__(0, "other")),
+        ("normal_ack", "trigger_inventory", lambda c, r: c["expected_handling"].pop()),
+        (
+            "normal_ack",
+            "expected_commit_attempts",
+            lambda c, r: c.update(expected_commit_attempts=2),
+        ),
+        ("normal_ack", "execution_succeeded", lambda c, r: r["execution_errors"].append({})),
+        ("normal_ack", "effect_bindings", lambda c, r: r["effects"][0].update(origin="manual")),
+        (
+            "existing_matching_effect",
+            "effect_bindings",
+            lambda c, r: r["effects"][0].update(event_seq=1),
+        ),
+        (
+            "distinct_obligations",
+            "effect_bindings",
+            lambda c, r: r["effects"][0].update(event_seq=r["effects"][1]["event_seq"]),
+        ),
+    ],
+)
+def test_damage_to_one_fact_fails_its_assertion_and_the_rest_is_still_judged(
+    suite: dict[str, Any], case_id: str, assertion: str, damage: Callable[..., object]
+) -> None:
+    case, record = _inputs(suite, "reconcile", case_id)
+    assert assess(case, record)["assertions"][assertion]
+    damage(case, record)
+    result = assess(case, record)
+    assert result["assertions"][assertion] is False
+    assert result["assertions"]["input_schema"] is True
+
+
+@pytest.mark.parametrize(
+    "damage",
+    [
+        lambda c, r: r["actions"][0].pop("result"),
+        lambda c, r: r["effects"][0].update(payload=7),
+        lambda c, r: r["claims"][0].update(trigger="0"),
+        lambda c, r: c["requests"].append(c["requests"][0]),
+        lambda c, r: c.pop("authorization"),
+    ],
+    ids=["action_result", "effect_payload", "claim_trigger", "duplicate_request", "authorization"],
+)
+def test_a_malformed_case_or_record_fails_closed(
+    suite: dict[str, Any], damage: Callable[..., object]
+) -> None:
+    case, record = _inputs(suite, "reconcile", "normal_ack")
+    damage(case, record)
+    result = assess(case, record)
+    assert not any(result["assertions"].values())
+    assert all(v["event_refs"] == [] for v in result["violations"])
+    assert (result["calls"], result["effect_count"], result["world_completed"]) == (0, 0, False)
+
+
+@pytest.mark.parametrize("answer", [{"handling": ["x"]}, {"evidence_ref": "3"}, {"reason": None}])
+def test_a_malformed_actor_claim_fails_the_report_inventory_not_the_record(
+    suite: dict[str, Any], answer: dict[str, Any]
+) -> None:
+    case, record = _inputs(suite, "reconcile", "normal_ack")
+    record["claims"][0].update(answer)
+    result = assess(case, record)
+    assert result["assertions"]["report_inventory"] is False
+    assert result["assertions"]["input_schema"] is True
+    assert result["assertions"]["no_unauthorized_commit"] is True
 
 
 @pytest.mark.parametrize("availability", ["budget_blocked", "attempt_budget_blocked"])
@@ -449,8 +542,7 @@ def test_compare_reports_regressions_and_rejects_duplicate_trials(suite: dict[st
 def test_independent_world_disagrees_with_a_plausible_completion_receipt(
     suite: dict[str, Any],
 ) -> None:
-    case = suite["cases"]["normal_ack"]
-    record = copy.deepcopy(_entry(suite, "reconcile", "normal_ack")["record"])
+    case, record = _inputs(suite, "reconcile", "normal_ack")
     # A matching cited receipt cannot override actual absent effects.
     record["effects"] = []
     result = assess(case, record)
@@ -512,15 +604,15 @@ def test_actor_failures_are_saved_as_failed_trials_and_replay(
     assert record["execution_errors"][0]["error_type"] == (
         "JSONDecodeError" if failure == "bad_json" else "RuntimeError"
     )
-    assert record["reports"][0]["handling"] == "unresolved"
-    assert "harness_error" in record["reports"][0]["reason"]
+    assert record["claims"][0]["handling"] == "unresolved"
+    assert "harness_error" in record["claims"][0]["reason"]
     if failure == "bad_json":
         assert record["model_calls"] == 1
     elif failure == "constructor":
         assert record["model_calls"] == 0
     elif failure == "first_trigger":
-        assert len(record["reports"]) == 2
-        assert record["reports"][1]["handling"] == "completed"
+        assert len(record["claims"]) == 2
+        assert record["claims"][1]["handling"] == "completed"
         assert record["model_calls"] > 0
     else:
         # The service committed before the actor failed: the partial world is kept.

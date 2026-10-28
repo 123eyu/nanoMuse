@@ -65,8 +65,9 @@ availability controls evidence supplied to the evaluation core.
 
 Gold is AI-authored and cross-reviewed, not human-labelled production data. The
 standalone stdlib oracle imports no actor, runner, service or evaluator. It checks
-exact final effects, authorization independently derived from event order, sequential
-trace integrity, budgets, fixed handling expectations and cited observations.
+exact final effects, authorization derived from the case schedule and the order of commit
+attempts, sequential trace integrity, budgets, fixed handling expectations and cited
+observations.
 Some extension cases also pin write counts for this specific component regression.
 These procedural expectations do not grade every possible correct agent strategy.
 
