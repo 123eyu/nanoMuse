@@ -63,4 +63,3 @@ turn, `[agent.budget]` takes precedence. Limits are configured in TOML, not expo
 new controls in each app. Each runtime turn writes a `task_budget` audit entry, and
 `MuseAgent.last_budget` exposes its counters and stop reason. Operator outcomes carry
 the same counters for evaluation reports.
-
