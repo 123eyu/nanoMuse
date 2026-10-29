@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from nanomuse.memory import MemoryStore
+from nanomuse.memory import MemoryStore, similarity
 from nanomuse.memory.embeddings import MemoryIndex
 
 
@@ -46,6 +46,18 @@ def test_search_cache_tracks_edits_forgets_restores_and_external_writes(tmp_path
     found = store.search("oolong")[0]
     found.content = "caller changed its own copy"
     assert store.search("oolong")[0].content == "Prefers oolong tea"
+
+
+def test_similar_reads_the_whole_store_through_the_search_index(tmp_path: Path):
+    store, old = large_store(tmp_path)
+    (score, found) = store.similar("房东喜欢茶 Bob Li landlord", threshold=0.3, limit=1)[0]
+    assert found.id == old
+    assert score == similarity("房东喜欢茶 Bob Li landlord", found.content)
+    # the fillers differ in a one-character word only, which the tokens drop: all alike
+    assert store.similar("Unrelated record 7", threshold=0.99, limit=1)[0][0] == 1.0
+    assert store.similar("", limit=1) == [] and store.similar("landlord", limit=0) == []
+    found.content = "caller changed its own copy"
+    assert store.similar("房东喜欢茶", threshold=0.3, limit=1)[0][1].content != found.content
 
 
 class LocalEmbedder:

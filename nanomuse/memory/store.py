@@ -106,6 +106,7 @@ class MemoryStore:
         self.index: MemoryIndex | None = None
         self._search_stamp: tuple[int, int] | None = None
         self._search_items: dict[str, MemoryItem] = {}
+        self._search_tokens: dict[str, set[str]] = {}
         self._postings: dict[str, set[str]] = {}
         self._conn = sqlite3.connect(self.path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
@@ -308,11 +309,13 @@ class MemoryStore:
         if stamp == self._search_stamp:
             return
         items = self.all(limit=None)
+        tokens = {item.id: tokenize(item.content) for item in items}
         postings: dict[str, set[str]] = {}
-        for item in items:
-            for token in tokenize(item.content):
-                postings.setdefault(token, set()).add(item.id)
+        for mid, toks in tokens.items():
+            for token in toks:
+                postings.setdefault(token, set()).add(mid)
         self._search_items = {item.id: item for item in items}
+        self._search_tokens = tokens
         self._postings = postings
         self._search_stamp = stamp
 
@@ -358,9 +361,25 @@ class MemoryStore:
     def similar(
         self, content: str, threshold: float = 0.5, limit: int = 3
     ) -> list[tuple[float, MemoryItem]]:
-        """Memories that say roughly the same thing as ``content``, most alike first."""
-        pairs = [(similarity(content, item.content), item) for item in self.all(limit=None)]
-        pairs = [(s, item) for s, item in pairs if s >= threshold]
+        """Memories that say roughly the same thing as ``content``, most alike first.
+
+        The same Jaccard overlap as ``similarity``, over the token sets the search index
+        already holds, so a ``remember`` on a large store does not tokenize every row again.
+        """
+        if limit <= 0:
+            return []
+        self._prepare_search()
+        mine = tokenize(content)
+        plain = content.strip().lower()
+        pairs: list[tuple[float, MemoryItem]] = []
+        for mid, item in self._search_items.items():
+            theirs = self._search_tokens.get(mid, set())
+            if not mine or not theirs:
+                score = 1.0 if plain == item.content.strip().lower() else 0.0
+            else:
+                score = len(mine & theirs) / len(mine | theirs)
+            if score >= threshold:
+                pairs.append((score, copy_item(item)))
         pairs.sort(key=lambda p: -p[0])
         return pairs[:limit]
 

@@ -43,7 +43,7 @@ sequenceDiagram
 | On a phone | `nanomuse/runtime.py`, `nanomuse/bridge/` | `device()` reads `NANOMUSE_DEVICE*`; `DEVICE_TOOLS` (the Sentinel defaults of the phone's tools) and `device_mcp_server()` (the app's MCP server as the `device` entry, tools `device__*`); the CLI bridge (`/api/bridge/*`, one-command tokens) behind `nanomuse-device` / `nanomuse-browser` / `nanomuse-open`; see [device.md](device.md), [local-runtime.md](local-runtime.md) |
 | The phone | `nanomuse/phone/link.py`, `screen.py`, `operator.py`, `trace.py`, `nanomuse/tools/phone.py` | connected devices and request/response over the app's WebSocket; the screen as a screenshot plus a caption; the operator loop (MemGUI `mobile_use` dialect, coordinates on a 999 grid) with its own model; JSONL traces and their HTML rendering; `phone_screen` / `phone_act` / `phone_task` and their Sentinel assessment ([gui.md](gui.md)) |
 | LLM | `nanomuse/llm/base.py`, `openai_chat.py`, `openai_responses.py`, `prompt_tools.py`, `factory.py`, `mock.py`; `catalogue.py` + `providers.json`, `chatgpt.py`, `codex.py`, `chatgpt_proxy.py` | `BaseLLM`, streaming with `<think>` filter, retries, prompt-based tool calling, `MockLLM` for tests; the provider catalogue (who covers chat, vision, image, video); the ChatGPT sign-in (PKCE, the token store) and the Chat Completions ↔ Codex Responses translation behind `provider = "chatgpt"` and `nanomuse chatgpt proxy` |
-| Memory, goals | `nanomuse/memory/store.py`, `nanomuse/memory/consolidate.py`, `nanomuse/goals/store.py` | SQLite; rare-word (IDF) ranking for memory injection, words in any alphabetic script plus CJK bigrams; the tidy-up planner and its checks, which refuse a merge they cannot judge; a change log with undo |
+| Memory, goals | `nanomuse/memory/store.py`, `nanomuse/memory/consolidate.py`, `nanomuse/goals/store.py` | SQLite; keyword and meaning-based retrieval read the whole store, not the listing's 1,000-row default, and the keyword postings are reused until the database changes (edits, forgets, restores, writes from another connection); rare-word (IDF) ranking for memory injection, words in any alphabetic script plus CJK bigrams; the tidy-up planner and its checks, which refuse a merge they cannot judge; a change log with undo |
 | App server | `nanomuse/server/service.py`, `outbox.py`, `api.py`, `webui.py`, `events.py` | threads and workers, durable at-least-once hand-off for scheduled work, REST + WebSocket, `UI` implementation that turns callbacks into events, timeline persistence |
 | Front-end | `web/src/` | React + TypeScript + Tailwind; `store.tsx` (state, WebSocket), `screens/` (tabs), `components/` (cards, avatar, markdown) |
 | Terminal | `nanomuse/console.py`, `nanomuse/cli.py` | Rich console UI with inline approvals; Typer commands |
@@ -78,11 +78,6 @@ the previous valid JSON.
 | A Sentinel behaviour | `policy.py` for decisions, `gate.py` for what happens around execution |
 
 ## Tests
-
-Memory retrieval searches the whole store; the listing API's default 1,000-row limit
-does not limit keyword or vector candidates. Keyword postings are reused until the
-database changes, including edits, forgetting, restoring and writes from another
-connection. Vector recall still uses linear similarity search over the full corpus.
 
 ```bash
 python -m pytest -q                 # unit tests with MockLLM, no network

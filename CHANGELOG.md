@@ -8,6 +8,7 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Runtime
 
+- **Recall searches the whole memory store.** Keyword search and recall by meaning read every memory, not only the newest 1,000 the listing returns by default, so a fact written long ago — the landlord's name, a preference from the first week — is found again once the store has grown past that; the vectors of older memories are kept instead of being made again. The keyword index is built once and reused until the database changes (an edit, a forget, a restore, a write from another process), so a search over a large store is one pass over the index, not one over every row. From [#696](https://github.com/nano-muse/nanoMuse/pull/696).
 - **A contact's card folds its long lines at 75 octets.** `render_vcard` wrote a long Chinese note as one oversized line, past what RFC 6350 allows a content line to be, so a strict importer could reject or truncate it; the card now folds with the same UTF-8-safe cut the calendar's lines already use, never splitting a character, and a folded card parses back without loss.
 
 ### Web
@@ -47,7 +48,6 @@ Crew: four days after Logbook, a fifth look at the whole project with the sevent
 
 ### Runtime
 
-- **Recall searched the whole memory store.** Keyword and vector retrieval included facts older than the listing's 1,000-row default, kept their vectors, and reused keyword postings until the database changed.
 
 - **An embedding can bring its own browser.** A program that embeds the runtime gives the `Browser` tool a `backend_factory`, a callable returning a `BrowserBackend`; a new session takes that backend instead of Playwright or the phone and is driven, shown, taken over and closed like the built-in ones, with the Sentinel in front of every URL as before. The app sees `custom` as the backend until the first session, then the backend's own kind. No setting; a Python integration point. ([#676](https://github.com/nano-muse/nanoMuse/issues/676))
 - **A file kept to its owner stays that way on Windows too.** Every private write in the runtime — the calendar cache, the address book (its cache and the own export), the channel tokens, the settings file, the ChatGPT token, the vault key and store, the push tokens, a contacts `.vcf` someone connected — ended with `chmod 0600`, and on Windows `chmod` clears a read-only flag and nothing else: the file kept the access rules its folder handed down, so on a machine with other local accounts each of those was readable by every one of them. One `keep_private()` ends those writes now: the mode where a mode exists, the ACL where it does not (inheritance off, the one account alone in full control). A service with no `USERNAME` keeps the file's default rules.
