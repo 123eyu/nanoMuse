@@ -119,6 +119,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Project
 
+- **GUI regression gained 20 fixed simulated tasks and independent state checks.** Reference mode ran offline in CI, an opt-in runner used a configured model, and a standalone recorder reported model calls, latency and available token usage. The cases also corrected loop detection for identical click coordinates on different pages. [GUI regression](docs/gui-regression.md).
+
 - An *iOS · Beta group* workflow hands a TestFlight build to the external group *nanoMuse Beta* and submits it for Apple's beta review (*Run workflow* with the build number and a note), so the public link gets a version without a sign-in to App Store Connect.
 - The harness bundle workflow builds a branch once, through its pull request (and main and the release tags as before); a push to a branch with a pull request open ran the Linux and Windows jobs twice.
 
