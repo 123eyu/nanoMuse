@@ -6,6 +6,24 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Cloud
 
+### Runtime
+
+### Web
+
+### Desktop
+
+### Android
+
+### iOS
+
+### Project
+
+## [1.0.9] - 2026-10-29 · Tiller
+
+Tiller: a fix release the same day as Crew. The 1.0.8 desktop did not start for anyone who was signed in: the plugin waited for a settings write while the plugins were still starting, and the write waits for the plugins ([#703](https://github.com/nano-muse/nanoMuse/pull/703), for [#701](https://github.com/nano-muse/nanoMuse/issues/701)); the hosted relay's console stopped loading because one query of the *Usage* page walked the whole record while holding the read connection's lock ([#708](https://github.com/nano-muse/nanoMuse/pull/708)). Both are fixed, with the three runtime changes merged in between: a task can be given a budget and recall reads the whole memory store, by @hobostay ([#697](https://github.com/nano-muse/nanoMuse/pull/697), [#696](https://github.com/nano-muse/nanoMuse/pull/696)), and a contact's card folds its long lines, by @Yicheng-Mark ([#702](https://github.com/nano-muse/nanoMuse/pull/702)). Nothing changed on the phones. The relay is 0.31.1.
+
+### Cloud
+
 - **The console's pages load again on a large relay.** The *Usage* page's table of the turns people ran on keys of their own read a week of them from the record itself, where a turn's provider and cached count sit behind its request and answer; on a relay holding tens of gigabytes one call took minutes and, holding the read connection's lock, left *Overview* and every other page at "loading". The relay now keeps those figures in one small row per own turn (`own_figures`), written with the turn and filled in for older turns by a paced backfill after the restart, and the table reads them in milliseconds. The console's usage answer carries `own_keys_pending` while the backfill is still running.
 
 ### Runtime
@@ -14,17 +32,9 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 - **Recall searches the whole memory store.** Keyword search and recall by meaning read every memory, not only the newest 1,000 the listing returns by default, so a fact written long ago — the landlord's name, a preference from the first week — is found again once the store has grown past that; the vectors of older memories are kept instead of being made again. The keyword index is built once and reused until the database changes (an edit, a forget, a restore, a write from another process), so a search over a large store is one pass over the index, not one over every row. From [#696](https://github.com/nano-muse/nanoMuse/pull/696).
 - **A contact's card folds its long lines at 75 octets.** `render_vcard` wrote a long Chinese note as one oversized line, past what RFC 6350 allows a content line to be, so a strict importer could reject or truncate it; the card now folds with the same UTF-8-safe cut the calendar's lines already use, never splitting a character, and a folded card parses back without loss.
 
-### Web
-
 ### Desktop
 
 - **The 1.0.8 desktop starts again when you are signed in.** The plugin pointed the `nanoMuse Cloud` provider row at the loopback door it opens for the relay and waited for that settings write while the plugins were still starting; the write waits for the plugins, so the Host never announced its address and the window sat on *Starting…* for good, with *nanoMuse is still starting* every ten minutes — on the first start after the 1.0.7 upgrade (the row named the relay itself) and on every start after a sign-in (the door's port was each start's own). Reported for the Mac in [#701](https://github.com/nano-muse/nanoMuse/issues/701); every platform had it. The door now asks for the port it had last, so the row is usually right as it is, and when it is not the row is rewritten once the Host is up, without being waited for. A fresh install was never affected, which is why the release check passed.
-
-### Android
-
-### iOS
-
-### Project
 
 ## [1.0.8] - 2026-10-29 · Crew
 
