@@ -6,6 +6,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Cloud
 
+- **The console's pages load again on a large relay.** The *Usage* page's table of the turns people ran on keys of their own read a week of them from the record itself, where a turn's provider and cached count sit behind its request and answer; on a relay holding tens of gigabytes one call took minutes and, holding the read connection's lock, left *Overview* and every other page at "loading". The relay now keeps those figures in one small row per own turn (`own_figures`), written with the turn and filled in for older turns by a paced backfill after the restart, and the table reads them in milliseconds. The console's usage answer carries `own_keys_pending` while the backfill is still running.
+
 ### Runtime
 
 - **A contact's card folds its long lines at 75 octets.** `render_vcard` wrote a long Chinese note as one oversized line, past what RFC 6350 allows a content line to be, so a strict importer could reject or truncate it; the card now folds with the same UTF-8-safe cut the calendar's lines already use, never splitting a character, and a folded card parses back without loss.
