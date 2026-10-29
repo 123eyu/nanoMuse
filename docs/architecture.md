@@ -79,6 +79,11 @@ the previous valid JSON.
 
 ## Tests
 
+Memory retrieval searches the whole store; the listing API's default 1,000-row limit
+does not limit keyword or vector candidates. Keyword postings are reused until the
+database changes, including edits, forgetting, restoring and writes from another
+connection. Vector recall still uses linear similarity search over the full corpus.
+
 ```bash
 python -m pytest -q                 # unit tests with MockLLM, no network
 NANOMUSE_LIVE=1 python -m pytest -q -m live    # smoke test against your configured model
