@@ -468,7 +468,10 @@ class MuseAgent:
         finally:
             try:
                 self.last_budget = budget.snapshot()
-                self.audit.record("task_budget", **self.last_budget)
+                # a line in the audit log when a budget is in force or was reached; a task
+                # with no limits set leaves the log as it was
+                if budget.limited or budget.stopped:
+                    self.audit.record("task_budget", **self.last_budget)
             finally:
                 task_budget.end(token)
 

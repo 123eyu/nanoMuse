@@ -40,7 +40,9 @@ the tool output, so a missing detail can be traced in the runtime log.
 
 `max_total_tokens` accumulates input and output across model calls in one `run()`.
 Requests reserve estimated input and reduce `max_tokens` to the remaining allowance.
-Provider-reported usage replaces the estimate when available. Missing usage, failed
+Provider-reported usage replaces the estimate when available. With neither a token nor
+a cost limit set, a request is not estimated before it goes and its `max_tokens` is left
+as the call set it; what the provider reports is still counted. Missing usage, failed
 requests and cancelled streams reserve the estimated input and full output allowance.
 Retries made by the Agent and the operator share the same task budget. A new turn
 starts a new budget; nested phone and computer operators inherit the parent's budget.
@@ -60,6 +62,7 @@ The budget limits application requests, not the provider's invoice.
 
 Standalone operators use the same fields under `[gui.budget]`; inside a runtime Agent
 turn, `[agent.budget]` takes precedence. Limits are configured in TOML, not exposed as
-new controls in each app. Each runtime turn writes a `task_budget` audit entry, and
-`MuseAgent.last_budget` exposes its counters and stop reason. Operator outcomes carry
+new controls in each app. A turn that ran under a limit, or was stopped by one, writes a
+`task_budget` entry to the audit log; a task with no limit set leaves the log as it was.
+`MuseAgent.last_budget` exposes the counters and the stop reason either way. Operator outcomes carry
 the same counters for evaluation reports.

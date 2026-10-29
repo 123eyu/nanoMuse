@@ -107,6 +107,32 @@ async def test_missing_usage_reserves_full_output_and_retry_shares_budget():
         budgets.end(token)
 
 
+async def test_without_a_limit_nothing_is_estimated_capped_or_logged(settings: Settings):
+    # the default: no limit set — the request goes as the call made it, the provider's
+    # figures are still counted, and the audit log gets no task_budget line
+    messages = [Message.user("hi")]
+    token = budgets.begin(TaskBudgetSettings())
+    llm = MockLLM([LLMResponse(content="ok", usage={"prompt_tokens": 7, "completion_tokens": 3})])
+    try:
+        await budgets.ask(llm, messages)
+        assert llm.calls[0]["max_tokens"] is None
+        assert budgets.current().snapshot()["total_tokens"] == 10
+        assert budgets.current().estimated_calls == 0
+    finally:
+        budgets.end(token)
+    agent, _ = make_agent(settings, MockLLM([LLMResponse(content="done")]))
+    assert await agent.run("go") == "done"
+    assert agent.last_budget["calls"] == 1
+    lines = [json.loads(line) for line in settings.audit_file.read_text().splitlines()]
+    assert not [e for e in lines if e["event"] == "task_budget"]
+    # a limit in force: the line is written, whether or not it was reached
+    settings.agent.budget = TaskBudgetSettings(max_seconds=600)
+    agent, _ = make_agent(settings, MockLLM([LLMResponse(content="done")]))
+    assert await agent.run("go") == "done"
+    lines = [json.loads(line) for line in settings.audit_file.read_text().splitlines()]
+    assert [e["stopped"] for e in lines if e["event"] == "task_budget"] == [""]
+
+
 async def test_nested_scope_inherits_budget_and_parallel_tasks_are_isolated():
     async def work() -> int:
         token = budgets.begin(TaskBudgetSettings(max_total_tokens=50000), inherit=False)

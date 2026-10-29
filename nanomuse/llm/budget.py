@@ -68,6 +68,16 @@ class TaskBudget:
     def total_tokens(self) -> int:
         return self.input_tokens + self.output_tokens
 
+    @property
+    def metered(self) -> bool:
+        """Whether tokens or money are counted; without either, a request is not measured."""
+        return bool(self.limits.max_total_tokens or self.limits.max_cost_usd)
+
+    @property
+    def limited(self) -> bool:
+        """Whether any limit is set at all; with none, the task is accounted but never stopped."""
+        return self.metered or bool(self.limits.max_seconds)
+
     def allowance(self, incoming: int, requested: int) -> int:
         self.check()
         remaining = requested
@@ -139,16 +149,21 @@ async def ask(llm: BaseLLM, messages: list[Message], **kwargs: Any) -> LLMRespon
     budget = current()
     if budget is None:
         return await llm.ask(messages, **kwargs)
-    incoming = estimate_tokens(messages, kwargs.get("tools"))
-    requested = int(
-        kwargs.get("max_tokens")
-        or getattr(getattr(llm, "settings", None), "max_tokens", 4096)
-        or 4096
-    )
-    cap = budget.allowance(incoming, requested)
-    # Leave an unset output limit alone when no token/cost limit is in force.
-    if budget.limits.max_total_tokens or budget.limits.max_cost_usd:
+    # The estimate serializes the whole request; it is made only when tokens or money are
+    # counted. Without either, the output limit stays as the call set it, and what the
+    # provider reports is still recorded.
+    if budget.metered:
+        incoming = estimate_tokens(messages, kwargs.get("tools"))
+        requested = int(
+            kwargs.get("max_tokens")
+            or getattr(getattr(llm, "settings", None), "max_tokens", 4096)
+            or 4096
+        )
+        cap = budget.allowance(incoming, requested)
         kwargs["max_tokens"] = cap
+    else:
+        incoming = cap = 0
+        budget.check()
     budget.calls += 1
     timeout = (
         budget.limits.max_seconds - (time.monotonic() - budget.started)
