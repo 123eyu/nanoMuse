@@ -12,6 +12,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Desktop
 
+- **The 1.0.8 desktop starts again when you are signed in.** The plugin pointed the `nanoMuse Cloud` provider row at the loopback door it opens for the relay and waited for that settings write while the plugins were still starting; the write waits for the plugins, so the Host never announced its address and the window sat on *Starting…* for good, with *nanoMuse is still starting* every ten minutes — on the first start after the 1.0.7 upgrade (the row named the relay itself) and on every start after a sign-in (the door's port was each start's own). Reported for the Mac in [#701](https://github.com/nano-muse/nanoMuse/issues/701); every platform had it. The door now asks for the port it had last, so the row is usually right as it is, and when it is not the row is rewritten once the Host is up, without being waited for. A fresh install was never affected, which is why the release check passed.
+
 ### Android
 
 ### iOS
