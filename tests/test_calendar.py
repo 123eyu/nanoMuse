@@ -154,11 +154,11 @@ def test_a_long_chinese_line_folds_without_cutting_a_character():
     half, and unfolding has to give the line back exactly as it was escaped."""
     summary = "季度绩效沟通会: 目标回顾, 新目标与衡量方式; 请提前十分钟到场，带上本季度的项目进展"
     location = "上海南京西路 1266 号 3 楼大会议室"
-    note = "第一行：把上季度的三个目标逐条过一遍。\n第二行：新的目标要能衡量。\n第三行：带上笔记本。"
-    start = datetime(2026, 10, 8, 15, 0, tzinfo=TZ)
-    text = make_ics(
-        summary, start, start + timedelta(hours=1), location=location, description=note
+    note = (
+        "第一行：把上季度的三个目标逐条过一遍。\n第二行：新的目标要能衡量。\n第三行：带上笔记本。"
     )
+    start = datetime(2026, 10, 8, 15, 0, tzinfo=TZ)
+    text = make_ics(summary, start, start + timedelta(hours=1), location=location, description=note)
 
     physical = text.split("\r\n")
     assert all(len(line.encode()) <= 75 for line in physical), "no physical line is over 75 octets"
