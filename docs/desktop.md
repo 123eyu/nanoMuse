@@ -115,7 +115,11 @@ speaking as nanoMuse through the `nanomuse` preset, with:
 - **the rooms**: Feed, Ideas, Goals and Library as the phone has them, kept by the host in
   `nanomuse/rooms.json` and written by the agent in hidden chats (feed and ideas) or
   chats of their own (goals, with the harness's schedule plugin for their automations;
-  Library creations under `~/nanoMuse/Library`), plus memory: what it remembers about
+  Library creations under `~/nanoMuse/Library`; every chat the plugin opens, for the person,
+  for a batch of its own or for a task another device sent, starts in the `~/nanoMuse`
+  workspace, never in the bare home folder — on Windows a workspace that is the whole profile
+  folder cannot run a `workspace-write` command at all, since the sandbox's temp root lies
+  inside it, [#705](https://github.com/nano-muse/nanoMuse/issues/705)), plus memory: what it remembers about
   you, read into every chat ([desktop-muse.md](desktop-muse.md#rail-rooms));
 - **Reach**: this computer on the account's device list over the [hub](hub.md); the
   tools `devices`, `device_screen`, `device_shell`, `device_files`, `device_open`,
