@@ -132,6 +132,16 @@ infinite scroll shortened) and the `minis-*` paragraphs of the Android tools sec
 CLI's `--help` has the rest). Together about 5k characters, roughly an eighth of what every
 call carried before a single message.
 
+Context checks count the messages that would actually be sent, including ordinary message text,
+the summary, system instructions, tool definitions and images. The phone estimates non-ASCII
+text separately from English and adjusts upward when the provider reports a larger input count;
+this is still an estimate, not a model-specific tokenizer. Native audio keeps its provider-reported
+accounting; its base64 transport is not counted as ordinary text. It checks again after moving tool
+results to disk and after summarizing. A summary that frees no space stops the turn with the
+context-full notice instead of immediately asking for another summary. The existing limit of
+three automatic summaries per run still applies. Android uses this native loop, independently
+of the Python runtime's task budgets.
+
 While a turn has no first token yet, a small line sits under the typing dots (`NmWaitLine`):
 nothing for ten seconds, then *The model is busy, 15 s so far* with *Cancel*; and when
 nanoMuse Cloud has said the request is waiting for one of its provider slots (relay 0.31

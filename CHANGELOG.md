@@ -17,6 +17,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Android
 
+- **Fixed Chinese context estimates and stale checks after offload and compaction.** The native loop's fallback counted only structured parts, missing ordinary message text, and used an English character ratio for Chinese tool results. It now measures the effective request, including its system instructions, tool definitions and images, with a multilingual estimate calibrated upward from provider input usage. Offloading is rechecked before summarizing, and a summary that recovers no space stops the turn instead of immediately summarizing again. The existing per-run compaction limit remains. For [#719](https://github.com/nano-muse/nanoMuse/issues/719).
+
 ### iOS
 
 ### Project
