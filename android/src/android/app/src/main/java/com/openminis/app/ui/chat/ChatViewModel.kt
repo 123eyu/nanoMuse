@@ -2573,7 +2573,11 @@ class ChatViewModel(
      * Emits a one-shot [requestBudgetEvent] for the UI Snackbar so the
      * user knows older images were compacted into placeholders.
      */
-    private fun applyRequestImageBudget(messages: List<LLMMessage>): List<LLMMessage> {
+    // nanoMuse: estimates use a preview with no spillover writes or user notifications (#719).
+    private fun applyRequestImageBudget(
+        messages: List<LLMMessage>,
+        preview: Boolean = false,
+    ): List<LLMMessage> {
         // Collect every image in chronological order so the planner can
         // walk in reverse and protect the most recent images.
         // nanoMuse: `screenshot` marks a tool-result image (a screen the agent took), which the
@@ -2633,7 +2637,7 @@ class ChatViewModel(
             val existing = ref.image.linuxPath
             if (existing != null) {
                 resolvedPaths[id] = existing
-            } else if (attachmentsRoot != null) {
+            } else if (attachmentsRoot != null && !preview) { // nanoMuse: measuring must not write images (#719).
                 resolvedPaths[id] = ImageBudget.ensureSpillover(
                     attachmentsRoot, ref.image.data, ref.image.mimeType,
                 )
@@ -2676,11 +2680,13 @@ class ChatViewModel(
             mutated[mi] = msg.copy(contentParts = newParts)
         }
 
-        _requestBudgetEvent.tryEmit(plan)
-        AppLogger.info(
-            TAG,
-            "applyRequestImageBudget: dropped=${plan.droppedCount}/${plan.totalCount} keptBytes=${plan.keptBytes}B elidedBytes=${plan.elidedBytes}B",
-        )
+        if (!preview) { // nanoMuse: a size check is not a new image-budget event (#719).
+            _requestBudgetEvent.tryEmit(plan)
+            AppLogger.info(
+                TAG,
+                "applyRequestImageBudget: dropped=${plan.droppedCount}/${plan.totalCount} keptBytes=${plan.keptBytes}B elidedBytes=${plan.elidedBytes}B",
+            )
+        }
         return mutated
     }
 
@@ -3475,8 +3481,12 @@ class ChatViewModel(
      * Blocks until the compaction attempt settles, because the next API call
      * must read the freshly-compacted history.
      */
-    private suspend fun inLoopContextCheck(compactionsSoFar: Int): InLoopContextAction {
-        val tokens = _lastTurnContextTokens.value
+    // nanoMuse: check the current request after offload and compact, not stale provider usage (#719).
+    private suspend fun inLoopContextCheck(
+        compactionsSoFar: Int,
+        measureContextTokens: () -> Int,
+    ): InLoopContextAction {
+        val tokens = measureContextTokens()
         if (tokens <= 0) return InLoopContextAction.PROCEED
         val window = effectiveContextWindowTokens() ?: return InLoopContextAction.PROCEED
         val policy = ContextPolicy.forContextWindow(window)
@@ -3509,17 +3519,15 @@ class ChatViewModel(
                 )
                 val ok = awaitCompaction()
                 if (!ok) return InLoopContextAction.STOP
-                // [T-android-auto-compact-inloop] Invalidate the stale reading.
-                // `_lastTurnContextTokens` is only refreshed by a usage chunk,
-                // which needs a COMPLETED API call — but this path compacts and
-                // `continue`s without one. Leaving the pre-compaction value in
-                // place made the very next iteration read the same number and
-                // compact again immediately, burning the whole budget in
-                // seconds (observed on device: two compactions 3s apart, both
-                // logging an identical 66358). Zeroing it makes the guard
-                // PROCEED once, so the next real response measures the
-                // post-compaction size and the decision is made on fresh data.
-                _lastTurnContextTokens.value = 0
+                val afterTokens = measureContextTokens()
+                _lastTurnContextTokens.value = afterTokens
+                if (afterTokens >= tokens) {
+                    AppLogger.warning(
+                        TAG,
+                        "[AutoCompact] no space recovered ($tokens -> $afterTokens tokens) — stopping",
+                    )
+                    return InLoopContextAction.STOP
+                }
                 InLoopContextAction.COMPACTED
             }
 
@@ -7722,51 +7730,20 @@ class ChatViewModel(
     // or hits the model's context-exhausted error. Offload is lossless —
     // the data still exists, just on disk instead of in-prompt.
 
-    /**
-     * Char-based fallback estimate when the API hasn't reported a token
-     * baseline yet (first call in a turn). Mirrors iOS line 7451.
-     *
-     * Uses ~3.5 chars per token for mixed text + adds the tokenizer's
-     * image-aware count for image bytes. Underestimates JSON-heavy tool
-     * inputs slightly but is adequate as a "should we offload" gate —
-     * offload itself uses precise [BPETokenizer.countTokens] per-part
-     * for the candidate ranking.
-     */
-    private fun estimateContextTokens(): Int {
-        var totalChars = 0
-        var imageTokens = 0
-        for (msg in agentHistory) {
-            for (part in msg.contentParts) {
-                when (part) {
-                    is AgentContentPart.Text -> totalChars += part.text.length
-                    is AgentContentPart.ToolUse -> totalChars += part.input.toString().length
-                    is AgentContentPart.ToolResult -> {
-                        totalChars += part.content.length
-                        part.imageData?.let { imageTokens += BPETokenizer.countImageTokens(it) }
-                    }
-                    is AgentContentPart.ImageData -> {
-                        imageTokens += BPETokenizer.countImageTokens(part.data)
-                    }
-                }
-            }
-        }
-        return (totalChars / 3.5).toInt() + imageTokens
-    }
+    // nanoMuse: include canonical message text and the compacted history in the fallback (#719).
+    private fun estimateContextTokens(): Int = io.github.nanomuse.chat.ContextEstimate.request(
+        effectiveAgentHistory(),
+        imageTokens = BPETokenizer::countImageTokens,
+    )
 
     /**
      * Approximate token count for a single agent content part. Used to rank
-     * offload candidates by size. Matches iOS `BPETokenizer.countPartTokens`
-     * — text uses BPE, images use the grid-cell heuristic.
+     * offload candidates by size. Text uses the request's multilingual estimate;
+     * images use the grid-cell heuristic. // nanoMuse: same estimate as the guard (#719).
      */
-    private fun countPartTokens(part: AgentContentPart): Int = when (part) {
-        is AgentContentPart.Text -> BPETokenizer.countTokens(part.text)
-        is AgentContentPart.ToolUse -> BPETokenizer.countTokens(part.input.toString())
-        is AgentContentPart.ToolResult -> {
-            BPETokenizer.countTokens(part.content) +
-                (part.imageData?.let { BPETokenizer.countImageTokens(it) } ?: 0)
-        }
-        is AgentContentPart.ImageData -> BPETokenizer.countImageTokens(part.data)
-    }
+    // nanoMuse: rank offloads with the same multilingual estimate as the request guard (#719).
+    private fun countPartTokens(part: AgentContentPart): Int =
+        io.github.nanomuse.chat.ContextEstimate.part(part, BPETokenizer::countImageTokens)
 
     /**
      * Offload candidate descriptor. `msgIdx` and `partIdx` index back into
@@ -7809,6 +7786,7 @@ class ChatViewModel(
         contextWindow: Int,
         lastContextTokens: Int,
         force: Boolean = false,
+        calibrateTokens: (Int) -> Int = { it }, // nanoMuse: offload sizes use the request's scale (#719).
     ) {
         val sid = activeSessionId
         val policy = ContextPolicy.forContextWindow(contextWindow)
@@ -7868,7 +7846,7 @@ class ChatViewModel(
                             skippedTooSmall++
                             continue
                         }
-                        val tokens = countPartTokens(part)
+                        val tokens = calibrateTokens(countPartTokens(part)) // nanoMuse: match the calibrated total (#719).
                         val bytes = part.content.toByteArray(Charsets.UTF_8).size +
                             (part.imageData?.size ?: 0)
                         candidates.add(OffloadCandidate(msgIdx, partIdx, tokens, bytes, part.id, part.name))
@@ -7877,7 +7855,7 @@ class ChatViewModel(
                         if (part.name != "file_write" && part.name != "file_edit") continue
                         val content = part.input.optString("content", "")
                         if (content.length <= 500) continue
-                        val tokens = countPartTokens(part)
+                        val tokens = calibrateTokens(countPartTokens(part)) // nanoMuse: match the calibrated total (#719).
                         val bytes = content.toByteArray(Charsets.UTF_8).size
                         candidates.add(OffloadCandidate(msgIdx, partIdx, tokens, bytes, part.id, part.name))
                     }
@@ -7886,7 +7864,7 @@ class ChatViewModel(
                             skippedTooSmall++
                             continue
                         }
-                        val tokens = countPartTokens(part)
+                        val tokens = calibrateTokens(countPartTokens(part)) // nanoMuse: match the calibrated total (#719).
                         // Synthesize a tool id since bare images don't carry one.
                         val synthId = "img${msgIdx}_$partIdx"
                         candidates.add(OffloadCandidate(msgIdx, partIdx, tokens, part.data.size, synthId, "image"))
@@ -7965,8 +7943,10 @@ class ChatViewModel(
             parts[candidate.partIdx] = newPart
             agentHistory[candidate.msgIdx] = msg.copy(contentParts = parts)
 
-            currentTokens -= candidate.tokens
-            freedTokens += candidate.tokens
+            // nanoMuse: replacement stubs still occupy context; subtract only the recovered space (#719).
+            val recovered = minOf(currentTokens, (candidate.tokens - calibrateTokens(countPartTokens(newPart))).coerceAtLeast(0))
+            currentTokens -= recovered
+            freedTokens += recovered
             offloadedCount++
             val afterPct = (currentTokens.toLong() * 100 / contextWindow.coerceAtLeast(1)).toInt()
             AppLogger.info(
@@ -8108,6 +8088,26 @@ class ChatViewModel(
 
         // Fallback state — mirrors iOS streamWithGroupFallback
         var currentProvider = provider
+        // nanoMuse: calibrate a fresh outgoing request against measured usage without keeping stale sizes (#719).
+        val contextEstimate = io.github.nanomuse.chat.ContextEstimate.Calibration()
+        var estimatedProvider = currentProvider
+        var estimatedModel = currentProvider.model.id
+        fun alignContextEstimate() {
+            if (estimatedProvider !== currentProvider || estimatedModel != currentProvider.model.id) {
+                contextEstimate.reset()
+                estimatedProvider = currentProvider
+                estimatedModel = currentProvider.model.id
+            }
+        }
+        fun measureContextTokens(): Int {
+            alignContextEstimate()
+            val estimate = contextEstimate.estimate(io.github.nanomuse.chat.ContextEstimate.request(
+                applyRequestImageBudget(effectiveAgentHistory(), preview = true), systemPrompt, agentTools,
+                imageTokens = BPETokenizer::countImageTokens,
+            ))
+            lastContextTokens = estimate
+            return estimate
+        }
         val remainingFallbacks = fallbackProviders.toMutableList()
         val fallbackReasons = mutableListOf<String>()
 
@@ -8172,10 +8172,12 @@ class ChatViewModel(
             // [T-context-window-live-read] Live read per loop turn — a stale
             // snapshot inside a long-running agent turn is exactly the iOS
             // fcc22b66 item-3 bug.
+            lastContextTokens = measureContextTokens() // nanoMuse: include new tool results before offload (#719).
             effectiveContextWindowTokens()?.takeIf { it > 0 }?.let { window ->
                 offloadContextIfNeeded(
                     contextWindow = window,
                     lastContextTokens = lastContextTokens,
+                    calibrateTokens = contextEstimate::estimate, // nanoMuse: use the same scale for offload (#719).
                 )
             }
 
@@ -8187,7 +8189,7 @@ class ChatViewModel(
             // slam into the provider's context ceiling.
             //
             // Runs AFTER offload so it judges the post-offload size.
-            when (inLoopContextCheck(inLoopCompactions)) {
+            when (inLoopContextCheck(inLoopCompactions, ::measureContextTokens)) { // nanoMuse: remeasure after offload (#719).
                 InLoopContextAction.PROCEED -> {}
                 InLoopContextAction.COMPACTED -> {
                     // The next API call reads the freshly-compacted
@@ -8499,10 +8501,19 @@ class ChatViewModel(
                     // [_compactSummary] is prepended as a `<context-summary>`
                     // user message. Falls through to the raw agentHistory when
                     // no compact has happened, so the common path stays zero-copy.
+                    // nanoMuse: pair reported usage with this request, before any later tool output (#719).
+                    val requestMessages = applyRequestImageBudget(effectiveAgentHistory())
+                    val requestTools = agentTools
+                    val requestEstimate = io.github.nanomuse.chat.ContextEstimate.request(
+                        requestMessages, systemPrompt, requestTools,
+                        imageTokens = BPETokenizer::countImageTokens,
+                    )
+                    alignContextEstimate()
+                    lastContextTokens = contextEstimate.estimate(requestEstimate)
                     currentProvider.streamMessage(
-                        applyRequestImageBudget(effectiveAgentHistory()),
+                        requestMessages,
                         systemPrompt, dynamicMaxTokens(currentProvider, lastContextTokens),
-                        tools = agentTools,
+                        tools = requestTools,
                         thinkingLevel = if (currentModelSupportsReasoning) _thinkingLevel.value else ThinkingLevel.OFF,
                     ).collect { chunk ->
                 // [T-STALL-DIAG] Mark first byte back from the provider and log
@@ -8822,18 +8833,18 @@ class ChatViewModel(
                         // and publish to _lastTurnContextTokens so the ContextPolicy
                         // gate in [checkContextBeforeSend] can see the latest pressure
                         // without a DB round-trip.
-                        if (chunk.usage.latestContextTokens > 0) {
-                            lastContextTokens = chunk.usage.latestContextTokens
-                        } else if (chunk.usage.inputTokens > 0) {
-                            // Fallback when a provider omits latestContextTokens: inputTokens is
-                            // now fresh-only (cached portion subtracted in the parser), so add the
-                            // cache back to recover the true context size — otherwise a high
-                            // cache-hit turn would under-report context pressure and skip offload.
-                            lastContextTokens = chunk.usage.inputTokens +
+                        // nanoMuse: calibrate only input actually reported by this chunk (#719).
+                        val actualContextTokens = if (chunk.usage.latestContextTokens > 0) {
+                            chunk.usage.latestContextTokens
+                        } else {
+                            // inputTokens excludes cached input; include it even on a full cache hit.
+                            chunk.usage.inputTokens +
                                 (chunk.usage.cacheReadInputTokens ?: 0) +
                                 (chunk.usage.cacheCreationInputTokens ?: 0)
                         }
-                        if (lastContextTokens > 0) {
+                        if (actualContextTokens > 0) {
+                            lastContextTokens = actualContextTokens
+                            contextEstimate.observe(actualContextTokens, requestEstimate)
                             _lastTurnContextTokens.value = lastContextTokens
                         }
                     }
