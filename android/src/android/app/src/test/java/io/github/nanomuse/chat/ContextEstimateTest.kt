@@ -7,6 +7,8 @@ import com.openminis.app.data.model.LLMMessage
 import com.openminis.app.data.model.LLMUsage
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -86,7 +88,8 @@ class ContextEstimateTest {
             }
         }
         val before = ContextEstimate.request(history)
-        assertTrue(before >= ContextBudget.COMPACT_TOKENS)
+        val budget = ContextBudget.forModel(48_000, 8_192)
+        assertTrue(before >= budget.compactThreshold)
         val offloaded = history.map { message ->
             message.copy(contentParts = message.contentParts.map { part ->
                 if (part is AgentContentPart.ToolResult) {
@@ -94,7 +97,7 @@ class ContextEstimateTest {
                 } else part
             })
         }
-        assertTrue(ContextEstimate.request(offloaded) < ContextBudget.OFFLOAD_TARGET_TOKENS)
+        assertTrue(ContextEstimate.request(offloaded) < budget.targetTokens)
         assertEquals(before, ContextEstimate.request(history))
         assertTrue(history.flatMap { it.contentParts }.filterIsInstance<AgentContentPart.ToolResult>()
             .all { it.content == output })
@@ -140,7 +143,7 @@ class ContextEstimateTest {
         val audio = LLMMessage.AudioPart(
             "wav", java.util.Base64.getEncoder().encodeToString(ByteArray(96 * 1024)),
         )
-        assertTrue(ContextEstimate.text(audio.base64Data) >= ContextBudget.COMPACT_TOKENS)
+        assertTrue(ContextEstimate.text(audio.base64Data) >= 32_000)
         assertEquals(
             ContextEstimate.request(listOf(message)),
             ContextEstimate.request(listOf(message.copy(audioParts = listOf(audio)))),
@@ -148,30 +151,67 @@ class ContextEstimateTest {
     }
 
     @Test
-    fun `provider calibration follows smaller requests instead of retaining old usage`() {
+    fun `calibration follows smaller requests and recovers from a high sample`() {
         val calibration = ContextEstimate.Calibration()
-        val large = ContextEstimate.request(listOf(user("中文报告".repeat(5000))))
-        calibration.observe(actualTokens = large * 2, localEstimate = large)
-        assertEquals(large * 2, calibration.estimate(large))
-        val small = ContextEstimate.request(listOf(user("报告已移至文件，仅保留摘要。")))
-        assertEquals(small * 2, calibration.estimate(small))
-        assertTrue(calibration.estimate(small) < ContextBudget.OFFLOAD_TARGET_TOKENS)
-        calibration.observe(actualTokens = 0, localEstimate = small)
-        calibration.observe(actualTokens = small / 2, localEstimate = small)
-        assertEquals(small * 2, calibration.estimate(small))
+        assertTrue(calibration.observe(actualTokens = 40_000, localEstimate = 20_000))
+        assertEquals(25_000, calibration.estimate(20_000))
+        assertEquals(125, calibration.estimate(100))
+        repeat(20) { calibration.observe(actualTokens = 10_000, localEstimate = 20_000) }
+        assertTrue(calibration.estimate(20_000) in 10_000..10_100)
+        assertTrue(calibration.estimate(100) < 100)
         calibration.reset()
-        assertEquals(small, calibration.estimate(small))
+        assertEquals(100, calibration.estimate(100))
+        assertEquals(0, calibration.snapshot().samples)
     }
 
     @Test
-    fun `opaque image and calibration counts saturate instead of wrapping below zero`() {
+    fun `bad usage samples cannot poison later estimates`() {
+        val calibration = ContextEstimate.Calibration()
+        val badSamples = listOf(
+            0 to 20_000, -1 to 20_000, 1000 to 0, 1000 to 127,
+            Int.MAX_VALUE to 20_000, 20_000 to Int.MAX_VALUE,
+            100_000 to 1000, 100 to 20_000,
+        )
+        for ((actual, local) in badSamples) assertFalse(calibration.observe(actual, local))
+        assertEquals(ContextEstimate.Snapshot(), calibration.snapshot())
+        assertEquals(32_038, calibration.estimate(32_038))
+    }
+
+    @Test
+    fun `usage anchor charges only appended content and rejects a shorter rewritten prompt`() {
+        val calibration = ContextEstimate.Calibration(ContextEstimate.Snapshot(scale = 0.5, samples = 10))
+        val anchor = ContextEstimate.UsageAnchor(actualInputTokens = 15_000, localInputEstimate = 40_000)
+        assertEquals(15_000, anchor.estimateAppendOnly(40_000, calibration))
+        assertEquals(16_000, anchor.estimateAppendOnly(42_000, calibration))
+        assertNull(anchor.estimateAppendOnly(20_000, calibration))
+        // Offload/compaction uses a fresh estimate after the caller discards the old anchor.
+        assertEquals(10_000, calibration.estimate(20_000))
+        assertNull(ContextEstimate.UsageAnchor(0, 1000).estimateAppendOnly(2000, calibration))
+    }
+
+    @Test
+    fun `unsupported and corrupt persisted calibration returns to the conservative heuristic`() {
+        for (snapshot in listOf(
+            ContextEstimate.Snapshot(version = -1, scale = 2.0),
+            ContextEstimate.Snapshot(scale = Double.NaN),
+            ContextEstimate.Snapshot(scale = Double.POSITIVE_INFINITY),
+            ContextEstimate.Snapshot(scale = 50.0),
+            ContextEstimate.Snapshot(scale = 0.0),
+            ContextEstimate.Snapshot(samples = -1),
+        )) assertEquals(1000, ContextEstimate.Calibration(snapshot).estimate(1000))
+    }
+
+    @Test
+    fun `opaque image and calibrated counts saturate instead of wrapping below zero`() {
         val image = LLMMessage.ImagePart(byteArrayOf(1), "image/png")
         assertEquals(Int.MAX_VALUE, ContextEstimate.request(
             listOf(user("read").copy(imageParts = listOf(image, image))),
             imageTokens = { Int.MAX_VALUE },
         ))
-        val calibration = ContextEstimate.Calibration()
-        calibration.observe(actualTokens = Int.MAX_VALUE, localEstimate = 1)
-        assertEquals(Int.MAX_VALUE, calibration.estimate(1000))
+        val calibration = ContextEstimate.Calibration(ContextEstimate.Snapshot(scale = 4.0, samples = 1))
+        assertEquals(Int.MAX_VALUE, calibration.estimate(Int.MAX_VALUE))
+        assertEquals(0, calibration.estimate(-1))
+        assertEquals(Int.MAX_VALUE, ContextEstimate.UsageAnchor(Int.MAX_VALUE - 1, 1000)
+            .estimateAppendOnly(Int.MAX_VALUE, calibration))
     }
 }

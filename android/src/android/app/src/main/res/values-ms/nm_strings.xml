@@ -1218,4 +1218,7 @@
     <string name="nm_context_compact_deferred">Konteks tidak dapat dipendekkan. Pemprosesan diteruskan kerana masih muat dalam tetingkap konteks model.</string>
     <string name="nm_context_limit_reached">Konteks menghampiri had model dan tidak dapat dipendekkan. Cuba ringkaskan semula atau mulakan perbualan baharu.</string>
     <string name="nm_context_compact_timeout">Peringkasan konteks tamat masa selepas %1$d saat (%2$d panggilan model).</string>
+    <string name="nm_context_compact_idle_timeout">Pemadatan dihentikan selepas %1$d saat tanpa respons (%2$d panggilan model).</string>
+    <string name="nm_context_compact_no_gain">Ringkasan tidak memendekkan konteks. Kandungan asal dikekalkan.</string>
+    <string name="nm_context_compact_incomplete">Model tidak mengembalikan ringkasan lengkap. Konteks asal dikekalkan.</string>
 </resources>

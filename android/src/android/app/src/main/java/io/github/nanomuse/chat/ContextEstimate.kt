@@ -5,15 +5,14 @@ import com.openminis.app.data.model.AgentToolDefinition
 import com.openminis.app.data.model.LLMMessage
 import com.openminis.app.data.model.LLMUsage
 import kotlin.math.ceil
-import kotlin.math.max
 
 /**
  * A conservative request-size estimate, not a tokenizer or a provider's bill.
  *
  * ASCII costs about one token per four characters. Non-ASCII BMP code points cost two,
  * and supplementary code points four, so Chinese and emoji do not inherit an English-only
- * character divisor. These are heuristics: [Calibration] raises them when a provider reports
- * a larger input count. Images use the caller's counter, independently of their byte size.
+ * character divisor. [Calibration] adapts this heuristic to measured provider input usage.
+ * Images use the caller's counter, independently of their byte size.
  */
 object ContextEstimate {
     private const val MESSAGE_OVERHEAD = 3
@@ -97,30 +96,73 @@ object ContextEstimate {
         return total.toInt()
     }
 
+    const val CALIBRATION_VERSION = 1
+    private const val MIN_CALIBRATION_SCALE = 0.25
+    private const val MAX_CALIBRATION_SCALE = 4.0
+    private const val MIN_CALIBRATION_INPUT = 128
+    private const val CALIBRATION_WEIGHT = 0.25
+
+    /** Only numeric calibration state is persisted, never a conversation or provider credential. */
+    data class Snapshot(
+        val version: Int = CALIBRATION_VERSION,
+        val scale: Double = 1.0,
+        val samples: Int = 0,
+    ) {
+        fun isValid(): Boolean = version == CALIBRATION_VERSION && scale.isFinite() &&
+            scale in MIN_CALIBRATION_SCALE..MAX_CALIBRATION_SCALE && samples >= 0
+    }
+
     /**
-     * Provider usage calibrates a ratio, never a fixed floor left over from an older request.
-     * Re-estimating a request after offload or compaction therefore reflects the smaller input.
-     * Keep the highest observed ratio for this provider/model; a lower count cannot make the
-     * local heuristic less cautious. The owner resets it when the provider or model changes.
+     * A provider/model-specific, smoothed ratio. Both upward and downward corrections are
+     * needed: a single large ratio must not leave every future request permanently "full".
+     * Call once with the completed response's input usage and the exact request estimate.
+     * Ignore tiny inputs, saturated counts and implausible ratios rather than persisting them.
      */
-    class Calibration {
-        private var scale = 1.0
+    class Calibration(snapshot: Snapshot = Snapshot()) {
+        private var state = snapshot.takeIf { it.isValid() } ?: Snapshot()
 
         @Synchronized
-        fun observe(actualTokens: Int, localEstimate: Int) {
-            if (actualTokens <= 0 || localEstimate <= 0) return
-            scale = max(scale, actualTokens.toDouble() / localEstimate)
+        fun observe(actualTokens: Int, localEstimate: Int): Boolean {
+            if (actualTokens <= 0 || actualTokens == Int.MAX_VALUE ||
+                localEstimate < MIN_CALIBRATION_INPUT || localEstimate == Int.MAX_VALUE
+            ) return false
+            val observed = actualTokens.toDouble() / localEstimate
+            if (observed !in MIN_CALIBRATION_SCALE..MAX_CALIBRATION_SCALE) return false
+            state = Snapshot(
+                scale = state.scale + CALIBRATION_WEIGHT * (observed - state.scale),
+                samples = (state.samples.toLong() + 1).coerceAtMost(Int.MAX_VALUE.toLong()).toInt(),
+            )
+            return true
         }
 
         @Synchronized
         fun estimate(localEstimate: Int): Int {
-            val scaled = localEstimate.coerceAtLeast(0).toDouble() * scale
+            val scaled = localEstimate.coerceAtLeast(0).toDouble() * state.scale
             return if (scaled >= Int.MAX_VALUE) Int.MAX_VALUE else ceil(scaled).toInt()
         }
 
         @Synchronized
+        fun snapshot(): Snapshot = state
+
+        @Synchronized
         fun reset() {
-            scale = 1.0
+            state = Snapshot()
+        }
+    }
+
+    /**
+     * An input usage anchor for an unchanged request prefix. The caller must discard it after
+     * compaction, offload, prompt/schema changes, image rewriting or a provider/model switch.
+     * It is deliberately not persisted. Appended assistant/tool messages are charged as a
+     * delta, so a conservative heuristic cannot override the server's known prefix size.
+     */
+    data class UsageAnchor(val actualInputTokens: Int, val localInputEstimate: Int) {
+        fun estimateAppendOnly(currentLocalEstimate: Int, calibration: Calibration): Int? {
+            if (actualInputTokens <= 0 || actualInputTokens == Int.MAX_VALUE ||
+                localInputEstimate <= 0 || localInputEstimate == Int.MAX_VALUE ||
+                currentLocalEstimate < localInputEstimate
+            ) return null
+            return add(actualInputTokens, calibration.estimate(currentLocalEstimate - localInputEstimate))
         }
     }
 }

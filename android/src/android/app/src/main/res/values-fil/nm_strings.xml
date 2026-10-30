@@ -1222,4 +1222,7 @@
     <string name="nm_context_compact_deferred">Hindi napaikli ang konteksto. Magpapatuloy dahil kasya pa ito sa context window ng modelo.</string>
     <string name="nm_context_limit_reached">Malapit na ang konteksto sa limitasyon ng modelo at hindi ito napaikli. Subukang paikliin muli o magsimula ng bagong chat.</string>
     <string name="nm_context_compact_timeout">Lumampas sa takdang oras ang pagpapaikli ng konteksto pagkalipas ng %1$d segundo (%2$d tawag sa modelo).</string>
+    <string name="nm_context_compact_idle_timeout">Huminto ang pagpapaikli ng konteksto matapos ang %1$d segundo na walang tugon (%2$d tawag sa modelo).</string>
+    <string name="nm_context_compact_no_gain">Hindi napaikli ng buod ang konteksto. Pinanatili ang orihinal na nilalaman.</string>
+    <string name="nm_context_compact_incomplete">Hindi nagbalik ang modelo ng kumpletong buod. Pinanatili ang orihinal na konteksto.</string>
 </resources>

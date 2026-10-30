@@ -1188,4 +1188,7 @@
     <string name="nm_context_compact_deferred">暫時無法縮短上下文，但仍在模型容量範圍內，繼續處理。</string>
     <string name="nm_context_limit_reached">上下文已接近模型容量上限，暫時無法縮短。請重試壓縮，或開啟新對話。</string>
     <string name="nm_context_compact_timeout">整理上下文在 %1$d 秒後逾時（呼叫模型 %2$d 次）。</string>
+    <string name="nm_context_compact_idle_timeout">模型連續 %1$d 秒未傳回資料，已停止整理上下文（呼叫模型 %2$d 次）。</string>
+    <string name="nm_context_compact_no_gain">摘要未縮短上下文，已保留原有內容。</string>
+    <string name="nm_context_compact_incomplete">模型未傳回完整摘要，已保留原有上下文。</string>
 </resources>

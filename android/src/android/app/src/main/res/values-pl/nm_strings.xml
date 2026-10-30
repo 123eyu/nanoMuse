@@ -1230,4 +1230,7 @@
     <string name="nm_context_compact_deferred">Nie udało się skrócić kontekstu. Przetwarzanie będzie kontynuowane, ponieważ kontekst nadal mieści się w oknie modelu.</string>
     <string name="nm_context_limit_reached">Kontekst zbliża się do limitu modelu i nie udało się go skrócić. Spróbuj skrócić go ponownie lub rozpocznij nowy czat.</string>
     <string name="nm_context_compact_timeout">Skracanie kontekstu przekroczyło limit czasu po %1$d sekundach (%2$d wywołań modelu).</string>
+    <string name="nm_context_compact_idle_timeout">Kompresja została zatrzymana po %1$d sekundach bez odpowiedzi (%2$d wywołań modelu).</string>
+    <string name="nm_context_compact_no_gain">Podsumowanie nie skróciło kontekstu. Zachowano oryginalną treść.</string>
+    <string name="nm_context_compact_incomplete">Model nie zwrócił pełnego podsumowania. Zachowano oryginalny kontekst.</string>
 </resources>

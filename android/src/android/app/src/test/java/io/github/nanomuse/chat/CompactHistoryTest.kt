@@ -35,9 +35,9 @@ class CompactHistoryTest {
             toolRound("read", "确认型号和价格")
         val history = older + active
         val before = ContextEstimate.request(history)
-        assertTrue(before > ContextBudget.COMPACT_TOKENS)
+        assertTrue(before > 32_000)
 
-        val recent = CompactHistory.retainRecentTurns(history)
+        val recent = CompactHistory.retainRecentTurns(history, maxTokens = 8_000)
         assertEquals(active, recent)
         assertTrue(ContextEstimate.request(recent) < 8_000)
         assertEquals(before, ContextEstimate.request(history))
@@ -76,10 +76,10 @@ class CompactHistoryTest {
     @Test
     fun `small history and a history without a safe boundary stay unchanged`() {
         val small = listOf(user("问题一"), assistant("答复一"), user("问题二"))
-        assertSame(small, CompactHistory.retainRecentTurns(small))
+        assertSame(small, CompactHistory.retainRecentTurns(small, maxTokens = 8_000))
         val resultsOnly = toolRound("active", "不要丢失结果")
         assertSame(resultsOnly, CompactHistory.retainRecentTurns(resultsOnly, maxTokens = 0))
-        assertTrue(CompactHistory.retainRecentTurns(emptyList()).isEmpty())
+        assertTrue(CompactHistory.retainRecentTurns(emptyList(), maxTokens = 8_000).isEmpty())
     }
 
     @Test
@@ -91,6 +91,35 @@ class CompactHistoryTest {
         assertEquals(active, CompactHistory.retainRecentTurns(history, maxTokens = 200) {
             ContextEstimate.request(it) * 2
         })
+    }
+
+    @Test
+    fun `replay grows with model budget but charges fixed instructions and summary first`() {
+        val older = listOf(user("earlier"), assistant("a".repeat(40_000)))
+        val active = listOf(user("current")) + toolRound("current", "result")
+        val history = older + active
+        val small = ContextBudget.forModel(24_000, 4_096, fixedTokens = 4_000)
+        val large = ContextBudget.forModel(128_000, 8_192, fixedTokens = 4_000)
+        assertEquals(active, CompactHistory.retainForBudget(history, small, summaryTokens = 2_000))
+        assertEquals(history, CompactHistory.retainForBudget(history, large, summaryTokens = 2_000))
+        assertEquals(active, CompactHistory.retainForBudget(history, large, summaryTokens = large.targetTokens))
+        assertEquals(older + active, history)
+    }
+
+    @Test
+    fun `optional history does not force an old turn into a separately protected active request`() {
+        val older = listOf(user("earlier")) + toolRound("old", "a".repeat(4000))
+        val newestOld = listOf(user("last completed task")) + toolRound("completed", "done")
+        assertTrue(CompactHistory.retainRecentTurns(
+            older + newestOld, maxTokens = 0, keepNewestTurn = false,
+        ).isEmpty())
+        assertTrue(CompactHistory.retainRecentTurns(
+            older, maxTokens = 100, keepNewestTurn = false,
+        ).isEmpty())
+        assertEquals(newestOld, CompactHistory.retainRecentTurns(
+            older + newestOld, maxTokens = 100, keepNewestTurn = false,
+        ))
+        assertEquals(newestOld, CompactHistory.retainRecentTurns(older + newestOld, maxTokens = 0))
     }
 
     @Test

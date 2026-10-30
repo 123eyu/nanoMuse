@@ -1218,4 +1218,7 @@
     <string name="nm_context_compact_deferred">ไม่สามารถย่อบริบทได้ แต่ยังอยู่ภายในขีดจำกัดของโมเดล จึงดำเนินการต่อ</string>
     <string name="nm_context_limit_reached">บริบทใกล้ถึงขีดจำกัดของโมเดลและไม่สามารถย่อได้ ลองย่ออีกครั้งหรือเริ่มแชตใหม่</string>
     <string name="nm_context_compact_timeout">การย่อบริบทหมดเวลาหลังจาก %1$d วินาที (เรียกใช้โมเดล %2$d ครั้ง)</string>
+    <string name="nm_context_compact_idle_timeout">หยุดย่อบริบทหลังจากไม่มีการตอบกลับเป็นเวลา %1$d วินาที (เรียกโมเดล %2$d ครั้ง)</string>
+    <string name="nm_context_compact_no_gain">สรุปไม่ได้ทำให้บริบทสั้นลง จึงเก็บเนื้อหาเดิมไว้</string>
+    <string name="nm_context_compact_incomplete">โมเดลไม่ได้ส่งคืนสรุปที่สมบูรณ์ จึงเก็บบริบทเดิมไว้</string>
 </resources>
