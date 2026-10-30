@@ -68,6 +68,7 @@ enum NanoMuseHubErrors {
         case "not_controllable", "self_call": return AppLocalized("That device cannot be asked to do things.")
         case "unknown_agent": return AppLocalized("That coding agent is not on the computer.")
         case "no_session": return AppLocalized("That session is not on the computer any more.")
+        case "failed": return AppLocalized("The task did not start on the computer.")
         case "unknown_action": return AppLocalized("The computer runs an older nanoMuse that does not know this action.")
         case "bad_key", "bad_device": return AppLocalized("Signed out on the relay; sign in again.")
         default:

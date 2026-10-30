@@ -67,7 +67,9 @@ class ReachOffloadHandler(private val context: Context) : NativeOffloadHandler {
                 else -> NativeOffloadResult(2, "nanomuse-pc: unknown subcommand '$sub'\n$HELP")
             }
         } catch (e: Computers.ReachException) {
-            failed(sub, computer, "${computer.name} answered ${e.code}: ${e.message}")
+            // a task's refusal comes with its own sentence from that Muse ("the task could not
+            // start in this chat"); a raw status code would only get in the way of it (#718)
+            failed(sub, computer, if (sub == "task") "${computer.name} did not run the task: ${e.message}" else "${computer.name} answered ${e.code}: ${e.message}")
         } catch (e: java.io.IOException) {
             AppLogger.warning(TAG, "$sub on ${computer.name}: ${e.message}")
             failed(sub, computer, "${computer.name} does not answer: ${e.message ?: e.javaClass.simpleName}. Is nanoMuse still running there?")
@@ -126,8 +128,12 @@ class ReachOffloadHandler(private val context: Context) : NativeOffloadHandler {
                 "step", "thinking", "text" -> ev.optString("text").ifBlank { ev.optString("tool") }.takeIf { it.isNotBlank() }?.let { steps.put(JSONObject().put("step", it.take(200))) }
             }
         }
+        // A call that comes back with no words is not a task that ran and said nothing (#718):
+        // the person is told it did not answer, never left with "ok" that reads as "Done".
+        val answer = r.optString("text").trim()
+        if (answer.isEmpty()) return failed("task", c, "${c.name} finished the task without an answer.")
         return ok(
-            JSONObject().put("ok", true).put("computer", c.name).put("answer", r.optString("text"))
+            JSONObject().put("ok", true).put("computer", c.name).put("answer", answer)
                 .put("steps", steps).put("conversation", r.optString("conversation"))
                 .put("tell_user", "Relay ${c.name}'s answer to the user in their language, as coming from ${c.name}."),
         )

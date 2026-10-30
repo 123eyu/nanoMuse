@@ -125,7 +125,9 @@ speaking as nanoMuse through the `nanomuse` preset, with:
   tools `devices`, `device_screen`, `device_shell`, `device_files`, `device_open`,
   `device_notify` and `delegate` for the phone and the other computers; the phone's
   `delegate` landing here as a dsh session "From <device>" with its approvals relayed
-  back, and its text sent while the model writes it when the asker asks (`stream`); remote control (`shell`, `files`, `open`, `screen`) behind a switch;
+  back, and its text sent while the model writes it when the asker asks (`stream`); a
+  task for a conversation whose chat was archived since the last one brings the chat back,
+  as opening it and typing does; remote control (`shell`, `files`, `open`, `screen`) behind a switch;
 - **Coding agents**: *Settings → Coding agents*, with this computer's Cursor, Codex,
   Claude Code and DeepSeek Harness chats (read from disk, a message starts the agent's own
   CLI, the run streams in with its tools, *Stop* ends it) and then the account's other computers',
