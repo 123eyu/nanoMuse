@@ -2795,6 +2795,8 @@ class ChatViewModel(
                 agentHistory.subList(0, anchorIdx + 1),
                 maxTokens = replayBudget,
                 keepNewestTurn = !hasNewUser,
+                // nanoMuse: a manual anchor can separate a call from its uncovered result.
+                requiredToolIds = CompactHistory.externalToolResultIds(postAnchor),
             ) { messages ->
                 nmHistoryCalibration.estimate(ContextEstimate.request(
                     messages, imageTokens = BPETokenizer::countImageTokens,

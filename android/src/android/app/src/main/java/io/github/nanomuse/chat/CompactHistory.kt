@@ -14,20 +14,19 @@ object CompactHistory {
      * current user turn. In that case every old turn may be dropped when no whole turn fits.
      * If a user message arrived between a tool call and its result, widen the retained prefix
      * to the call's whole user turn. Recheck until the boundary cuts no such pair.
+     * [requiredToolIds] names results outside this slice whose calls must remain in the replay,
+     * even when an optional replay has no budget left.
      */
     fun retainRecentTurns(
         messages: List<LLMMessage>,
         maxTokens: Int,
         keepNewestTurn: Boolean = true,
+        requiredToolIds: Set<String> = emptySet(),
         estimate: (List<LLMMessage>) -> Int = { ContextEstimate.request(it) },
     ): List<LLMMessage> {
         val starts = messages.indices.filter { index ->
             ContextTurns.isUserRequest(messages[index])
         }
-        if (starts.size < 2) {
-            return if (!keepNewestTurn && estimate(messages) > maxTokens) emptyList() else messages
-        }
-
         val firstCalls = mutableMapOf<String, Int>()
         val results = mutableListOf<Pair<Int, String>>()
         messages.forEachIndexed { index, message ->
@@ -36,6 +35,11 @@ object CompactHistory {
                 is AgentContentPart.ToolResult -> results += index to part.id
                 else -> Unit
             }
+        }
+        val requiredCall = requiredToolIds.mapNotNull { firstCalls[it] }.minOrNull()
+        val mustKeep = keepNewestTurn || requiredCall != null
+        if (starts.size < 2) {
+            return if (!mustKeep && estimate(messages) > maxTokens) emptyList() else messages
         }
         fun pairedStart(candidate: Int): Int {
             var boundary = candidate
@@ -48,8 +52,9 @@ object CompactHistory {
             }
         }
 
-        var start = pairedStart(starts.last())
-        if (!keepNewestTurn && estimate(messages.subList(start, messages.size)) > maxTokens) {
+        val requiredStart = requiredCall?.let { call -> starts.lastOrNull { it <= call } ?: 0 }
+        var start = pairedStart(minOf(starts.last(), requiredStart ?: starts.last()))
+        if (!mustKeep && estimate(messages.subList(start, messages.size)) > maxTokens) {
             return emptyList()
         }
         for (candidate in starts.asReversed()) {
@@ -61,15 +66,30 @@ object CompactHistory {
         return if (start == 0) messages else messages.subList(start, messages.size).toList()
     }
 
+    /** Results with a preceding post-anchor call do not depend on an older copy of the id. */
+    fun externalToolResultIds(messages: List<LLMMessage>): Set<String> {
+        val calls = mutableSetOf<String>()
+        val external = mutableSetOf<String>()
+        for (message in messages) {
+            for (part in message.contentParts) when (part) {
+                is AgentContentPart.ToolUse -> calls += part.id
+                is AgentContentPart.ToolResult -> if (part.id !in calls) external += part.id
+                else -> Unit
+            }
+        }
+        return external
+    }
+
     /** Charge the summary and fixed request cost before replaying whole recent turns. */
     fun retainForBudget(
         messages: List<LLMMessage>,
         budget: ContextBudget.Plan,
         summaryTokens: Int = 0,
         keepNewestTurn: Boolean = true,
+        requiredToolIds: Set<String> = emptySet(),
         estimate: (List<LLMMessage>) -> Int = { ContextEstimate.request(it) },
     ): List<LLMMessage> = retainRecentTurns(
-        messages, budget.replayBudget(summaryTokens), keepNewestTurn, estimate,
+        messages, budget.replayBudget(summaryTokens), keepNewestTurn, requiredToolIds, estimate,
     )
 
     /** Providers serialize parts instead of [LLMMessage.content] when parts are present. */

@@ -123,6 +123,52 @@ class CompactHistoryTest {
     }
 
     @Test
+    fun `zero replay budget retains a manual anchor call needed by an uncovered result`() {
+        val request = user("Read the report")
+        val round = toolRound("across-anchor", "Result not covered by the checkpoint")
+        val preAnchor = listOf(request, round.first())
+        val postAnchor = listOf(round.last(), user("Use that result to answer the new question"))
+        val retained = CompactHistory.retainRecentTurns(
+            preAnchor, maxTokens = 0, keepNewestTurn = false,
+            requiredToolIds = CompactHistory.externalToolResultIds(postAnchor),
+        )
+        assertEquals(preAnchor, retained)
+        val outgoing = CheckpointReplay.retainCovered(retained, maxTokens = 0) + postAnchor
+        assertSame(request, outgoing.first())
+        assertSame(round.last(), outgoing[2])
+        assertEquals(listOf("across-anchor"), outgoing.flatMap { it.contentParts }
+            .filterIsInstance<AgentContentPart.ToolUse>().map { it.id })
+        assertEquals(listOf("across-anchor"), outgoing.flatMap { it.contentParts }
+            .filterIsInstance<AgentContentPart.ToolResult>().map { it.id })
+    }
+
+    @Test
+    fun `multiple uncovered results preserve their earliest whole user turn without old duplicate ids`() {
+        val reused = toolRound("reused", "Earlier completed result")
+        val discardable = listOf(user("Completed earlier task")) + reused
+        val first = toolRound("first-crossing", "First uncovered result")
+        val second = toolRound("second-crossing", "Second uncovered result")
+        val required = listOf(user("First request"), first.first(),
+            user("Additional constraint"), second.first())
+        val localRound = toolRound("reused", "A new call after the anchor supplies this result")
+        val postAnchor = listOf(first.last(), second.last(), user("New request")) + localRound
+        val dependencies = CompactHistory.externalToolResultIds(postAnchor)
+        assertEquals(setOf("first-crossing", "second-crossing"), dependencies)
+        val retained = CompactHistory.retainRecentTurns(
+            discardable + required, maxTokens = 0, keepNewestTurn = false,
+            requiredToolIds = dependencies,
+        )
+        assertEquals(required, retained)
+        val outgoing = CheckpointReplay.retainCovered(retained, maxTokens = 0) + postAnchor
+        val calls = outgoing.flatMap { it.contentParts }.filterIsInstance<AgentContentPart.ToolUse>()
+        val results = outgoing.flatMap { it.contentParts }.filterIsInstance<AgentContentPart.ToolResult>()
+        assertEquals(listOf("first-crossing", "second-crossing", "reused"), calls.map { it.id })
+        assertEquals(calls.map { it.id }, results.map { it.id })
+        assertEquals(listOf("First request", "Additional constraint", "New request"),
+            outgoing.filter(ContextTurns::isUserRequest).map { it.content })
+    }
+
+    @Test
     fun `summary reaches the provider once when current request has structured text`() {
         val summary = "<context-summary>之前已确认预算。</context-summary>"
         val original = user("现在查价格").copy(
