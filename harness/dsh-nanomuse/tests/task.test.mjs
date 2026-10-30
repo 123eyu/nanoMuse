@@ -80,9 +80,9 @@ function fakeCall(id, from = { id: 'phone-1', name: 'Phone', kind: 'phone' }) {
   return { id, from, events, event: (body) => events.push(body) }
 }
 
-function runner(h) {
+function runner(h, extra = {}) {
   const notices = []
-  const r = new TaskRunner(h.ctx, { deviceName: () => 'Desk', log: (level, text) => h.log.push([level, text]), notice: (from, text) => notices.push([from, text]) })
+  const r = new TaskRunner(h.ctx, { deviceName: () => 'Desk', log: (level, text) => h.log.push([level, text]), notice: (from, text) => notices.push([from, text]), ...extra })
   const off = r.attach()
   return { r, off, notices }
 }
@@ -112,11 +112,12 @@ test('frame, textOf and preview', () => {
 
 test('a task opens a named session, streams the run and resolves with the answer', async () => {
   const h = fakeContext()
-  const { r, off, notices } = runner(h)
+  // the chat lives where the host says (the home workspace, #705), not in dsh's default folder
+  const { r, off, notices } = runner(h, { home: async () => ({ agentPreset: 'nanomuse', workspaceId: 'ws-home' }) })
   const call = fakeCall('c1')
   const p = r.task({ text: 'what time is it' }, call)
   await tick()
-  assert.deepEqual(h.ctx.sessionController.created, [{ agentPreset: 'nanomuse' }])
+  assert.deepEqual(h.ctx.sessionController.created, [{ agentPreset: 'nanomuse', workspaceId: 'ws-home' }])
   assert.deepEqual(h.ctx.sessionController.renamed, [{ sessionId: 'session-1', title: 'From Phone' }])
   const agent = h.agents.get('session-1')
   assert.equal(agent.sent.length, 1)

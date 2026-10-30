@@ -29,6 +29,7 @@ import { avatarFence, avatarMemoryLine } from './avatar-flow.ts'
 import { FENCE_FEED, FENCE_GOAL, FENCE_GOAL_UPDATE, findFences, goalCategory, goalCheckPrompt, goalCreationNote, goalHomeNote, goalOpener, parseFeedDraft, parseGoalBlock, parseGoalUpdate, parseIdeas, type GoalBlock, type GoalUpdateBlock, type IdeaKind, type StaticIdea } from './fences.ts'
 import { afterTurn, boundTo, currentSuggestions, dismissChooser, FIRST_RUN_EMPTY, pickName, promptAddendum, readFirstRun, startConversation, type FirstRunState } from './firstrun.ts'
 import { DEFAULT_NUDGES, dueAsk, LEDGER_EMPTY, NUDGES_EVERY_MS, NUDGES_ORIGIN, NUDGES_TIMEOUT_MS, readLedger, readNudges, recordAsk, recordDay, recordStarred, recordTask, type Ask, type Moment, type NudgeLedger, type NudgesPolicy, type NudgesView } from './nudges.ts'
+import { homeDir, homeWorkspace } from './home.ts'
 import { packageAssetsDir } from './profile.ts'
 import { describeCall, ownWords, parseArgs } from './steps.ts'
 import { randomBytes } from 'node:crypto'
@@ -314,6 +315,12 @@ interface Store {
   activity: ActivityRecord[]
   /** When the first-run introduction was posted, so it happens once. */
   introducedAt: number
+  /**
+   * The chats of the batches run so far (the feed's), newest first: a batch is the agent's
+   * workbench, not a chat of the person's, so these are kept out of the conversation sync
+   * (`NanomuseCloud`, through `isBatch`) and never reach the account's other devices.
+   */
+  batches: string[]
 }
 
 /** What the browser mirrors. */
@@ -378,7 +385,10 @@ const EMPTY: Store = {
   docs: { identity: '', soul: '', identityAt: 0, soulAt: 0 },
   activity: [],
   introducedAt: 0,
+  batches: [],
 }
+/** Batch chats remembered (one a day for the feed): enough for the archive's lifetime. */
+const BATCHES_KEEP = 400
 /** Activity records kept, steps per record, and how much of a step's text. */
 const ACTIVITY_RECORDS = 80
 const ACTIVITY_STEPS = 60
@@ -579,15 +589,7 @@ export default class NanomuseRooms extends Service {
       await this.saveFirstRun()
       return { sessionId: synced }
     }
-    const folder = join(homeDir(), 'nanoMuse')
-    await mkdir(folder, { recursive: true })
-    let workspaceId: string | undefined
-    try {
-      workspaceId = (await (this.ctx.get('workspaceRegistry') as RegistryLike | undefined)?.create(folder, 'nanoMuse'))?.id
-    } catch (error) {
-      this.warn('home workspace', error)
-    }
-    const created = await sc.create(workspaceId ? { agentPreset: 'nanomuse', workspaceId: workspaceId as NonNullable<SessionCreateRequest['workspaceId']> } : { agentPreset: 'nanomuse', cwd: folder })
+    const created = await sc.create(await homeWorkspace(this.ctx, (error) => this.warn('home workspace', error)))
     await sc.rename({ sessionId: created.sessionId, title: this.lang.startsWith('zh') ? '主要聊天' : 'Main chat' }).catch(() => undefined)
     // a conversation that already ran its course on an older chat stays over; a fresh install begins
     this.firstRun = startConversation(this.firstRun.phase === 'done' ? this.firstRun : { ...this.firstRun, phase: 'none' }, created.sessionId)
@@ -1503,15 +1505,15 @@ export default class NanomuseRooms extends Service {
   // ---- the agent's sessions -------------------------------------------------------------
 
   /**
-   * A chat the person will see. It starts in their home folder; a `preset` of
-   * `workspace-write` (used for the Library's creations, whose cwd is the
-   * Library folder) lets the agent write there without asking — everything
-   * outside still asks, as the deployment's presets say.
+   * A chat the person will see. It starts in the home workspace (`~/nanoMuse`, as the main
+   * chat does; never the bare home folder, #705); a `preset` of `workspace-write` (used for
+   * the Library's creations, whose cwd is the Library folder) lets the agent write there
+   * without asking — everything outside still asks, as the deployment's presets say.
    */
   private async open(title: string, prompt: string, options: { cwd?: string; preset?: string; notice?: string } = {}): Promise<string> {
     const sc = this.ctx.get('sessionController')
     if (!sc) throw new RelayError(503, 'no_sessions', 'Chats are not available yet')
-    const created = await sc.create({ agentPreset: 'nanomuse', cwd: options.cwd ?? homeDir() })
+    const created = await sc.create(options.cwd ? { agentPreset: 'nanomuse', cwd: options.cwd } : await homeWorkspace(this.ctx, (error) => this.warn('home workspace', error)))
     await sc.rename({ sessionId: created.sessionId, title: title.slice(0, 80) }).catch(() => undefined)
     await this.say(created.sessionId, prompt, options.preset, options.notice ?? title)
     return created.sessionId
@@ -1653,6 +1655,11 @@ export default class NanomuseRooms extends Service {
     return Boolean(resolved && 'agent' in resolved)
   }
 
+  /** Whether a session is (or was) one of the batches' chats: the sync leaves those out. */
+  isBatch(sessionId: string): boolean {
+    return this.runs.has(sessionId as SessionId) || this.store.batches.includes(sessionId)
+  }
+
   /**
    * A background batch: a chat of its own, the final answer returned, the chat archived. The
    * prompt is the rooms' own, not the person's words, so it goes out as a notice (`summary`, one
@@ -1663,7 +1670,10 @@ export default class NanomuseRooms extends Service {
     const sc = this.ctx.get('sessionController')
     if (!sc) throw new Error('chats are not available yet')
     if (!(await this.ctx.nanomuseCloud.status()).ready) throw new Error('no model is set up')
-    const created = await sc.create({ agentPreset: 'nanomuse', cwd: homeDir() })
+    const created = await sc.create(await homeWorkspace(this.ctx, (error) => this.warn('home workspace', error)))
+    // remembered before a word is said, so the sync never sees the chat as one of the person's
+    this.store.batches = [String(created.sessionId), ...this.store.batches.filter((id) => id !== String(created.sessionId))].slice(0, BATCHES_KEEP)
+    await this.save()
     await sc.rename({ sessionId: created.sessionId, title }).catch(() => undefined)
     const resolved = await sc.resolveAgent(created.sessionId)
     if ('error' in resolved) throw new Error(`the chat could not be opened: ${String(resolved.error)}`)
@@ -1914,6 +1924,7 @@ export default class NanomuseRooms extends Service {
         docs: { ...EMPTY.docs, ...(raw.docs && typeof raw.docs === 'object' ? raw.docs : {}) },
         activity: Array.isArray(raw.activity) ? raw.activity.filter((r) => r && typeof r === 'object' && Array.isArray(r.steps)) : [],
         introducedAt: typeof raw.introducedAt === 'number' ? raw.introducedAt : 0,
+        batches: Array.isArray(raw.batches) ? raw.batches.filter((id): id is string => typeof id === 'string').slice(0, BATCHES_KEEP) : [],
       }
     } catch {
       return structuredClone(EMPTY)
@@ -2289,10 +2300,6 @@ function ruleOf(r: ScheduleRecordLike): string {
     default:
       return r.scheduledAt
   }
-}
-
-function homeDir(): string {
-  return process.env.HOME ?? process.env.USERPROFILE ?? process.cwd()
 }
 
 /** `~/Downloads`, or what the desktop calls it (`~/下载` on a Chinese Linux: user-dirs.dirs). */

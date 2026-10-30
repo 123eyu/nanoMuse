@@ -12,11 +12,16 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Desktop
 
+- **The feed's daily batch no longer turns up on the phone.** The desktop writes the feed in a chat of its own each morning (*Feed · <date>*, archived when done); with *Also sync side chats* on, that chat went up like any other and appeared on the account's phones every day, deleted or not. The rooms now remember their batches' chats and the sync leaves them out, like another device's task. ([#713](https://github.com/nano-muse/nanoMuse/issues/713))
+- **A chat another device sends a task to, and every chat the rooms open, start in the `~/nanoMuse` workspace** instead of the bare home folder. On Windows a workspace that is the whole profile folder could not run a single `workspace-write` command: the sandbox's temp root lies inside it, and a session begun from the web console or the phone failed at the first step. ([#705](https://github.com/nano-muse/nanoMuse/issues/705))
+
 ### Android
 
 ### iOS
 
 ### Project
+
+- **The docs say which approval cards reach the phone:** only those of a scheduled task running on nanoMuse Desktop. A card of a chat somebody is typing in, on the desktop or in the web console, stays where it was asked, and the Python runtime does not push yet; the hub page, the troubleshooting page and the desktop page say so. ([#704](https://github.com/nano-muse/nanoMuse/issues/704))
 
 ## [1.0.9] - 2026-10-29 · Tiller
 

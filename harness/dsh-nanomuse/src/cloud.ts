@@ -38,7 +38,6 @@ import type {} from '@deepseek-ai/dsh-settings'
 import type { ToolDispatchExecution, ToolExecutionResult } from '@deepseek-ai/dsh-tools'
 import { createUserMessage, type ContentBlock, type StreamChunk } from '@deepseek-ai/dsh-llm'
 import type { Session, SessionEvent, SessionId, AgentCancelCause } from '@deepseek-ai/dsh-session'
-import type { SessionCreateRequest } from '@deepseek-ai/dsh-api-session-controller/types'
 import type {} from '@deepseek-ai/dsh-api-session-controller'
 import type {} from '@deepseek-ai/dsh-user-approval'
 import type { ApprovalOutcome } from '@deepseek-ai/dsh-user-approval/types'
@@ -50,6 +49,7 @@ import { helloLlm, HubClient, HubError, type Caller, type HubDevice, type Incomi
 import { ProfileStore, type Profile } from './profile.ts'
 import { cloudOffFailure, relayFailure, transportFailure, type RelayRefusal } from './refusals.ts'
 import { Relay, RelayError, type Account, type Estimate, type Invite, type ProfileWrite, type RelayModel, type SignIn } from './relay.ts'
+import { homeWorkspace } from './home.ts'
 import { TaskRunner, textOf } from './task.ts'
 import { Turns, aggregateWork, type WorkItem } from './work.ts'
 import { SCREEN_RUN_IDLE_MS, ScreenRuns, Trajectory, type ScreenRun, type StepAction, type TrajectoryView } from './trajectory.ts'
@@ -915,6 +915,7 @@ export default class NanomuseCloud extends Service {
       ctx.effect(() => ctx.on('schedule/changed' as never, (() => void this.refreshGrantTasks()) as never), 'nanomuse cloud: the tasks behind the grants')
       const runner = new TaskRunner(ctx, {
         deviceName: () => this.deviceName(),
+        home: () => homeWorkspace(ctx),
         log: (level, text) => this.ctx.logger[level](text),
         notice: (from, text) => this.notice('call', from, '', text, 'task'),
         recall: (key) => this.state.taskSessions?.[key],
@@ -974,15 +975,8 @@ export default class NanomuseCloud extends Service {
           },
           lines: (sessionId) => this.sessionLines(ctx, sessionId),
           create: async (title) => {
-            // In the home workspace (`~/nanoMuse`), as the first conversation is: a session the
-            // browser cannot place in a workspace shows a disabled composer and no transcript.
-            const folder = join(homedir(), 'nanoMuse')
-            await mkdir(folder, { recursive: true }).catch(() => undefined)
-            const registry = ctx.get('workspaceRegistry') as { create(path: string, title?: string): Promise<{ id: string }> } | undefined
-            const workspaceId = await registry?.create(folder, 'nanoMuse').then((w) => w.id).catch(() => undefined)
-            const created = await ctx.sessionController.create(
-              workspaceId ? { agentPreset: 'nanomuse', workspaceId: workspaceId as NonNullable<SessionCreateRequest['workspaceId']> } : { agentPreset: 'nanomuse', cwd: folder },
-            )
+            // In the home workspace (`~/nanoMuse`), as the first conversation is.
+            const created = await ctx.sessionController.create(await homeWorkspace(ctx))
             await ctx.sessionController.rename({ sessionId: created.sessionId, title }).catch(() => undefined)
             return String(created.sessionId)
           },
@@ -1006,6 +1000,8 @@ export default class NanomuseCloud extends Service {
         token: () => this.token(),
         deviceId: () => this.state.deviceId ?? '',
         isTaskSession: (sessionId) => Object.values(this.state.taskSessions ?? {}).includes(sessionId),
+        // the rooms come up after this service, so they are looked up at the time of asking
+        isBatchSession: (sessionId) => (this.ctx.get('nanomuseRooms') as { isBatch?(id: string): boolean } | undefined)?.isBatch?.(sessionId) === true,
         load: () => this.state.sync,
         save: async (state) => {
           this.state.sync = state
