@@ -4,6 +4,7 @@ import com.openminis.app.data.model.AgentContentPart
 import com.openminis.app.data.model.AgentToolDefinition
 import com.openminis.app.data.model.AgentToolParam
 import com.openminis.app.data.model.LLMMessage
+import com.openminis.app.data.model.LLMUsage
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -11,6 +12,48 @@ import org.junit.Test
 
 class ContextEstimateTest {
     private fun user(text: String) = LLMMessage(LLMMessage.Role.USER, text)
+
+    @Test
+    fun `Anthropic fresh input and both cache buckets all occupy context`() {
+        val usage = LLMUsage(
+            inputTokens = 500,
+            outputTokens = 200,
+            cacheReadInputTokens = 30_000,
+            cacheCreationInputTokens = 2_000,
+            latestContextTokens = 500,
+        )
+        assertEquals(32_500, ContextEstimate.inputTokens(usage))
+        assertEquals(32_000, ContextEstimate.inputTokens(usage.copy(inputTokens = 0, latestContextTokens = 0)))
+    }
+
+    @Test
+    fun `OpenAI total prompt count is not added to its cache count again`() {
+        val usage = LLMUsage(
+            inputTokens = 500,
+            outputTokens = 200,
+            cacheReadInputTokens = 30_000,
+            latestContextTokens = 30_500,
+        )
+        assertEquals(30_500, ContextEstimate.inputTokens(usage))
+        assertEquals(31_000, ContextEstimate.inputTokens(usage.copy(latestContextTokens = 31_000)))
+    }
+
+    @Test
+    fun `input usage saturates and output only chunks do not calibrate context`() {
+        assertEquals(Int.MAX_VALUE, ContextEstimate.inputTokens(LLMUsage(
+            inputTokens = Int.MAX_VALUE,
+            outputTokens = 100,
+            cacheReadInputTokens = 10,
+            cacheCreationInputTokens = Int.MAX_VALUE,
+        )))
+        assertEquals(0, ContextEstimate.inputTokens(LLMUsage(inputTokens = 0, outputTokens = 500)))
+        assertEquals(0, ContextEstimate.inputTokens(LLMUsage(
+            inputTokens = -1,
+            outputTokens = 500,
+            cacheReadInputTokens = -1,
+            latestContextTokens = -1,
+        )))
+    }
 
     @Test
     fun `a long Chinese canonical message counts without content parts`() {

@@ -124,8 +124,8 @@ The phone also keeps what one call carries within a budget of its own (1.0.8, `i
 Over the hosted model's last week the time to the first token grew with the prompt (4.7 s at
 the median under 12k tokens, 25 s between 24k and 40k, 54 s above), so `ContextBudget` pulls
 the compaction line down to 32k tokens on every window from 64k up (it was 108k on the 128k
-window the hosted model is read as) and moves old big tool results to disk from 28k; the
-compaction itself, and the recent exchanges it keeps whole, are upstream's. `PromptDiet`
+window the hosted model is read as) and moves old big tool results to disk from 28k. The
+32k line is an early maintenance target, not the model's capacity limit. `PromptDiet`
 rewrites the two fattest parts of the baseline densely without taking anything away: the
 `browser_use` schema (every action and parameter kept, the paragraphs on cookies, viewport and
 infinite scroll shortened) and the `minis-*` paragraphs of the Android tools section (each
@@ -137,10 +137,20 @@ the summary, system instructions, tool definitions and images. The phone estimat
 text separately from English and adjusts upward when the provider reports a larger input count;
 this is still an estimate, not a model-specific tokenizer. Native audio keeps its provider-reported
 accounting; its base64 transport is not counted as ordinary text. It checks again after moving tool
-results to disk and after summarizing. A summary that frees no space stops the turn with the
-context-full notice instead of immediately asking for another summary. The existing limit of
-three automatic summaries per run still applies. Android uses this native loop, independently
-of the Python runtime's task budgets.
+results to disk and after summarizing. If early summarization times out or cannot shrink the
+request, the turn continues while it remains below the model's capacity reserve, without
+repeating that attempt on every tool result. On a 128k window, that reserve starts at 108k;
+there, a failed attempt stops the turn. At most three automatic summary attempts run per turn.
+After summarization, replayed recent turns have an 8k estimate budget; the newest user turn
+and its remaining tool pairs stay together even when they exceed that budget. Older messages
+remain saved in the conversation. Summaries also reach the model when the next message has
+structured text or attachments. The notices follow the app language. Android uses this native
+loop, independently of the Python runtime's task budgets.
+
+With the default thinking rules, Qwen3.8-Max summary requests explicitly send `enable_thinking: false`. Omitting that
+field leaves the provider's default in control even though the app requested thinking off.
+The switch is documented in [Alibaba Cloud's thinking guide](https://help.aliyun.com/zh/model-studio/deep-thinking).
+A timeout still does not identify whether the delay was in the network or at the provider.
 
 While a turn has no first token yet, a small line sits under the typing dots (`NmWaitLine`):
 nothing for ten seconds, then *The model is busy, 15 s so far* with *Cancel*; and when

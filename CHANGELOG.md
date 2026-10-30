@@ -17,7 +17,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Android
 
-- **Fixed Chinese context estimates and stale checks after offload and compaction.** The native loop's fallback counted only structured parts, missing ordinary message text, and used an English character ratio for Chinese tool results. It now measures the effective request, including its system instructions, tool definitions and images, with a multilingual estimate calibrated upward from provider input usage. Offloading is rechecked before summarizing, and a summary that recovers no space stops the turn instead of immediately summarizing again. The existing per-run compaction limit remains. For [#719](https://github.com/nano-muse/nanoMuse/issues/719).
+- **Kept long Android chats running when early context compaction failed.** A timeout or an unhelpful summary at the 32k maintenance target no longer reports a 128k model as full; the turn continues below the capacity reserve without retrying after every tool result. Replayed older turns now have a token budget while the newest question and tool pairs stay together, and summaries survive structured follow-up messages. Qwen3.8-Max summary requests now explicitly disable thinking, and context notices follow the app language. ([#719](https://github.com/nano-muse/nanoMuse/issues/719))
+- **Fixed Chinese context estimates and stale checks after offload and compaction.** The native loop's fallback counted only structured parts, missing ordinary message text, and used an English character ratio for Chinese tool results. It now measures the effective request, including its system instructions, tool definitions and images, with a multilingual estimate calibrated upward from provider input usage. Offloading and summarization are checked against the resulting request size. The existing per-run compaction limit remains. For [#719](https://github.com/nano-muse/nanoMuse/issues/719).
 
 ### iOS
 

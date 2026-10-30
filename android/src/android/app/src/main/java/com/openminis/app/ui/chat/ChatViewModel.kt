@@ -14,6 +14,8 @@ import com.openminis.app.agent.ToolLoopDetector
 import com.openminis.app.browser.BrowserActionInput
 import com.openminis.app.browser.BrowserTabPool
 import io.github.nanomuse.browser.nmBrowserHandOver // nanoMuse
+import io.github.nanomuse.chat.ContextMaintenance // nanoMuse
+import io.github.nanomuse.chat.CompactHistory // nanoMuse
 import com.openminis.app.data.db.MessageEntity
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Compress
@@ -1133,6 +1135,8 @@ class ChatViewModel(
         val job = compactJob ?: return
         if (!job.isActive) return
         AppLogger.info(TAG, "[Compact] cancelled by user")
+        // nanoMuse: in-loop cancellation must also finalize the active bubble and resume state (#719).
+        if (_isStreaming.value) cancelStream()
         job.cancel(CancellationException("compact cancelled by user"))
     }
 
@@ -2388,9 +2392,8 @@ class ChatViewModel(
                 Log.w(TAG, "[Compact] timed out after ${elapsed}s ($calls model call(s) issued)")
                 withContext(Dispatchers.Main) {
                     appendSystemInfo(
-                        text = "Compaction timed out after ${elapsed}s " +
-                            "($calls model call(s) attempted). The model may be slow or " +
-                            "rate-limited — you can try compacting again.",
+                        // nanoMuse: report timeout separately from capacity exhaustion (#719).
+                        text = context.getString(R.string.nm_context_compact_timeout, elapsed, calls),
                         iconKind = "compact",
                     )
                 }
@@ -2813,7 +2816,9 @@ class ChatViewModel(
             // Step 2 & 3: copy the lookback window (post-prune), then splice
             // in the summary as parts[0] of the first post-anchor user msg.
             val result = mutableListOf<LLMMessage>()
-            result.addAll(preAnchorPruned)
+            // nanoMuse: replay older rounds only while they fit; keep the newest request whole (#719).
+            val recent = CompactHistory.retainRecentTurns(preAnchorPruned)
+            result.addAll(recent)
 
             val postAnchor = if (anchorIdx + 1 < agentHistory.size) {
                 agentHistory.subList(anchorIdx + 1, agentHistory.size)
@@ -2828,7 +2833,7 @@ class ChatViewModel(
             val priorIdxSource =
                 if (priorIdxResolved == null) "fallback=empty(<$keepN user-text turns before anchor or cap hit)"
                 else "userTextWalkBack(N=$keepN)"
-            AppLogger.info(TAG, "[CompactDiag] eAH v2 slice: priorIdx=$priorIdx anchorIdx=$anchorIdx agentHistory.size=${agentHistory.size} → preAnchorRaw=$preAnchorRawCount preAnchorSent=${preAnchorPruned.size} postAnchor=${postAnchor.size} summaryChars=${summary.length} priorIdxSource=$priorIdxSource markerId=${marker.id.take(8)}")
+            AppLogger.info(TAG, "[CompactDiag] eAH v2 slice: priorIdx=$priorIdx anchorIdx=$anchorIdx agentHistory.size=${agentHistory.size} → preAnchorRaw=$preAnchorRawCount preAnchorSent=${recent.size} postAnchor=${postAnchor.size} summaryChars=${summary.length} priorIdxSource=$priorIdxSource markerId=${marker.id.take(8)}")
 
             val firstUserOffset = postAnchor.indexOfFirst { it.role == LLMMessage.Role.USER }
             if (firstUserOffset >= 0) {
@@ -2836,13 +2841,8 @@ class ChatViewModel(
                     result.addAll(postAnchor.subList(0, firstUserOffset))
                 }
                 val target = postAnchor[firstUserOffset]
-                // Prepend `<context-summary>...` to the user content. We
-                // edit `content` directly because Android LLMMessage uses
-                // `content: String` as the canonical text payload; any
-                // contentParts the message also carries get preserved.
-                val injected = target.copy(
-                    content = summaryWrappedText + "\n\n" + target.content,
-                )
+                // nanoMuse: providers read structured parts when present, so inject there too (#719).
+                val injected = CompactHistory.prependSummary(target, summaryWrappedText)
                 result.add(injected)
                 if (firstUserOffset + 1 < postAnchor.size) {
                     result.addAll(postAnchor.subList(firstUserOffset + 1, postAnchor.size))
@@ -3423,13 +3423,9 @@ class ChatViewModel(
         _showCompactBeforeSendPrompt.value = false
         val text = pendingSendText ?: return
         pendingSendText = null
-        viewModelScope.launch {
-            val ok = awaitCompaction()
-            if (!ok) {
-                AppLogger.warning(TAG, "[Context] pre-send compaction failed — sending anyway")
-            }
-            sendMessage(text, skipContextCheck = true)
-        }
+        // nanoMuse: the outgoing-request guard performs one bounded attempt after the new
+        // message is saved. A pre-send failure must not start the same attempt again (#719).
+        sendMessage(text, skipContextCheck = true)
     }
 
     /** Dialog action: send without compacting. */
@@ -3447,104 +3443,38 @@ class ChatViewModel(
         pendingSendText = null
     }
 
-    /**
-     * [T-android-auto-compact-inloop] What the in-loop context guard decided.
-     */
-    private enum class InLoopContextAction {
-        /** Under threshold — issue the next API call as normal. */
-        PROCEED,
-
-        /** History was compacted in place; re-run the iteration. */
-        COMPACTED,
-
-        /** Cannot recover — stop the turn safely and let the user resume. */
-        STOP,
-    }
-
-    /**
-     * [T-android-auto-compact-inloop] Max in-loop compactions per runAgentLoop.
-     * Bounds compact-thrash within a single turn; the MAX_AGENT_TURNS ceiling is
-     * never reset by compaction, so this is a second, tighter backstop.
-     */
-    private val maxInLoopCompactions = 3
-
-    /**
-     * [T-android-auto-compact-inloop] Re-evaluate [ContextPolicy] between agent
-     * iterations and act on it (iOS f70ac173).
-     *
-     * Why this exists: [checkContextBeforeSend] only runs at the SEND entry
-     * point. A single turn that fans out into many tool iterations can cross the
-     * compact/exhausted thresholds mid-loop, and offload alone cannot recover
-     * when the bulk is the model's own text — the turn then slams into the
-     * provider's context ceiling.
-     *
-     * Blocks until the compaction attempt settles, because the next API call
-     * must read the freshly-compacted history.
-     */
-    // nanoMuse: check the current request after offload and compact, not stale provider usage (#719).
+    // nanoMuse: the 32k maintenance target is not the model's capacity limit (#719).
     private suspend fun inLoopContextCheck(
-        compactionsSoFar: Int,
+        maintenance: ContextMaintenance,
         measureContextTokens: () -> Int,
-    ): InLoopContextAction {
-        val tokens = measureContextTokens()
-        if (tokens <= 0) return InLoopContextAction.PROCEED
-        val window = effectiveContextWindowTokens() ?: return InLoopContextAction.PROCEED
-        val policy = ContextPolicy.forContextWindow(window)
-        return when (policy.check(tokens, window)) {
-            ContextPolicy.CheckResult.OK -> InLoopContextAction.PROCEED
-
-            ContextPolicy.CheckResult.NEEDS_COMPACT -> {
-                if (compactionsSoFar >= maxInLoopCompactions) {
-                    AppLogger.warning(
-                        TAG,
-                        "[AutoCompact] still over threshold after $compactionsSoFar compaction(s) — stopping",
-                    )
-                    return InLoopContextAction.STOP
-                }
-                // NOTE: deliberately NOT gated on AutoCompactPrefs. That flag
-                // governs the SEND-time decision (compact silently vs. ask
-                // first) — mid-loop there is nobody to ask, and the alternative
-                // to compacting is aborting the user's turn outright. iOS makes
-                // the same call: its in-loop branch
-                // (AIChatViewModel.swift:4739) never consults
-                // autoCompactEnabled either.
-                AppLogger.info(
-                    TAG,
-                    "[AutoCompact] mid-loop compact #${compactionsSoFar + 1}: $tokens / $window tokens " +
-                        "(autoCompactPref=${com.openminis.app.data.AutoCompactPrefs.isEnabled()}, not a gate here)",
-                )
-                appendSystemInfo(
-                    text = "Context is filling up ($tokens / $window tokens) — compacting to continue.",
-                    iconKind = "compact",
-                )
-                val ok = awaitCompaction()
-                if (!ok) return InLoopContextAction.STOP
-                val afterTokens = measureContextTokens()
-                _lastTurnContextTokens.value = afterTokens
-                if (afterTokens >= tokens) {
-                    AppLogger.warning(
-                        TAG,
-                        "[AutoCompact] no space recovered ($tokens -> $afterTokens tokens) — stopping",
-                    )
-                    return InLoopContextAction.STOP
-                }
-                InLoopContextAction.COMPACTED
-            }
-
-            // EXHAUSTED is only ever returned by `exhaustedOnly` tiers — windows
-            // under 64K, where ContextPolicy sets compactThreshold = 0 precisely
-            // BECAUSE the window is too small for auto-compact to pay for itself
-            // (the summary plus re-appended recent turns would eat the headroom
-            // it just freed). Attempting a "rescue" compaction here would
-            // contradict the policy, so stop and let the user decide.
-            ContextPolicy.CheckResult.EXHAUSTED -> {
-                AppLogger.warning(
-                    TAG,
-                    "[AutoCompact] exhausted on a no-auto-compact tier ($tokens / $window) — stopping",
-                )
-                InLoopContextAction.STOP
-            }
+    ): ContextMaintenance.Action {
+        val window = effectiveContextWindowTokens()
+            ?: return ContextMaintenance.Action.PROCEED
+        val wasDeferred = maintenance.softDeferred
+        val action = maintenance.check(window, measureContextTokens) { tokens, attempt ->
+            AppLogger.info(
+                TAG,
+                "[AutoCompact] attempt=$attempt estimated=$tokens window=$window " +
+                    "hardLimit=${ContextMaintenance.hardThreshold(window)}",
+            )
+            appendSystemInfo(
+                text = context.getString(R.string.nm_context_compacting, tokens, window),
+                iconKind = "compact",
+            )
+            awaitCompaction()
         }
+        val afterTokens = measureContextTokens()
+        _lastTurnContextTokens.value = afterTokens
+        if (!wasDeferred && maintenance.softDeferred &&
+            action == ContextMaintenance.Action.PROCEED
+        ) {
+            appendSystemInfo(
+                text = context.getString(R.string.nm_context_compact_deferred),
+                iconKind = "compact",
+            )
+            AppLogger.info(TAG, "[AutoCompact] deferred: estimated=$afterTokens window=$window")
+        }
+        return action
     }
 
     /**
@@ -3555,17 +3485,24 @@ class ChatViewModel(
      * loop cannot simply call it and continue — the next API call would read the
      * pre-compaction history and the guard would fire again immediately.
      */
+    // nanoMuse: cancelling the turn also cancels its summary; user cancellation never resumes work (#719).
     private suspend fun awaitCompaction(): Boolean =
         kotlinx.coroutines.suspendCancellableCoroutine { cont ->
             var resumed = false
+            val previousJob = compactJob
+            var attemptJob: Job? = null
             compactAll(allowDuringProcessing = true) { ok ->
-                // compactAll guarantees exactly one callback, but guard anyway:
-                // resuming a continuation twice throws.
                 if (!resumed) {
                     resumed = true
-                    if (cont.isActive) cont.resume(ok) { _, _, _ -> }
+                    if (attemptJob?.isCancelled == true) {
+                        cont.cancel(CancellationException("compaction cancelled"))
+                    } else if (cont.isActive) {
+                        cont.resume(ok) { _, _, _ -> }
+                    }
                 }
             }
+            attemptJob = compactJob?.takeIf { it !== previousJob }
+            cont.invokeOnCancellation { attemptJob?.cancel() }
         }
 
     /**
@@ -8138,11 +8075,8 @@ class ChatViewModel(
         // which previously slapped a fake "200 turns hit" error on every
         // ordinary completion.
         var loopExitedNormally = false
-        // [T-android-auto-compact-inloop] How many times the in-loop guard has
-        // compacted during THIS runAgentLoop. Bounds compact-thrash: once the
-        // cap is hit, a still-over-threshold history stops the turn rather than
-        // compacting forever. Mirrors iOS maxInLoopCompactions.
-        var inLoopCompactions = 0
+        // nanoMuse: count failed attempts too and defer soft maintenance after a failure (#719).
+        val contextMaintenance = ContextMaintenance()
         // [T-android-empty-after-toolresult-reminder] One-shot guard for the
         // "<system-reminder> + retry one round" recovery when the server returns
         // an empty response right after a tool result. Fires at most once per
@@ -8189,20 +8123,11 @@ class ChatViewModel(
             // slam into the provider's context ceiling.
             //
             // Runs AFTER offload so it judges the post-offload size.
-            when (inLoopContextCheck(inLoopCompactions, ::measureContextTokens)) { // nanoMuse: remeasure after offload (#719).
-                InLoopContextAction.PROCEED -> {}
-                InLoopContextAction.COMPACTED -> {
-                    // The next API call reads the freshly-compacted
-                    // effectiveAgentHistory automatically — compaction already
-                    // re-appends the recent turns, so no resume handoff is
-                    // needed. A compaction iteration is space management, not
-                    // task progress, so it must NOT consume a turn slot:
-                    // decrementing cancels this iteration's advance. The
-                    // MAX_AGENT_TURNS ceiling is never reset, and
-                    // maxInLoopCompactions bounds compact-thrash within a turn,
-                    // so a loop that keeps compacting cannot defeat the runaway
-                    // backstop.
-                    inLoopCompactions++
+            when (inLoopContextCheck(contextMaintenance, ::measureContextTokens)) { // nanoMuse: remeasure after offload (#719).
+                ContextMaintenance.Action.PROCEED -> {}
+                ContextMaintenance.Action.COMPACTED -> {
+                    // nanoMuse: the next request reads the new summary; ContextMaintenance
+                    // owns the attempt limit and prevents immediate soft-budget retries (#719).
 
                     // [T-android-inloop-compact-divider-order / GH#235] Seal the
                     // bubble this run has been writing into and continue in a
@@ -8286,7 +8211,7 @@ class ChatViewModel(
                     )
                     continue
                 }
-                InLoopContextAction.STOP -> {
+                ContextMaintenance.Action.STOP -> {
                     // The loop cannot present a modal mid-flight, so stop
                     // safely: user-visible notice + resumable, without the
                     // turn-limit error overwrite.
@@ -8333,8 +8258,8 @@ class ChatViewModel(
                     // are not in scope. Everything from previous turns was
                     // already persisted by those turns.
                     appendSystemInfo(
-                        text = "Context is full and could not be reduced further. " +
-                            "Tap Continue to resume, or start a new chat.",
+                        // nanoMuse: this path now means the actual capacity reserve was reached (#719).
+                        text = context.getString(R.string.nm_context_limit_reached),
                         iconKind = "compact",
                     )
                     // [T-android-group-pause-badge-restamp] A LIVE interruption just
@@ -8834,14 +8759,8 @@ class ChatViewModel(
                         // gate in [checkContextBeforeSend] can see the latest pressure
                         // without a DB round-trip.
                         // nanoMuse: calibrate only input actually reported by this chunk (#719).
-                        val actualContextTokens = if (chunk.usage.latestContextTokens > 0) {
-                            chunk.usage.latestContextTokens
-                        } else {
-                            // inputTokens excludes cached input; include it even on a full cache hit.
-                            chunk.usage.inputTokens +
-                                (chunk.usage.cacheReadInputTokens ?: 0) +
-                                (chunk.usage.cacheCreationInputTokens ?: 0)
-                        }
+                        val actualContextTokens =
+                            io.github.nanomuse.chat.ContextEstimate.inputTokens(chunk.usage)
                         if (actualContextTokens > 0) {
                             lastContextTokens = actualContextTokens
                             contextEstimate.observe(actualContextTokens, requestEstimate)

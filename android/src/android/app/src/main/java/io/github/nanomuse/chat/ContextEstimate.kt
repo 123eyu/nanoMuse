@@ -3,6 +3,7 @@ package io.github.nanomuse.chat
 import com.openminis.app.data.model.AgentContentPart
 import com.openminis.app.data.model.AgentToolDefinition
 import com.openminis.app.data.model.LLMMessage
+import com.openminis.app.data.model.LLMUsage
 import kotlin.math.ceil
 import kotlin.math.max
 
@@ -17,6 +18,12 @@ import kotlin.math.max
 object ContextEstimate {
     private const val MESSAGE_OVERHEAD = 3
     private const val REPLY_OVERHEAD = 3
+
+    /** Cached tokens still occupy context, even if the provider reports fresh input separately. */
+    fun inputTokens(usage: LLMUsage): Int = maxOf(
+        usage.latestContextTokens.coerceAtLeast(0),
+        add(usage.inputTokens, usage.cacheReadInputTokens ?: 0, usage.cacheCreationInputTokens ?: 0),
+    )
 
     fun text(text: String): Int {
         var quarters = 0L

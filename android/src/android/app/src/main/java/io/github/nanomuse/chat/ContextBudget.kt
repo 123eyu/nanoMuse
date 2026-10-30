@@ -3,19 +3,19 @@ package io.github.nanomuse.chat
 import com.openminis.app.data.ContextPolicy
 
 /**
- * The phone's own ceiling on how much of a conversation goes to the model per call. The
+ * The phone's soft target for how much of a conversation goes to the model per call. The
  * policy's tiers compact a conversation 20k tokens short of the model's window, 108k on the
  * 128k window the hosted model is read as, and move old big tool results to disk from 88k.
  * Over the hosted model's last week the time to the first token grew with the prompt: 4.7 s
  * at the median for 8 to 12k tokens, 9 s for 16 to 24k, 25 s for 24 to 40k, 54 s above 40k
  * (and 80 to 138 s at the 95th percentile), with 38 % of the calls over 16k; each day about
  * 770 calls waited the relay's full 180 s for nothing. So from 1.0.8 the phone compacts at
- * [COMPACT_TOKENS] whatever the window and offloads from [OFFLOAD_TOKENS], keeping the last
- * three exchanges whole as before; the tiers under 64k, which never reach these figures, are
- * untouched. The model still has its whole window for the reply.
+ * [COMPACT_TOKENS] whatever the window and offloads from [OFFLOAD_TOKENS], budgeting older replayed
+ * exchanges while preserving the newest user turn; the tiers under 64k, which never reach these figures, are
+ * untouched. Failed maintenance may continue below the capacity reserve in [ContextMaintenance].
  */
 object ContextBudget {
-    /** Above this the conversation is summarised before the next call. */
+    /** Above this the phone attempts to summarise the conversation before the next call. */
     const val COMPACT_TOKENS = 32_000
 
     /** Above this the next big tool result of an older message is written to disk. */
