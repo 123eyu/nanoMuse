@@ -22,6 +22,7 @@ import type { ApprovalOutcome, ApprovalRequestEvent } from '@deepseek-ai/dsh-use
 import { createUserMessage, type ContentBlock } from '@deepseek-ai/dsh-llm'
 import type { Session, SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-api-session-controller'
+import type { SessionCreateRequest } from '@deepseek-ai/dsh-api-session-controller/types'
 import { HubError, type Caller, type IncomingCall } from './hub.ts'
 
 /** The runtime's TASK_TIMEOUT_S: a task may run this long before the hub gives up on it. */
@@ -55,6 +56,12 @@ interface Run {
 export interface TaskRunnerOptions {
   /** This computer's name on the account, for the result and the approval cards over there. */
   deviceName(): string
+  /**
+   * What to create a device's chat with: the home workspace (`~/nanoMuse`, `home.ts`), never the
+   * bare home folder, where a `workspace-write` command cannot run on Windows (#705). Absent
+   * means dsh's default folder.
+   */
+  home?(): Promise<SessionCreateRequest>
   log(level: 'info' | 'warn', text: string): void
   /** A task started or ended here; the client shows it as a notice. */
   notice?(from: string, text: string): void
@@ -242,7 +249,7 @@ export class TaskRunner {
         return known
       }
     }
-    const created = await this.ctx.sessionController.create({ agentPreset: 'nanomuse' })
+    const created = await this.ctx.sessionController.create((await this.options.home?.()) ?? { agentPreset: 'nanomuse' })
     const title = `From ${from.name || from.id}`
     await this.ctx.sessionController.rename({ sessionId: created.sessionId, title }).catch(() => undefined)
     this.conversations.set(k, created.sessionId)
