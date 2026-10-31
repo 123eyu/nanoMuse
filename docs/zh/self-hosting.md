@@ -43,6 +43,8 @@ bash scripts/self-host.sh --local --bind 0.0.0.0   # 同一网络里的手机也
 
 ### 登录验证码 {#sign-in-codes}
 
+使用 `--local` 后，脚本会打印一条以 `cd cloud &&` 开头的 *Codes* 命令。在仓库根目录复制执行即可，命令已经带上本地中继使用的两个 compose 文件。
+
 每次有人登录都会发出一个验证码。`CODE_SENDER` 决定怎么发：
 
 - `log`：只打印到中继的日志（`cd cloud && docker compose logs relay` 里能看到 `verification code for …`）。一家人用够了：你把验证码念给对方。`--local` 用的就是这个。

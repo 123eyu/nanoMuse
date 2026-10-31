@@ -50,6 +50,8 @@ in `CLOUD_MODELS`, for example `{"old-chat-model":"new-chat-model"}`.
 
 ### Sign-in codes
 
+After `--local`, the script prints a *Codes* command that starts with `cd cloud &&`. Copy it from the repository root; it includes both compose files used for the local relay.
+
 A code goes out every time someone signs in. `CODE_SENDER` says how:
 
 - `log`: printed to the relay's log only (`cd cloud && docker compose logs relay` shows `verification code for …`). Fine for a family: you read the code out. This is what `--local` uses.
