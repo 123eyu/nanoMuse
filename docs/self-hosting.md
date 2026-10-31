@@ -128,4 +128,6 @@ nanomuse config init                      # or copy config/config.example.toml t
 docker compose up -d app                  # the web app on http://<host>:8787, the URL with its token in the logs
 ```
 
+If your local relay already uses port 8787, put `NANOMUSE_RUNTIME_PORT=8788` in the root `.env` before starting the app, then open it on port 8788. This changes the app's host port only; the container still listens on 8787. See [deployment.md](deployment.md#docker).
+
 The container sees only its data volume and `./workspace`; capabilities are dropped. Keeping it running, a published image for arm64, and reaching it from outside your network are in [deployment.md](deployment.md). The runtime signs in to a relay like any other device (yours, from section 2, if you set `NANOMUSE_CLOUD_BASE_URL`), and then the phone can hand it tasks over the hub like a computer that is always on ([every-device.md](every-device.md)).
