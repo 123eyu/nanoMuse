@@ -353,6 +353,24 @@ CREATE TABLE IF NOT EXISTS turns (
 CREATE INDEX IF NOT EXISTS turns_account ON turns(account_id, ts);
 CREATE INDEX IF NOT EXISTS turns_ts ON turns(ts);
 CREATE INDEX IF NOT EXISTS turns_conversation ON turns(account_id, conversation, ts);
+-- 0.31.1: the figures of a turn run on a key of the person's own (source 'own'), one small
+-- row each, so the Usage page's table by provider and model never reads the turns
+-- themselves: the provider sits in `meta` and the cached count in a column added after the
+-- bodies, and summing them over a week of turns walked every body (a 40 GB file took
+-- minutes a call and held the console's reads behind it). Written with the turn; older own
+-- turns are filled in by the backfill after start. Deleted with the turn.
+CREATE TABLE IF NOT EXISTS own_figures (
+    turn_id       TEXT PRIMARY KEY,
+    account_id    TEXT NOT NULL,
+    ts            INTEGER NOT NULL,
+    provider      TEXT NOT NULL DEFAULT '',
+    model         TEXT NOT NULL DEFAULT '',
+    prompt_tokens INTEGER NOT NULL DEFAULT 0,
+    completion_tokens INTEGER NOT NULL DEFAULT 0,
+    cached_tokens INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS own_figures_ts ON own_figures(ts);
+CREATE INDEX IF NOT EXISTS own_figures_account ON own_figures(account_id);
 -- 0.29: the files under MEDIA_DIR, one row each, and who may read which. A file is
 -- removed when its last reference goes (the account deleted its record) or when the
 -- store is over MEDIA_MAX_GB, oldest use first; the turn then keeps a reference to nothing.
@@ -419,6 +437,11 @@ BUSY_TIMEOUT_S = 5.0
 
 # How many entries of each index `PRAGMA optimize` may read for its statistics (see optimize()).
 ANALYSIS_LIMIT = 1000
+
+# How many rows the turn-key backfill writes per transaction (set_turn_keys): a turn's row is
+# rewritten whole, some hundred kilobytes with its request, so this many is a few megabytes
+# and the lock is held for a moment, not for a page.
+KEY_ROWS_PER_TX = 25
 
 # The per-account figures the invite views join in, requests made and money spent, in one
 # pass over the ledger (the same set of kinds as admin_accounts counts). For every account at
@@ -676,6 +699,18 @@ class Database:
         self._conn.execute("CREATE INDEX IF NOT EXISTS turns_key ON turns(turn_key) WHERE turn_key<>''")
         self._conn.execute("CREATE INDEX IF NOT EXISTS sample_stats_key ON sample_stats(turn_key) WHERE turn_key<>''")
         self._conn.execute("CREATE INDEX IF NOT EXISTS sample_stats_conversation ON sample_stats(account_id, conversation, ts)")
+        # 0.31: the record's figures beside its rows, never through them. A turn's row carries
+        # its request (tens to hundreds of kilobytes), and the columns the figures sum —
+        # `media`, the tokens, `turn_start` — come after it, so reading one of them walks
+        # the body's overflow pages: a sum over a week of turns read gigabytes (half a
+        # minute on a 30 GB file, more with the cache cold). This index holds what the
+        # figures and the question-by-question view read and filter on, a few hundred
+        # bytes a row; their queries name it (INDEXED BY) so the planner never trades it
+        # for the key or account index and a look-up per row.
+        self._conn.execute(
+            "CREATE INDEX IF NOT EXISTS turns_figures ON turns(ts, account_id, turn_start, turn_key, media, media_bytes, "
+            "source, status, prompt_tokens, completion_tokens, trajectory, conversation, script, platform, run, model)"
+        )
 
     # -- 0.15: settings the operator changes while the relay runs ------------------------------
 
@@ -1204,6 +1239,7 @@ class Database:
             # the record's rows go here; the files whose last reference this was are removed
             # by the service (Cloud.delete_account → purge_record) before it gets here
             c.execute("DELETE FROM turns WHERE account_id=?", (account_id,))
+            c.execute("DELETE FROM own_figures WHERE account_id=?", (account_id,))
             c.execute("DELETE FROM blob_refs WHERE account_id=?", (account_id,))
             c.execute("DELETE FROM client_events WHERE account_id=?", (account_id,))
             c.execute("DELETE FROM calls WHERE account_id=?", (account_id,))
@@ -1354,11 +1390,14 @@ class Database:
             return self._conn.execute(q, args).fetchall()
 
     def client_events_for_turns(self, turn_ids: list[str]) -> list[sqlite3.Row]:
+        """The events the apps reported about the turns named (``turn_id<>''`` is the partial
+        index's own term, client_events_turn; see turns_of)."""
         if not turn_ids:
             return []
         with self._lock:
             return self._conn.execute(
-                f"SELECT * FROM client_events WHERE turn_id IN ({','.join('?' * len(turn_ids))}) ORDER BY id", turn_ids
+                f"SELECT * FROM client_events WHERE turn_id<>'' AND turn_id IN ({','.join('?' * len(turn_ids))}) ORDER BY id",
+                turn_ids,
             ).fetchall()
 
     def client_events_summary(self, since: int, day_offset_s: int = 0) -> list[sqlite3.Row]:
@@ -1441,8 +1480,76 @@ class Database:
                     key,
                 ),
             )
+            # the figures row of an own turn (own_figures), replaced with the turn
+            c.execute("DELETE FROM own_figures WHERE turn_id=?", (row["id"],))
+            if row.get("source", "cloud") == "own":
+                self._add_own_figures(
+                    c,
+                    [
+                        {
+                            "id": row["id"],
+                            "account_id": row["account_id"],
+                            "ts": t,
+                            "model": row.get("model", ""),
+                            "prompt_tokens": int(row.get("prompt_tokens") or 0),
+                            "completion_tokens": int(row.get("completion_tokens") or 0),
+                            "cached_tokens": int(row.get("cached_tokens") or 0),
+                            "meta": row.get("meta", "{}"),
+                        }
+                    ],
+                )
             for m in media:
                 self._reference_blob(c, m, row["account_id"], "turn", t)
+
+    @staticmethod
+    def _add_own_figures(c: sqlite3.Cursor, rows: list[dict[str, Any]]) -> int:
+        """The figures rows of own turns, one each: the provider read from the turn's meta
+        (``{"provider": …}``), the rest as the turn has it. A row that is there already stays."""
+        n = 0
+        for r in rows:
+            try:
+                meta = json.loads(r.get("meta") or "{}")
+            except ValueError:
+                meta = {}
+            provider = str(meta.get("provider") or "")[:40] if isinstance(meta, dict) else ""
+            n += c.execute(
+                "INSERT OR IGNORE INTO own_figures(turn_id, account_id, ts, provider, model, prompt_tokens, completion_tokens, cached_tokens) "
+                "VALUES (?,?,?,?,?,?,?,?)",
+                (
+                    str(r["id"]),
+                    str(r["account_id"]),
+                    int(r["ts"]),
+                    provider,
+                    str(r.get("model") or "")[:80],
+                    int(r.get("prompt_tokens") or 0),
+                    int(r.get("completion_tokens") or 0),
+                    int(r.get("cached_tokens") or 0),
+                ),
+            ).rowcount
+        return n
+
+    def own_unfigured_page(self, after_ts: int, after_rowid: int, limit: int) -> list[sqlite3.Row]:
+        """The next own turns of the record, oldest first, for the backfill that writes their
+        figures rows (0.31.1): the turns that are not own are told apart in the figures
+        index, so only an own turn's row — its meta and cached count sit past the bodies —
+        is read."""
+        with self._lock:
+            return self._conn.execute(
+                "SELECT rowid, id, account_id, ts, model, prompt_tokens, completion_tokens, cached_tokens, meta "
+                "FROM turns INDEXED BY turns_figures WHERE ts>=? AND source='own' AND (ts>? OR rowid>?) "
+                "ORDER BY ts, rowid LIMIT ?",
+                (after_ts, after_ts, after_rowid, max(1, limit)),
+            ).fetchall()
+
+    def add_own_figures(self, rows: list[sqlite3.Row] | list[dict[str, Any]]) -> int:
+        """The figures rows of own turns the backfill read (own_unfigured_page); answers how
+        many were new."""
+        with self.tx() as c:
+            return self._add_own_figures(c, [dict(r) for r in rows])
+
+    def own_figures_count(self) -> int:
+        with self._lock:
+            return int(self._conn.execute("SELECT COUNT(*) FROM own_figures").fetchone()[0])
 
     # -- 0.31: one question, many calls (provenance.turn_start) -------------------------------
 
@@ -1496,34 +1603,38 @@ class Database:
     def set_turn_keys(self, table: str, rows: list[dict[str, Any]]) -> int:
         """``turn_start`` and ``turn_key`` written to rows the backfill described: each row is
         ``{rowid, account_id, conversation, turn_no, ts, start, id}``; the key of one that
-        continues a turn is looked up as it is written, so a page's openers key the rows
-        after them in the same transaction."""
+        continues a turn is looked up as it is written, after the rows before it, so a
+        page's openers key the rows after them. The page goes in transactions of
+        ``KEY_ROWS_PER_TX``: an update rewrites the row whole, body and all (a turn's row
+        carries its request), and one transaction over a page held the lock every request
+        takes for seconds."""
         if table not in ("turns", "sample_stats"):
             raise ValueError(table)
         n = 0
-        with self.tx() as c:
-            for r in rows:
-                start = bool(r["start"])
-                key = (
-                    str(r["id"])
-                    if start
-                    else self._turn_key_for(
-                        c,
-                        table,
-                        str(r["account_id"]),
-                        str(r.get("conversation") or ""),
-                        int(r.get("turn_no") or 0),
-                        int(r["ts"]),
-                        int(r["rowid"]),
+        for i in range(0, len(rows), KEY_ROWS_PER_TX):
+            with self.tx() as c:
+                for r in rows[i : i + KEY_ROWS_PER_TX]:
+                    start = bool(r["start"])
+                    key = (
+                        str(r["id"])
+                        if start
+                        else self._turn_key_for(
+                            c,
+                            table,
+                            str(r["account_id"]),
+                            str(r.get("conversation") or ""),
+                            int(r.get("turn_no") or 0),
+                            int(r["ts"]),
+                            int(r["rowid"]),
+                        )
                     )
-                )
-                sets = "turn_start=?, turn_key=?"
-                args: list[Any] = [1 if start else 0, key]
-                if table == "sample_stats" and "conversation" in r:
-                    sets += ", conversation=?, turn_no=?"
-                    args.extend([str(r.get("conversation") or "")[:80], int(r.get("turn_no") or 0)])
-                args.append(int(r["rowid"]))
-                n += c.execute(f"UPDATE {table} SET {sets} WHERE rowid=?", args).rowcount
+                    sets = "turn_start=?, turn_key=?"
+                    args: list[Any] = [1 if start else 0, key]
+                    if table == "sample_stats" and "conversation" in r:
+                        sets += ", conversation=?, turn_no=?"
+                        args.extend([str(r.get("conversation") or "")[:80], int(r.get("turn_no") or 0)])
+                    args.append(int(r["rowid"]))
+                    n += c.execute(f"UPDATE {table} SET {sets} WHERE rowid=?", args).rowcount
         return n
 
     def sample_stats_unkeyed_page(self, after_ts: int, after_rowid: int, limit: int) -> list[sqlite3.Row]:
@@ -1594,7 +1705,7 @@ class Database:
             "SELECT turn_key, COUNT(*) AS n, MIN(ts) AS ts0, MAX(ts) AS ts1, MIN(account_id) AS account_id, "
             "SUM(prompt_tokens) AS prompt_tokens, SUM(completion_tokens) AS completion_tokens, SUM(media) AS media, "
             "SUM(CASE WHEN trajectory<>'' THEN 1 ELSE 0 END) AS hands, SUM(CASE WHEN status='partial' THEN 1 ELSE 0 END) AS partial "
-            f"FROM turns WHERE {' AND '.join(where)} GROUP BY turn_key"
+            f"FROM turns INDEXED BY turns_figures WHERE {' AND '.join(where)} GROUP BY turn_key"
         )
         if having:
             q += " HAVING " + " AND ".join(having)
@@ -1604,17 +1715,20 @@ class Database:
             return self._conn.execute(q, args).fetchall()
 
     def turns_of(self, keys: list[str]) -> list[sqlite3.Row]:
-        """Every call of the turns named, oldest first, so the caller can lay each turn out."""
+        """Every call of the turns named, oldest first, so the caller can lay each turn out.
+        ``turn_key<>''`` repeats the partial index's own term (turns_key): a partial index
+        serves a query only when its WHERE says what the index's does, and ``IN`` alone does
+        not — without it, this was a scan of the record, every body read."""
         if not keys:
             return []
         with self._lock:
             return self._conn.execute(
-                f"SELECT * FROM turns WHERE turn_key IN ({','.join('?' * len(keys))}) ORDER BY ts, rowid", keys
+                f"SELECT * FROM turns WHERE turn_key<>'' AND turn_key IN ({','.join('?' * len(keys))}) ORDER BY ts, rowid", keys
             ).fetchall()
 
     def calls_per_turn(self, since: int = 0, account_id: str | None = None) -> list[tuple[int, int]]:
         """How many turns took how many calls, since ``since``: ``(calls, turns)`` pairs."""
-        q = "SELECT n, COUNT(*) AS turns FROM (SELECT COUNT(*) AS n FROM turns WHERE turn_key<>'' AND ts>=?"
+        q = "SELECT n, COUNT(*) AS turns FROM (SELECT COUNT(*) AS n FROM turns INDEXED BY turns_figures WHERE turn_key<>'' AND ts>=?"
         args: list[Any] = [since]
         if account_id is not None:
             q += " AND account_id=?"
@@ -1632,7 +1746,7 @@ class Database:
             "SUM(CASE WHEN turn_start<0 THEN 1 ELSE 0 END) AS pending, "
             "COUNT(DISTINCT CASE WHEN media>0 AND turn_key<>'' THEN turn_key END) AS with_media, "
             "COUNT(DISTINCT CASE WHEN trajectory<>'' AND turn_key<>'' THEN turn_key END) AS with_hands "
-            "FROM turns WHERE ts>=?"
+            "FROM turns INDEXED BY turns_figures WHERE ts>=?"
         )
         args: list[Any] = [since]
         if account_id is not None:
@@ -1722,7 +1836,8 @@ class Database:
             "SELECT COUNT(*) AS n, COUNT(DISTINCT account_id) AS accounts, SUM(prompt_tokens) AS prompt_tokens, "
             "SUM(completion_tokens) AS completion_tokens, SUM(media) AS media, SUM(media_bytes) AS media_bytes, "
             "SUM(CASE WHEN source='own' THEN 1 ELSE 0 END) AS own, "
-            f"SUM(CASE WHEN status='partial' THEN 1 ELSE 0 END) AS partial, {self._TURNS} FROM turns WHERE ts>=?"
+            f"SUM(CASE WHEN status='partial' THEN 1 ELSE 0 END) AS partial, {self._TURNS} "
+            "FROM turns INDEXED BY turns_figures WHERE ts>=?"
         )
         args: list = [since]
         if account_id is not None:
@@ -1748,7 +1863,7 @@ class Database:
             return self._conn.execute(
                 f"""SELECT {self._DAY} AS day, COUNT(*) AS n, COUNT(DISTINCT account_id) AS accounts,
                            SUM(media) AS media, SUM(media_bytes) AS media_bytes, {self._TURNS}
-                    FROM turns WHERE ts>=? GROUP BY day ORDER BY day""",
+                    FROM turns INDEXED BY turns_figures WHERE ts>=? GROUP BY day ORDER BY day""",
                 (offset_s, offset_s, offset_s, since),
             ).fetchall()
 
@@ -1759,6 +1874,7 @@ class Database:
         with self.tx() as c:
             held = [r[0] for r in c.execute("SELECT DISTINCT sha256 FROM blob_refs WHERE account_id=?", (account_id,)).fetchall()]
             n = c.execute("DELETE FROM turns WHERE account_id=?", (account_id,)).rowcount
+            c.execute("DELETE FROM own_figures WHERE account_id=?", (account_id,))
             c.execute("DELETE FROM blob_refs WHERE account_id=?", (account_id,))
             return n, self._drop_orphans(c, held)
 
@@ -1774,6 +1890,7 @@ class Database:
             for i in range(0, len(ids), 500):
                 page = ids[i : i + 500]
                 n += c.execute(f"DELETE FROM turns WHERE id IN ({','.join('?' * len(page))})", page).rowcount
+                c.execute(f"DELETE FROM own_figures WHERE turn_id IN ({','.join('?' * len(page))})", page)
             if len(ids) >= limit:
                 return n, []  # more turns to go first; the files follow on the last page
             gone = [
@@ -3223,14 +3340,16 @@ class Database:
     def own_usage_by_provider(self, since: int) -> list[sqlite3.Row]:
         """The turns people ran on keys of their own and sent up (source 'own'), per provider
         and model: turns, accounts, tokens and the cached part of the prompts (0.31 on; older
-        turns count 0 cached). `source` sits before the conversation in the row, so the turns
-        the relay answered itself are skipped without reading their bodies."""
+        turns count 0 cached). From the figures rows (own_figures), never the turns: a turn's
+        provider sits in its meta and its cached count past the bodies, and reading them for a
+        week of own turns walked every body (0.31.0 did, and a call took minutes on a large
+        file). Own turns kept before 0.31.1 count once the backfill has written their rows."""
         with self._lock:
             return self._conn.execute(
-                """SELECT COALESCE(json_extract(meta, '$.provider'), '') AS provider, model, COUNT(*) AS turns,
-                          COUNT(DISTINCT account_id) AS accounts, SUM(prompt_tokens) AS prompt_tokens,
-                          SUM(completion_tokens) AS completion_tokens, SUM(cached_tokens) AS cached_tokens
-                   FROM turns WHERE ts>=? AND source='own' GROUP BY provider, model ORDER BY turns DESC""",
+                """SELECT provider, model, COUNT(*) AS turns, COUNT(DISTINCT account_id) AS accounts,
+                          SUM(prompt_tokens) AS prompt_tokens, SUM(completion_tokens) AS completion_tokens,
+                          SUM(cached_tokens) AS cached_tokens
+                   FROM own_figures WHERE ts>=? GROUP BY provider, model ORDER BY turns DESC""",
                 (since,),
             ).fetchall()
 
