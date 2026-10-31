@@ -1310,6 +1310,9 @@ export const en = {
   pmBlackTitle: 'The hands see a black screen',
   pmBlackBody: 'macOS applies Screen Recording only to freshly started apps. Make sure nanoMuse Desktop is on in System Settings → Privacy & Security → Screen Recording, then relaunch.',
   pmBlackRelaunch: 'Relaunch now',
+  pmRelaunchRunning: 'Restarting…',
+  pmRelaunchFailed: 'The restart did not complete. Try again.',
+  pmRelaunchFailedReason: 'The restart did not complete: {error}',
   pmBlackLater: 'Later',
   // desk-a: the first run (C4), as the phone has it
   frWelcomeTitle: 'Welcome to nanoMuse',
@@ -2839,6 +2842,9 @@ export const zh: typeof en = {
   pmBlackTitle: '截到的屏幕是一片黑',
   pmBlackBody: 'macOS 的屏幕录制只对重新启动后的应用生效。确认 系统设置 → 隐私与安全性 → 屏幕录制 里 nanoMuse Desktop 已打开，然后重新启动。',
   pmBlackRelaunch: '立即重启',
+  pmRelaunchRunning: '正在重启…',
+  pmRelaunchFailed: '重启未完成，请重试。',
+  pmRelaunchFailedReason: '重启未完成：{error}',
   pmBlackLater: '稍后',
   // desk-a: the first run (C4), as the phone has it
   frWelcomeTitle: '欢迎使用 nanoMuse',

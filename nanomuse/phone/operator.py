@@ -27,6 +27,7 @@ original Qwen ``mobile_use`` tool restored and our device actions on the other e
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import itertools
 import json
 import re
@@ -688,6 +689,17 @@ COMPUTER = Dialect(
 # ------------------------------------------------------------------ the operator
 
 
+def _screen_key(screen: Screen) -> str:
+    """The same coordinates on a different page are progress, not a repeated click."""
+    state = json.dumps([screen.app, screen.route, screen.nodes], sort_keys=True)
+    if not screen.nodes and screen.image_path:
+        try:
+            state += hashlib.sha256(Path(screen.image_path).read_bytes()).hexdigest()
+        except OSError:
+            pass
+    return state
+
+
 class PhoneOperator:
     def __init__(
         self,
@@ -871,7 +883,7 @@ class PhoneOperator:
     async def _steps(self, instruction: str, app: str, outcome: Outcome, trace: Trace) -> None:
         """The loop itself: ``outcome`` is filled in whichever way it ends."""
         steps: list[str] = []  # the "Action:" sentences, with results appended
-        recent: list[dict[str, Any]] = []  # the last device actions, to notice loops
+        recent: list[tuple[str, dict[str, Any]]] = []  # observations and actions, to notice loops
         try:
             if app:
                 await self._act({"action": "open_app", "app": app, "label": f"open {app}"}, outcome)
@@ -1005,8 +1017,11 @@ class PhoneOperator:
                 continue
             assert params is not None
 
-            recent.append(params)
-            if len(recent) >= 3 and all(_same_action(recent[-3], r) for r in recent[-2:]):
+            recent.append((_screen_key(screen), params))
+            if len(recent) >= 3 and all(
+                recent[-3][0] == key and _same_action(recent[-3][1], action)
+                for key, action in recent[-2:]
+            ):
                 steps.append(
                     f"{entry}; Note: this same action was taken three times with no visible "
                     "change; try another way, or terminate with status failure"

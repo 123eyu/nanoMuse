@@ -98,7 +98,8 @@ harness 保留外部下载方式。不带软件内更新能力的版本，需先
 - **Reach**：这台电脑出现在账号的设备列表里，走 [hub](hub.md)（设备互联）；`devices`、
   `device_screen`、`device_shell`、`device_files`、`device_open`、`device_notify` 和 `delegate`
   这些工具面向手机和其他电脑；手机发来的 `delegate` 在这里落成一段「来自 <device>」的 dsh
-  会话，它的审批被转回手机，发起方要求时（`stream`）模型边写边把文字发过去；远程控制（`shell`、`files`、`open`、`screen`）在一个开关后面；
+  会话，它的审批被转回手机，发起方要求时（`stream`）模型边写边把文字发过去；如果这段聊天在上次任务后被归档，
+  新任务到来时会先恢复聊天，和打开聊天继续输入一样；远程控制（`shell`、`files`、`open`、`screen`）在一个开关后面；
 - **编程助手**：「设置 → 编程助手」，这台电脑上的 Cursor、Codex、Claude Code 和 DeepSeek Harness
   聊天（从磁盘读取，发一条消息就启动助手自己的 CLI，运行连同它的工具一边跑一边显示，「停止」
   结束它），之后是账号下其他电脑的，走这台电脑同样声明的 `coding.*` hub 动作；设备卡片上的
@@ -417,7 +418,9 @@ com.apple.quarantine`；日志里写 `helper: removed the quarantine flag…`）
 
 - 录屏权限只对新启动的进程生效；这里的进程就是助手程序。应用运行期间开关被拨动时，应用会
   自己重启助手程序（日志写 `restarting the helper for the new grant`）；权限页上的「重启」按钮
-  重启的也是助手程序，从不重启应用，连点两下算一次重启。
+  重启的也是助手程序，从不重启应用，连点两下算一次重启。如果助手程序还在启动，重启会等它启动完再替换它。
+  按钮会显示「正在重启…」，直到新进程回应；失败时显示原因，成功后才清除旧的黑屏提示。
+  再拍一张测试截图即可检查录屏权限是否生效。
 - 截的是主显示器，最多 2 Mpx（3456×2234 的 Retina 面板会缩到 1758×1137），坐标以点（point）为
   单位。只截取、只操作主显示器。跨动作按住一个键（`press` / `release`，UI-TARS 的叫法）从 0.1.39
   起可用。
