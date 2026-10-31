@@ -325,6 +325,21 @@ are readable by the owner alone, as the proxy address may carry a password. *Dow
 agent data* writes its zip one file at a time, leaves out links and anything over 64 MB,
 and removes a password from the proxy address in the `desktop.json` it packs.
 
+## The agent's desktop guide
+
+The nanoMuse preset includes a `nanomuse-desktop` skill. Its description appears in the
+native DeepSeek Harness skill catalog; the `skill` tool loads its full guide only when
+needed. Ask how to connect a second-brain folder or configure a desktop capability, and
+the agent has local instructions for the current desktop instead of searching app source.
+The guide covers settings, workspaces, permissions, connectors and MCP, skills, memory,
+and rooms, with the current workspace and harness-home paths supplied by the host.
+
+For a folder you want every chat to find, the guide explains how to keep a pointer in
+the workspace's `AGENTS.md`, or in `$DSH_HOME/AGENTS.md` across workspaces. It does not
+copy the folder or grant access: writes outside a chat's workspace still need approval,
+including when reached through a Windows junction or a symlink. Credential entry and
+settings without an agent-facing tool stay in their existing settings pages.
+
 ## Models
 
 Settings → Models, right after General, is one row per thing a model does: *Chat*,
