@@ -212,8 +212,8 @@ jobs:
           npm run check
           npm run build
 
-      # Linux only for now: on a CRLF Windows checkout the built pages differ from what the
-      # repository holds, until the console's sources keep LF on every platform (#669).
+      # Keep one canonical committed-build comparison on Linux; both platforms build and
+      # test the console above. The console sources use LF on both platforms.
       - name: Admin console build is committed
         if: env.RUN == 'true' && github.actor != 'dependabot[bot]' && matrix.os == 'ubuntu-latest'
         run: |

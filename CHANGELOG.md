@@ -6,6 +6,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Cloud
 
+- **The relay's checks ran on Windows as well as Linux.** Both platforms checked the cloud service and built and tested its admin console. Changes to the showcase mirror also ran these checks because the cloud tests load those scripts. The committed-build check remained on Linux. ([#670](https://github.com/nano-muse/nanoMuse/pull/670))
+
 ### Runtime
 
 ### Web
@@ -69,7 +71,6 @@ Crew: four days after Logbook, a fifth look at the whole project with the sevent
 - **Deletions reach a set built earlier.** The training and client-event exports carry `subject`, a pseudonym for the account (a keyed hash under the relay's secret); deleting kept data or the account writes that pseudonym and the time to a ledger (`GET /v1/admin/deletions?since=`), which is all that outlives the account, so the next build of a set drops those subjects. [docs/cloud.md](docs/cloud.md#deletions), [privacy](docs/privacy.md).
 - **`self-host.sh --local --bind 0.0.0.0` writes the machine's LAN address into the URLs.** The relay listened on every interface, but `PUBLIC_BASE`, the invitation links and the console URL the script printed still said `127.0.0.1`, which no phone can open; the script now looks the LAN address up (and says so when it finds none), takes a specific `--bind` address as given, waits for `/healthz` on the address it actually published, and moves the invitation link along when a second run changes the address. A relay at a private address with the codes in its log no longer logs the "nobody receives a code" error at start; that one is for public addresses. ([#673](https://github.com/nano-muse/nanoMuse/pull/673))
 - **A cloud console build on Windows no longer rewrites its index.html for nothing.** Git for Windows checks `cloud/console` out as CRLF by default, and Vite carries a source's line endings into the HTML it writes: `npm run build` took the admin `index.html` from LF to CRLF (585 to 600 bytes, one line's carriage return doubled) and left `cloud/nanomuse_cloud/console/admin/index.html` with 28 lines of diff on a build that changed nothing, so a Windows contributor could not rebuild the console without mixing that churn into their change. `cloud/console/**` keeps LF on every platform now, the way `web/` and `harness/` already do; built from the same sources, the admin pages come out byte for byte what the repository holds.
-- **The relay's checks run on Windows too.** The cloud job in `ci.yml` ran on Linux only, so a Windows break landed unseen: the showcase mirror scripts that the cloud's own tests load died on every Windows run at `import fcntl` while the checks stayed green (#656 was found by hand). The job now runs `ruff`, the cloud tests and the admin console's lint, typecheck and tests on `ubuntu-latest` and `windows-latest`, and it can fail the build on both — the suite has no POSIX-shell surface, and its one skip on Windows is the check for an unprivileged user. A change under `demo/showcase/mirror/**` now runs the cloud checks as well, since they load those scripts. The committed-build gate for the admin console stays on Linux until its sources keep LF on every platform (#669), which is what makes a Windows build produce the pages the repository holds.
 
 ### Runtime
 
