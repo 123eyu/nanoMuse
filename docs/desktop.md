@@ -539,7 +539,10 @@ More to know:
 - Screen Recording reaches freshly started processes only; that process is the helper. When
   the switch flips while the app runs, the app restarts the helper by itself (the log says
   `restarting the helper for the new grant`); the *Restart* button on the Permissions page
-  restarts the helper too, never the app, and two clicks are one restart.
+  restarts the helper too, never the app, and two clicks are one restart. If the helper is
+  still starting, the restart waits for that process and replaces it. The button shows
+  *Restarting…* until the replacement answers, reports a failed restart, and clears the
+  old black-screen notice only after success. A fresh test screenshot checks the grant.
 - The picture is the main display, at most 2 Mpx (a 3456×2234 Retina panel comes down to
   1758×1137), coordinates in points. Only the main display is captured and driven. Holding a
   key across actions (`press` / `release`, UI-TARS's names) works since 0.1.39.
