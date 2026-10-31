@@ -6,13 +6,19 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Cloud
 
+- **The relay's checks ran on Windows as well as Linux.** Both platforms checked the cloud service and built and tested its admin console. Changes to the showcase mirror also ran these checks because the cloud tests load those scripts. The committed-build check remained on Linux. ([#670](https://github.com/nano-muse/nanoMuse/pull/670))
+- **The local self-hosting script printed a working command for sign-in codes.** Its hint now enters `cloud/` before reading the relay logs, so it can be copied from the repository root. ([#716](https://github.com/nano-muse/nanoMuse/pull/716))
+
 ### Runtime
+
+- **The Docker web app could use a different host port.** Set `NANOMUSE_RUNTIME_PORT` when port 8787 is occupied, including when a local relay shares the host. The default and the container port remain 8787. ([#717](https://github.com/nano-muse/nanoMuse/pull/717))
 
 ### Web
 
 ### Desktop
 
 - **A task from the phone works again after its chat was archived.** nanoMuse Desktop keeps a task's conversation in one chat, *From <device>*, and reuses it for the next task from the same device. Once somebody archived that chat in the chats column, the harness's archived-session gate refused every later task before the model was asked: the turn ended `blocked`, the hub answered with no words, and the phone drew 「完成」 as if the work had been done. A task now brings its chat back, as opening the chat and typing in it does, and a task a chat still refuses to start fails with a sentence instead of an empty answer. ([#718](https://github.com/nano-muse/nanoMuse/issues/718))
+- **Fixed the macOS helper restart during startup and delayed replies from its old process.** The restart button now waits for the replacement helper, shows a failure when it cannot restart, and clears the old black-screen notice only after a confirmed restart. For [#715](https://github.com/nano-muse/nanoMuse/issues/715).
 - **The feed's daily batch no longer turns up on the phone.** The desktop writes the feed in a chat of its own each morning (*Feed · <date>*, archived when done); with *Also sync side chats* on, that chat went up like any other and appeared on the account's phones every day, deleted or not. The rooms now remember their batches' chats and the sync leaves them out, like another device's task. ([#713](https://github.com/nano-muse/nanoMuse/issues/713))
 - **A chat another device sends a task to, and every chat the rooms open, start in the `~/nanoMuse` workspace** instead of the bare home folder. On Windows a workspace that is the whole profile folder could not run a single `workspace-write` command: the sandbox's temp root lies inside it, and a session begun from the web console or the phone failed at the first step. ([#705](https://github.com/nano-muse/nanoMuse/issues/705))
 
@@ -26,8 +32,11 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 ### iOS
 
 - **A task sent with `@<device>` no longer answers 「完成」 when nothing came back.** An `@Mac …` line whose task did not run showed *Done*, as if the work had happened; it now says the device finished without an answer, and the steps above it say what did happen. ([#718](https://github.com/nano-muse/nanoMuse/issues/718))
+- **Kept System Auto reply speech on the chosen language-specific voice.** An inactive concrete voice later in the Voice Output group no longer overrides Auto. A concrete System voice explicitly selected for Voice Output still takes priority. For [#722](https://github.com/nano-muse/nanoMuse/issues/722).
 
 ### Project
+
+- **GUI regression gained 20 fixed simulated tasks and independent state checks.** Reference mode ran offline in CI, an opt-in runner used a configured model, and a standalone recorder reported model calls, latency and available token usage. The cases also corrected loop detection for identical click coordinates on different pages. [GUI regression](docs/gui-regression.md).
 
 - **The docs say which approval cards reach the phone:** only those of a scheduled task running on nanoMuse Desktop. A card of a chat somebody is typing in, on the desktop or in the web console, stays where it was asked, and the Python runtime does not push yet; the hub page, the troubleshooting page and the desktop page say so. ([#704](https://github.com/nano-muse/nanoMuse/issues/704))
 
@@ -168,6 +177,7 @@ Crew: four days after Logbook, a fifth look at the whole project with the sevent
 - **A slow answer through nanoMuse Cloud is waited for, up to 300 seconds.** The app gave a stream up after 120 seconds without an event and sent the turn again from the start; through the relay, which holds a request while the model is busy and gives the provider up itself after 180 seconds, that cut off the slow turns and put them at the back of the queue again (over the last week, half of the iPhone's abandoned calls ended at exactly 120 seconds). The relay's streams get 300 seconds now, as on the desktop; a provider of your own keeps the app's 120.
 
 ### Project
+
 
 - An *iOS · Beta group* workflow hands a TestFlight build to the external group *nanoMuse Beta* and submits it for Apple's beta review (*Run workflow* with the build number and a note), so the public link gets a version without a sign-in to App Store Connect.
 - The harness bundle workflow builds a branch once, through its pull request (and main and the release tags as before); a push to a branch with a pull request open ran the Linux and Windows jobs twice.
