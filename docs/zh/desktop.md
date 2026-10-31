@@ -98,7 +98,8 @@ harness 保留外部下载方式。不带软件内更新能力的版本，需先
 - **Reach**：这台电脑出现在账号的设备列表里，走 [hub](hub.md)（设备互联）；`devices`、
   `device_screen`、`device_shell`、`device_files`、`device_open`、`device_notify` 和 `delegate`
   这些工具面向手机和其他电脑；手机发来的 `delegate` 在这里落成一段「来自 <device>」的 dsh
-  会话，它的审批被转回手机，发起方要求时（`stream`）模型边写边把文字发过去；远程控制（`shell`、`files`、`open`、`screen`）在一个开关后面；
+  会话，它的审批被转回手机，发起方要求时（`stream`）模型边写边把文字发过去；如果这段聊天在上次任务后被归档，
+  新任务到来时会先恢复聊天，和打开聊天继续输入一样；远程控制（`shell`、`files`、`open`、`screen`）在一个开关后面；
 - **编程助手**：「设置 → 编程助手」，这台电脑上的 Cursor、Codex、Claude Code 和 DeepSeek Harness
   聊天（从磁盘读取，发一条消息就启动助手自己的 CLI，运行连同它的工具一边跑一边显示，「停止」
   结束它），之后是账号下其他电脑的，走这台电脑同样声明的 `coding.*` hub 动作；设备卡片上的

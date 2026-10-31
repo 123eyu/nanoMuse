@@ -149,8 +149,8 @@ enum NanoMuseDeviceMention {
                 if live.stopped {
                     await live.finish(header: nil, answer: AppLocalized("Stopped."), replacing: false, completion: .stopped)
                 } else {
-                    // `failed` is the computer's own sentence that the task did not run (#718): the
-                    // card says so in this phone's words, where an empty answer once read as "Done".
+                    // A failed call can have completed earlier steps. Describe the failure without
+                    // claiming the task never started; an empty answer must not read as "Done".
                     let reason = NanoMuseHubErrors.describe(error)
                     await live.finish(header: nil, answer: String(format: AppLocalized("%@ did not answer: %@"), device.name, reason), replacing: false, completion: .failed(reason))
                 }

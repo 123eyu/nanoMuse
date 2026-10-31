@@ -11614,65 +11614,6 @@
         }
       }
     },
-    "The task did not start on the computer." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Die Aufgabe wurde auf dem Computer nicht begonnen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The task did not start on the computer."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La tarea no empezó en la computadora."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La tâche n’a pas commencé sur l’ordinateur."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "コンピューターでタスクが始まりませんでした。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "컴퓨터에서 작업이 시작되지 않았습니다."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Задача не началась на компьютере."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "任务没能在电脑上开始。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "任務沒能在電腦上開始。"
-          }
-        }
-      }
-    },
     "Reply failed" : {
       "extractionState" : "manual",
       "localizations" : {
