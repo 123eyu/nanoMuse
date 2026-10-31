@@ -16,6 +16,8 @@ All notable changes to nanoMuse. The format follows [Keep a Changelog](https://k
 
 ### Desktop
 
+- **Added an on-demand guide for the agent's own desktop capabilities.** The native skill catalog now includes workspace and second-brain folder guidance, Windows paths, settings, connectors, skills, memory, and rooms, without searching app source or private configuration. Existing approval rules still apply. For [#712](https://github.com/nano-muse/nanoMuse/issues/712).
+
 - **The feed's daily batch no longer turns up on the phone.** The desktop writes the feed in a chat of its own each morning (*Feed · <date>*, archived when done); with *Also sync side chats* on, that chat went up like any other and appeared on the account's phones every day, deleted or not. The rooms now remember their batches' chats and the sync leaves them out, like another device's task. ([#713](https://github.com/nano-muse/nanoMuse/issues/713))
 - **A chat another device sends a task to, and every chat the rooms open, start in the `~/nanoMuse` workspace** instead of the bare home folder. On Windows a workspace that is the whole profile folder could not run a single `workspace-write` command: the sandbox's temp root lies inside it, and a session begun from the web console or the phone failed at the first step. ([#705](https://github.com/nano-muse/nanoMuse/issues/705))
 
